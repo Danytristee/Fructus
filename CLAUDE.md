@@ -40,7 +40,13 @@ ERP simple, **por voz**, para un mayorista de frutas de La Hermelinda (Trujillo,
 
 ## Base de datos
 
-- Migraciones en `supabase/migrations/`, datos de demo en `supabase/seed.sql`.
+- Proyecto Supabase: **Fructus** (`fwrqquugiktwklleqwfa`, región `sa-east-1`, Postgres 17), en la organización de Danytristee.
+- Migraciones en `supabase/migrations/`, datos de demo en `supabase/seed.sql` (ya cargados).
+- **Regla de migraciones:** toda migración aplicada al proyecto se guarda en el repo con el **mismo número de versión** que muestra Supabase (`list_migrations`). Así la CLI no intenta aplicarla dos veces.
+- Avisos del linter que se dejan a propósito:
+  - `series_comprobante` tiene RLS sin políticas porque solo la toca el servidor.
+  - `rol_actual()` es security definer y la pueden ejecutar los usuarios autenticados, porque las políticas la necesitan.
+  - Los avisos de rendimiento (políticas permisivas múltiples, llaves foráneas sin índice) no importan a 60 ventas por día; se revisan antes de producción.
 - Nombres de tablas, columnas y funciones **en español** (`ventas`, `abonos`, `registrar_venta`). El código de infraestructura puede estar en inglés.
 - Las operaciones de varias tablas se hacen por RPC para que sean atómicas: `registrar_venta`, `registrar_compra`, `anular_venta`.
 - Lectura de saldos y resúmenes: `v_stock`, `v_saldo_clientes`, `resumen_dia()`, `ultimo_precio()`.
