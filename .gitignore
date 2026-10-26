@@ -1,0 +1,21 @@
+# dependencias
+node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# entorno — nunca subir claves
+.env
+.env*.local
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+# sistema
+.DS_Store
+*.log
+.vercel
