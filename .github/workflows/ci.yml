@@ -1,0 +1,104 @@
+# CI de Fructus — lo que Vercel no corre.
+#
+# Dos trabajos:
+#   1. «Tipos, lint y pruebas»: TypeScript, ESLint, Vitest, Knip y build de Next.
+#   2. «Pruebas de la base»: levanta Supabase con Docker, aplica las migraciones y el seed,
+#      y corre pgTAP (supabase/tests) y las invariantes (scripts/invariantes.sql).
+#
+# Lo que este CI NO dice: que la pantalla se vea bien a 412 px ni que la voz entienda.
+# Eso lo dicen /formidable y /voz-precision, y la captura que lleva cada PR.
+#
+# Mientras la app no exista (no hay package.json), el primer trabajo avisa y sale en verde.
+# Un PR en rojo no se fusiona.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Dos pushes seguidos a un PR: el primero se cancela. Cada commit de main se verifica entero.
+concurrency:
+  group: ci-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: Tipos, lint y pruebas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Valores de mentira: solo para que el build compile. Nunca claves reales aquí.
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: clave-de-prueba
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ¿Ya existe la app?
+        id: app
+        run: |
+          if [ -f package.json ]; then
+            echo "existe=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "existe=no" >> "$GITHUB_OUTPUT"
+            echo "::notice::Todavía no hay package.json: no hay código que verificar."
+          fi
+
+      - uses: pnpm/action-setup@v4
+        if: steps.app.outputs.existe == 'si'
+
+      - uses: actions/setup-node@v4
+        if: steps.app.outputs.existe == 'si'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar
+        if: steps.app.outputs.existe == 'si'
+        run: pnpm install --frozen-lockfile
+
+      - name: Tipos
+        if: steps.app.outputs.existe == 'si' && !cancelled()
+        run: pnpm typecheck
+
+      - name: Lint
+        if: steps.app.outputs.existe == 'si' && !cancelled()
+        run: pnpm lint
+
+      - name: Pruebas
+        if: steps.app.outputs.existe == 'si' && !cancelled()
+        run: pnpm test
+
+      - name: Código muerto (Knip)
+        if: steps.app.outputs.existe == 'si' && !cancelled()
+        run: pnpm knip
+
+      - name: Build
+        if: steps.app.outputs.existe == 'si' && !cancelled()
+        run: pnpm build
+
+  base:
+    name: Pruebas de la base
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Levantar Supabase (migraciones + seed)
+        # Solo lo que las pruebas necesitan: Postgres, Auth y la API.
+        run: supabase start -x storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta,mailpit
+
+      - name: pgTAP
+        run: supabase test db
+
+      - name: Invariantes
+        if: ${{ !cancelled() }}
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f scripts/invariantes.sql

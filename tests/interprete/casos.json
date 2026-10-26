@@ -1,0 +1,121 @@
+{
+  "descripcion": "Casos del intérprete de voz de Fructus. Los corre /voz-precision. Los textos se comparan normalizados (minúsculas, sin tildes). Un valor null en lo esperado significa que el intérprete NO debe inventarlo.",
+  "casos": [
+    {
+      "id": "venta-contado-yape",
+      "transcripcion": "Vendí 10 jabas de mango kent a don Lucho a 45, me yapeó",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [{ "producto_texto": "mango kent", "cantidad": 10, "precio_unitario": 45 }],
+          "condicion": "contado",
+          "medio_pago": "yape",
+          "comprobante": "ninguno"
+        }
+      }
+    },
+    {
+      "id": "venta-credito-sin-precio",
+      "transcripcion": "Diez de papaya para la del puesto doce, lo debe",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "la del puesto 12",
+          "items": [{ "producto_texto": "papaya", "cantidad": 10, "precio_unitario": null }],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "venta-dos-items-factura-sin-condicion",
+      "transcripcion": "5 de plátano seda y 3 de piña al Paraíso a 30 y 40, factura",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "paraiso",
+          "items": [
+            { "producto_texto": "platano seda", "cantidad": 5, "precio_unitario": 30 },
+            { "producto_texto": "pina", "cantidad": 3, "precio_unitario": 40 }
+          ],
+          "condicion": null,
+          "comprobante": "factura"
+        }
+      }
+    },
+    {
+      "id": "venta-rebaja-precio-final",
+      "transcripcion": "Mango a don Lucho, 8 jabas, le dejé a 42",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [{ "producto_texto": "mango", "cantidad": 8, "precio_unitario": 42 }],
+          "condicion": null
+        }
+      }
+    },
+    {
+      "id": "abono-efectivo",
+      "transcripcion": "Don Lucho me abonó 200 en efectivo",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": { "cliente_texto": "don lucho", "monto": 200, "medio_pago": "efectivo" }
+      }
+    },
+    {
+      "id": "compra-proveedor",
+      "transcripcion": "Llegaron 50 jabas de plátano isla del de Chao a 25",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": "el de chao",
+          "items": [{ "producto_texto": "platano isla", "cantidad": 50, "costo_unitario": 25 }]
+        }
+      }
+    },
+    {
+      "id": "merma",
+      "transcripcion": "Se malograron 3 jabas de papaya",
+      "esperado": {
+        "herramienta": "registrar_merma",
+        "datos": { "producto_texto": "papaya", "cantidad": 3 }
+      }
+    },
+    {
+      "id": "gasto-flete",
+      "transcripcion": "Pagué 80 de flete",
+      "esperado": {
+        "herramienta": "registrar_gasto",
+        "datos": { "categoria": "flete", "monto": 80 }
+      }
+    },
+    {
+      "id": "consulta-quien-debe",
+      "transcripcion": "¿Quién me debe?",
+      "esperado": { "herramienta": "consultar", "datos": { "consulta": "quien_me_debe" } }
+    },
+    {
+      "id": "consulta-deuda-cliente",
+      "transcripcion": "¿Cuánto me debe el flaco?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": { "consulta": "deuda_cliente", "cliente_texto": "el flaco" }
+      }
+    },
+    {
+      "id": "consulta-stock-producto",
+      "transcripcion": "¿Cuántas jabas de mango me quedan?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": { "consulta": "stock_producto", "producto_texto": "mango" }
+      }
+    },
+    {
+      "id": "no-entendido",
+      "transcripcion": "Oye, ¿ya almorzaste?",
+      "esperado": { "herramienta": "no_entendido", "datos": {} }
+    }
+  ]
+}

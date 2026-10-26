@@ -224,7 +224,7 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 | "¿Cuántas jabas de mango me quedan?" | consultar | stock_producto, "mango" |
 | "Oye, ¿ya almorzaste?" | no_entendido | — |
 
-Guardar cada caso en `tests/interprete/casos.json` y correrlos contra el modelo real: la tasa de acierto es una métrica del proyecto universitario.
+Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre contra el modelo real. La tasa de acierto es una métrica del proyecto universitario. Un caso que falla nunca se borra para mejorar el número.
 
 ## 5. Después de interpretar
 

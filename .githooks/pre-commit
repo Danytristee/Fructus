@@ -1,0 +1,88 @@
+#!/bin/sh
+# Pre-commit de Fructus. Revisa SOLO lo que estás por commitear: tipos, pruebas
+# relacionadas y lint.
+#
+# POR QUÉ ASÍ (aprendido en CAYLA Retail): un hook que revisa todo el proyecto
+# tarda minutos, y un hook lento se saltea con --no-verify a la tercera vez;
+# entonces tampoco corren las pruebas. Sobre los archivos del commit tarda segundos.
+#
+# Se activa con `pnpm install` (script `prepare`: git config core.hooksPath .githooks).
+# Emergencia real: git commit --no-verify
+
+RAIZ=$(git rev-parse --show-toplevel) || exit 1
+cd "$RAIZ" || exit 1
+
+# A=añadido C=copiado M=modificado R=renombrado. Los borrados no se revisan.
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR \
+  | grep -E '\.(ts|tsx|js|jsx|mjs)$' \
+  | grep -v -E '^(node_modules|\.next|docs)/')
+
+# Un commit de solo documentación, SQL o configuración no paga el peaje.
+[ -z "$STAGED" ] && exit 0
+
+# Todavía no existe la app (fase de documentos): nada que revisar.
+[ -f package.json ] || exit 0
+
+# Los clientes gráficos de git no heredan el PATH del shell: se avisa y se deja pasar.
+if ! command -v pnpm >/dev/null 2>&1; then
+  printf '\n  ! No encuentro `pnpm` en el PATH: me salto la revisión previa.\n'
+  printf '    Revisa a mano con: pnpm typecheck && pnpm lint && pnpm test\n\n'
+  exit 0
+fi
+
+TMP=$(mktemp -d) || exit 1
+trap 'rm -rf "$TMP"' EXIT
+echo "$STAGED" > "$TMP/archivos.txt"
+FALLO=0
+AVISO=0
+
+printf '\n  Revisando %s archivo(s) antes de commitear…\n\n' "$(wc -l < "$TMP/archivos.txt" | tr -d ' ')"
+
+# ---------- 1. Tipos ----------
+# tsc ve todo el proyecto. Solo detiene el commit si el error está en un archivo de
+# ESTE commit; los demás se avisan (el build de producción sí los va a rechazar).
+pnpm exec tsc --noEmit > "$TMP/tsc.txt" 2>&1
+if [ -s "$TMP/tsc.txt" ] && grep -q 'error TS' "$TMP/tsc.txt"; then
+  grep -F -f "$TMP/archivos.txt" "$TMP/tsc.txt" > "$TMP/tsc-mios.txt" 2>/dev/null
+  if [ -s "$TMP/tsc-mios.txt" ]; then
+    printf '  ✗ Errores de tipos en archivos de este commit:\n\n'
+    sed 's/^/    /' "$TMP/tsc-mios.txt"
+    printf '\n'
+    FALLO=1
+  else
+    printf '  ! Hay errores de tipos en OTROS archivos (no de este commit):\n\n'
+    grep 'error TS' "$TMP/tsc.txt" | head -5 | sed 's/^/    /'
+    printf '\n'
+    AVISO=1
+  fi
+fi
+
+# ---------- 2. Pruebas relacionadas con lo que cambió ----------
+# shellcheck disable=SC2046
+if ! pnpm exec vitest related --run --passWithNoTests $(cat "$TMP/archivos.txt") > "$TMP/test.txt" 2>&1; then
+  printf '  ✗ Pruebas en rojo:\n\n'
+  tail -25 "$TMP/test.txt" | sed 's/^/    /'
+  printf '\n'
+  FALLO=1
+fi
+
+# ---------- 3. Lint, solo de los archivos del commit ----------
+if ! xargs pnpm exec eslint --no-warn-ignored < "$TMP/archivos.txt" > "$TMP/lint.txt" 2>&1; then
+  printf '  ✗ Lint:\n\n'
+  head -40 "$TMP/lint.txt" | sed 's/^/    /'
+  printf '\n'
+  FALLO=1
+fi
+
+if [ "$FALLO" -ne 0 ]; then
+  printf '  Commit detenido. Arregla lo de arriba y vuelve a intentar.\n'
+  printf '  Solo en una emergencia real: git commit --no-verify\n\n'
+  exit 1
+fi
+
+if [ "$AVISO" -ne 0 ]; then
+  printf '  ✓ Lo de este commit está en verde (queda el aviso de arriba).\n\n'
+else
+  printf '  ✓ Tipos, pruebas y lint en verde.\n\n'
+fi
+exit 0
