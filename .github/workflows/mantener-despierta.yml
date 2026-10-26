@@ -1,0 +1,39 @@
+# Supabase pausa los proyectos del plan gratis tras 7 días sin actividad. Este trabajo
+# hace una consulta de lectura cada 3 días para que eso no pase en medio de la demo.
+#
+# Necesita dos secrets del repo (Settings ▸ Secrets and variables ▸ Actions):
+#   SUPABASE_URL              https://<ref>.supabase.co
+#   SUPABASE_PUBLISHABLE_KEY  la publishable key (pública por diseño; la RLS protege los datos)
+# Sin ellos, avisa y no hace nada.
+
+name: Mantener despierta la base
+
+on:
+  schedule:
+    - cron: "17 13 */3 * *"   # cada 3 días, 08:17 en Lima
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Consulta de lectura
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Consultar la base
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::warning::Faltan los secrets SUPABASE_URL y SUPABASE_PUBLISHABLE_KEY: no se consultó la base."
+            exit 0
+          fi
+          # Sin sesión, la RLS devuelve una lista vacía, pero la consulta llega a Postgres.
+          codigo=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            "$SUPABASE_URL/rest/v1/productos?select=id&limit=1")
+          echo "Respuesta: $codigo"
+          [ "$codigo" = "200" ] || { echo "::error::La base respondió $codigo"; exit 1; }
