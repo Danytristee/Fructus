@@ -34,7 +34,7 @@ Todo lo demás (cuaderno de deudas, stock, cierre del día, comprobantes) existe
 
 | Capa | Elección |
 |---|---|
-| Base técnica | Node 24 · pnpm 10 · Next.js 16 (App Router) · React 19 · TypeScript estricto · Tailwind CSS 4 · Radix · lucide-react · Zod 4 |
+| Base técnica | Node 24 · pnpm 10 · Next.js 16 (App Router) · React 19 · TypeScript estricto · Tailwind CSS 4 · shadcn/ui (Radix) · lucide-react · Zod 4 |
 | Datos | Supabase (proyecto **Fructus**, `fwrqquugiktwklleqwfa`) con `@supabase/ssr` |
 | Voz | Groq Whisper (`whisper-large-v3-turbo`) → LLM de Groq con tool calling (Gemini Flash de respaldo) → `speechSynthesis` para responder |
 | Comprobantes | Sandbox de Lucode (docs: `https://docs.apisunat.pe/`, índice en `https://docs.apisunat.pe/llms.txt`) |

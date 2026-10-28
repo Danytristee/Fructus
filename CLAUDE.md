@@ -70,7 +70,7 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 | Runtime | **Node 24 LTS** (`.nvmrc`), **pnpm 10** | Igual que CAYLA Retail. pnpm es rápido y estricto con las dependencias. |
 | Framework | **Next.js 16** (App Router, Turbopack), **React 19**, **TypeScript 5** en modo `strict` | Server Components por defecto: menos JavaScript en un Android de gama media. |
 | Estilos | **Tailwind CSS 4**, tokens en `app/globals.css` (`@theme`) | Una sola fuente de colores, tipografía y espacios. |
-| Piezas de interfaz | **Radix** (`radix-ui`) solo como primitiva accesible (diálogo, hoja, menú) + piezas propias en `components/ui/` | Accesibilidad resuelta, estética propia. No se instala un kit visual completo. |
+| Piezas de interfaz | **shadcn/ui** (sobre Radix y Tailwind) como código fuente en `components/shadcn/`, envuelto por las piezas de Fructus en `components/ui/` | El código se copia al repo, no es una dependencia: accesibilidad resuelta y estética propia con los tokens (ADR-0005). |
 | Iconos | **lucide-react** | Un solo set, trazo uniforme. |
 | Validación | **Zod 4** | Toda salida del LLM, todo formulario y todo cuerpo de API se valida con un esquema antes de usarse. |
 | Datos y login | **Supabase** (Postgres 17 + Auth + RLS) con `@supabase/ssr` y `@supabase/supabase-js` | Ver «Base de datos». |
@@ -86,7 +86,7 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 
 **No se usa, salvo un ADR que lo justifique:**
 - ORM (Prisma, Drizzle): las consultas van al cliente de Supabase y las operaciones de varias tablas, a RPC.
-- Kits visuales completos (MUI, Chakra, Mantine, shadcn copiado en bloque).
+- Kits visuales completos que se instalan como dependencia (MUI, Chakra, Mantine). shadcn/ui sí, con las reglas de ADR-0005.
 - Librerías de estado global (Redux, Zustand): alcanza con Server Components, `useState` y la URL.
 - CSS-in-JS.
 - La API de WhatsApp (cobra por los mensajes que inicia la empresa).
@@ -114,6 +114,7 @@ app/
   manifest.ts  layout.tsx  globals.css
 components/
   ui/                   UNA pieza por función: Boton, Hoja, Tarjeta, Campo, Monto, Insignia, Aviso, Vacio, Espera
+  shadcn/               lo que genera `shadcn add` (button.tsx, sheet.tsx…); solo lo importa components/ui/
   voz/                  BotonVoz, TarjetaConfirmacion, EstadoVoz
   <dominio>/            ventas/, clientes/, stock/ …
 lib/
@@ -185,6 +186,7 @@ formulario del gobierno. El diseño se juzga por lo que la persona **hace**, no 
 ### Reglas de oficio visual
 
 - **Una función, una pieza.** «Confirmar», «Cancelar», una insignia de estado o un monto se dibujan igual en toda la app. Si hace falta una variante, se agrega a la pieza de `components/ui/`; no se crea otra pieza.
+- **shadcn/ui es materia prima, no la pieza.** Lo que genera `shadcn add` vive en `components/shadcn/` y solo lo importa `components/ui/`; una pantalla nunca importa de `components/shadcn/`. Sus variables (`--background`, `--primary`, …) se definen en `globals.css` apuntando a los tokens de Fructus.
 - **Espaciado en múltiplos de 4**, alineación a una grilla, jerarquía clara: un protagonista por pantalla.
 - **Tipografía:** una familia (cargada con `next/font`) y, como mucho, una segunda para las cifras. Cifras con `tabular-nums`.
 - **Dinero siempre con `Monto`:** `S/ 1,250.00`, con `Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" })`. Las deudas tienen un color propio y además un texto («debe»).
@@ -364,13 +366,15 @@ de cada una, está en `docs/terceros/README.md`. No se editan a mano: se actuali
 
 | Para | Skills |
 |---|---|
-| Diseño | `frontend-design` (base de `/identidad-visual`), `ui-ux-pro-max` (**nunca con `--persist`**), `web-design-guidelines`, `accessibility` |
+| Diseño | `frontend-design` (base de `/identidad-visual`), `ui-ux-pro-max` (**nunca con `--persist`**), `shadcn`, `ui-styling`, `web-design-guidelines`, `accessibility` |
 | Movimiento | `emil-design-eng`, `animate`, `animation-performance`, `review-animations` (solo a pedido) |
 | React y Next.js | `vercel-react-best-practices`, `vercel-composition-patterns`, `frontend-ui-engineering`, `core-web-vitals`, `performance-optimization` |
 | Base de datos | `supabase`, `supabase-postgres-best-practices` |
-| Oficio | `test-driven-development`, `debugging-and-error-recovery`, `security-and-hardening`, `source-driven-development`, `code-review-and-quality`, `verification-before-completion` |
+| PWA | `pwa-expert` para caché, actualización y envío en segundo plano. **Para Next.js manda la guía oficial** (`node_modules/next/dist/docs/01-app/02-guides/progressive-web-apps.md`): `pwa-expert` sugiere `next-pwa`, que no se usa. |
+| Oficio | `test-driven-development`, `debugging-and-error-recovery`, `security-and-hardening`, `source-driven-development`, `code-review-and-quality`, `verification-before-completion`, `doubt-driven-development` (reglas de dinero y stock), `api-and-interface-design` (`/api/voz`), `observability-and-instrumentation` |
+| Dentro de `/construir` y `/abrir-pr` | `planning-and-task-breakdown` e `incremental-implementation` (cortar actividades), `git-workflow-and-versioning` y `ci-cd-and-automation` (commits, ramas y CI) |
 
-Para el trabajo de varios pasos mandan `/construir`, `/decide` y `/abrir-pr`; las de oficio de afuera solo aportan criterio dentro de ellas.
+Para el trabajo de varios pasos mandan `/construir`, `/decide` y `/abrir-pr`: traen las reglas de Fructus (migraciones con su versión real, captura a 412 px, `/formidable` y `/chaos` como compuertas, bitácora). Las de afuera aportan técnica dentro de ellas, no las reemplazan.
 
 **Orden de autoridad:** este archivo → los ADR → `app/globals.css` → las skills del proyecto → las de afuera.
 
