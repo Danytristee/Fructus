@@ -16,7 +16,8 @@
 
 - **Despliegue en Vercel** (`https://fructus-neon.vercel.app`). `vercel.json`:
   - fija la región de las funciones en São Paulo (`gru1`), junto a la base (`sa-east-1`); por defecto era Washington;
-  - con `ignoreCommand` solo construye producción (`main`); las ramas y PR no generan previews.
+  - con `git.deploymentEnabled` solo despliega `main`: las ramas y PR no intentan previews. Con `ignoreCommand`, Vercel igual lo
+    intentaba y lo bloqueaba porque quien firma los commits no es miembro del equipo Vonatur (plan Hobby).
 
 **Cómo se verificó:**
 - **Código:** `pnpm typecheck`, `pnpm lint`, `pnpm test` (11 pruebas) y `pnpm knip`, en verde.
