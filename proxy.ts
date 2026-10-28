@@ -4,8 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { entornoSupabase } from "@/lib/supabase/entorno";
 import { fetchWithTimeout } from "@/lib/supabase/fetch-con-tope";
 
-// Se abren sin sesión. /piezas es solo de desarrollo (en producción da 404).
-const RUTAS_PUBLICAS = ["/login", "/piezas"];
+// Se abren sin sesión. /auth canjea los enlaces de invitación. /piezas es solo de desarrollo (en producción da 404).
+const RUTAS_PUBLICAS = ["/login", "/auth", "/piezas"];
 
 const esPublica = (ruta: string) => RUTAS_PUBLICAS.some((p) => ruta === p || ruta.startsWith(`${p}/`));
 
@@ -41,7 +41,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const conSesion = Boolean(data?.claims);
-  const destino = !conSesion && !esPublica(ruta) ? "/login" : conSesion && ruta === "/login" ? "/" : null;
+  const destino = !conSesion && !esPublica(ruta) ? "/login" : conSesion && ruta === "/login" ? "/" : null; // /login/clave sí se abre con sesión
   if (!destino) return respuesta;
 
   const redireccion = NextResponse.redirect(new URL(destino, request.url));

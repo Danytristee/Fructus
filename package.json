@@ -18,7 +18,8 @@
     "db:invariantes": "supabase db query --local -f scripts/invariantes.sql && echo \"Invariantes: las 12 en orden.\"",
     "db:tipos": "supabase gen types typescript --local --schema public > lib/supabase/tipos-db.ts",
     "prepare": "git config core.hooksPath .githooks || true",
-    "medir:js": "node scripts/medir-js.mjs"
+    "medir:js": "node scripts/medir-js.mjs",
+    "cuentas:invitar": "node --env-file=.env.local scripts/invitar.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
