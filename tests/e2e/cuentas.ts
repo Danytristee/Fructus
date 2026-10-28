@@ -8,9 +8,10 @@ export const cuentas = {
   administrador: "administrador@puesto.test",
   ayudante: "ayudante@puesto.test",
   contador: "contador@puesto.test",
+  sinPerfil: "sinperfil@puesto.test",
 } as const;
 
-export type Rol = keyof typeof cuentas;
+export type Rol = Exclude<keyof typeof cuentas, "sinPerfil">;
 
 export async function entrarComo(page: Page, rol: Rol) {
   await page.goto("/login");

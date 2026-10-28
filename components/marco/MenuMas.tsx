@@ -11,8 +11,16 @@ const fila =
   "grid min-h-16 w-full grid-cols-[auto_1fr_auto] items-center gap-3.5 rounded-control bg-superficie px-4 text-left text-lg font-extrabold transition-transform active:scale-[0.98]";
 const icono = "grid size-11 place-items-center rounded-2xl";
 
-// El menú de arriba a la derecha: lo que no cabe en la barra de abajo.
-export function MenuMas() {
+type Props = {
+  nombre: string;
+  rol: string;
+  /** Lo decide el servidor con permisosDe(): aquí solo se obedece. */
+  verCierre: boolean;
+  verAjustes: boolean;
+};
+
+// El menú de arriba a la derecha: lo que no cabe en la barra de abajo, y quién entró.
+export function MenuMas({ nombre, rol, verCierre, verAjustes }: Props) {
   const [abierto, setAbierto] = useState(false);
   const cerrar = () => setAbierto(false);
 
@@ -27,21 +35,28 @@ export function MenuMas() {
         <Settings aria-hidden className="size-6" />
       </button>
       <Hoja abierta={abierto} alCambiar={setAbierto} titulo="Más">
+        <p className="mb-3 text-texto-suave">
+          Entraste como <strong className="text-texto">{nombre}</strong> ({rol})
+        </p>
         <nav aria-label="Más opciones" className="grid gap-2">
-          <Link href="/cierre" onClick={cerrar} className={fila}>
-            <span className={`${icono} bg-exito-fondo text-exito`}>
-              <ClipboardCheck aria-hidden className="size-6" />
-            </span>
-            Cierre del día
-            <ChevronRight aria-hidden className="size-6 text-texto-suave" />
-          </Link>
-          <Link href="/ajustes" onClick={cerrar} className={fila}>
-            <span className={`${icono} bg-acento/12 text-acento-texto`}>
-              <Settings aria-hidden className="size-6" />
-            </span>
-            Ajustes
-            <ChevronRight aria-hidden className="size-6 text-texto-suave" />
-          </Link>
+          {verCierre && (
+            <Link href="/cierre" onClick={cerrar} className={fila}>
+              <span className={`${icono} bg-exito-fondo text-exito`}>
+                <ClipboardCheck aria-hidden className="size-6" />
+              </span>
+              Cierre del día
+              <ChevronRight aria-hidden className="size-6 text-texto-suave" />
+            </Link>
+          )}
+          {verAjustes && (
+            <Link href="/ajustes" onClick={cerrar} className={fila}>
+              <span className={`${icono} bg-acento/12 text-acento-texto`}>
+                <Settings aria-hidden className="size-6" />
+              </span>
+              Ajustes
+              <ChevronRight aria-hidden className="size-6 text-texto-suave" />
+            </Link>
+          )}
           <form action={salir}>
             <button type="submit" className={fila}>
               <span className={`${icono} bg-deuda-fondo text-deuda`}>

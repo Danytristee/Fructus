@@ -44,7 +44,9 @@ with cuentas (id, correo, nombre, rol) as (
     ('10000000-0000-0000-0000-000000000001'::uuid, 'duenio@puesto.test',        'Dueño de prueba',         'duenio'::rol_usuario),
     ('10000000-0000-0000-0000-000000000002'::uuid, 'administrador@puesto.test', 'Administrador de prueba', 'administrador'::rol_usuario),
     ('10000000-0000-0000-0000-000000000003'::uuid, 'ayudante@puesto.test',      'Ayudante de prueba',      'ayudante'::rol_usuario),
-    ('10000000-0000-0000-0000-000000000004'::uuid, 'contador@puesto.test',      'Contador de prueba',      'contador'::rol_usuario)
+    ('10000000-0000-0000-0000-000000000004'::uuid, 'contador@puesto.test',      'Contador de prueba',      'contador'::rol_usuario),
+    -- Entra, pero sin perfil: así se ve una cuenta que todavía no activaron.
+    ('10000000-0000-0000-0000-000000000005'::uuid, 'sinperfil@puesto.test',     null,                      null)
 ),
 usuarios as (
   insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -64,4 +66,4 @@ identidades as (
   returning user_id
 )
 insert into perfiles (id, nombre, rol)
-select c.id, c.nombre, c.rol from cuentas c join identidades i on i.user_id = c.id;
+select c.id, c.nombre, c.rol from cuentas c join identidades i on i.user_id = c.id where c.rol is not null;
