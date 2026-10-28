@@ -4,37 +4,55 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fructus · Identidad visual · 3 direcciones</title>
-<!-- Comparativa de A1. Abre cada maqueta en el celular y mantén el botón de voz: sale la tarjeta. -->
+<!-- Comparativa de A1 (v4). Abre cada maqueta en el celular y mantén el botón de voz: sale la tarjeta. -->
 <style>
-  body { margin: 0; padding: 16px; font: 17px/1.4 system-ui, sans-serif; background: #f4f4f4; color: #111; }
+  body { margin: 0; padding: 16px; font: 17px/1.45 system-ui, sans-serif; background: #f4f4f4; color: #111; }
   h1 { font-size: 24px; margin: 0 0 4px; }
   p { margin: 0 0 16px; color: #333; }
   .grilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-  section { background: #fff; border-radius: 12px; padding: 12px; }
+  section { background: #fff; border-radius: 16px; padding: 14px; }
   h2 { font-size: 20px; margin: 0 0 4px; }
+  ul { margin: 8px 0 12px; padding-left: 20px; color: #333; }
   .pares { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
-  img { width: 100%; border-radius: 8px; border: 1px solid #ddd; display: block; }
-  a { display: inline-block; padding: 12px 16px; min-height: 48px; box-sizing: border-box; background: #111; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 700; }
+  img { width: 100%; border-radius: 10px; border: 1px solid #ddd; display: block; }
+  .botones { display: flex; flex-wrap: wrap; gap: 8px; }
+  a { display: inline-flex; align-items: center; padding: 12px 16px; min-height: 48px; box-sizing: border-box; background: #111; color: #fff; border-radius: 999px; text-decoration: none; font-weight: 700; }
+  a.claro { background: #e8e8e8; color: #111; }
 </style>
 </head>
 <body>
-<h1>Fructus: 3 direcciones visuales (v3)</h1>
-<p>Cada una a 412 px: «Hoy» y la tarjeta de una venta a crédito con precio sugerido. Toca «Probar» y mantén el botón de voz.</p>
+<h1>Fructus: 3 direcciones visuales (v4)</h1>
+<p>Cada una a 412 px: «Hoy» y la tarjeta de una venta a crédito con precio sugerido. Toca «Probar», mantén el botón de voz, suelta y confirma: la venta entra a la lista y los montos se actualizan.</p>
 <div class="grilla">
   <section>
-    <h2>A. Claro y ordenado</h2>
+    <h2>A. Aurora</h2>
+    <ul>
+      <li>Vidrio esmerilado sobre un fondo de luz que se mueve despacio.</li>
+      <li>Orbe de voz que respira y gira; al hablar, ondas y círculos que se abren.</li>
+      <li>El gráfico del día se dibuja solo; el stock, en anillos con la fruta flotando.</li>
+    </ul>
     <div class="pares"><img src="capturas/a-hoy-412.png" alt="Hoy, dirección A"><img src="capturas/a-tarjeta-412.png" alt="Tarjeta, dirección A"></div>
-    <a href="a-claro-ios.html">Probar A</a>
+    <div class="botones"><a href="a-aurora.html">Probar A</a><a class="claro" href="a-aurora.html?tema=oscuro">En oscuro</a></div>
   </section>
   <section>
-    <h2>B. Material de Android</h2>
+    <h2>B. Bento</h2>
+    <ul>
+      <li>Bloques pastel como los widgets del celular, cada uno con su icono.</li>
+      <li>Barras por hora que crecen, caras de los clientes que te deben.</li>
+      <li>Dock negro flotante y un botón de voz con un aro de colores que gira.</li>
+    </ul>
     <div class="pares"><img src="capturas/b-hoy-412.png" alt="Hoy, dirección B"><img src="capturas/b-tarjeta-412.png" alt="Tarjeta, dirección B"></div>
-    <a href="b-material.html">Probar B</a>
+    <div class="botones"><a href="b-bento.html">Probar B</a><a class="claro" href="b-bento.html?tema=oscuro">En oscuro</a></div>
   </section>
   <section>
-    <h2>C. Billetera moderna</h2>
+    <h2>C. Horizonte</h2>
+    <ul>
+      <li>Cabecera en azul noche con luces que se desplazan y el gráfico brillando.</li>
+      <li>Tarjetas blancas encima, con iconos a dos tonos.</li>
+      <li>«Lo último» como línea de tiempo, con la hora de cada venta.</li>
+    </ul>
     <div class="pares"><img src="capturas/c-hoy-412.png" alt="Hoy, dirección C"><img src="capturas/c-tarjeta-412.png" alt="Tarjeta, dirección C"></div>
-    <a href="c-billetera.html">Probar C</a>
+    <div class="botones"><a href="c-horizonte.html">Probar C</a><a class="claro" href="c-horizonte.html?tema=oscuro">En oscuro</a></div>
   </section>
 </div>
 </body>

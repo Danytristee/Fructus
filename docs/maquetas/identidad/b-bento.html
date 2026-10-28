@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F2F3F5">
+<title>Fructus · Bento</title>
+<!-- Maqueta de identidad v4 (A1). Bloques de colores pastel como los widgets del celular: cada dato en su caja, con un icono grande, barras por hora que crecen y un dock negro flotante. No es código de la app. Iconos: Lucide (ISC). Fruta: ilustración propia. -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root { --fondo: #F2F3F5; --superficie: #FFFFFF; --texto: #111318; --texto-suave: #474B55; --tinta: #111318; --sobre-tinta: #FFFFFF; --lima: #E2F5C4; --menta: #D5F5E6; --rosa: #FFE1E3; --cielo: #DAEEFF; --durazno: #FFE4D2; --lila: #E9E4FF; --exito: #0B5530; --exito-fondo: #D5F5E6; --deuda: #8E0F1A; --deuda-fondo: #FFE1E3; --acento-texto: #111318; --borde: #8A8E99; --fuente: 'Figtree', system-ui, sans-serif; color-scheme: light; }
+:root[data-theme="oscuro"] { --fondo: #0C0D10; --superficie: #17191E; --texto: #F3F4F6; --texto-suave: #BCC0CA; --tinta: #F3F4F6; --sobre-tinta: #111318; --lima: #25331A; --menta: #123326; --rosa: #3A1619; --cielo: #14283B; --durazno: #3A2416; --lila: #26213F; --exito: #8BE3B4; --exito-fondo: #123326; --deuda: #FFA3AC; --deuda-fondo: #3A1619; --acento-texto: #F3F4F6; --borde: #5B606B; color-scheme: dark; }
+
+*,*::before,*::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100dvh; background: var(--fondo); color: var(--texto); font-family: var(--fuente); font-size: 17px; line-height: 1.45;
+  padding: max(16px, env(safe-area-inset-top)) 16px calc(232px + env(safe-area-inset-bottom)); overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid var(--texto); outline-offset: 2px; }
+.i { flex: none; display: block; }
+.cifra { font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; display: inline-block; }
+h1 { margin: 0; line-height: 1.05; }
+h2 { font-size: 20px; margin: 24px 2px 10px; font-weight: 800; }
+.fecha { margin: 4px 0 0; color: var(--texto-suave); }
+.cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 16px; }
+.redondo { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; border: 0; background: var(--superficie); cursor: pointer; transition: transform .18s cubic-bezier(.2,.8,.2,1); }
+.redondo:active { transform: scale(.92) rotate(-20deg); }
+.etiqueta { font-weight: 700; color: var(--texto-suave); }
+.sub, .pequeno { color: var(--texto-suave); }
+.pequeno { font-size: 15px; }
+.monto { font-weight: 800; letter-spacing: -0.02em; }
+.protagonista .monto { font-size: 46px; line-height: 1.1; margin: 2px 0; }
+.stat .monto { font-size: 30px; line-height: 1.15; }
+
+/* Avatares y fruta */
+.avatar { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 16px; flex: none;
+  background: hsl(var(--tono) 80% 88%); color: hsl(var(--tono) 70% 18%); }
+:root[data-theme="oscuro"] .avatar { background: hsl(var(--tono) 40% 26%); color: hsl(var(--tono) 80% 92%); }
+.fruta { display: block; flex: none; filter: drop-shadow(0 2px 3px rgb(0 0 0 / .14)); }
+
+/* Lista de lo último */
+.lista { list-style: none; margin: 0; padding: 0; }
+.op { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; min-height: 72px; padding: 12px 14px; }
+.op-ava { position: relative; width: 52px; height: 52px; }
+.op-frutas { position: absolute; right: -8px; bottom: -6px; display: flex; }
+.op-frutas .fruta + .fruta { margin-left: -12px; }
+.op-abono { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--exito); color: var(--superficie); box-shadow: 0 0 0 2px var(--superficie); }
+.op-txt { display: grid; min-width: 0; }
+.quien { font-weight: 800; line-height: 1.25; }
+.que { color: var(--texto-suave); font-size: 16px; line-height: 1.3; }
+.op-der { display: grid; justify-items: end; gap: 4px; }
+.op .monto { font-size: 20px; }
+.insignia { display: inline-flex; align-items: center; gap: 4px; font-size: 15px; font-weight: 800; padding: 3px 10px 3px 8px; border-radius: 999px; white-space: nowrap; }
+.insignia.debe { background: var(--deuda-fondo); color: var(--deuda); }
+.insignia.pago { background: var(--exito-fondo); color: var(--exito); }
+.op.recien { animation: recien 1.6s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes recien { 0% { opacity: 0; transform: translateY(-14px) scale(.96); } 25% { opacity: 1; transform: none; } 30%, 70% { box-shadow: inset 0 0 0 3px var(--acento-texto); } 100% { box-shadow: inset 0 0 0 0 transparent; } }
+
+/* Gráfico del día */
+.grafico { margin: 10px 0 0; }
+.grafico svg { display: block; width: 100%; height: auto; overflow: visible; }
+.g-linea { fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: dibujar 1.4s .35s cubic-bezier(.6,0,.2,1) forwards; }
+.g-area { opacity: 0; animation: aparecer .9s 1.1s ease-out forwards; }
+.g-punto, .g-pulso { opacity: 0; animation: aparecer .3s 1.6s ease-out forwards; }
+.g-pulso { transform-box: fill-box; transform-origin: center; animation: aparecer .3s 1.6s forwards, latir 2s 1.9s ease-out infinite; }
+@keyframes dibujar { to { stroke-dashoffset: 0; } }
+@keyframes aparecer { to { opacity: 1; } }
+@keyframes latir { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(3.2); opacity: 0; } }
+.grafico figcaption { display: flex; justify-content: space-between; font-size: 15px; color: var(--texto-suave); margin-top: 4px; }
+
+/* Medidor horizontal */
+.medio { display: block; height: 10px; border-radius: 999px; background: rgb(0 0 0 / .08); overflow: hidden; }
+:root[data-theme="oscuro"] .medio { background: rgb(255 255 255 / .1); }
+.medio i { display: block; height: 100%; width: calc(var(--p-vivo, 0) * 1%); border-radius: inherit; background: currentColor; transition: width 1s cubic-bezier(.2,.8,.2,1); }
+.st-aviso { display: none; align-items: center; gap: 4px; font-size: 15px; font-weight: 800; color: var(--deuda); }
+.st.alerta .st-aviso { display: inline-flex; }
+
+/* Entrada: una sola coreografía al abrir */
+.entra { animation: subir .7s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+@keyframes subir { from { opacity: 0; transform: translateY(18px) scale(.985); } }
+
+/* Botón de voz */
+.zona-voz { position: fixed; left: 0; right: 0; bottom: calc(96px + env(safe-area-inset-bottom)); display: grid; justify-items: center; gap: 8px; pointer-events: none; z-index: 5; }
+.voz { pointer-events: auto; position: relative; width: 104px; height: 104px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
+  touch-action: none; -webkit-user-select: none; user-select: none; color: var(--sobre-voz); transition: transform .25s cubic-bezier(.2,.8,.2,1); }
+.voz > * { grid-area: 1 / 1; }
+.voz[data-estado="escuchando"] { transform: scale(1.1); }
+.voz[data-estado="entendiendo"] { transform: scale(.96); }
+.voz-mic { display: grid; transition: opacity .15s, transform .25s cubic-bezier(.2,.8,.2,1); }
+.voz-ondas { display: flex; align-items: center; gap: 5px; height: 48px; opacity: 0; transition: opacity .15s; }
+.voz-ondas i { width: 6px; height: 100%; border-radius: 3px; background: currentColor; transform: scaleY(.15); }
+.voz[data-estado="escuchando"] .voz-ondas { opacity: 1; }
+.voz[data-estado="escuchando"] .voz-mic, .voz[data-estado="entendiendo"] .voz-mic { opacity: 0; transform: scale(.5); }
+.voz-anillo { position: absolute; inset: -9px; border-radius: 50%; border: 4px solid transparent; border-top-color: var(--anillo); border-right-color: var(--anillo); opacity: 0; transition: opacity .2s; }
+.voz[data-estado="entendiendo"] .voz-anillo { opacity: 1; animation: girar .7s linear infinite; }
+.voz-puntos { display: flex; gap: 6px; opacity: 0; }
+.voz-puntos i { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+.voz[data-estado="entendiendo"] .voz-puntos { opacity: 1; }
+.voz[data-estado="entendiendo"] .voz-puntos i { animation: punto .9s ease-in-out infinite; animation-delay: calc(var(--k) * 120ms); }
+@keyframes punto { 0%, 100% { transform: translateY(0); opacity: .5; } 50% { transform: translateY(-8px); opacity: 1; } }
+@keyframes girar { to { transform: rotate(360deg); } }
+.voz-rizos { position: absolute; top: 0; left: 50%; width: 104px; height: 104px; margin-left: -52px; pointer-events: none; }
+.voz-rizos i { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--anillo); opacity: 0; }
+.zona-voz[data-estado="escuchando"] .voz-rizos i { animation: rizo 1.8s cubic-bezier(.2,.8,.2,1) infinite; animation-delay: calc(var(--k) * 600ms); }
+@keyframes rizo { from { transform: scale(1); opacity: .8; } to { transform: scale(1.9); opacity: 0; } }
+.voz-texto { font-weight: 800; padding: 4px 14px; border-radius: 999px; background: var(--fondo-texto-voz, var(--superficie)); font-variant-numeric: tabular-nums; box-shadow: 0 2px 10px rgb(0 0 0 / .08); }
+
+.desvanecido { position: fixed; z-index: 3; left: 0; right: 0; bottom: 0; height: calc(250px + env(safe-area-inset-bottom)); pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--fondo) 62%); }
+
+/* Navegación */
+.nav { position: fixed; z-index: 4; display: grid; grid-template-columns: repeat(4, 1fr); }
+.nav a { position: relative; z-index: 1; display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 60px; text-decoration: none; font-size: 14px; font-weight: 800; color: var(--nav-texto); transition: color .25s; }
+.nav a[aria-current="page"] { color: var(--nav-activo); }
+.nav a .i { transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+.nav a[aria-current="page"] .i { transform: translateY(-1px) scale(1.08); }
+.nav-ind { position: absolute; z-index: 0; transition: transform .38s cubic-bezier(.2,.9,.25,1), width .38s; }
+
+/* Hoja de confirmación */
+.velo { position: fixed; inset: 0; z-index: 8; background: rgb(8 12 24 / .45); opacity: 0; pointer-events: none; transition: opacity .3s ease-out; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.velo[data-abierta] { opacity: 1; pointer-events: auto; }
+.hoja { position: fixed; z-index: 9; left: 0; right: 0; bottom: 0; background: var(--hoja-fondo, var(--superficie)); border-radius: 28px 28px 0 0;
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .5s cubic-bezier(.22,1.12,.36,1); max-height: 94dvh; overflow-y: auto; box-shadow: 0 -10px 40px rgb(0 0 0 / .18); }
+.hoja[data-abierta] { transform: none; }
+.hoja:not([data-abierta]) { transition-duration: .28s; transition-timing-function: cubic-bezier(.4,0,1,1); }
+.asa { width: 44px; height: 5px; border-radius: 3px; background: var(--borde); opacity: .6; margin: 0 auto 12px; }
+.hoja[data-abierta] .pieza { animation: subir .5s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(120ms + var(--i, 0) * 55ms); }
+.hoja-cab { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.chispa { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--chispa-fondo); color: var(--chispa-texto); }
+.hoja[data-abierta] .chispa .i { animation: brillo 1.2s .5s ease-in-out both; }
+@keyframes brillo { 0%, 100% { transform: none; } 40% { transform: rotate(18deg) scale(1.2); } }
+.titulo { margin: 0; font-size: 23px; font-weight: 800; }
+.fila { width: 100%; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; text-align: left; background: var(--fila-fondo); border: 0; border-radius: 20px;
+  padding: 12px 14px; margin-bottom: 8px; min-height: 72px; cursor: pointer; transition: transform .15s ease-out, background .2s; }
+.fila:active { transform: scale(.98); }
+.fila-txt { display: grid; gap: 2px; min-width: 0; }
+.fila .grande { font-size: 22px; font-weight: 800; line-height: 1.2; }
+.fila .chico { color: var(--texto-suave); }
+.fila > .i { color: var(--texto-suave); }
+.precio { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.insignia.sugerido { color: var(--acento-texto); background: var(--chispa-fondo); position: relative; overflow: hidden; }
+.hoja[data-abierta] .insignia.sugerido::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / .7) 50%, transparent 70%); transform: translateX(-100%); animation: barrido 1.1s .9s ease-in-out 2; }
+@keyframes barrido { to { transform: translateX(100%); } }
+.total { display: flex; justify-content: space-between; align-items: baseline; margin: 8px 4px 12px; }
+.total .monto { font-size: 46px; }
+/* El total de la tarjeta no cuenta: lo que se va a guardar se muestra exacto desde el primer cuadro. */
+.hoja[data-abierta] .total .monto { animation: pop .55s .45s cubic-bezier(.22,1.3,.36,1) both; transform-origin: right center; }
+@keyframes pop { from { opacity: 0; transform: scale(.82); } }
+.seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 5px; border-radius: 999px; background: var(--fila-fondo); margin-bottom: 12px; }
+.seg button { position: relative; z-index: 1; min-height: 58px; border: 0; background: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 19px; cursor: pointer; color: var(--texto); transition: color .25s; }
+.seg button[aria-pressed="true"] { color: var(--superficie); }
+.seg-pill { position: absolute; z-index: 0; top: 5px; bottom: 5px; left: 5px; width: calc(50% - 5px); border-radius: 999px; background: var(--deuda); transform: translateX(100%);
+  transition: transform .42s cubic-bezier(.22,1.12,.36,1), background .3s; box-shadow: 0 6px 16px rgb(0 0 0 / .18); }
+.seg[data-valor="pago"] .seg-pill { transform: none; background: var(--exito); }
+.medidor { background: var(--fila-fondo); border-radius: 20px; padding: 12px 14px; margin-bottom: 10px; }
+.nota { margin: 0 0 10px; }
+.nota strong { color: var(--deuda); }
+.seg[data-valor="pago"] ~ .medidor .nota strong { color: var(--exito); }
+.barra { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: rgb(0 0 0 / .08); }
+:root[data-theme="oscuro"] .barra { background: rgb(255 255 255 / .1); }
+.barra span { display: block; height: 100%; transition: width .7s cubic-bezier(.2,.8,.2,1); }
+.barra .previa { width: 34%; background: var(--deuda); opacity: .55; }
+.barra .nueva { width: 0; background: var(--deuda); }
+.hoja[data-abierta] .seg[data-valor="debe"] ~ .medidor .nueva { width: 66%; }
+.barra-leyenda { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 15px; color: var(--texto-suave); }
+.duda { display: flex; gap: 8px; align-items: flex-start; color: var(--texto-suave); font-size: 16px; margin: 0 4px 14px; }
+.duda .i { margin-top: 2px; }
+.confirmar { position: relative; width: 100%; min-height: 68px; border: 0; border-radius: 999px; font-size: 22px; font-weight: 800; cursor: pointer; overflow: hidden;
+  background: var(--acento); color: var(--sobre-acento); display: grid; place-items: center; transition: transform .15s ease-out, filter .2s; }
+.confirmar > * { grid-area: 1 / 1; }
+.confirmar:active { transform: scale(.97); }
+.c-gira { width: 28px; height: 28px; border-radius: 50%; border: 3.5px solid currentColor; border-right-color: transparent; opacity: 0; }
+.confirmar[data-estado="guardando"] .c-txt { opacity: 0; }
+.confirmar[data-estado="guardando"] .c-gira { opacity: 1; animation: girar .7s linear infinite; }
+.descartar { display: block; margin: 6px auto 0; min-height: 48px; padding: 0 20px; background: none; border: 0; color: var(--texto-suave); font-weight: 800; cursor: pointer; }
+.exito-msg { display: none; text-align: center; padding: 20px 0 12px; }
+.hoja[data-guardado] .formulario { display: none; }
+.hoja[data-guardado] .exito-msg { display: block; }
+.sello { position: relative; width: 96px; height: 96px; margin: 0 auto 14px; }
+.sello svg { width: 96px; height: 96px; display: block; }
+.sello-c { fill: var(--exito); transform-origin: center; transform-box: fill-box; animation: sellar .5s cubic-bezier(.22,1.3,.36,1) both; }
+.sello-v { fill: none; stroke: var(--superficie); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: trazo .4s .3s ease-out forwards; }
+@keyframes sellar { from { transform: scale(0); } }
+@keyframes trazo { to { stroke-dashoffset: 0; } }
+.chispas span { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; border-radius: 50%; background: var(--c);
+  transform: translate(-50%, -50%) rotate(var(--ang)) translateX(0) scale(1); animation: estallar .8s .2s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes estallar { to { transform: translate(-50%, -50%) rotate(var(--ang)) translateX(var(--dist)) scale(.2); opacity: 0; } }
+.exito-msg p { font-size: 24px; font-weight: 800; margin: 0 0 4px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
+  .aurora, .luces { display: none; }
+}
+
+
+:root { --sobre-voz: var(--sobre-tinta); --anillo: var(--tinta); --nav-texto: color-mix(in srgb, var(--sobre-tinta) 72%, transparent); --nav-activo: var(--tinta);
+  --acento: var(--tinta); --sobre-acento: var(--sobre-tinta); --fila-fondo: var(--fondo); --chispa-fondo: var(--lila); --chispa-texto: var(--texto); }
+h1 { font-size: 44px; font-weight: 900; letter-spacing: -0.03em; }
+.redondo { background: var(--superficie); box-shadow: 0 2px 8px rgb(0 0 0 / .06); }
+.bento { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bloque { border-radius: 26px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+.ancho { grid-column: 1 / -1; }
+.lima { background: var(--lima); } .menta { background: var(--menta); } .rosa { background: var(--rosa); } .cielo { background: var(--cielo); } .durazno { background: var(--durazno); } .lila { background: var(--lila); }
+.bl-cab { display: flex; align-items: center; gap: 10px; }
+.bl-ico { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--tinta); color: var(--sobre-tinta); }
+.bl-mas { margin-left: auto; font-size: 15px; font-weight: 700; color: var(--texto-suave); }
+.etiqueta { color: var(--texto); font-size: 18px; }
+.protagonista .monto { font-size: 48px; font-weight: 900; }
+.bl-pie { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.barras { display: flex; align-items: flex-end; gap: 5px; height: 56px; flex: none; }
+.barras span { width: 12px; height: var(--h); border-radius: 6px 6px 3px 3px; background: color-mix(in srgb, var(--tinta) 30%, transparent); transform-origin: bottom; animation: crecer .8s cubic-bezier(.22,1.2,.36,1) both; animation-delay: calc(.5s + var(--i) * 70ms); }
+.barras span.ahora { background: var(--tinta); }
+@keyframes crecer { from { transform: scaleY(0); } }
+.stat .monto { font-size: 34px; font-weight: 900; }
+.menta .medio { color: var(--exito); }
+.stat.deuda .monto { color: var(--deuda); }
+.caras { display: flex; align-items: center; margin-top: 4px; }
+.caras .avatar { width: 40px; height: 40px; font-size: 14px; box-shadow: 0 0 0 3px var(--rosa); animation: subir .5s cubic-bezier(.2,.8,.2,1) both; }
+.caras .avatar + .avatar, .caras-mas { margin-left: -10px; }
+.caras .avatar:nth-child(2) { animation-delay: .55s; } .caras .avatar:nth-child(3) { animation-delay: .62s; } .caras .avatar:nth-child(4) { animation-delay: .69s; } .caras .avatar:nth-child(1) { animation-delay: .48s; }
+.caras-mas { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--tinta); color: var(--sobre-tinta); font-size: 14px; font-weight: 800; box-shadow: 0 0 0 3px var(--rosa); }
+.caras-txt { margin-left: 10px; font-weight: 700; color: var(--texto); }
+.st { gap: 8px; }
+.st-fruta { display: grid; place-items: start; }
+.st .fruta { animation: flotar 4s ease-in-out infinite; }
+.st:nth-child(5) .fruta { animation-delay: -1.3s; } .st:nth-child(6) .fruta { animation-delay: -2.6s; }
+@keyframes flotar { 50% { transform: translateY(-4px) rotate(-5deg); } }
+.st-txt { display: grid; }
+.st-nombre { font-weight: 800; }
+.st-cant { font-size: 28px; font-weight: 900; line-height: 1.15; }
+.st .medio { color: var(--tinta); }
+.st.alerta .medio, .st.alerta .st-cant { color: var(--deuda); }
+.fila-st { grid-template-columns: auto 1fr; align-items: center; column-gap: 14px; }
+.fila-st .medio { grid-column: 1 / -1; }
+.lista { display: grid; gap: 8px; }
+.op { background: var(--superficie); border-radius: 22px; }
+.zona-voz { bottom: calc(100px + env(safe-area-inset-bottom)); }
+.voz { background: var(--tinta); box-shadow: 0 14px 34px rgb(0 0 0 / .3); }
+.voz-borde { position: absolute; inset: -7px; border-radius: 50%; padding: 5px; background: conic-gradient(from var(--giro, 0deg), #B6E36B, #7CC4FF, #B9A5FF, #FFB38A, #B6E36B);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); animation: orbe 6s linear infinite; }
+.voz[data-estado="escuchando"] .voz-borde { animation-duration: 1.2s; }
+@property --giro { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@keyframes orbe { to { --giro: 360deg; } }
+.nav { left: 16px; right: 16px; bottom: calc(14px + env(safe-area-inset-bottom)); padding: 6px; border-radius: 999px; background: var(--tinta); box-shadow: 0 12px 30px rgb(0 0 0 / .25); }
+.nav-ind { top: 6px; bottom: 6px; left: 6px; border-radius: 999px; background: var(--lima); }
+:root[data-theme="oscuro"] .nav-ind { background: #C9EE8F; }
+:root[data-theme="oscuro"] { --nav-activo: #111318; }
+.hoja-cab .chispa { border-radius: 14px; }
+.hoja .fila { border-radius: 22px; }
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<defs>
+  <linearGradient id="g-mango" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8CC63F"/><stop offset=".45" stop-color="#FFC23A"/><stop offset="1" stop-color="#EB4A34"/></linearGradient>
+  <linearGradient id="g-platano" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFEB7A"/><stop offset="1" stop-color="#F2B600"/></linearGradient>
+  <linearGradient id="g-pina" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD25A"/><stop offset="1" stop-color="#E08E00"/></linearGradient>
+  <radialGradient id="g-naranja" cx=".35" cy=".35" r=".75"><stop offset="0" stop-color="#FFB547"/><stop offset="1" stop-color="#F06A00"/></radialGradient>
+  <linearGradient id="g-hoja" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6EDC86"/><stop offset="1" stop-color="#1E8F45"/></linearGradient>
+  <clipPath id="c-pina"><ellipse cx="24" cy="31" rx="11" ry="13"/></clipPath>
+</defs>
+<symbol id="f-mango" viewBox="0 0 48 48">
+  <path d="M13.5 11.5c7.6-5.4 20.6-3 25.4 7.6 5 11-1 23-12.4 23.4C15.6 42.9 8 36.4 8.6 26.6c.3-5.8 1.8-11.6 4.9-15.1Z" fill="url(#g-mango)"/>
+  <path d="M14 11.6c-.4-3.6 1.6-6.6 5.4-8.1.6 3.9-1.6 6.9-5.4 8.1Z" fill="url(#g-hoja)"/>
+  <path d="M13.6 11.8 12 8.6" stroke="#5B3A12" stroke-width="1.8" stroke-linecap="round"/>
+  <ellipse cx="18.5" cy="19" rx="3.2" ry="7" fill="#fff" opacity=".35" transform="rotate(-40 18.5 19)"/>
+</symbol>
+<symbol id="f-platano" viewBox="0 0 48 48">
+  <path d="M8.5 12.5c1.8 15.6 12.4 26 29.6 24.8 2.1-.2 2.9-2.4.9-3.2-12.4-2.6-19.8-10.5-23-22.4-.6-2.2-7.8-2.2-7.5.8Z" fill="url(#g-platano)"/>
+  <path d="M13.5 15.5c3.2 9.8 10 16.6 21 19" fill="none" stroke="#D99A00" stroke-width="1.6" stroke-linecap="round" opacity=".8"/>
+  <path d="M8.6 12.8c-.3-2.3.9-3.8 3-3.9l3.2.5c.6 2.1.2 3.1-1.1 3.3Z" fill="#7A5418"/>
+  <path d="M38.6 36.6l2.6-.9" stroke="#7A5418" stroke-width="2.6" stroke-linecap="round"/>
+</symbol>
+<symbol id="f-pina" viewBox="0 0 48 48">
+  <path d="M24 19c-2.2-5.4-6.2-8.4-10.6-9.4 3.2 3 4.4 6 5.4 9.4Zm0 0c2.2-5.4 6.2-8.4 10.6-9.4-3.2 3-4.4 6-5.4 9.4Zm0 0c-1.4-6.2-.4-10.6.2-15 1.6 4.4 2 8.8-.2 15Z" fill="url(#g-hoja)"/>
+  <ellipse cx="24" cy="31" rx="11" ry="13" fill="url(#g-pina)"/>
+  <g clip-path="url(#c-pina)" stroke="#A86400" stroke-width="1.3" opacity=".5"><line x1="-17" y1="18" x2="9" y2="44"/><line x1="65" y1="18" x2="39" y2="44"/><line x1="-11" y1="18" x2="15" y2="44"/><line x1="59" y1="18" x2="33" y2="44"/><line x1="-5" y1="18" x2="21" y2="44"/><line x1="53" y1="18" x2="27" y2="44"/><line x1="1" y1="18" x2="27" y2="44"/><line x1="47" y1="18" x2="21" y2="44"/><line x1="7" y1="18" x2="33" y2="44"/><line x1="41" y1="18" x2="15" y2="44"/><line x1="13" y1="18" x2="39" y2="44"/><line x1="35" y1="18" x2="9" y2="44"/><line x1="19" y1="18" x2="45" y2="44"/><line x1="29" y1="18" x2="3" y2="44"/><line x1="25" y1="18" x2="51" y2="44"/><line x1="23" y1="18" x2="-3" y2="44"/><line x1="31" y1="18" x2="57" y2="44"/><line x1="17" y1="18" x2="-9" y2="44"/><line x1="37" y1="18" x2="63" y2="44"/><line x1="11" y1="18" x2="-15" y2="44"/><line x1="43" y1="18" x2="69" y2="44"/><line x1="5" y1="18" x2="-21" y2="44"/></g>
+  <ellipse cx="19.5" cy="26" rx="2.6" ry="5" fill="#fff" opacity=".3"/>
+</symbol>
+<symbol id="f-naranja" viewBox="0 0 48 48">
+  <circle cx="24" cy="27" r="15" fill="url(#g-naranja)"/>
+  <path d="M24 12.5c1.4-3.6 4.6-5.4 8.6-5-1.4 3.6-4.6 5.4-8.6 5Z" fill="url(#g-hoja)"/>
+  <circle cx="18.5" cy="21.5" r="3.4" fill="#fff" opacity=".35"/>
+</symbol>
+</svg>
+<main>
+
+<header class="cab entra">
+  <div><h1>Hoy</h1><p class="fecha">martes 28 de octubre</p></div>
+  <button class="redondo" aria-label="Menú: ajustes y cierre"><svg aria-hidden="true" class="i " width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+  <circle cx="12" cy="12" r="3" /></svg></button>
+</header>
+<div class="bento">
+  <section class="protagonista bloque lima ancho entra" aria-label="Lo vendido hoy">
+    <div class="bl-cab"><span class="bl-ico"><svg aria-hidden="true" class="i " width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+  <polyline points="16 7 22 7 22 13" /></svg></span><span class="etiqueta">Vendiste</span></div>
+    <span class="monto cifra" id="m-vendido" data-valor="2480">S/ 2,480.00</span>
+    <div class="bl-pie"><span class="sub"><span id="n-jabas">54</span> jabas en <span id="n-ventas">23</span> ventas</span><div class="barras" aria-label="Ventas por hora: el pico fue a las 9 a. m."><span style="--h:6%;--i:0"></span><span style="--h:30%;--i:1"></span><span style="--h:85%;--i:2"></span><span style="--h:100%;--i:3"></span><span style="--h:74%;--i:4"></span><span style="--h:69%;--i:5"></span><span style="--h:49%;--i:6" class="ahora"></span></div></div>
+  </section>
+  <section class="stat bloque menta ancho entra">
+    <div class="bl-cab"><span class="bl-ico"><svg aria-hidden="true" class="i " width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
+  <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></svg></span><span class="etiqueta">Cobraste</span><span class="bl-mas">66 % de lo vendido</span></div>
+    <span class="monto cifra" data-valor="1630">S/ 1,630.00</span>
+    <span class="medio" style="--p:66"><i></i></span>
+  </section>
+  <section class="stat deuda bloque rosa ancho entra">
+    <div class="bl-cab"><span class="bl-ico"><svg aria-hidden="true" class="i " width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17" />
+  <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9" />
+  <path d="m2 16 6 6" />
+  <circle cx="16" cy="9" r="2.9" />
+  <circle cx="6" cy="5" r="3" /></svg></span><span class="etiqueta">Te deben</span></div>
+    <span class="monto cifra" id="m-deben" data-valor="3215.5">S/ 3,215.50</span>
+    <span class="caras"><span class="avatar " style="--tono:210" aria-hidden="true">SA</span><span class="avatar " style="--tono:28" aria-hidden="true">LP</span><span class="avatar " style="--tono:95" aria-hidden="true">MT</span><span class="avatar " style="--tono:265" aria-hidden="true">CR</span><span class="caras-mas">+8</span><span class="caras-txt">12 clientes</span></span>
+  </section>
+  
+  <section class="st bloque cielo entra" data-fruta="mango" style="--p:30">
+    <span class="st-fruta"><svg class="fruta " width="52" height="52" aria-hidden="true"><use href="#f-mango"/></svg></span>
+    <span class="st-txt"><span class="st-nombre">Mango Kent</span><span class="st-cant cifra"><span class="st-n">12</span> jabas</span><span class="st-aviso"><svg aria-hidden="true" class="i " width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+  <path d="M12 9v4" />
+  <path d="M12 17h.01" /></svg> Quedan pocas</span></span>
+    <span class="medio"><i></i></span>
+  </section>
+  <section class="st bloque lila entra" data-fruta="platano" style="--p:60">
+    <span class="st-fruta"><svg class="fruta " width="52" height="52" aria-hidden="true"><use href="#f-platano"/></svg></span>
+    <span class="st-txt"><span class="st-nombre">Plátano seda</span><span class="st-cant cifra"><span class="st-n">30</span> jabas</span><span class="st-aviso"><svg aria-hidden="true" class="i " width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+  <path d="M12 9v4" />
+  <path d="M12 17h.01" /></svg> Quedan pocas</span></span>
+    <span class="medio"><i></i></span>
+  </section>
+  <section class="st bloque durazno alerta ancho fila-st entra" data-fruta="pina" style="--p:15">
+    <span class="st-fruta"><svg class="fruta " width="52" height="52" aria-hidden="true"><use href="#f-pina"/></svg></span>
+    <span class="st-txt"><span class="st-nombre">Piña</span><span class="st-cant cifra"><span class="st-n">3</span> jabas</span><span class="st-aviso"><svg aria-hidden="true" class="i " width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+  <path d="M12 9v4" />
+  <path d="M12 17h.01" /></svg> Quedan pocas</span></span>
+    <span class="medio"><i></i></span>
+  </section>
+</div>
+<h2 class="entra">Lo último</h2>
+<ul class="lista entra" id="lista"><li class="op op-pago">
+  
+  <span class="op-ava"><span class="avatar " style="--tono:150" aria-hidden="true">JP</span><span class="op-frutas"><svg class="fruta " width="26" height="26" aria-hidden="true"><use href="#f-platano"/></svg><svg class="fruta " width="26" height="26" aria-hidden="true"><use href="#f-pina"/></svg></span></span>
+  <span class="op-txt"><span class="quien">Juguería El Paraíso</span><span class="que">5 de plátano y 3 de piña</span></span>
+  <span class="op-der"><span class="monto cifra">S/ 270.00</span><span class="insignia pago"><svg aria-hidden="true" class="i " width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg> Pagó</span></span>
+</li><li class="op op-pago">
+  
+  <span class="op-ava"><span class="avatar " style="--tono:330" aria-hidden="true">RQ</span><span class="op-frutas op-abono"><svg aria-hidden="true" class="i " width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
+  <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" /></svg></span></span>
+  <span class="op-txt"><span class="quien">Rosa Quispe</span><span class="que">Abonó en efectivo</span></span>
+  <span class="op-der"><span class="monto cifra">S/ 200.00</span><span class="insignia pago"><svg aria-hidden="true" class="i " width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg> Abono</span></span>
+</li><li class="op op-debe">
+  
+  <span class="op-ava"><span class="avatar " style="--tono:210" aria-hidden="true">SA</span><span class="op-frutas"><svg class="fruta " width="26" height="26" aria-hidden="true"><use href="#f-mango"/></svg></span></span>
+  <span class="op-txt"><span class="quien">Bodega Santa Ana</span><span class="que">8 de mango kent</span></span>
+  <span class="op-der"><span class="monto cifra">S/ 380.00</span><span class="insignia debe"><svg aria-hidden="true" class="i " width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" />
+  <polyline points="12 6 12 12 16 14" /></svg> Lo debe</span></span>
+</li></ul>
+</main>
+<div class="desvanecido" aria-hidden="true" data-decorativo></div>
+
+<div class="zona-voz" id="zona-voz" data-estado="listo">
+  <span class="voz-rizos" aria-hidden="true"><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i></span>
+  <button class="voz" id="voz" data-estado="listo" aria-describedby="voz-texto">
+    <span class="voz-borde" aria-hidden="true"></span>
+    <span class="voz-mic"><svg aria-hidden="true" class="i " width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+  <line x1="12" x2="12" y1="19" y2="22" /></svg></span>
+    <span class="voz-ondas" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+    <span class="voz-puntos" aria-hidden="true"><i style="--k:0"></i><i style="--k:1"></i><i style="--k:2"></i></span>
+    <span class="voz-anillo" aria-hidden="true"></span>
+    <span class="sr">Botón de voz</span>
+  </button>
+  <span class="voz-texto" id="voz-texto" aria-live="polite">Mantén para hablar</span>
+</div>
+
+<nav class="nav" id="nav" aria-label="Principal"><span class="nav-ind" id="nav-ind" aria-hidden="true"></span>
+  <a href="#" aria-current="page"><svg aria-hidden="true" class="i " width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+  <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>Hoy</a>
+  <a href="#"><svg aria-hidden="true" class="i " width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+  <circle cx="9" cy="7" r="4" />
+  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+  <path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>Clientes</a>
+  <a href="#"><svg aria-hidden="true" class="i " width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" />
+  <path d="M12 22V12" />
+  <path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7" />
+  <path d="m7.5 4.27 9 5.15" /></svg>Stock</a>
+  <a href="#"><svg aria-hidden="true" class="i " width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+  <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+  <path d="M12 17.5v-11" /></svg>Ventas</a>
+</nav>
+
+<div class="velo" id="velo"></div>
+<section class="hoja" id="hoja" role="dialog" aria-modal="true" aria-labelledby="hoja-titulo">
+  <div class="asa"></div>
+  <div class="formulario">
+    <div class="hoja-cab pieza"><span class="chispa"><svg aria-hidden="true" class="i " width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+  <path d="M20 3v4" />
+  <path d="M22 5h-4" />
+  <path d="M4 17v2" />
+  <path d="M5 18H3" /></svg></span><p class="titulo" id="hoja-titulo">¿Así fue la venta?</p></div>
+    <button class="fila pieza"><span class="avatar " style="--tono:28" aria-hidden="true">LP</span><span class="fila-txt"><span class="grande">Don Lucho</span><span class="chico">Luis Paredes</span></span><svg aria-hidden="true" class="i " width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+  <path d="m15 5 4 4" /></svg></button>
+    <button class="fila pieza"><svg class="fruta " width="48" height="48" aria-hidden="true"><use href="#f-mango"/></svg><span class="fila-txt"><span class="grande">10 jabas de Mango Kent</span><span class="precio"><span class="cifra">S/ 45.00 la jaba</span><span class="insignia sugerido"><svg aria-hidden="true" class="i " width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+  <path d="M20 3v4" />
+  <path d="M22 5h-4" />
+  <path d="M4 17v2" />
+  <path d="M5 18H3" /></svg> sugerido</span></span></span><svg aria-hidden="true" class="i " width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+  <path d="m15 5 4 4" /></svg></button>
+    <div class="total pieza"><span class="etiqueta">Total</span><span class="monto cifra" id="total" data-valor="450">S/ 450.00</span></div>
+    <div class="seg pieza" id="seg" role="group" aria-label="¿Pagó o lo debe?" data-valor="debe">
+      <span class="seg-pill" aria-hidden="true"></span>
+      <button class="pago" aria-pressed="false" data-valor="pago"><svg aria-hidden="true" class="i " width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg> Pagó</button>
+      <button class="debe" aria-pressed="true" data-valor="debe"><svg aria-hidden="true" class="i " width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" />
+  <polyline points="12 6 12 12 16 14" /></svg> Lo debe</button>
+    </div>
+    <div class="medidor pieza">
+      <p class="nota" id="nota">Con esta venta te debe <strong class="cifra">S/ 680.00</strong></p>
+      <div class="barra" aria-hidden="true"><span class="previa"></span><span class="nueva"></span></div>
+      <div class="barra-leyenda"><span>Ya debía S/ 230.00</span><span id="leyenda-nueva">+ S/ 450.00 de hoy</span></div>
+    </div>
+    <p class="duda pieza"><svg aria-hidden="true" class="i " width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" />
+  <path d="M12 16v-4" />
+  <path d="M12 8h.01" /></svg> No dijiste el precio: puse el último que le cobraste.</p>
+    <button class="confirmar pieza" id="confirmar"><span class="c-txt">Confirmar venta</span><span class="c-gira" aria-hidden="true"></span></button>
+    <button class="descartar pieza" id="descartar">Descartar</button>
+  </div>
+  <div class="exito-msg" role="status">
+    <div class="sello"><svg viewBox="0 0 52 52" aria-hidden="true"><circle class="sello-c" cx="26" cy="26" r="24"/><path class="sello-v" d="M15 27l7 7 15-16"/></svg><div class="chispas" id="chispas" aria-hidden="true"></div></div>
+    <p>Venta guardada</p>
+    <div class="sub" id="exito-sub">Don Lucho te debe <span class="cifra">S/ 680.00</span></div>
+  </div>
+</section>
+<template id="fila-nueva"><li class="op op-debe">
+  
+  <span class="op-ava"><span class="avatar " style="--tono:28" aria-hidden="true">LP</span><span class="op-frutas"><svg class="fruta " width="26" height="26" aria-hidden="true"><use href="#f-mango"/></svg></span></span>
+  <span class="op-txt"><span class="quien">Don Lucho</span><span class="que">10 de mango kent</span></span>
+  <span class="op-der"><span class="monto cifra">S/ 450.00</span><span class="insignia debe"><svg aria-hidden="true" class="i " width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" />
+  <polyline points="12 6 12 12 16 14" /></svg> Lo debe</span></span>
+</li></template>
+<template id="fila-nueva-hora"><li class="op op-debe">
+  <span class="op-hora">10:51</span>
+  <span class="op-ava"><span class="avatar " style="--tono:28" aria-hidden="true">LP</span><span class="op-frutas"><svg class="fruta " width="26" height="26" aria-hidden="true"><use href="#f-mango"/></svg></span></span>
+  <span class="op-txt"><span class="quien">Don Lucho</span><span class="que">10 de mango kent</span></span>
+  <span class="op-der"><span class="monto cifra">S/ 450.00</span><span class="insignia debe"><svg aria-hidden="true" class="i " width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" />
+  <polyline points="12 6 12 12 16 14" /></svg> Lo debe</span></span>
+</li></template>
+<script>
+
+const q = new URLSearchParams(location.search);
+if (q.get("tema") === "oscuro") document.documentElement.dataset.theme = "oscuro";
+const quieto = matchMedia("(prefers-reduced-motion: reduce)").matches || q.has("quieto");
+const soles = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
+const $ = (s) => document.querySelector(s);
+
+// Una sola coreografía de entrada, en orden de lectura.
+document.querySelectorAll(".entra").forEach((e, i) => e.style.setProperty("--i", i));
+document.querySelectorAll(".hoja .pieza").forEach((e, i) => e.style.setProperty("--i", i));
+document.querySelectorAll(".st").forEach((e, i) => e.style.setProperty("--k", i));
+
+// Las cifras cuentan hasta su valor; el ancho se reserva para que nada salte.
+function contar(el, hasta, ms = 1100, desde = 0) {
+  el.dataset.valor = hasta;
+  el.textContent = soles.format(hasta);
+  el.style.minWidth = el.getBoundingClientRect().width + "px";
+  if (quieto) return;
+  const t0 = performance.now();
+  const paso = (t) => {
+    const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 4);
+    el.textContent = soles.format(desde + (hasta - desde) * e);
+    if (k < 1) requestAnimationFrame(paso);
+  };
+  requestAnimationFrame(paso);
+}
+document.querySelectorAll("main .monto[data-valor]")
+  .forEach((el, i) => setTimeout(() => contar(el, +el.dataset.valor), 250 + i * 90));
+setTimeout(() => document.querySelectorAll(".st, .medio").forEach((e) => {
+  const p = e.style.getPropertyValue("--p") || getComputedStyle(e).getPropertyValue("--p");
+  if (p) e.style.setProperty("--p-vivo", p);
+}), 500);
+
+// Indicador de la navegación.
+const navEl = $("#nav"), ind = $("#nav-ind");
+function moverInd(a) {
+  const r = a.getBoundingClientRect(), n = navEl.getBoundingClientRect();
+  const w = parseFloat(getComputedStyle(ind).getPropertyValue("--ancho")) || r.width;
+  ind.style.width = w + "px";
+  ind.style.transform = "translateX(" + (r.left - n.left - parseFloat(getComputedStyle(ind).left) + (r.width - w) / 2) + "px)";
+}
+navEl.querySelectorAll("a").forEach((a) => a.addEventListener("click", (e) => {
+  e.preventDefault();
+  navEl.querySelectorAll("a").forEach((o) => o.removeAttribute("aria-current"));
+  a.setAttribute("aria-current", "page"); moverInd(a); navigator.vibrate?.(8);
+}));
+const moverActual = () => moverInd(navEl.querySelector("[aria-current]"));
+document.fonts.ready.then(moverActual); addEventListener("resize", moverActual);
+
+// Voz: mantener → escuchar (ondas) → soltar → entender → hoja.
+const voz = $("#voz"), zona = $("#zona-voz"), texto = $("#voz-texto"), ondas = [...voz.querySelectorAll(".voz-ondas i")];
+let grabando = false, t0 = 0, raf = 0;
+const estado = (s) => { voz.dataset.estado = s; zona.dataset.estado = s; };
+function animarOndas() {
+  const seg = Math.floor((performance.now() - t0) / 1000);
+  texto.textContent = "Te escucho… 0:" + String(seg).padStart(2, "0");
+  ondas.forEach((o, i) => {
+    const v = 0.25 + Math.abs(Math.sin(performance.now() / (140 + i * 37) + i)) * (0.55 + Math.random() * 0.2);
+    o.style.transform = "scaleY(" + Math.min(1, v).toFixed(2) + ")";
+  });
+  raf = requestAnimationFrame(animarOndas);
+}
+voz.addEventListener("pointerdown", (e) => {
+  voz.setPointerCapture?.(e.pointerId);
+  grabando = true; t0 = performance.now(); estado("escuchando"); navigator.vibrate?.(20);
+  if (!quieto) animarOndas(); else texto.textContent = "Te escucho…";
+});
+const soltar = () => {
+  if (!grabando) return;
+  grabando = false; cancelAnimationFrame(raf); estado("entendiendo"); texto.textContent = "Entendiendo…";
+  setTimeout(abrir, 900);
+};
+voz.addEventListener("pointerup", soltar); voz.addEventListener("pointercancel", soltar);
+voz.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } });
+
+// Hoja.
+const hoja = $("#hoja"), velo = $("#velo"), seg = $("#seg"), nota = $("#nota"), confirmar = $("#confirmar");
+let guardada = false;
+function abrir() {
+  hoja.removeAttribute("data-guardado"); guardada = false; confirmar.disabled = false; confirmar.removeAttribute("data-estado");
+  hoja.setAttribute("data-abierta", ""); velo.setAttribute("data-abierta", "");
+  estado("listo"); texto.textContent = "Listo";
+}
+function cerrar() {
+  hoja.removeAttribute("data-abierta"); velo.removeAttribute("data-abierta");
+  texto.textContent = "Mantén para hablar";
+}
+seg.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+  seg.querySelectorAll("button").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+  seg.dataset.valor = b.dataset.valor; navigator.vibrate?.(10);
+  nota.innerHTML = b.dataset.valor === "debe"
+    ? 'Con esta venta te debe <strong class="cifra">S/ 680.00</strong>'
+    : 'Pagó S/ 450.00. Sigue debiendo <strong class="cifra">S/ 230.00</strong>';
+  $("#leyenda-nueva").textContent = b.dataset.valor === "debe" ? "+ S/ 450.00 de hoy" : "Hoy no suma";
+}));
+
+function sonar() {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)(), o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+    o.type = "sine"; o.frequency.setValueAtTime(660, t); o.frequency.setValueAtTime(990, t + 0.09);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+    o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 0.3);
+  } catch (err) { console.warn("Sin sonido de confirmación:", err); }
+}
+function chispas() {
+  const caja = $("#chispas"), colores = ["#FFB000", "#2BB673", "#3B82F6", "#F0462E", "#A78BFA", "#22C3D6"];
+  caja.innerHTML = "";
+  for (let i = 0; i < 14; i++) {
+    const s = document.createElement("span");
+    s.style.setProperty("--ang", (i * (360 / 14) + Math.random() * 12) + "deg");
+    s.style.setProperty("--dist", (58 + Math.random() * 26) + "px");
+    s.style.setProperty("--c", colores[i % colores.length]);
+    caja.appendChild(s);
+  }
+}
+confirmar.addEventListener("click", () => {
+  if (guardada || confirmar.disabled) return; // un segundo toque no guarda dos veces
+  confirmar.disabled = true; confirmar.dataset.estado = "guardando";
+  setTimeout(() => { // en la app: solo cuando la base respondió
+    guardada = true; hoja.setAttribute("data-guardado", ""); chispas(); sonar(); navigator.vibrate?.(30);
+    const debe = seg.dataset.valor === "debe";
+    $("#exito-sub").innerHTML = debe ? 'Don Lucho te debe <span class="cifra">S/ 680.00</span>' : 'Don Lucho te debe <span class="cifra">S/ 230.00</span>';
+    setTimeout(() => { cerrar(); setTimeout(() => actualizarHoy(debe), 250); }, 1700);
+  }, 650);
+});
+$("#descartar").addEventListener("click", cerrar);
+velo.addEventListener("click", cerrar);
+
+function actualizarHoy(debe) {
+  const lista = $("#lista"), tpl = $(lista.classList.contains("linea-tiempo") ? "#fila-nueva-hora" : "#fila-nueva");
+  const fila = tpl.content.firstElementChild.cloneNode(true);
+  if (!debe) { fila.classList.replace("op-debe", "op-pago"); const ins = fila.querySelector(".insignia"); ins.classList.replace("debe", "pago"); ins.lastChild.textContent = " Pagó"; }
+  fila.classList.add("recien"); lista.prepend(fila);
+  const v = $("#m-vendido"); contar(v, +v.dataset.valor + 450, 900, +v.dataset.valor);
+  if (debe) { const d = $("#m-deben"); contar(d, +d.dataset.valor + 450, 900, +d.dataset.valor); }
+  $("#n-ventas").textContent = "24"; $("#n-jabas").textContent = "64";
+  const mango = document.querySelector('[data-fruta="mango"]');
+  if (mango) {
+    mango.style.setProperty("--p", 5); mango.style.setProperty("--p-vivo", 5); mango.classList.add("alerta");
+    mango.querySelector(".st-n").textContent = "2";
+    const m = mango.querySelector(".medio"); if (m) m.style.setProperty("--p-vivo", 5);
+  }
+}
+if (q.get("pantalla") === "tarjeta") abrir();
+
+</script>
+</body>
+</html>
