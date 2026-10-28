@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "playwright-report/**",
     "test-results/**",
+    // Skills de Claude: sus ejemplos no son código de la app (ADR-0004).
+    ".claude/**",
     // Generado por `supabase gen types`; no se edita a mano.
     "lib/supabase/tipos-db.ts",
   ]),
