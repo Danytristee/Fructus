@@ -14,6 +14,10 @@
 - **Cuentas por enlace de invitación** (ADR-0009): `pnpm cuentas:invitar`, `/auth/confirmar` y `/login/clave`.
 - **Seed:** 4 cuentas de prueba (una por rol) y una cuenta sin perfil.
 
+- **Despliegue en Vercel** (`https://fructus-neon.vercel.app`). `vercel.json`:
+  - fija la región de las funciones en São Paulo (`gru1`), junto a la base (`sa-east-1`); por defecto era Washington;
+  - con `ignoreCommand` solo construye producción (`main`); las ramas y PR no generan previews.
+
 **Cómo se verificó:**
 - **Código:** `pnpm typecheck`, `pnpm lint`, `pnpm test` (11 pruebas) y `pnpm knip`, en verde.
 - **Base:** `npx supabase test db` (18) y `pnpm db:invariantes` (12), en orden.
@@ -31,5 +35,5 @@
 - **Un toque mientras React se monta:** en desarrollo, un envío del login que llega justo durante ese momento a veces no se completa
   (`app/login/FormularioEntrar.tsx:17`). Medirlo con la versión de producción en un Android de gama media.
 - **Contador sin botón de voz y ayudante sin «Anular»:** la regla ya existe (`permisosDe`); se conecta en A3 y A6.
-- **Cuentas reales:** publicar la app en Vercel (`SITIO_URL`) y correr `pnpm cuentas:invitar` con los correos del dueño y de los
-  ayudantes.
+- **Cuentas reales:** la app ya está publicada. Falta fusionar este PR y correr `pnpm cuentas:invitar` (la primera: la hija del dueño,
+  como administradora).
