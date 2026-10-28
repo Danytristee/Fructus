@@ -1,0 +1,5 @@
+# Dependencias que pueden correr su script de instalación (pnpm 10 los bloquea por defecto).
+# supabase: descarga el binario del CLI. unrs-resolver: binario nativo que usa ESLint.
+onlyBuiltDependencies:
+  - supabase
+  - unrs-resolver

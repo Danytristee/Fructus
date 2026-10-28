@@ -8,7 +8,7 @@
 # Lo que este CI NO dice: que la pantalla se vea bien a 412 px ni que la voz entienda.
 # Eso lo dicen /formidable y /voz-precision, y la captura que lleva cada PR.
 #
-# Mientras la app no exista (no hay package.json), el primer trabajo avisa y sale en verde.
+# Los puertos locales son 563xx (supabase/config.toml): los 543xx los usan otros proyectos en la misma máquina.
 # Un PR en rojo no se fusiona.
 
 name: CI
@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 15
     env:
       # Valores de mentira: solo para que el build compile. Nunca claves reales aquí.
-      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:56321
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: clave-de-prueba
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +90,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.0   # la misma que package.json: una versión vieja no lee config.toml
 
       - name: Levantar Supabase (migraciones + seed)
         # Solo lo que las pruebas necesitan: Postgres, Auth y la API.
@@ -101,4 +101,4 @@ jobs:
 
       - name: Invariantes
         if: ${{ !cancelled() }}
-        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f scripts/invariantes.sql
+        run: psql "postgresql://postgres:postgres@127.0.0.1:56322/postgres" -v ON_ERROR_STOP=1 -f scripts/invariantes.sql
