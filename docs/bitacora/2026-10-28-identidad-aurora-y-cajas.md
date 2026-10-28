@@ -11,7 +11,7 @@
   También cambia la regla de movimiento de `CLAUDE.md`. Maquetas v4 (Aurora, Bento, Horizonte) en `docs/maquetas/identidad/`.
 - **ADR-0008 (la unidad es la caja):**
   - «jaba» pasa a «caja» en pantalla, base, docs e intérprete; por voz se sigue aceptando «jaba»;
-  - nueva migración `20261028180000_unidad_caja.sql` (sin aplicar al proyecto) y `lib/formato.ts` con su prueba.
+  - nueva migración `20261028222919_unidad_caja.sql` (aplicada al proyecto) y `lib/formato.ts` con su prueba.
 - **shadcn:** `button` y `sheet` en `components/shadcn/`, con el velo de la hoja apuntando al token `--velo`. Knip no revisa sus
   exportaciones sin usar.
 
@@ -22,7 +22,9 @@
   - cifras de 46 y 30 px, ningún control bajo 48 px, sin desborde;
   - mantener y soltar el orbe abre la hoja, y Confirmar muestra «guardando» y cierra.
   - Capturas en `docs/capturas/a1-*.png`.
+- **Proyecto de Supabase:**
+  - `unidad_caja` aplicada como `20261028222919`; los 10 productos quedaron en `caja` y el resumen devuelve `cajas_vendidas`.
+  - `get_advisors` no trae avisos nuevos: siguen solo los que `CLAUDE.md` deja a propósito.
 
 **Pendiente:**
-- Aplicar la migración `unidad_caja` al proyecto de Supabase (necesita OK) y renombrarla a su versión real.
 - Medir INP con el vidrio en un Android de gama media (A11).
