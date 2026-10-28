@@ -2,11 +2,11 @@
 
 > *Fructus* (latín): fruto, y también ganancia.
 
-ERP por voz para mayoristas de fruta. El dueño dice **«Vendí 10 jabas de mango a don Lucho a 45, lo debe»** y Fructus lo convierte en
-una venta: descuenta las jabas del stock y suma la deuda al cuaderno de don Lucho. Antes de guardar, pide un solo toque de confirmación.
+ERP por voz para mayoristas de fruta. El dueño dice **«Vendí 10 cajas de mango a don Lucho a 45, lo debe»** y Fructus lo convierte en
+una venta: descuenta las cajas del stock y suma la deuda al cuaderno de don Lucho. Antes de guardar, pide un solo toque de confirmación.
 
 - Registra **ventas**, **abonos**, **compras**, **mermas** y **gastos** por voz.
-- Responde: *«¿Quién me debe?»*, *«¿Cuánto vendí hoy?»*, *«¿Cuántas jabas de papaya me quedan?»*
+- Responde: *«¿Quién me debe?»*, *«¿Cuánto vendí hoy?»*, *«¿Cuántas cajas de papaya me quedan?»*
 - Emite **boletas y facturas electrónicas** (por ahora en ambiente de prueba).
 - Muestra el **cierre del día** y exporta el mes a Excel para el contador.
 

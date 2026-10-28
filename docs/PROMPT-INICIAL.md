@@ -21,12 +21,12 @@ mayorista de fruta use de verdad desde su celular a pleno sol, con un diseño qu
 
 ## Qué es Fructus
 
-Un ERP **por voz** para un mayorista de frutas de La Hermelinda (Trujillo). Vende por jabas, de 20 a 60 ventas al día, casi siempre a
+Un ERP **por voz** para un mayorista de frutas de La Hermelinda (Trujillo). Vende por cajas, de 20 a 60 ventas al día, casi siempre a
 clientes que vuelven y mucho al crédito (hoy lo anota en un cuaderno). Le cuesta la tecnología y casi siempre tiene las manos ocupadas.
 
 El corazón del producto es un flujo:
 
-> **Mantiene el botón → dice «Vendí 10 jabas de mango kent a don Lucho a 45, lo debe» → suelta → ve una tarjeta grande con lo que se entendió → toca Confirmar → listo.**
+> **Mantiene el botón → dice «Vendí 10 cajas de mango kent a don Lucho a 45, lo debe» → suelta → ve una tarjeta grande con lo que se entendió → toca Confirmar → listo.**
 
 Todo lo demás (cuaderno de deudas, stock, cierre del día, comprobantes) existe para que ese flujo valga la pena.
 
@@ -109,7 +109,7 @@ Ajusta el orden si encuentras una dependencia, pero no la recortes sin decirlo.
 - *Demostrable:* e2e entra con cada rol y ve lo que le corresponde.
 
 **A3 · «Hoy».**
-- La pantalla del dueño: el botón de voz (todavía sin acción), el resumen del día con `resumen_dia()` (vendido, cobrado, por cobrar, jabas) y las últimas 5 operaciones.
+- La pantalla del dueño: el botón de voz (todavía sin acción), el resumen del día con `resumen_dia()` (vendido, cobrado, por cobrar, cajas) y las últimas 5 operaciones.
 - Estados vacío, de carga y de error.
 - *Demostrable:* e2e a 412 y 360 px con datos del seed; `/formidable`.
 
@@ -161,7 +161,7 @@ Ajusta el orden si encuentras una dependencia, pero no la recortes sin decirlo.
 
 **A8 · Cuaderno, stock y ventas.**
 - **Clientes:** deudores primero, por monto. Ficha con historial y abonos. Alta y edición con alias. Registrar un abono a mano.
-- **Stock:** jabas por fruta, con aviso de «quedan pocas». Mermas y compras a mano.
+- **Stock:** cajas por fruta, con aviso de «quedan pocas». Mermas y compras a mano.
 - **Ventas:** historial del día y de la semana. Anular (solo dueño o administrador, con confirmación y motivo).
 - Todo usable también sin voz, para el ayudante que prefiera tocar.
 - *Demostrable:* e2e por pantalla, `/formidable` en cada una y `/chaos` en las que guardan.
@@ -183,7 +183,7 @@ Ajusta el orden si encuentras una dependencia, pero no la recortes sin decirlo.
   - INV-08 a INV-11 limpias.
 
 **A10 · Cierre del día y exportar.**
-- Pantalla de cierre: vendido al contado, a crédito, cobrado, gastos, compras, por cobrar y jabas que quedan.
+- Pantalla de cierre: vendido al contado, a crédito, cobrado, gastos, compras, por cobrar y cajas que quedan.
 - Botón **Enviar por WhatsApp** con el resumen en texto.
 - **Exportar el mes a Excel** (SheetJS, instalado desde su CDN oficial): ventas, abonos, compras, gastos y comprobantes, para el contador.
 - Web Push opcional con el resumen al cerrar el día.

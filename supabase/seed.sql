@@ -5,16 +5,16 @@
 -- =============================================================================
 
 insert into productos (nombre, variedad, unidad, alias, precio_referencia) values
-  ('Mango',     'Kent',          'jaba', '{"mango kent","kent"}',                45.00),
-  ('Mango',     'Edward',        'jaba', '{"mango edward","edward"}',            38.00),
-  ('Plátano',   'de seda',       'jaba', '{"plátano seda","seda","platano"}',    32.00),
-  ('Plátano',   'isla',          'jaba', '{"plátano isla","isla"}',              28.00),
-  ('Papaya',    null,            'jaba', '{"papaya"}',                           35.00),
-  ('Piña',      'golden',        'jaba', '{"piña golden","golden","piña"}',      40.00),
-  ('Mandarina', null,            'jaba', '{"mandarina"}',                        30.00),
-  ('Uva',       'red globe',     'jaba', '{"uva roja","red globe","uva"}',       60.00),
-  ('Palta',     'fuerte',        'jaba', '{"palta fuerte","palta"}',             70.00),
-  ('Limón',     null,            'jaba', '{"limón","limon"}',                    50.00);
+  ('Mango',     'Kent',          'caja', '{"mango kent","kent"}',                45.00),
+  ('Mango',     'Edward',        'caja', '{"mango edward","edward"}',            38.00),
+  ('Plátano',   'de seda',       'caja', '{"plátano seda","seda","platano"}',    32.00),
+  ('Plátano',   'isla',          'caja', '{"plátano isla","isla"}',              28.00),
+  ('Papaya',    null,            'caja', '{"papaya"}',                           35.00),
+  ('Piña',      'golden',        'caja', '{"piña golden","golden","piña"}',      40.00),
+  ('Mandarina', null,            'caja', '{"mandarina"}',                        30.00),
+  ('Uva',       'red globe',     'caja', '{"uva roja","red globe","uva"}',       60.00),
+  ('Palta',     'fuerte',        'caja', '{"palta fuerte","palta"}',             70.00),
+  ('Limón',     null,            'caja', '{"limón","limon"}',                    50.00);
 
 insert into clientes (nombre, alias, tipo_documento, numero_documento) values
   ('Luis Paredes',        '{"don lucho","lucho"}',                  'DNI', '40123456'),

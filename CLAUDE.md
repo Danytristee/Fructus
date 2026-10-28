@@ -4,7 +4,7 @@ Este archivo define cómo se trabaja en este repo, con Claude Code o con cualqui
 Si una skill, una plantilla o una costumbre de afuera choca con lo que dice aquí, **gana este archivo**. Si algo de aquí ya no sirve, se
 cambia aquí, con su razón y su ADR (`docs/adr/`). No se ignora en silencio.
 
-Fructus es un ERP **por voz** para un mayorista de frutas de La Hermelinda (Trujillo, Perú). Vende por jabas, entre 20 y 60 ventas al día,
+Fructus es un ERP **por voz** para un mayorista de frutas de La Hermelinda (Trujillo, Perú). Vende por cajas, entre 20 y 60 ventas al día,
 casi siempre a clientes que vuelven y mucho al crédito (hoy lo anota en un cuaderno). El dueño atiende con las manos ocupadas: **el
 producto es el celular y la voz**. La versión de escritorio existe para quien revisa: un administrador o el contador.
 
@@ -102,7 +102,7 @@ app/
   (app)/                rutas con sesión
     page.tsx            «Hoy»: botón de voz + resumen del día (la pantalla del dueño)
     clientes/           cuaderno: quién debe, ficha del cliente, abonos
-    stock/              jabas por fruta, mermas, compras
+    stock/              cajas por fruta, mermas, compras
     ventas/             historial, anular, comprobante
     cierre/             cierre del día, exportar mes (escritorio también)
     ajustes/            catálogo, usuarios y roles (solo dueño/administrador)
@@ -188,10 +188,15 @@ formulario del gobierno. El diseño se juzga por lo que la persona **hace**, no 
 - **Una función, una pieza.** «Confirmar», «Cancelar», una insignia de estado o un monto se dibujan igual en toda la app. Si hace falta una variante, se agrega a la pieza de `components/ui/`; no se crea otra pieza.
 - **shadcn/ui es materia prima, no la pieza.** Lo que genera `shadcn add` vive en `components/shadcn/` y solo lo importa `components/ui/`; una pantalla nunca importa de `components/shadcn/`. Sus variables (`--background`, `--primary`, …) se definen en `globals.css` apuntando a los tokens de Fructus.
 - **Espaciado en múltiplos de 4**, alineación a una grilla, jerarquía clara: un protagonista por pantalla.
-- **Tipografía:** una familia (cargada con `next/font`) y, como mucho, una segunda para las cifras. Cifras con `tabular-nums`.
+- **Tipografía:** una familia, **Manrope** (cargada con `next/font`). Cifras con `tabular-nums` (utilidad `cifra`).
 - **Dinero siempre con `Monto`:** `S/ 1,250.00`, con `Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" })`. Las deudas tienen un color propio y además un texto («debe»).
 - **Modo claro por defecto,** porque se usa al sol. Los tokens nacen con su variante oscura, así que activarla después no cuesta nada.
-- **Movimiento sutil y con propósito:** la hoja sube, la tarjeta aparece, el éxito se confirma. Nada de rebotes ni animaciones decorativas. Se respeta `prefers-reduced-motion`.
+- **Movimiento en cada acción, con propósito** (ADR-0007, identidad «Aurora»):
+  - **Cada acción responde con movimiento:** el orbe de voz escucha (ondas) y entiende (giro), la hoja sube con un resorte corto, sus piezas entran en cascada, la píldora «Pagó / Lo debe» se desliza y Confirmar termina en un sello con vibración y sonido.
+  - **Una sola coreografía al abrir una pantalla.** Nada se mueve en bucle salvo el orbe de voz en reposo y el punto «ahora» del gráfico.
+  - **Las cifras solo cuentan en los resúmenes** («Hoy», cierre). **Lo que se va a confirmar se muestra exacto desde el primer cuadro:** nunca un monto intermedio en la tarjeta.
+  - **El fondo de luces está quieto,** porque el vidrio desenfoca lo de atrás y moverlo cuesta en un Android de gama media.
+  - Los tiempos y curvas viven en `app/globals.css` (`--ease-*`, `--animate-*`). Se respeta `prefers-reduced-motion`.
 - **Un solo indicador de carga a pantalla completa** para guardados, montado una vez en el layout. Las secciones usan esqueletos con `Suspense`. Nunca un «Cargando…» suelto. **Nada optimista en dinero ni en stock:** se muestra éxito solo cuando la base respondió.
 - **Estados completos.** Cada pantalla diseña su estado vacío (qué falta y qué hacer), su error (en tres líneas y en lenguaje de puesto), su carga y su primer uso.
 
@@ -224,7 +229,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   5. La resolución de nombres con `buscar_clientes` y `buscar_productos`.
 
   El navegador recibe la tarjeta lista para mostrar.
-- **La tarjeta** dice en grande lo que se entendió: cliente, fruta, jabas, precio, total, y si pagó o lo debe.
+- **La tarjeta** dice en grande lo que se entendió: cliente, fruta, cajas, precio, total, y si pagó o lo debe.
   - Cada dato es tocable para corregirlo.
   - Si la similitud de un nombre es menor a 0.45, muestra las 3 mejores opciones para elegir.
   - Las dudas del intérprete salen como una línea discreta.
@@ -328,7 +333,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
 
 **Al explicar algo nuevo** (un concepto o un cambio en el modelo de datos):
 1. Empieza por el problema, no por la definición.
-2. Usa una analogía del puesto (jabas, cuaderno, balanza).
+2. Usa una analogía del puesto (cajas, cuaderno, balanza).
 3. Muestra cómo se ve mal hecho.
 4. Indica `archivo:línea` para volver a verlo.
 
@@ -381,7 +386,7 @@ Para el trabajo de varios pasos mandan `/construir`, `/decide` y `/abrir-pr`: tr
 ## Vocabulario e idioma
 
 - **Español siempre:** textos de interfaz, comentarios que explican el negocio, ADR, bitácora y commits.
-- **En pantalla:** «cliente» (no «clienta» ni «comprador»), «jaba» (también se acepta «caja» por voz), «lo debe» / «pagó», «abono», «merma» («se malogró»), «ayudante», «dueño».
+- **En pantalla:** «cliente» (no «clienta» ni «comprador»), «caja» (por voz también se acepta «jaba»; ADR-0008), «lo debe» / «pagó», «abono», «merma» («se malogró»), «ayudante», «dueño».
 - **Tono:** se trata de «tú», con frases cortas. Los montos siempre en soles con `S/`.
 - **Nombres:** la base y los dominios usan los mismos nombres que la pantalla. No se inventan sinónimos entre capas.
 
@@ -390,7 +395,7 @@ Para el trabajo de varios pasos mandan `/construir`, `/decide` y `/abrir-pr`: tr
 **Dentro:**
 - voz → venta, al contado y al crédito;
 - abonos, compras, mermas y gastos;
-- consultas por voz («¿quién me debe?», «¿cuánto vendí?», «¿cuántas jabas me quedan?»);
+- consultas por voz («¿quién me debe?», «¿cuánto vendí?», «¿cuántas cajas me quedan?»);
 - stock, cuaderno de clientes y cierre del día;
 - boleta y factura en sandbox;
 - roles, login y exportar el mes a Excel;

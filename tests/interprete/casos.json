@@ -3,7 +3,7 @@
   "casos": [
     {
       "id": "venta-contado-yape",
-      "transcripcion": "Vendí 10 jabas de mango kent a don Lucho a 45, me yapeó",
+      "transcripcion": "Vendí 10 cajas de mango kent a don Lucho a 45, me yapeó",
       "esperado": {
         "herramienta": "registrar_venta",
         "datos": {
@@ -66,7 +66,7 @@
     },
     {
       "id": "compra-proveedor",
-      "transcripcion": "Llegaron 50 jabas de plátano isla del de Chao a 25",
+      "transcripcion": "Llegaron 50 cajas de plátano isla del de Chao a 25",
       "esperado": {
         "herramienta": "registrar_compra",
         "datos": {
@@ -106,7 +106,7 @@
     },
     {
       "id": "consulta-stock-producto",
-      "transcripcion": "¿Cuántas jabas de mango me quedan?",
+      "transcripcion": "¿Cuántas cajas de mango me quedan?",
       "esperado": {
         "herramienta": "consultar",
         "datos": { "consulta": "stock_producto", "producto_texto": "mango" }
