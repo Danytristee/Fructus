@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 
+import { entrarComo } from "./cuentas";
+
 test("la app abre y llega a la base", async ({ page }) => {
-  await page.goto("/");
+  await entrarComo(page, "duenio");
   await expect(page.getByRole("heading", { name: "Fructus" })).toBeVisible();
   await expect(page.getByTestId("estado-base")).toHaveText("La base responde.");
 

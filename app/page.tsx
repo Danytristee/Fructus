@@ -1,4 +1,6 @@
 import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { Boton } from "@/components/ui/Boton";
+import { salir } from "./login/acciones";
 
 // Página provisional de A0: prueba que la app arranca y llega a la base.
 // La reemplaza «Hoy» en A3.
@@ -18,6 +20,12 @@ export default async function Inicio() {
       <p role="status" data-testid="estado-base">
         {error ? "La base no responde. Revisa que Supabase esté prendido." : "La base responde."}
       </p>
+      {/* Provisional: «Salir» pasa al menú en la actividad del marco. */}
+      <form action={salir}>
+        <Boton type="submit" variante="secundario">
+          Salir
+        </Boton>
+      </form>
     </main>
   );
 }
