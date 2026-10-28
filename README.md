@@ -22,7 +22,7 @@ una venta: descuenta las jabas del stock y suma la deuda al cuaderno de don Luch
 
 ```
 CLAUDE.md                 reglas del proyecto
-.claude/skills/           skills: construir, formidable, chaos, voz-precision, identidad-visual, decide, abrir-pr
+.claude/skills/           las 7 skills del proyecto y 21 de terceros (ver docs/terceros/)
 supabase/
   migrations/             esquema (tablas, vistas, funciones, RLS)
   seed.sql                datos de demo

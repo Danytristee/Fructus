@@ -357,15 +357,20 @@ Se responde con evidencia; si algo no se probó, se dice «sin probar».
 
 Vienen de las skills de CAYLA Retail (`construir`, `formidable`, `chaos`, `decide`, `abrir-pr`), adaptadas a una persona, a la voz y al celular. `/identidad-visual` y `/voz-precision` son propias de Fructus.
 
-### De afuera (cada quien las instala; se consultan, no mandan)
+### De afuera (vienen en el repo; se consultan, no mandan)
 
-| Skill | Instalación | Para qué |
-|---|---|---|
-| **frontend-design** (Anthropic) | Viene en Claude | Dirección estética con criterio; la base de `/identidad-visual` |
-| **ui-ux-pro-max** | `/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` y `/plugin install ui-ux-pro-max@ui-ux-pro-max-skill` | Paletas, tipografías y patrones de UX. La búsqueda funciona en inglés. **Nunca `--persist`.** |
-| **web-design-guidelines** y **react-best-practices** (Vercel) | `npx add-skill vercel-labs/agent-skills` | Auditar accesibilidad, rendimiento y UX; buenas prácticas de React y Next.js |
-| **supabase** y **supabase-postgres-best-practices** | `npx skills add supabase/agent-skills` | Esquema, RLS, índices, migraciones y uso correcto de Supabase |
-| **agent-skills** (Addy Osmani), el mismo plugin que usa CAYLA Retail | `/plugin marketplace add addyosmani/agent-skills` y `/plugin install agent-skills@addy-agent-skills` | Ciclo completo: planear, construir, probar, publicar |
+Desde ADR-0004 viajan en `.claude/skills/`: nadie tiene que instalarlas. La lista completa, con el para qué, el commit de origen y la licencia
+de cada una, está en `docs/terceros/README.md`. No se editan a mano: se actualizan con `npx skills update -p` y el diff se revisa.
+
+| Para | Skills |
+|---|---|
+| Diseño | `frontend-design` (base de `/identidad-visual`), `ui-ux-pro-max` (**nunca con `--persist`**), `web-design-guidelines`, `accessibility` |
+| Movimiento | `emil-design-eng`, `animate`, `animation-performance`, `review-animations` (solo a pedido) |
+| React y Next.js | `vercel-react-best-practices`, `vercel-composition-patterns`, `frontend-ui-engineering`, `core-web-vitals`, `performance-optimization` |
+| Base de datos | `supabase`, `supabase-postgres-best-practices` |
+| Oficio | `test-driven-development`, `debugging-and-error-recovery`, `security-and-hardening`, `source-driven-development`, `code-review-and-quality`, `verification-before-completion` |
+
+Para el trabajo de varios pasos mandan `/construir`, `/decide` y `/abrir-pr`; las de oficio de afuera solo aportan criterio dentro de ellas.
 
 **Orden de autoridad:** este archivo → los ADR → `app/globals.css` → las skills del proyecto → las de afuera.
 
