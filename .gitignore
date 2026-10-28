@@ -19,3 +19,7 @@ supabase/.branches/
 .DS_Store
 *.log
 .vercel
+
+# Playwright
+playwright-report/
+test-results/

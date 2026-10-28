@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/*
+ * Provisional hasta A1. Los colores, la tipografía, los radios y los espacios
+ * de Fructus se fijan con /identidad-visual y se escriben aquí, en @theme,
+ * una sola vez. Hasta entonces la app no usa colores propios.
+ */
