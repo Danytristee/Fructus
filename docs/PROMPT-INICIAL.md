@@ -34,7 +34,7 @@ Todo lo demás (cuaderno de deudas, stock, cierre del día, comprobantes) existe
 
 | Capa | Elección |
 |---|---|
-| Base técnica | Node 24 · pnpm 10 · Next.js 16 (App Router) · React 19 · TypeScript estricto · Tailwind CSS 4 · Radix · lucide-react · Zod 4 |
+| Base técnica | Node 24 · pnpm 10 · Next.js 16 (App Router) · React 19 · TypeScript estricto · Tailwind CSS 4 · shadcn/ui (Radix) · lucide-react · Zod 4 |
 | Datos | Supabase (proyecto **Fructus**, `fwrqquugiktwklleqwfa`) con `@supabase/ssr` |
 | Voz | Groq Whisper (`whisper-large-v3-turbo`) → LLM de Groq con tool calling (Gemini Flash de respaldo) → `speechSynthesis` para responder |
 | Comprobantes | Sandbox de Lucode (docs: `https://docs.apisunat.pe/`, índice en `https://docs.apisunat.pe/llms.txt`) |
@@ -194,7 +194,7 @@ Ajusta el orden si encuentras una dependencia, pero no la recortes sin decirlo.
 - Franja «Sin conexión».
 - Si se cae la red, el último audio dictado se conserva en el dispositivo y se reintenta al volver.
 - `GET /api/salud` hace una consulta real a la base.
-- Presupuesto de velocidad medido con Lighthouse móvil: LCP menor a 2.5 s, 120 KB o menos de JS en «Hoy» y tarjeta en 2.5 s o menos.
+- Presupuesto de velocidad medido con Lighthouse móvil (ADR-0006): LCP menor a 2.5 s, INP menor a 200 ms, 180 KB brotli o menos de JS en «Hoy» (`pnpm medir:js / 180`) y tarjeta en 2.5 s o menos.
 - *Demostrable:* instalación en Android, prueba en modo avión y el informe de Lighthouse en `docs/`.
 
 **A12 · Listo para la demo.**

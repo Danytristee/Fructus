@@ -70,7 +70,7 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 | Runtime | **Node 24 LTS** (`.nvmrc`), **pnpm 10** | Igual que CAYLA Retail. pnpm es rápido y estricto con las dependencias. |
 | Framework | **Next.js 16** (App Router, Turbopack), **React 19**, **TypeScript 5** en modo `strict` | Server Components por defecto: menos JavaScript en un Android de gama media. |
 | Estilos | **Tailwind CSS 4**, tokens en `app/globals.css` (`@theme`) | Una sola fuente de colores, tipografía y espacios. |
-| Piezas de interfaz | **Radix** (`radix-ui`) solo como primitiva accesible (diálogo, hoja, menú) + piezas propias en `components/ui/` | Accesibilidad resuelta, estética propia. No se instala un kit visual completo. |
+| Piezas de interfaz | **shadcn/ui** (sobre Radix y Tailwind) como código fuente en `components/shadcn/`, envuelto por las piezas de Fructus en `components/ui/` | El código se copia al repo, no es una dependencia: accesibilidad resuelta y estética propia con los tokens (ADR-0005). |
 | Iconos | **lucide-react** | Un solo set, trazo uniforme. |
 | Validación | **Zod 4** | Toda salida del LLM, todo formulario y todo cuerpo de API se valida con un esquema antes de usarse. |
 | Datos y login | **Supabase** (Postgres 17 + Auth + RLS) con `@supabase/ssr` y `@supabase/supabase-js` | Ver «Base de datos». |
@@ -86,7 +86,7 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 
 **No se usa, salvo un ADR que lo justifique:**
 - ORM (Prisma, Drizzle): las consultas van al cliente de Supabase y las operaciones de varias tablas, a RPC.
-- Kits visuales completos (MUI, Chakra, Mantine, shadcn copiado en bloque).
+- Kits visuales completos que se instalan como dependencia (MUI, Chakra, Mantine). shadcn/ui sí, con las reglas de ADR-0005.
 - Librerías de estado global (Redux, Zustand): alcanza con Server Components, `useState` y la URL.
 - CSS-in-JS.
 - La API de WhatsApp (cobra por los mensajes que inicia la empresa).
@@ -114,6 +114,7 @@ app/
   manifest.ts  layout.tsx  globals.css
 components/
   ui/                   UNA pieza por función: Boton, Hoja, Tarjeta, Campo, Monto, Insignia, Aviso, Vacio, Espera
+  shadcn/               lo que genera `shadcn add` (button.tsx, sheet.tsx…); solo lo importa components/ui/
   voz/                  BotonVoz, TarjetaConfirmacion, EstadoVoz
   <dominio>/            ventas/, clientes/, stock/ …
 lib/
@@ -163,10 +164,10 @@ Se prueba con Playwright y en el navegador a estos anchos, en este orden:
 6. **Teclado solo cuando no hay otra.** Si hay que escribir un número: `inputmode="decimal"`, campo grande, el teclado no tapa el botón de guardar.
 7. **Seguro en bordes.** Se usan `100dvh` y `env(safe-area-inset-*)`. Nunca hay scroll horizontal.
 8. **Tacto y sonido.** Al confirmar, `navigator.vibrate(30)` donde exista y un sonido corto. La persona sabe que se guardó sin mirar.
-9. **Presupuesto de velocidad (Android de gama media en 4G):**
-   - LCP menor a 2.5 s.
-   - INP menor a 200 ms.
-   - **120 KB o menos de JavaScript** comprimido en la primera carga de «Hoy».
+9. **Presupuesto de velocidad (Android de gama media en 4G), ADR-0006:**
+   - **Mandan LCP menor a 2.5 s e INP menor a 200 ms**, medidos en un Android real o con Lighthouse móvil.
+   - **180 KB brotli o menos de JavaScript** en la primera carga de «Hoy» (el piso de Next 16 ya son 147 KB). Se mide con `pnpm build && pnpm medir:js / 180`.
+   - En «Hoy» el navegador no carga supabase-js: el resumen llega del servidor y la tarjeta se confirma con una server action.
    - **De soltar el botón de voz a ver la tarjeta: 2.5 s o menos** (se mide en `comandos_voz.latencia_ms`).
 10. **Sin conexión, se dice.** Si se cae la red, una franja lo dice y el botón de voz explica que no puede enviar. Lo dictado no se pierde: el audio pendiente se guarda en el dispositivo y se reintenta. La cola sin conexión completa es de la fase 2; en la demo, al menos se avisa y se conserva el último audio.
 
@@ -185,6 +186,7 @@ formulario del gobierno. El diseño se juzga por lo que la persona **hace**, no 
 ### Reglas de oficio visual
 
 - **Una función, una pieza.** «Confirmar», «Cancelar», una insignia de estado o un monto se dibujan igual en toda la app. Si hace falta una variante, se agrega a la pieza de `components/ui/`; no se crea otra pieza.
+- **shadcn/ui es materia prima, no la pieza.** Lo que genera `shadcn add` vive en `components/shadcn/` y solo lo importa `components/ui/`; una pantalla nunca importa de `components/shadcn/`. Sus variables (`--background`, `--primary`, …) se definen en `globals.css` apuntando a los tokens de Fructus.
 - **Espaciado en múltiplos de 4**, alineación a una grilla, jerarquía clara: un protagonista por pantalla.
 - **Tipografía:** una familia (cargada con `next/font`) y, como mucho, una segunda para las cifras. Cifras con `tabular-nums`.
 - **Dinero siempre con `Monto`:** `S/ 1,250.00`, con `Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" })`. Las deudas tienen un color propio y además un texto («debe»).
@@ -357,15 +359,22 @@ Se responde con evidencia; si algo no se probó, se dice «sin probar».
 
 Vienen de las skills de CAYLA Retail (`construir`, `formidable`, `chaos`, `decide`, `abrir-pr`), adaptadas a una persona, a la voz y al celular. `/identidad-visual` y `/voz-precision` son propias de Fructus.
 
-### De afuera (cada quien las instala; se consultan, no mandan)
+### De afuera (vienen en el repo; se consultan, no mandan)
 
-| Skill | Instalación | Para qué |
-|---|---|---|
-| **frontend-design** (Anthropic) | Viene en Claude | Dirección estética con criterio; la base de `/identidad-visual` |
-| **ui-ux-pro-max** | `/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` y `/plugin install ui-ux-pro-max@ui-ux-pro-max-skill` | Paletas, tipografías y patrones de UX. La búsqueda funciona en inglés. **Nunca `--persist`.** |
-| **web-design-guidelines** y **react-best-practices** (Vercel) | `npx add-skill vercel-labs/agent-skills` | Auditar accesibilidad, rendimiento y UX; buenas prácticas de React y Next.js |
-| **supabase** y **supabase-postgres-best-practices** | `npx skills add supabase/agent-skills` | Esquema, RLS, índices, migraciones y uso correcto de Supabase |
-| **agent-skills** (Addy Osmani), el mismo plugin que usa CAYLA Retail | `/plugin marketplace add addyosmani/agent-skills` y `/plugin install agent-skills@addy-agent-skills` | Ciclo completo: planear, construir, probar, publicar |
+Desde ADR-0004 viajan en `.claude/skills/`: nadie tiene que instalarlas. La lista completa, con el para qué, el commit de origen y la licencia
+de cada una, está en `docs/terceros/README.md`. No se editan a mano: se actualizan con `npx skills update -p` y el diff se revisa.
+
+| Para | Skills |
+|---|---|
+| Diseño | `frontend-design` (base de `/identidad-visual`), `ui-ux-pro-max` (**nunca con `--persist`**), `shadcn`, `ui-styling`, `web-design-guidelines`, `accessibility` |
+| Movimiento | `emil-design-eng`, `animate`, `animation-performance`, `review-animations` (solo a pedido) |
+| React y Next.js | `vercel-react-best-practices`, `vercel-composition-patterns`, `frontend-ui-engineering`, `core-web-vitals`, `performance-optimization` |
+| Base de datos | `supabase`, `supabase-postgres-best-practices` |
+| PWA | `pwa-expert` para caché, actualización y envío en segundo plano. **Para Next.js manda la guía oficial** (`node_modules/next/dist/docs/01-app/02-guides/progressive-web-apps.md`): `pwa-expert` sugiere `next-pwa`, que no se usa. |
+| Oficio | `test-driven-development`, `debugging-and-error-recovery`, `security-and-hardening`, `source-driven-development`, `code-review-and-quality`, `verification-before-completion`, `doubt-driven-development` (reglas de dinero y stock), `api-and-interface-design` (`/api/voz`), `observability-and-instrumentation` |
+| Dentro de `/construir` y `/abrir-pr` | `planning-and-task-breakdown` e `incremental-implementation` (cortar actividades), `git-workflow-and-versioning` y `ci-cd-and-automation` (commits, ramas y CI) |
+
+Para el trabajo de varios pasos mandan `/construir`, `/decide` y `/abrir-pr`: traen las reglas de Fructus (migraciones con su versión real, captura a 412 px, `/formidable` y `/chaos` como compuertas, bitácora). Las de afuera aportan técnica dentro de ellas, no las reemplazan.
 
 **Orden de autoridad:** este archivo → los ADR → `app/globals.css` → las skills del proyecto → las de afuera.
 
