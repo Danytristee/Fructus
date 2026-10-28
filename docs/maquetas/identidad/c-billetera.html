@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fructus · Cuaderno cuadriculado</title>
-<!-- Maqueta de identidad v2 (A1). El cuaderno del puesto, pasado en limpio: hoja cuadriculada, margen rojo, montos en lapicero azul, la deuda en rojo y el total con doble raya. No es código de la app. -->
+<title>Fructus · Billetera moderna</title>
+<!-- Maqueta de identidad v3 (A1). Como las apps de banco y billetera que ya usa (Yape, BCP, Nubank): una tarjeta de color con el monto del día, todo lo demás en blanco limpio, botones en píldora y sombras suaves. No es código de la app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root { --fondo: #FFFFFF; --superficie: #FFFFFF; --superficie-2: #F1F5FB; --texto: #15171C; --texto-suave: #474E5C; --acento: #1B3A99; --sobre-acento: #FFFFFF; --acento-texto: #1B3A99; --tinta: #1B3A99; --exito: #0D5530; --exito-fondo: #EDF6F0; --deuda: #940F17; --deuda-fondo: #FCEEEF; --borde: #7C8597; --borde-suave: #DCE5F1; --margen: #E0565B; --velo: rgb(21 23 28 / 0.5); --radio: 0px; --radio-boton: 12px; --radio-hoja: 16px; --borde-ancho: 1.5px; --fuente: 'Atkinson Hyperlegible Next', system-ui, sans-serif; --fuente-cifras: 'Atkinson Hyperlegible Next', system-ui, sans-serif; }
-:root[data-theme="oscuro"] { --fondo: #0F1320; --superficie: #151A2A; --superficie-2: #1C2338; --texto: #EEF1F7; --texto-suave: #B8C0D2; --acento: #A8BEFF; --sobre-acento: #0F1320; --acento-texto: #A8BEFF; --tinta: #A8BEFF; --exito: #86D9A8; --exito-fondo: #123323; --deuda: #FF9EA4; --deuda-fondo: #3B1419; --borde: #8A93A8; --borde-suave: #252E47; --margen: #9C3A3E; --velo: rgb(0 0 0 / 0.6); }
+:root { --fondo: #F7F7FB; --superficie: #FFFFFF; --superficie-2: #F1F0F8; --texto: #14121F; --texto-suave: #4A4759; --acento: #4B23B0; --sobre-acento: #FFFFFF; --acento-texto: #4B23B0; --exito: #0B5A30; --exito-fondo: #EEF9F2; --deuda: #980F1A; --deuda-fondo: #FEF2F3; --borde: #8A8799; --borde-suave: #E6E4EF; --tarjeta-fondo: #2E1477; --tarjeta-texto: #FFFFFF; --velo: rgb(20 18 31 / 0.45); --radio: 20px; --radio-boton: 999px; --radio-hoja: 24px; --borde-ancho: 1px; --fuente: 'Plus Jakarta Sans', system-ui, sans-serif; --fuente-cifras: 'Plus Jakarta Sans', system-ui, sans-serif; }
+:root[data-theme="oscuro"] { --fondo: #0E0C16; --superficie: #18152A; --superficie-2: #221E38; --texto: #F2F0FA; --texto-suave: #C3BFD6; --acento: #B9A2FF; --sobre-acento: #1A0B47; --acento-texto: #C4B1FF; --exito: #82DFA6; --exito-fondo: #123322; --deuda: #FFA0A8; --deuda-fondo: #3E141A; --borde: #8E8AA3; --borde-suave: #2E2A44; --tarjeta-fondo: #3A1E96; --tarjeta-texto: #FFFFFF; --velo: rgb(0 0 0 / 0.6); }
 
 *,*::before,*::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -25,9 +25,10 @@ h1 { font-size: 36px; line-height: 1; margin: 0; font-weight: 800; }
 .etiqueta { font-weight: 700; color: var(--texto-suave); }
 .protagonista .monto { display: block; margin: 2px 0 4px; }
 .sub { color: var(--texto-suave); }
-.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 22px; }
-.stat { padding: 12px 14px; border-radius: var(--radio); }
-.stat .monto { font-size: 30px; line-height: 1.1; display: block; }
+.stats { display: grid; grid-template-columns: 1fr; gap: 0; margin-bottom: 22px; border-radius: var(--radio); overflow: hidden; }
+.stat { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 64px; padding: 12px 16px; }
+.stat + .stat { box-shadow: inset 0 1px 0 var(--borde-suave); }
+.stat .monto { font-size: 30px; line-height: 1.1; }
 .stat.deuda { background: var(--deuda-fondo); }
 .stat.deuda .monto, .stat.deuda .etiqueta { color: var(--deuda); }
 h2 { font-size: 20px; margin: 0 0 6px; }
@@ -82,27 +83,26 @@ h2 { font-size: 20px; margin: 0 0 6px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 
 
-      body { background-image: linear-gradient(var(--borde-suave) 1px, transparent 1px), linear-gradient(90deg, var(--borde-suave) 1px, transparent 1px);
-        background-size: 24px 24px; background-position: -1px -1px; }
-      body { padding-left: 44px; }
-      body::before { content: ""; position: fixed; top: 0; bottom: 0; left: 30px; width: 2px; background: var(--margen); opacity: .55; pointer-events: none; }
-      .cifra { font-weight: 800; color: var(--tinta); }
-      .stat.deuda .monto, .nota strong { color: var(--deuda); }
-      .protagonista { background: none; padding: 4px 0 16px; }
-      .protagonista .monto { font-size: 46px; line-height: 1.05; display: block; width: fit-content; border-bottom: 3px double var(--tinta); padding-bottom: 2px; }
-      .stats { grid-template-columns: 1fr; gap: 0; background: var(--superficie); border: var(--borde-ancho) solid var(--borde); }
-      .stat { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-radius: 0; }
-      .stat + .stat { border-top: 1px solid var(--borde-suave); }
-      .stat .monto { font-size: 28px; }
+      h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+      .cifra { font-weight: 800; letter-spacing: -0.02em; }
+      .protagonista { background: var(--tarjeta-fondo); color: var(--tarjeta-texto); border-radius: 24px; padding: 20px 22px 22px;
+        box-shadow: 0 14px 30px rgb(46 20 119 / 0.28); }
+      .protagonista .etiqueta, .protagonista .sub { color: var(--tarjeta-texto); opacity: .9; }
+      .protagonista .monto { font-size: 44px; }
+      .stats { background: var(--superficie); box-shadow: 0 2px 10px rgb(20 18 31 / 0.06); border-radius: 20px; }
+      .stat { background: none; }
       .stat.deuda { background: var(--superficie); }
-      .lista { gap: 0; background: var(--superficie); border-top: var(--borde-ancho) solid var(--borde); }
-      .lista li { border-radius: 0; background: none; border-bottom: 1px solid var(--borde-suave); }
-      .insignia { background: none !important; padding: 0; font-weight: 800; }
-      .insignia.debe { text-decoration: underline 2px; text-underline-offset: 3px; }
-      .voz { background: var(--acento); color: var(--sobre-acento); box-shadow: 0 0 0 6px var(--fondo); }
-      .nav { background: var(--superficie); border-top: var(--borde-ancho) solid var(--borde); }
-      .confirmar { background: var(--acento); color: var(--sobre-acento); }
-      .total .monto { border-bottom: 3px double var(--tinta); }
+      .lista { gap: 0; background: var(--superficie); border-radius: 20px; box-shadow: 0 2px 10px rgb(20 18 31 / 0.06); overflow: hidden; }
+      .lista li { border-radius: 0; background: none; }
+      .lista li + li { box-shadow: inset 0 1px 0 var(--borde-suave); }
+      .voz { background: var(--acento); color: var(--sobre-acento); box-shadow: 0 0 0 6px var(--fondo), 0 12px 28px rgb(75 35 176 / 0.38); }
+      .voz-texto { background: none; }
+      .nav { background: var(--superficie); box-shadow: 0 -2px 16px rgb(20 18 31 / 0.06); }
+      .nav a { font-size: 13px; font-weight: 700; }
+      .nav a[aria-current="page"], .nav a[aria-current="page"] svg { color: var(--acento-texto); }
+      .fila { background: var(--superficie-2); border: 0; border-radius: 16px; }
+      .seg button { border-width: 1.5px; }
+      .confirmar { background: var(--acento); color: var(--sobre-acento); box-shadow: 0 10px 22px rgb(75 35 176 / 0.3); }
     
 </style>
 </head>
