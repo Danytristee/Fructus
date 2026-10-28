@@ -1,7 +1,326 @@
 @import "tailwindcss";
 
 /*
- * Provisional hasta A1. Los colores, la tipografía, los radios y los espacios
- * de Fructus se fijan con /identidad-visual y se escriben aquí, en @theme,
- * una sola vez. Hasta entonces la app no usa colores propios.
+ * Identidad «Aurora» (ADR-0007). Esta es la única fuente de colores, tipografía, radios, sombras y movimiento.
+ * Un componente nunca escribe un hex, un rgba() a mano ni bg-white: usa estas clases (bg-vidrio, text-deuda…).
+ * Contraste medido: textos y cifras clave 7:1 o más; secundarios 4.5:1 o más (docs/maquetas/identidad/tokens.json).
+ * Modo claro por defecto (se usa al sol). El oscuro existe y cumple, pero solo se activa con data-theme="oscuro":
+ * activarlo para todos es de la fase 2.
  */
+
+@custom-variant oscuro (&:where([data-theme="oscuro"], [data-theme="oscuro"] *));
+
+:root,
+[data-theme="claro"] {
+  --fondo: #eef3f8;
+  --vidrio: #f3f7fb;
+  --superficie: #ffffff;
+  --texto: #0b1526;
+  --texto-suave: #3e4a5c;
+  --acento: #114b5f;
+  --sobre-acento: #ffffff;
+  --acento-texto: #114b5f;
+  --exito: #0d5a33;
+  --exito-fondo: #e3f6ea;
+  --deuda: #95111f;
+  --deuda-fondo: #fde8ec;
+  --borde: #8794a6;
+  --velo: rgb(8 12 24 / 0.45);
+  --sol: #b45309;
+  /* Las cuatro luces del fondo. Decorativas: nunca llevan texto encima sin vidrio. */
+  --luz-1: #9fe8d0;
+  --luz-2: #b9d8ff;
+  --luz-3: #ffd3b5;
+  --luz-4: #e2d4ff;
+  /* El orbe de voz: solo lleva un icono encima (3:1 basta); el texto «Mantén para hablar» va aparte. */
+  --orbe-1: #114b5f;
+  --orbe-2: #2e6fa8;
+  --orbe-3: #5b4fc4;
+  --orbe-4: #1f7a8c;
+  --sobre-orbe: #ffffff;
+  --sombra-color: 20 40 70;
+  color-scheme: light;
+}
+
+[data-theme="oscuro"] {
+  --fondo: #070d17;
+  --vidrio: #141c2a;
+  --superficie: #101826;
+  --texto: #eef3f8;
+  --texto-suave: #b4c0d0;
+  --acento: #7fd6e3;
+  --sobre-acento: #04232a;
+  --acento-texto: #8bdce8;
+  --exito: #7ee2a8;
+  --exito-fondo: #0e2e1e;
+  --deuda: #ff9fb0;
+  --deuda-fondo: #3a1220;
+  --borde: #5d6b80;
+  --velo: rgb(0 0 0 / 0.6);
+  --sol: #fcd34d;
+  --luz-1: #0f4c45;
+  --luz-2: #1a3566;
+  --luz-3: #4a2a1c;
+  --luz-4: #33255e;
+  --orbe-1: #7fd6e3;
+  --orbe-2: #9bb8ff;
+  --orbe-3: #c3b5ff;
+  --orbe-4: #8fe3d0;
+  --sobre-orbe: #04232a;
+  --sombra-color: 0 0 0;
+  color-scheme: dark;
+}
+
+/* shadcn/ui lee estas variables: apuntan a los tokens de Fructus, nunca a los colores de shadcn (ADR-0005). */
+:root,
+[data-theme] {
+  --background: var(--fondo);
+  --foreground: var(--texto);
+  --card: var(--vidrio);
+  --card-foreground: var(--texto);
+  --popover: var(--superficie);
+  --popover-foreground: var(--texto);
+  --primary: var(--acento);
+  --primary-foreground: var(--sobre-acento);
+  --secondary: var(--superficie);
+  --secondary-foreground: var(--texto);
+  --muted: var(--vidrio);
+  --muted-foreground: var(--texto-suave);
+  --accent: var(--vidrio);
+  --accent-foreground: var(--texto);
+  --destructive: var(--deuda);
+  --border: color-mix(in srgb, var(--texto) 10%, transparent);
+  --input: var(--borde);
+  --ring: var(--texto);
+  --radius: 1.5rem;
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-vidrio: var(--vidrio);
+  --color-superficie: var(--superficie);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-acento: var(--acento);
+  --color-sobre-acento: var(--sobre-acento);
+  --color-acento-texto: var(--acento-texto);
+  --color-exito: var(--exito);
+  --color-exito-fondo: var(--exito-fondo);
+  --color-deuda: var(--deuda);
+  --color-deuda-fondo: var(--deuda-fondo);
+  --color-borde: var(--borde);
+  --color-velo: var(--velo);
+  --color-sol: var(--sol);
+  --color-sobre-orbe: var(--sobre-orbe);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+}
+
+@theme {
+  /* Texto base de 17 px; cifras clave de 30 px o más. */
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.45;
+  --text-cifra: 1.875rem;
+  --text-cifra--line-height: 1.15;
+  --text-total: 2.875rem;
+  --text-total--line-height: 1.1;
+
+  --radius-control: 1.25rem;
+  --radius-tarjeta: 1.5rem;
+  --radius-protagonista: 1.75rem;
+  --radius-hoja: 1.75rem;
+
+  /* Movimiento: salida suave para lo que entra; resorte corto (2–3 % de sobrepaso) solo para la hoja y la píldora. */
+  --ease-salida: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-resorte: cubic-bezier(0.22, 1.12, 0.36, 1);
+  --ease-entrada: cubic-bezier(0.4, 0, 1, 1);
+
+  --animate-subir: subir 0.7s var(--ease-salida) both;
+  --animate-hoja-sube: hoja-sube 0.5s var(--ease-resorte) both;
+  --animate-hoja-baja: hoja-baja 0.28s var(--ease-entrada) both;
+  --animate-hoja-aparece: hoja-aparece 0.3s var(--ease-salida) both;
+  --animate-hoja-se-va: hoja-se-va 0.2s var(--ease-entrada) both;
+  --animate-velo-aparece: velo-aparece 0.3s ease-out both;
+  --animate-velo-se-va: velo-aparece 0.25s ease-in reverse both;
+  --animate-girar: girar 0.7s linear infinite;
+  --animate-orbe: orbe 8s linear infinite, respirar 3.2s ease-in-out infinite;
+  --animate-orbe-rapido: orbe 1.6s linear infinite, respirar 3.2s ease-in-out infinite;
+  --animate-rizo: rizo 1.8s var(--ease-salida) infinite;
+  --animate-onda: onda 0.9s ease-in-out infinite;
+  --animate-punto: punto 0.9s ease-in-out infinite;
+
+  @keyframes subir {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+    }
+  }
+  @keyframes hoja-sube {
+    from {
+      transform: translateY(105%);
+    }
+  }
+  @keyframes hoja-baja {
+    to {
+      transform: translateY(105%);
+    }
+  }
+  @keyframes hoja-aparece {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+  }
+  @keyframes hoja-se-va {
+    to {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+  }
+  @keyframes velo-aparece {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes girar {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes orbe {
+    to {
+      --giro: 360deg;
+    }
+  }
+  @keyframes respirar {
+    50% {
+      box-shadow: 0 18px 54px rgb(17 75 95 / 0.6), inset 0 2px 0 rgb(255 255 255 / 0.25);
+    }
+  }
+  @keyframes rizo {
+    from {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    to {
+      transform: scale(1.9);
+      opacity: 0;
+    }
+  }
+  @keyframes onda {
+    0%,
+    100% {
+      transform: scaleY(0.2);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+  @keyframes punto {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(-8px);
+      opacity: 1;
+    }
+  }
+}
+
+@property --giro {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* Vidrio esmerilado: la superficie de Aurora. El fondo detrás está quieto, así el desenfoque no se recalcula en cada cuadro. */
+@utility vidrio {
+  background-color: color-mix(in srgb, var(--vidrio) 84%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid color-mix(in srgb, var(--superficie) 70%, transparent);
+  box-shadow: 0 10px 34px rgb(var(--sombra-color) / 0.08);
+}
+
+@utility cifra {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+@utility orbe {
+  background: conic-gradient(
+    from var(--giro),
+    var(--orbe-1),
+    var(--orbe-2),
+    var(--orbe-3),
+    var(--orbe-4),
+    var(--orbe-1)
+  );
+  box-shadow: 0 14px 40px rgb(17 75 95 / 0.45), inset 0 2px 0 rgb(255 255 255 / 0.25);
+  /* El brillo de arriba que le da volumen. */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    right: 18px;
+    width: 34px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.35);
+    filter: blur(4px);
+  }
+}
+
+@utility sombra-fruta {
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.14));
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background-color: var(--fondo);
+    color: var(--texto);
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 3px solid var(--texto);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+  }
+}
