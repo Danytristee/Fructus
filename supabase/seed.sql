@@ -33,3 +33,37 @@ insert into proveedores (nombre, alias) values
 insert into series_comprobante (serie, tipo) values
   ('F001', '01'),
   ('B001', '03');
+
+-- -----------------------------------------------------------------------------
+-- Cuentas de prueba (solo local y CI). Una por rol, todas con la misma clave de prueba.
+-- La clave vive también en tests/e2e/cuentas.ts. No sirve en el proyecto alojado: allí las cuentas reales
+-- se crean por invitación (A2). Los correos .test no existen fuera de esta base.
+-- -----------------------------------------------------------------------------
+with cuentas (id, correo, nombre, rol) as (
+  values
+    ('10000000-0000-0000-0000-000000000001'::uuid, 'duenio@puesto.test',        'Dueño de prueba',         'duenio'::rol_usuario),
+    ('10000000-0000-0000-0000-000000000002'::uuid, 'administrador@puesto.test', 'Administrador de prueba', 'administrador'::rol_usuario),
+    ('10000000-0000-0000-0000-000000000003'::uuid, 'ayudante@puesto.test',      'Ayudante de prueba',      'ayudante'::rol_usuario),
+    ('10000000-0000-0000-0000-000000000004'::uuid, 'contador@puesto.test',      'Contador de prueba',      'contador'::rol_usuario),
+    -- Entra, pero sin perfil: así se ve una cuenta que todavía no activaron.
+    ('10000000-0000-0000-0000-000000000005'::uuid, 'sinperfil@puesto.test',     null,                      null)
+),
+usuarios as (
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+                          confirmation_token, email_change, email_change_token_new, recovery_token)
+  select '00000000-0000-0000-0000-000000000000', id, 'authenticated', 'authenticated', correo,
+         extensions.crypt('puesto-prueba-2026', extensions.gen_salt('bf')), now(),
+         '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', ''
+  from cuentas
+  returning id, email
+),
+identidades as (
+  insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+  select gen_random_uuid(), id, id::text, jsonb_build_object('sub', id::text, 'email', email, 'email_verified', true),
+         'email', now(), now(), now()
+  from usuarios
+  returning user_id
+)
+insert into perfiles (id, nombre, rol)
+select c.id, c.nombre, c.rol from cuentas c join identidades i on i.user_id = c.id where c.rol is not null;

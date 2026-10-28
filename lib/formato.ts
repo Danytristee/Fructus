@@ -12,3 +12,10 @@ export function formatearCajas(cantidad: number): string {
   const numero = Number.isInteger(cantidad) ? String(cantidad) : cantidad.toLocaleString("es-PE", { maximumFractionDigits: 2 });
   return `${numero} ${cantidad === 1 ? "caja" : "cajas"}`;
 }
+
+const fechaLima = new Intl.DateTimeFormat("es-PE", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Lima" });
+
+/** «martes 28 de octubre», siempre con la hora de Lima aunque el servidor esté en otra zona. */
+export function formatearFecha(fecha: Date): string {
+  return fechaLima.format(fecha).replace(",", "");
+}

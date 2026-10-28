@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 import { entornoSupabase } from "./entorno";
+import { fetchWithTimeout } from "./fetch-con-tope";
 import type { Database } from "./tipos-db";
 
 // Cliente para Server Components, route handlers y server actions. Usa la
@@ -13,6 +14,7 @@ export async function crearClienteServidor() {
   const almacen = await cookies();
 
   return createServerClient<Database>(url, clave, {
+    global: { fetch: fetchWithTimeout },
     cookies: {
       getAll() {
         return almacen.getAll();
@@ -24,7 +26,7 @@ export async function crearClienteServidor() {
           }
         } catch {
           // Un Server Component no puede escribir cookies: Next lanza aquí a
-          // propósito. La sesión la refresca el proxy (A2) en cada navegación,
+          // propósito. La sesión la refresca proxy.ts en cada navegación,
           // así que no se pierde nada.
         }
       },
