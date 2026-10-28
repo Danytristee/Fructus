@@ -163,10 +163,10 @@ Se prueba con Playwright y en el navegador a estos anchos, en este orden:
 6. **Teclado solo cuando no hay otra.** Si hay que escribir un número: `inputmode="decimal"`, campo grande, el teclado no tapa el botón de guardar.
 7. **Seguro en bordes.** Se usan `100dvh` y `env(safe-area-inset-*)`. Nunca hay scroll horizontal.
 8. **Tacto y sonido.** Al confirmar, `navigator.vibrate(30)` donde exista y un sonido corto. La persona sabe que se guardó sin mirar.
-9. **Presupuesto de velocidad (Android de gama media en 4G):**
-   - LCP menor a 2.5 s.
-   - INP menor a 200 ms.
-   - **120 KB o menos de JavaScript** comprimido en la primera carga de «Hoy».
+9. **Presupuesto de velocidad (Android de gama media en 4G), ADR-0006:**
+   - **Mandan LCP menor a 2.5 s e INP menor a 200 ms**, medidos en un Android real o con Lighthouse móvil.
+   - **180 KB brotli o menos de JavaScript** en la primera carga de «Hoy» (el piso de Next 16 ya son 147 KB). Se mide con `pnpm build && pnpm medir:js / 180`.
+   - En «Hoy» el navegador no carga supabase-js: el resumen llega del servidor y la tarjeta se confirma con una server action.
    - **De soltar el botón de voz a ver la tarjeta: 2.5 s o menos** (se mide en `comandos_voz.latencia_ms`).
 10. **Sin conexión, se dice.** Si se cae la red, una franja lo dice y el botón de voz explica que no puede enviar. Lo dictado no se pierde: el audio pendiente se guarda en el dispositivo y se reintenta. La cola sin conexión completa es de la fase 2; en la demo, al menos se avisa y se conserva el último audio.
 
