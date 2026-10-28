@@ -14,7 +14,7 @@ audio ──► Whisper (Groq) ──► transcripción ──► LLM con tool c
 Whisper acepta un `prompt` corto que sesga la ortografía. Se arma **en el servidor** en cada llamada con los nombres reales de la base:
 
 ```
-Venta de fruta por jabas en La Hermelinda, Trujillo. Clientes: don Lucho, la señora Rosa,
+Venta de fruta por cajas en La Hermelinda, Trujillo. Clientes: don Lucho, la señora Rosa,
 el Paraíso, Santa Ana, el flaco Carlos, el Mochica. Frutas: mango Kent, mango Edward,
 plátano de seda, plátano isla, papaya, piña golden, mandarina, uva red globe, palta fuerte,
 limón. Pagos: Yape, Plin, efectivo, al crédito, lo debe, abonó.
@@ -30,8 +30,8 @@ La Hermelinda (Trujillo, Perú). Recibes la transcripción de lo que dijo el due
 ayudante en su puesto y llamas EXACTAMENTE UNA herramienta.
 
 Cómo habla el negocio:
-- La unidad por defecto es la JABA (también dicen "caja"). "10 de mango" = 10 jabas.
-- "a 45" o "a 45 soles" después de un producto = precio POR JABA, no el total.
+- La unidad por defecto es la CAJA (también dicen "jaba": es lo mismo). "10 de mango" = 10 cajas.
+- "a 45" o "a 45 soles" después de un producto = precio POR CAJA, no el total.
 - "le dejé a 40", "le rebajé 5", "le hice 20 de descuento" = rebaja. Si dice el precio
   final ("le dejé a 40"), ese es precio_unitario; si dice un monto descontado al total,
   va en descuento_total.
@@ -76,8 +76,8 @@ Reglas que NO se rompen:
               "type": "object",
               "properties": {
                 "producto_texto": { "type": "string" },
-                "cantidad": { "type": "number", "description": "Jabas." },
-                "precio_unitario": { "type": ["number", "null"], "description": "Precio por jaba. null si no lo dijo." }
+                "cantidad": { "type": "number", "description": "Cajas." },
+                "precio_unitario": { "type": ["number", "null"], "description": "Precio por caja. null si no lo dijo." }
               },
               "required": ["producto_texto", "cantidad", "precio_unitario"]
             }
@@ -211,17 +211,17 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 
 | Transcripción | Herramienta | Datos clave |
 |---|---|---|
-| "Vendí 10 jabas de mango kent a don Lucho a 45, me yapeó" | registrar_venta | cliente "don Lucho", 10 × 45, contado, yape |
+| "Vendí 10 cajas de mango kent a don Lucho a 45, me yapeó" | registrar_venta | cliente "don Lucho", 10 × 45, contado, yape |
 | "Diez de papaya para la del puesto doce, lo debe" | registrar_venta | cliente "la del puesto 12", precio null, crédito |
 | "5 de plátano seda y 3 de piña al Paraíso a 30 y 40, factura" | registrar_venta | 2 items, comprobante factura, condicion null |
 | "Mango a don Lucho, 8 jabas, le dejé a 42" | registrar_venta | precio_unitario 42 |
 | "Don Lucho me abonó 200 en efectivo" | registrar_abono | 200, efectivo |
-| "Llegaron 50 jabas de plátano isla del de Chao a 25" | registrar_compra | 50 × 25 |
+| "Llegaron 50 cajas de plátano isla del de Chao a 25" | registrar_compra | 50 × 25 |
 | "Se malograron 3 jabas de papaya" | registrar_merma | 3 |
 | "Pagué 80 de flete" | registrar_gasto | flete, 80 |
 | "¿Quién me debe?" | consultar | quien_me_debe |
 | "¿Cuánto me debe el flaco?" | consultar | deuda_cliente, "el flaco" |
-| "¿Cuántas jabas de mango me quedan?" | consultar | stock_producto, "mango" |
+| "¿Cuántas cajas de mango me quedan?" | consultar | stock_producto, "mango" |
 | "Oye, ¿ya almorzaste?" | no_entendido | — |
 
 Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre contra el modelo real. La tasa de acierto es una métrica del proyecto universitario. Un caso que falla nunca se borra para mejorar el número.
