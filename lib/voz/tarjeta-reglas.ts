@@ -5,15 +5,15 @@
 import type { Interpretacion } from "./esquemas";
 
 /** Desde esta similitud (pg_trgm) un nombre se elige solo; por debajo, la persona elige entre las 3 mejores (CLAUDE.md, «La voz»). */
-export const SIMILITUD_SUFICIENTE = 0.45;
+const SIMILITUD_SUFICIENTE = 0.45;
 
-export type Opcion = { id: number; nombre: string };
+type Opcion = { id: number; nombre: string };
 type Candidato = Opcion & { similitud: number };
 
 /** Un nombre dicho y cómo se resolvió: elegido solo, o con opciones para tocar una. */
 export type Eleccion = { dicho: string | null; elegido: Opcion | null; opciones: Opcion[] };
 
-export type ItemTarjeta = {
+type ItemTarjeta = {
   producto: Eleccion;
   cantidad: number;
   /** precio por caja: el dicho, o el sugerido (último cobrado a ese cliente, o el de referencia). null si no hay ninguno. */
