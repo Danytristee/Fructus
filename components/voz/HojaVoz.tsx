@@ -12,7 +12,7 @@ type Props = {
   resultado: ResultadoVoz;
   abierta: boolean;
   /** La hoja se cerró: «guardada» después del sello; «descartada» con Descartar, el velo o deslizando hacia abajo. */
-  alCerrar: (motivo: "guardada" | "descartada") => void;
+  alCerrar: (motivo: "guardada" | "descartada", incierto?: boolean) => void;
 };
 
 // La hoja de lo que se entendió. Por ahora solo las ventas se registran por voz; el resto llega en A6 y A7.
@@ -23,9 +23,9 @@ export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
   const guardado = useRef<number | null>(null);
   // Mientras guarda no se cierra: deslizar o tocar el velo no puede descartar una venta que está entrando (/chaos).
   const guardando = useRef(false);
-  const cerrar = () => {
+  const cerrar = (incierto = false) => {
     if (guardando.current) return;
-    alCerrar(guardado.current === resultado.comandoId ? "guardada" : "descartada");
+    alCerrar(guardado.current === resultado.comandoId ? "guardada" : "descartada", incierto);
   };
   return (
     <Hoja
@@ -43,7 +43,7 @@ export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
           latenciaMs={resultado.latenciaMs}
           alGuardar={() => {
             guardado.current = resultado.comandoId;
-            window.setTimeout(cerrar, 1700); // lo que dura el sello
+            window.setTimeout(() => cerrar(), 1700); // lo que dura el sello
           }}
           alDescartar={cerrar}
           alCambiarGuardando={(g) => (guardando.current = g)}

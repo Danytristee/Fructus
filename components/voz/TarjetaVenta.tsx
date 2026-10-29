@@ -32,7 +32,8 @@ type Props = {
   latenciaMs: number;
   /** La base respondió que se guardó (la hoja muestra el sello y se cierra sola). */
   alGuardar: () => void;
-  alDescartar: () => void;
+  /** `incierto`: el último Confirmar no tuvo respuesta; pudo haberse guardado y el aviso no puede decir «no guardé». */
+  alDescartar: (incierto: boolean) => void;
   /** Mientras guarda, la hoja no se cierra ni se descarta: la pantalla no puede decir «no guardé» de algo que se guardó. */
   alCambiarGuardando: (guardando: boolean) => void;
 };
@@ -55,6 +56,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [error, setError] = useState<{ mensaje: string; sinSesion: boolean } | null>(null);
   const [guardada, setGuardada] = useState<{ saldo: number | null } | null>(null);
   const enviando = useRef(false);
+  const incierto = useRef(false);
   const esperar = useEspera();
   const router = useRouter();
 
@@ -112,6 +114,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
     if (!r.ok) {
       // Se puede volver a tocar: si la primera sí llegó a la base, registrar_venta devuelve la misma venta.
       enviando.current = false;
+      incierto.current = r.error === SIN_RESPUESTA;
       setError({ mensaje: r.error, sinSesion: "sinSesion" in r && r.sinSesion === true });
       return;
     }
@@ -289,7 +292,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         <Boton onClick={() => void confirmar()} cargando={guardando} disabled={falta.length > 0} className={falta.length > 0 ? "disabled:opacity-45" : undefined}>
           Confirmar venta
         </Boton>
-        <Boton variante="texto" onClick={alDescartar} disabled={guardando}>
+        <Boton variante="texto" onClick={() => alDescartar(incierto.current)} disabled={guardando}>
           Descartar
         </Boton>
       </div>

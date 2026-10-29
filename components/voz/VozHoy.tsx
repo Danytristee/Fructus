@@ -52,7 +52,7 @@ const POR_FALLA: Record<FallaGrabadora, string> = {
 };
 
 export type ResultadoVoz = { comandoId: number; tarjeta: Tarjeta; latenciaMs: number };
-type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "descartada" } | { tipo: "sin_confirmar"; resultado: ResultadoVoz };
+type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "descartada"; incierto: boolean } | { tipo: "sin_confirmar"; resultado: ResultadoVoz };
 
 async function enviarAudio({ audio, duracionMs }: Grabacion): Promise<Desenlace> {
   if (!navigator.onLine) return desenlaceSinRed();
@@ -118,7 +118,7 @@ export function VozHoy() {
     });
   }
 
-  function alCerrarHoja(motivo: "guardada" | "descartada") {
+  function alCerrarHoja(motivo: "guardada" | "descartada", incierto = false) {
     setHojaAbierta(false);
     if (motivo === "guardada") recordarTarjeta(null);
     if (motivo === "guardada" || !resultado || descarte.current) return;
@@ -128,7 +128,7 @@ export function VozHoy() {
       setAviso((a) => (a?.tipo === "descartada" ? null : a));
     }, DESHACER_MS);
     descarte.current = { comandoId, latenciaMs, reloj };
-    setAviso({ tipo: "descartada" });
+    setAviso({ tipo: "descartada", incierto });
   }
 
   function deshacer() {
@@ -265,7 +265,8 @@ export function VozHoy() {
       {aviso?.tipo === "descartada" && (
         <AvisoVoz
           tono="info"
-          mensaje="No guardé esa venta."
+          // Si el último Confirmar no tuvo respuesta, pudo haberse guardado: el aviso no lo niega (/chaos 2026-10-29).
+          mensaje={aviso.incierto ? "La descarté. Si alcanzó a guardarse, la ves en «Lo último»." : "No guardé esa venta."}
           accion={{ etiqueta: "Deshacer", icono: <Undo2 aria-hidden className="size-5" />, alTocar: deshacer }}
           cerrar={{
             etiqueta: "Cerrar el aviso",

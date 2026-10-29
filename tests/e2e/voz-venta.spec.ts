@@ -216,6 +216,11 @@ test("mientras guarda no se puede descartar, y si la red se cuelga a los 15 s di
   await page.keyboard.press("Escape");
   await expect(hoja).toBeVisible();
   await expect(hoja.getByText("La señal no respondió y no sé si se guardó.")).toBeVisible({ timeout: 20_000 });
+  // Sin saber si se guardó, el aviso de descartar no puede decir «no guardé».
+  await hoja.getByRole("button", { name: "Descartar" }).click();
+  await expect(page.getByText("La descarté. Si alcanzó a guardarse, la ves en «Lo último».")).toBeVisible();
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect(hoja).toBeVisible();
   // La red vuelve: el pedido colgado llega, y el segundo toque devuelve la misma venta.
   soltar();
   await page.unroute("**/*");
