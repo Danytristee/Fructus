@@ -9,7 +9,7 @@ const dudas = z.array(z.string()).default([]).describe("Dudas cortas, en españo
 const cantidad = z.number().positive().describe("Cajas.");
 const dinero = z.number().nonnegative();
 
-export const herramientasVoz = {
+const herramientasVoz = {
   registrar_venta: {
     descripcion: "El usuario vendió fruta a un cliente.",
     esquema: z.object({
@@ -77,7 +77,7 @@ export const herramientasVoz = {
   },
 } as const;
 
-export type NombreHerramienta = keyof typeof herramientasVoz;
+type NombreHerramienta = keyof typeof herramientasVoz;
 type Datos<N extends NombreHerramienta> = z.output<(typeof herramientasVoz)[N]["esquema"]>;
 
 /** Lo que entendió el intérprete, ya validado: el nombre de la herramienta y sus datos. */

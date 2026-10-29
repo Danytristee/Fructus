@@ -8,7 +8,13 @@
         "herramienta": "registrar_venta",
         "datos": {
           "cliente_texto": "don lucho",
-          "items": [{ "producto_texto": "mango kent", "cantidad": 10, "precio_unitario": 45 }],
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
           "condicion": "contado",
           "medio_pago": "yape",
           "comprobante": "ninguno"
@@ -22,7 +28,13 @@
         "herramienta": "registrar_venta",
         "datos": {
           "cliente_texto": "la del puesto 12",
-          "items": [{ "producto_texto": "papaya", "cantidad": 10, "precio_unitario": null }],
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 10,
+              "precio_unitario": null
+            }
+          ],
           "condicion": "credito",
           "medio_pago": null
         }
@@ -36,8 +48,16 @@
         "datos": {
           "cliente_texto": "paraiso",
           "items": [
-            { "producto_texto": "platano seda", "cantidad": 5, "precio_unitario": 30 },
-            { "producto_texto": "pina", "cantidad": 3, "precio_unitario": 40 }
+            {
+              "producto_texto": "platano seda",
+              "cantidad": 5,
+              "precio_unitario": 30
+            },
+            {
+              "producto_texto": "pina",
+              "cantidad": 3,
+              "precio_unitario": 40
+            }
           ],
           "condicion": null,
           "comprobante": "factura"
@@ -51,7 +71,13 @@
         "herramienta": "registrar_venta",
         "datos": {
           "cliente_texto": "don lucho",
-          "items": [{ "producto_texto": "mango", "cantidad": 8, "precio_unitario": 42 }],
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 8,
+              "precio_unitario": 42
+            }
+          ],
           "condicion": null
         }
       }
@@ -61,7 +87,11 @@
       "transcripcion": "Don Lucho me abonó 200 en efectivo",
       "esperado": {
         "herramienta": "registrar_abono",
-        "datos": { "cliente_texto": "don lucho", "monto": 200, "medio_pago": "efectivo" }
+        "datos": {
+          "cliente_texto": "don lucho",
+          "monto": 200,
+          "medio_pago": "efectivo"
+        }
       }
     },
     {
@@ -71,7 +101,13 @@
         "herramienta": "registrar_compra",
         "datos": {
           "proveedor_texto": "el de chao",
-          "items": [{ "producto_texto": "platano isla", "cantidad": 50, "costo_unitario": 25 }]
+          "items": [
+            {
+              "producto_texto": "platano isla",
+              "cantidad": 50,
+              "costo_unitario": 25
+            }
+          ]
         }
       }
     },
@@ -80,7 +116,10 @@
       "transcripcion": "Se malograron 3 jabas de papaya",
       "esperado": {
         "herramienta": "registrar_merma",
-        "datos": { "producto_texto": "papaya", "cantidad": 3 }
+        "datos": {
+          "producto_texto": "papaya",
+          "cantidad": 3
+        }
       }
     },
     {
@@ -88,20 +127,31 @@
       "transcripcion": "Pagué 80 de flete",
       "esperado": {
         "herramienta": "registrar_gasto",
-        "datos": { "categoria": "flete", "monto": 80 }
+        "datos": {
+          "categoria": "flete",
+          "monto": 80
+        }
       }
     },
     {
       "id": "consulta-quien-debe",
       "transcripcion": "¿Quién me debe?",
-      "esperado": { "herramienta": "consultar", "datos": { "consulta": "quien_me_debe" } }
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "quien_me_debe"
+        }
+      }
     },
     {
       "id": "consulta-deuda-cliente",
       "transcripcion": "¿Cuánto me debe el flaco?",
       "esperado": {
         "herramienta": "consultar",
-        "datos": { "consulta": "deuda_cliente", "cliente_texto": "el flaco" }
+        "datos": {
+          "consulta": "deuda_cliente",
+          "cliente_texto": "el flaco"
+        }
       }
     },
     {
@@ -109,13 +159,563 @@
       "transcripcion": "¿Cuántas cajas de mango me quedan?",
       "esperado": {
         "herramienta": "consultar",
-        "datos": { "consulta": "stock_producto", "producto_texto": "mango" }
+        "datos": {
+          "consulta": "stock_producto",
+          "producto_texto": "mango"
+        }
       }
     },
     {
       "id": "no-entendido",
       "transcripcion": "Oye, ¿ya almorzaste?",
-      "esperado": { "herramienta": "no_entendido", "datos": {} }
+      "esperado": {
+        "herramienta": "no_entendido",
+        "datos": {}
+      }
+    },
+    {
+      "id": "venta-mochica-efectivo",
+      "transcripcion": "Ponle 6 de piña golden al Mochica a 40, me pagó en efectivo",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "mochica",
+          "items": [
+            {
+              "producto_texto": "pina golden",
+              "cantidad": 6,
+              "precio_unitario": 40
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "venta-credito-sabado",
+      "transcripcion": "Al flaco Carlos 4 cajas de mandarina, me paga el sábado",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "flaco carlos",
+          "items": [
+            {
+              "producto_texto": "mandarina",
+              "cantidad": 4,
+              "precio_unitario": null
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "venta-plin",
+      "transcripcion": "Tres de uva para la señora Rosa a 60, me plineó",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "rosa",
+          "items": [
+            {
+              "producto_texto": "uva",
+              "cantidad": 3,
+              "precio_unitario": 60
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "plin"
+        }
+      }
+    },
+    {
+      "id": "venta-anotalo",
+      "transcripcion": "Santa Ana se llevó 12 de mango edward a 38, anótalo",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "santa ana",
+          "items": [
+            {
+              "producto_texto": "mango edward",
+              "cantidad": 12,
+              "precio_unitario": 38
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "venta-sin-nada",
+      "transcripcion": "Vendí dos cajas de palta",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": null,
+          "items": [
+            {
+              "producto_texto": "palta",
+              "cantidad": 2,
+              "precio_unitario": null
+            }
+          ],
+          "condicion": null,
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "venta-transferencia",
+      "transcripcion": "8 de limón a la juguería a 50, por transferencia",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "jugueria",
+          "items": [
+            {
+              "producto_texto": "limon",
+              "cantidad": 8,
+              "precio_unitario": 50
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "transferencia"
+        }
+      }
+    },
+    {
+      "id": "venta-dos-items-credito-sin-precio",
+      "transcripcion": "Don Lucho, 5 de papaya y 5 de piña, lo debe",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 5,
+              "precio_unitario": null
+            },
+            {
+              "producto_texto": "pina",
+              "cantidad": 5,
+              "precio_unitario": null
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "venta-descuento-total",
+      "transcripcion": "Le vendí 20 cajas de plátano isla al Paraíso a 28 y le rebajé 20 en total, pagó",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "paraiso",
+          "items": [
+            {
+              "producto_texto": "platano isla",
+              "cantidad": 20,
+              "precio_unitario": 28
+            }
+          ],
+          "descuento_total": 20,
+          "condicion": "contado",
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "venta-boleta-sin-condicion",
+      "transcripcion": "Quince de mango kent al Mochica, boleta",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "mochica",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 15,
+              "precio_unitario": null
+            }
+          ],
+          "condicion": null,
+          "comprobante": "boleta"
+        }
+      }
+    },
+    {
+      "id": "venta-media-caja",
+      "transcripcion": "Media caja de uva a la señora Rosa, cancelado",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "rosa",
+          "items": [
+            {
+              "producto_texto": "uva",
+              "cantidad": 0.5,
+              "precio_unitario": null
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "venta-numeros-en-letras",
+      "transcripcion": "Diez de mango a cuarenta y cinco para don Lucho, lo pagó con yape",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "venta-me-apuntas",
+      "transcripcion": "Me apuntas 6 de plátano seda para Carlos",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "carlos",
+          "items": [
+            {
+              "producto_texto": "platano seda",
+              "cantidad": 6,
+              "precio_unitario": null
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "venta-factura-transferencia",
+      "transcripcion": "Vendí 7 de palta fuerte al restaurante Mochica a 70 con factura y me pagó por transferencia",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "mochica",
+          "items": [
+            {
+              "producto_texto": "palta fuerte",
+              "cantidad": 7,
+              "precio_unitario": 70
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "transferencia",
+          "comprobante": "factura"
+        }
+      }
+    },
+    {
+      "id": "venta-sin-precio-sin-condicion",
+      "transcripcion": "Vendí 10 de mango a don Lucho",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": null
+            }
+          ],
+          "condicion": null,
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "venta-yapeo-sin-precio",
+      "transcripcion": "Don Lucho se llevó 5 de piña, yapeó",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "pina",
+              "cantidad": 5,
+              "precio_unitario": null
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "venta-al-fiado",
+      "transcripcion": "Al fiado 3 de papaya para la señora Rosa a 35",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "rosa",
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 3,
+              "precio_unitario": 35
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "abono-yape",
+      "transcripcion": "La señora Rosa me yapeó 150 de su deuda",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": {
+          "cliente_texto": "rosa",
+          "monto": 150,
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "abono-a-cuenta",
+      "transcripcion": "El flaco me dio 80 a cuenta",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": {
+          "cliente_texto": "flaco",
+          "monto": 80,
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "abono-transferencia",
+      "transcripcion": "Santa Ana abonó 300 por transferencia",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": {
+          "cliente_texto": "santa ana",
+          "monto": 300,
+          "medio_pago": "transferencia"
+        }
+      }
+    },
+    {
+      "id": "abono-todo",
+      "transcripcion": "Don Lucho canceló todo lo que debía, 680 en efectivo",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "monto": 680,
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "compra-piura",
+      "transcripcion": "Compré 30 cajas de mango kent a Piura Norte a 32",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": "piura norte",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 30,
+              "costo_unitario": 32
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "compra-sin-precio",
+      "transcripcion": "Llegó la papaya, 25 cajas, todavía no sé el precio",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": null,
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 25,
+              "costo_unitario": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "compra-credito",
+      "transcripcion": "El de Chao me trajo 40 de piña a 26, se lo debo",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": "chao",
+          "items": [
+            {
+              "producto_texto": "pina",
+              "cantidad": 40,
+              "costo_unitario": 26
+            }
+          ],
+          "condicion": "credito"
+        }
+      }
+    },
+    {
+      "id": "merma-se-paso",
+      "transcripcion": "Se me pasaron 2 cajas de plátano seda",
+      "esperado": {
+        "herramienta": "registrar_merma",
+        "datos": {
+          "producto_texto": "platano seda",
+          "cantidad": 2
+        }
+      }
+    },
+    {
+      "id": "merma-podrida",
+      "transcripcion": "Bota 4 de mandarina, están podridas",
+      "esperado": {
+        "herramienta": "registrar_merma",
+        "datos": {
+          "producto_texto": "mandarina",
+          "cantidad": 4
+        }
+      }
+    },
+    {
+      "id": "merma-media-caja",
+      "transcripcion": "Media caja de uva se echó a perder",
+      "esperado": {
+        "herramienta": "registrar_merma",
+        "datos": {
+          "producto_texto": "uva",
+          "cantidad": 0.5
+        }
+      }
+    },
+    {
+      "id": "gasto-luz",
+      "transcripcion": "Pagué 25 de luz",
+      "esperado": {
+        "herramienta": "registrar_gasto",
+        "datos": {
+          "categoria": "servicios",
+          "monto": 25
+        }
+      }
+    },
+    {
+      "id": "gasto-cargador",
+      "transcripcion": "Le di 50 al cargador",
+      "esperado": {
+        "herramienta": "registrar_gasto",
+        "datos": {
+          "categoria": "personal",
+          "monto": 50
+        }
+      }
+    },
+    {
+      "id": "gasto-alquiler",
+      "transcripcion": "El alquiler del puesto, 400",
+      "esperado": {
+        "herramienta": "registrar_gasto",
+        "datos": {
+          "categoria": "alquiler",
+          "monto": 400
+        }
+      }
+    },
+    {
+      "id": "consulta-ventas-hoy",
+      "transcripcion": "¿Cuánto vendí hoy?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "ventas_hoy"
+        }
+      }
+    },
+    {
+      "id": "consulta-deuda-don-lucho",
+      "transcripcion": "¿Cuánto me debe don Lucho?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "deuda_cliente",
+          "cliente_texto": "don lucho"
+        }
+      }
+    },
+    {
+      "id": "consulta-stock",
+      "transcripcion": "¿Qué stock tengo?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "stock"
+        }
+      }
+    },
+    {
+      "id": "consulta-gastos-hoy",
+      "transcripcion": "¿Cuánto gasté hoy?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "gastos_hoy"
+        }
+      }
+    },
+    {
+      "id": "consulta-resumen",
+      "transcripcion": "¿Cómo me fue hoy?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "resumen_dia"
+        }
+      }
+    },
+    {
+      "id": "no-entendido-cuchillo",
+      "transcripcion": "Pásame el cuchillo",
+      "esperado": {
+        "herramienta": "no_entendido",
+        "datos": {}
+      }
+    },
+    {
+      "id": "no-entendido-comentario",
+      "transcripcion": "Este mango está bonito",
+      "esperado": {
+        "herramienta": "no_entendido",
+        "datos": {}
+      }
     }
   ]
 }
