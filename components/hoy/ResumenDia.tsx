@@ -1,10 +1,12 @@
-import { HandCoins, TrendingUp, Wallet } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, HandCoins, TrendingUp, Wallet } from "lucide-react";
 
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { MontoVivo } from "@/components/ui/MontoVivo";
 import { Tarjeta } from "@/components/ui/Tarjeta";
 import { Vacio } from "@/components/ui/Vacio";
+import { formatearSoles } from "@/lib/formato";
 import { inicioDelDiaLima, leerResumen, textoVentas, ventasPorHora } from "@/lib/hoy-reglas";
 import { exigirSesion } from "@/lib/sesion";
 import { GraficoDia } from "./GraficoDia";
@@ -41,15 +43,14 @@ export async function ResumenDia() {
         </Vacio>
       ) : (
         <Tarjeta protagonista className="grid animate-subir" aria-label="Lo vendido hoy">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-bold text-texto-suave">Vendiste hoy</span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-exito-fondo px-2.5 py-1 text-[15px] font-extrabold text-exito">
-              <TrendingUp aria-hidden className="size-4" />
-              {dia.numeroVentas} {dia.numeroVentas === 1 ? "venta" : "ventas"}
-            </span>
-          </div>
+          <span className="font-bold text-texto-suave">Vendiste hoy</span>
           <span data-testid="monto-vendido">
             <MontoVivo valor={dia.vendido} tamano="total" className="my-0.5" />
+          </span>
+          {/* El veredicto que hace cuadrar las cuentas: lo vendido es contado más crédito. */}
+          <span data-testid="desglose-vendido" className="text-texto-suave">
+            <strong className="cifra font-extrabold text-texto">{formatearSoles(dia.contado)}</strong> al contado y{" "}
+            <strong className="cifra font-extrabold text-texto">{formatearSoles(dia.credito)}</strong> al crédito
           </span>
           <span className="text-texto-suave">{textoVentas(dia.numeroVentas, dia.cajas)}</span>
           <GraficoDia horas={horas} />
@@ -65,25 +66,34 @@ export async function ResumenDia() {
           <span data-testid="monto-cobrado">
             <MontoVivo valor={dia.cobrado} tamano="cifra" tono="exito" />
           </span>
+          <span className="text-texto-suave">Ventas al contado y abonos de hoy</span>
         </span>
       </Tarjeta>
 
-      <Tarjeta className="grid animate-subir grid-cols-[auto_1fr] items-center gap-3.5 [animation-delay:140ms]">
-        <span className="grid size-[52px] place-items-center rounded-[18px] bg-deuda-fondo text-deuda">
-          <HandCoins aria-hidden />
-        </span>
-        <span className="grid">
-          <span className="font-bold text-texto-suave">Te deben</span>
-          <span data-testid="monto-deben">
-            <MontoVivo valor={dia.porCobrar} tamano="cifra" tono={dia.porCobrar > 0 ? "deuda" : "normal"} />
+      {/* Lo difícil, a un toque: quién te debe y cuánto vive en Clientes (/formidable 2026-10-28). */}
+      <Link
+        href="/clientes"
+        className="block animate-subir rounded-tarjeta transition-transform duration-150 ease-out [animation-delay:140ms] active:scale-[0.98]"
+      >
+        <Tarjeta className="grid grid-cols-[auto_1fr_auto] items-center gap-3.5">
+          <span className="grid size-[52px] place-items-center rounded-[18px] bg-deuda-fondo text-deuda">
+            <HandCoins aria-hidden />
           </span>
-          {clientesQueDeben > 0 && (
-            <span className="text-[15px] text-texto-suave">
-              entre {clientesQueDeben} {clientesQueDeben === 1 ? "cliente" : "clientes"}
+          <span className="grid">
+            <span className="font-bold text-texto-suave">Te deben</span>
+            <span data-testid="monto-deben">
+              <MontoVivo valor={dia.porCobrar} tamano="cifra" tono={dia.porCobrar > 0 ? "deuda" : "normal"} />
             </span>
-          )}
-        </span>
-      </Tarjeta>
+            <span className="text-texto-suave">
+              {clientesQueDeben === 0
+                ? "Nadie te debe"
+                : `Todo tu cuaderno: ${clientesQueDeben} ${clientesQueDeben === 1 ? "cliente" : "clientes"}`}
+            </span>
+            <span className="mt-1 font-extrabold text-acento-texto">Ver quién te debe</span>
+          </span>
+          <ChevronRight aria-hidden className="size-6 text-texto-suave" />
+        </Tarjeta>
+      </Link>
     </div>
   );
 }

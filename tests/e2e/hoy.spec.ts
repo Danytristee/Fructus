@@ -24,7 +24,11 @@ test("«Hoy» muestra lo mismo que resumen_dia() de la base", async ({ page }) =
   // El lector de pantalla oye el monto final desde el primer momento, no la cuenta.
   await expect(page.getByTestId("monto-vendido").locator(".sr-only")).toHaveText(enSoles(vendido));
 
-  await expect(page.getByText(`${ventas} ventas`, { exact: true })).toBeVisible();
+  // El desglose hace cuadrar las cuentas: contado + crédito = vendido.
+  const contado = Number(data.ventas_contado);
+  const credito = Number(data.ventas_credito);
+  expect(contado + credito).toBeCloseTo(vendido, 2);
+  await expect(page.getByTestId("desglose-vendido")).toHaveText(`${enSoles(contado)} al contado y ${enSoles(credito)} al crédito`);
   await expect(page.getByText(`${Number(data.cajas_vendidas)} cajas en ${ventas} ventas`)).toBeVisible();
   await expect(page.getByRole("figure", { name: /Lo vendido a lo largo del día: la hora que más vendiste fue a las/ })).toBeVisible();
 });
@@ -84,4 +88,10 @@ test("«Lo último» muestra las 5 operaciones más recientes de la base, en ord
 
   await page.getByRole("link", { name: "Ver todo" }).click();
   await expect(page).toHaveURL("/ventas");
+});
+
+test("«Te deben» se toca y lleva a ver quién te debe", async ({ page }) => {
+  await entrarComo(page, "duenio");
+  await page.getByRole("link", { name: /Te deben.*Ver quién te debe/ }).click();
+  await expect(page).toHaveURL("/clientes");
 });

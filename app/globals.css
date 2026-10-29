@@ -326,6 +326,13 @@
 }
 
 @layer base {
+  /* El hueco de la barra de abajo para el botón de voz: solo se abre en la pantalla que lo muestra («Hoy»). */
+  :root {
+    --hueco-voz: 0px;
+  }
+  body:has([data-voz-fijo]) {
+    --hueco-voz: 96px;
+  }
   html {
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;

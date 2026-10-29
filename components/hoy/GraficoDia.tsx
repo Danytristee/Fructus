@@ -1,10 +1,13 @@
 import { formatearHora } from "@/lib/formato";
 import { acumulado, curvaDelDia, horaPico, type HoraVentas } from "@/lib/hoy-reglas";
 
+// Bajo a propósito (/formidable 2026-10-28): acompaña al monto, no ocupa media pantalla.
+const ALTO = 64;
+
 // Cómo se fue llenando la caja a lo largo del día (lo acumulado hora por hora). Solo SVG y CSS: no suma JavaScript a «Hoy».
 export function GraficoDia({ horas }: { horas: HoraVentas[] }) {
   // Arranca en 0: la caja empieza vacía y se va llenando.
-  const curva = horas.length > 0 ? curvaDelDia([{ hora: horas[0]!.hora, total: 0 }, ...acumulado(horas)]) : null;
+  const curva = horas.length > 0 ? curvaDelDia([{ hora: horas[0]!.hora, total: 0 }, ...acumulado(horas)], 320, ALTO) : null;
   const pico = horaPico(horas);
   if (!curva || pico === null) return null;
 
@@ -14,7 +17,7 @@ export function GraficoDia({ horas }: { horas: HoraVentas[] }) {
 
   return (
     <figure className="mt-2.5 text-acento-texto" aria-label={`Lo vendido a lo largo del día: la hora que más vendiste fue a las ${formatearHora(pico)}`}>
-      <svg viewBox="0 0 320 96" className="block h-auto w-full overflow-visible" aria-hidden>
+      <svg viewBox={`0 0 320 ${ALTO}`} className="block h-auto w-full overflow-visible" aria-hidden>
         <defs>
           <linearGradient id="area-del-dia" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="currentColor" stopOpacity="0.28" />

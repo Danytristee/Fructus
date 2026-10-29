@@ -23,8 +23,8 @@ export default async function Hoy() {
       </Suspense>
       {permisos.registrar && (
         <>
-          {/* Espacio para que lo último pueda subir por encima del botón de voz. */}
-          <div aria-hidden className="h-36" />
+          {/* Espacio para que la última fila suba por encima del orbe y su etiqueta. */}
+          <div aria-hidden className="h-16" />
           <VozHoy />
         </>
       )}

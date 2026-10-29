@@ -10,6 +10,7 @@ const numero = z.coerce.number();
 const esquemaResumen = z.object({
   ventas_total: numero,
   ventas_contado: numero,
+  ventas_credito: numero,
   abonos: numero,
   por_cobrar_total: numero,
   numero_ventas: numero,
@@ -18,6 +19,9 @@ const esquemaResumen = z.object({
 
 export type ResumenHoy = {
   vendido: number;
+  /** Vendido = contado + crédito: así cuadra lo que se ve en pantalla. */
+  contado: number;
+  credito: number;
   /** Lo que entró a la caja hoy: ventas al contado más abonos. Lo vendido al crédito no se cobró. */
   cobrado: number;
   /** Todo lo que deben los clientes, de hoy y de antes. */
@@ -30,6 +34,8 @@ export function leerResumen(datos: unknown): ResumenHoy {
   const r = esquemaResumen.parse(datos);
   return {
     vendido: r.ventas_total,
+    contado: r.ventas_contado,
+    credito: r.ventas_credito,
     cobrado: r.ventas_contado + r.abonos,
     porCobrar: r.por_cobrar_total,
     numeroVentas: r.numero_ventas,
