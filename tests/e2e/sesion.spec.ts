@@ -38,7 +38,8 @@ test("entra, la sesión se mantiene al recargar y sale", async ({ page }) => {
   await expect(page).toHaveURL("/");
 
   await page.getByRole("button", { name: /^Menú/ }).click();
-  await page.getByRole("button", { name: "Salir" }).click();
+  // Dentro de la hoja: el botón del menú también dice «salir» en su nombre.
+  await page.getByRole("dialog", { name: "Más" }).getByRole("button", { name: "Salir" }).click();
   await expect(page).toHaveURL("/login");
   await page.goto("/");
   await expect(page).toHaveURL("/login");

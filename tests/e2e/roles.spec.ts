@@ -49,3 +49,15 @@ test("una cuenta sin perfil activo no ve la app, solo cómo pedir acceso", async
   await page.getByRole("button", { name: "Salir" }).click();
   await expect(page).toHaveURL("/login");
 });
+
+for (const { rol, ve } of [
+  { rol: "duenio", ve: true },
+  { rol: "ayudante", ve: true },
+  { rol: "contador", ve: false },
+] as const) {
+  test(`${rol}: ${ve ? "ve" : "no ve"} el botón de voz en «Hoy»`, async ({ page }) => {
+    await entrarComo(page, rol);
+    await expect(page.getByText("Cobraste")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Botón de voz" })).toHaveCount(ve ? 1 : 0);
+  });
+}

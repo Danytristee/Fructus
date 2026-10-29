@@ -1,26 +1,32 @@
-import { Mic } from "lucide-react";
+import { Suspense } from "react";
 
 import { Encabezado } from "@/components/marco/Encabezado";
-import { Aviso } from "@/components/ui/Aviso";
-import { Vacio } from "@/components/ui/Vacio";
+import { EsqueletoResumen, EsqueletoUltimas } from "@/components/hoy/EsqueletoResumen";
+import { ResumenDia } from "@/components/hoy/ResumenDia";
+import { UltimasOperaciones } from "@/components/hoy/UltimasOperaciones";
+import { VozHoy } from "@/components/voz/VozHoy";
 import { formatearFecha } from "@/lib/formato";
 import { exigirSesion } from "@/lib/sesion";
 
-// «Hoy», todavía sin el resumen ni el botón de voz: llegan en A3 y A4.
+// «Hoy»: la pantalla del dueño. El encabezado sale al toque; el resumen y lo último llegan detrás, cada uno con su esqueleto.
 export default async function Hoy() {
-  const { supabase } = await exigirSesion();
-  const { error } = await supabase.from("productos").select("id", { head: true, count: "exact" });
-  if (error) console.error("hoy: la base no respondió", { codigo: error.code });
-
+  // El contador solo lee: no ve el botón de voz (permisosDe en lib/permisos-reglas.ts).
+  const { permisos } = await exigirSesion();
   return (
     <>
       <Encabezado titulo="Hoy" subtitulo={formatearFecha(new Date())} />
-      {error ? (
-        <Aviso titulo="No pudimos leer tus datos">Revisa tu señal y vuelve a abrir la app. Lo que ya guardaste no se pierde.</Aviso>
-      ) : (
-        <Vacio icono={<Mic />} titulo="Aquí va a estar tu día">
-          Lo que vendiste, lo que cobraste y quién te debe. Muy pronto lo vas a dictar con el botón de voz.
-        </Vacio>
+      <Suspense fallback={<EsqueletoResumen />}>
+        <ResumenDia />
+      </Suspense>
+      <Suspense fallback={<EsqueletoUltimas />}>
+        <UltimasOperaciones />
+      </Suspense>
+      {permisos.registrar && (
+        <>
+          {/* Espacio para que la última fila suba por encima del orbe y su etiqueta. */}
+          <div aria-hidden className="h-16" />
+          <VozHoy />
+        </>
       )}
     </>
   );

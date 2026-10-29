@@ -1,16 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 
 import { expect, test } from "@playwright/test";
 
+import { entornoLocal } from "./base";
+
 // Corre el comando real (scripts/invitar.mjs) contra la base local y devuelve el enlace que imprime.
 function invitar(correo: string, nombre: string, rol: string) {
-  const entorno = Object.fromEntries(
-    readFileSync(".env.development.local", "utf8")
-      .split("\n")
-      .filter((l) => /^[A-Z_]+=/.test(l))
-      .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]),
-  );
+  const entorno = entornoLocal();
   const salida = execFileSync("node", ["scripts/invitar.mjs", correo, nombre, rol], {
     env: { ...process.env, ...entorno, SITIO_URL: "http://127.0.0.1:3000" },
     encoding: "utf8",

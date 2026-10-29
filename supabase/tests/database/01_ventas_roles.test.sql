@@ -24,6 +24,12 @@ create function pg_temp.como(p_id uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true);
 $$;
 
+-- El seed trae un día de demo con stock y deudas: se mide lo que cambia, no el total.
+create temp table inicio as
+select coalesce((select stock from v_stock where producto_id = 1), 0)          as stock_mango,
+       coalesce((select saldo from v_saldo_clientes where cliente_id = 1), 0) as deuda_lucho;
+grant select on inicio to authenticated;
+
 set local role authenticated;
 
 -- --- Dueño: llega fruta -------------------------------------------------------
@@ -31,7 +37,7 @@ select pg_temp.como('00000000-0000-0000-0000-0000000000d1');
 select lives_ok(
   $$ select registrar_compra('{"proveedor_id":2,"medio_pago":"efectivo","items":[{"producto_id":1,"cantidad":50,"costo_unitario":30},{"producto_id":3,"cantidad":40,"costo_unitario":20}]}') $$,
   'el dueño registra una compra');
-select is((select stock from v_stock where producto_id = 1), 50.00::numeric, 'la compra suma 50 cajas de mango al stock');
+select is((select stock from v_stock where producto_id = 1), (select stock_mango + 50 from inicio), 'la compra suma 50 cajas de mango al stock');
 
 -- --- Ayudante: vende a crédito con rebaja y cobra un abono ---------------------
 select pg_temp.como('00000000-0000-0000-0000-0000000000a1');
@@ -39,11 +45,11 @@ select lives_ok(
   $$ select registrar_venta('{"cliente_id":1,"condicion":"credito","items":[{"producto_id":1,"cantidad":10,"precio_unitario":45,"descuento":20}]}') $$,
   'el ayudante registra una venta a crédito');
 select is((select total from ventas order by id desc limit 1), 430.00::numeric, 'el total es 10 × 45 − 20 de rebaja');
-select is((select stock from v_stock where producto_id = 1), 40.00::numeric, 'la venta descuenta 10 cajas');
-select is((select saldo from v_saldo_clientes where cliente_id = 1), 430.00::numeric, 'don Lucho debe 430');
+select is((select stock from v_stock where producto_id = 1), (select stock_mango + 40 from inicio), 'la venta descuenta 10 cajas');
+select is((select saldo from v_saldo_clientes where cliente_id = 1), (select deuda_lucho + 430 from inicio), 'don Lucho debe 430 más');
 
 insert into abonos (cliente_id, monto, medio_pago) values (1, 200, 'efectivo');
-select is((select saldo from v_saldo_clientes where cliente_id = 1), 230.00::numeric, 'tras abonar 200, debe 230');
+select is((select saldo from v_saldo_clientes where cliente_id = 1), (select deuda_lucho + 230 from inicio), 'tras abonar 200, la deuda nueva baja a 230');
 
 select throws_ok(
   $$ select anular_venta((select max(id) from ventas)) $$,
@@ -67,7 +73,7 @@ select throws_ok(
 -- --- Dueño: anula y el stock vuelve ---------------------------------------------
 select pg_temp.como('00000000-0000-0000-0000-0000000000d1');
 select lives_ok($$ select anular_venta((select max(id) from ventas)) $$, 'el dueño anula la venta');
-select is((select stock from v_stock where producto_id = 1), 50.00::numeric, 'la anulación devuelve las 10 cajas');
+select is((select stock from v_stock where producto_id = 1), (select stock_mango + 50 from inicio), 'la anulación devuelve las 10 cajas');
 
 -- --- Funciones reservadas al servidor --------------------------------------------
 select throws_ok($$ select tomar_numero('B001') $$, '42501', null, 'un usuario no puede tomar correlativos');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatearCajas, formatearFecha, formatearSoles } from "./formato";
+import { formatearCajas, formatearFecha, formatearHora, formatearSoles } from "./formato";
 
 describe("formatearSoles", () => {
   it("escribe soles con separador de miles y dos decimales", () => {
@@ -27,5 +27,14 @@ describe("formatearFecha", () => {
   });
   it("usa la hora de Lima: a las 11 p. m. de Lima ya es mañana en UTC, pero sigue siendo hoy", () => {
     expect(formatearFecha(new Date("2026-10-29T04:00:00Z"))).toBe("miércoles 28 de octubre");
+  });
+});
+
+describe("formatearHora", () => {
+  it("dice mañana, mediodía y tarde como en el puesto", () => {
+    expect(formatearHora(6)).toBe("6 a. m.");
+    expect(formatearHora(12)).toBe("12 m.");
+    expect(formatearHora(15)).toBe("3 p. m.");
+    expect(formatearHora(0)).toBe("12 a. m.");
   });
 });
