@@ -38,6 +38,8 @@ describe("frutaIlustrada", () => {
     expect(frutaIlustrada("Plátano")).toBe("platano");
     expect(frutaIlustrada("Piña")).toBe("pina");
     expect(frutaIlustrada("Mandarina")).toBe("naranja");
+    expect(frutaIlustrada("Manzana")).toBe("manzana");
+    expect(frutaIlustrada("Tangelo")).toBe("naranja");
     expect(frutaIlustrada("Papaya")).toBeNull();
   });
 });
