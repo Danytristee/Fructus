@@ -33,6 +33,7 @@
 - `/chaos` (semilla 20261029): 6 hallazgos resueltos, cada uno con su prueba (`docs/chaos/voz-venta-2026-10-29.md`).
 - El más grave: un precio con 3 decimales («1,299») rompía INV-01. Se arregló en la base, también en las compras.
 - Migraciones aplicadas al proyecto con `apply_migration`: `20261029162319_venta_unica_por_comando` y `20261029162351_montos_en_centimos`. En el proyecto, INV-01 e INV-05 en 0 y sin stock negativo; los tipos de `public` no cambian.
+- Con OK, `20261029185755_funciones_sin_anon`: ninguna función propia se ejecuta sin sesión; `05_funciones_sin_anon.test.sql` lo vigila en el CI.
 - `proxy.ts` deja pasar las server actions: cada una revisa la sesión y responde en lenguaje de puesto.
 - JavaScript de «Hoy»: 177.2 KB brotli.
 
