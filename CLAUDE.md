@@ -263,7 +263,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
 - **Trampas de RLS que ya costaron caro:**
   - Un `update` sin permiso **no falla, solo no toca filas**. Si una función depende de que el update ocurra, verifica el rol explícitamente (ver `anular_venta`).
   - En las políticas, `auth.uid()` va dentro de `(select auth.uid())` para que se evalúe una vez por consulta y no una vez por fila.
-  - Supabase da `EXECUTE` a `anon` y `authenticated` en toda función nueva. Si no deben llamarla, revócalo en la misma migración.
+  - Supabase da `EXECUTE` a `anon` y `authenticated` en toda función nueva (y Postgres a `public`). Revoca `anon` y `public` en la misma migración: ninguna función propia se ejecuta sin sesión. `supabase/tests/database/05_funciones_sin_anon.test.sql` falla en el CI si una queda abierta.
 - **Avisos del linter que se dejan a propósito:**
   - `series_comprobante` tiene RLS sin políticas porque solo la toca el servidor.
   - `rol_actual()` es `security definer` y la pueden ejecutar los autenticados, porque las políticas la necesitan.

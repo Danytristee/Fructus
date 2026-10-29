@@ -40,7 +40,7 @@ async function buscarProveedores(supabase: Cliente, q: string | null): Promise<C
 }
 
 /** El precio sugerido: el último que se le cobró a ese cliente por ese producto; sin cliente, el de referencia. */
-async function preciosSugeridos(supabase: Cliente, clienteId: number | null, productos: (number | null)[]): Promise<(number | null)[]> {
+export async function preciosSugeridos(supabase: Cliente, clienteId: number | null, productos: (number | null)[]): Promise<(number | null)[]> {
   if (clienteId === null) {
     const ids = productos.filter((p): p is number => p !== null);
     if (ids.length === 0) return productos.map(() => null);

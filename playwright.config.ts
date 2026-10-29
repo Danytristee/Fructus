@@ -16,6 +16,8 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3000",
     timezoneId: "America/Lima",
     trace: "retain-on-failure",
+    // Un micrófono falso que acepta el permiso solo: el botón de voz graba de verdad (un tono) y /api/voz se simula.
+    launchOptions: { args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] },
   },
   projects: [
     { name: "s25-412", use: { ...celular, viewport: { width: 412, height: 915 } } },

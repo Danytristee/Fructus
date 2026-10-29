@@ -42,6 +42,9 @@ export async function proxy(request: NextRequest) {
 
   // Las rutas /api contestan 401 ellas mismas: una API no redirige a una pantalla de login.
   if (ruta.startsWith("/api/")) return respuesta;
+  // Las server actions también: cada una revisa la sesión y responde en lenguaje de puesto. Redirigidas, llegaban al
+  // celular como una falla de red y la tarjeta decía «Revisa tu señal» con la sesión vencida (/chaos 2026-10-29).
+  if (request.method === "POST" && request.headers.has("next-action")) return respuesta;
 
   const conSesion = Boolean(data?.claims);
   const destino = !conSesion && !esPublica(ruta) ? "/login" : conSesion && ruta === "/login" ? "/" : null; // /login/clave sí se abre con sesión
