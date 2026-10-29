@@ -36,7 +36,7 @@ export type LecturaPrecio = { ok: true; valor: number } | { ok: false; error: st
 /**
  * Lo que se escribió en «Precio de la caja». Acepta «45», «47.50», «47,5» y «S/ 45». Nunca adivina: un negativo, más de dos
  * decimales («1,299» ¿es 1.299 o 1299?), cero o un monto absurdo se rechazan con una frase que dice cómo escribirlo. Vacío
- * no es error: falta el precio. (La base también rechaza más de dos decimales: 20261029130000_montos_en_centimos.)
+ * no es error: falta el precio. (La base también rechaza más de dos decimales: 20261029162351_montos_en_centimos.)
  */
 export function leerPrecio(texto: string): LecturaPrecio {
   const limpio = texto.replace(/s\/|\s/gi, "");

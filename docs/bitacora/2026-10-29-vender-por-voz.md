@@ -28,9 +28,15 @@
 - Invariantes: las 12 en orden, y ninguna venta repetida por comando.
 - JavaScript de «Hoy» con sesión: 176.9 KB brotli, con tope de 180. La hoja de la tarjeta va aparte (8.7 + 7.5 KB, en diferido).
 
+**Después, con OK:**
+- `/formidable`: 8.4 → 9.0 (`docs/formidable/voz-venta-2026-10-29.md`).
+- `/chaos` (semilla 20261029): 6 hallazgos resueltos, cada uno con su prueba (`docs/chaos/voz-venta-2026-10-29.md`).
+- El más grave: un precio con 3 decimales («1,299») rompía INV-01. Se arregló en la base, también en las compras.
+- Migraciones aplicadas al proyecto con `apply_migration`: `20261029162319_venta_unica_por_comando` y `20261029162351_montos_en_centimos`. En el proyecto, INV-01 e INV-05 en 0 y sin stock negativo; los tipos de `public` no cambian.
+- `proxy.ts` deja pasar las server actions: cada una revisa la sesión y responde en lenguaje de puesto.
+- JavaScript de «Hoy»: 177.2 KB brotli.
+
 **Pendiente:**
-- Aplicar la migración al proyecto (espera OK).
-- `/formidable` y `/chaos` de la tarjeta.
 - La prueba real con la voz en un celular, y la latencia de punta a punta en 4G.
 - **Quedan 3 KB de margen en «Hoy»:** A6 tiene que sumar sus tarjetas dentro de la hoja diferida, no en el botón.
 - **E2E inestable con la máquina cargada** (otros stacks de Supabase en Docker): Auth local devuelve `AuthRetryableFetchError` y el login pasa los 15 s. Se reinicia el servidor y se repite.

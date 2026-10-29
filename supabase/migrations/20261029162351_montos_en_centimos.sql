@@ -8,7 +8,7 @@
 --   1. Cajas, precios, costos y rebajas con más de dos decimales se rechazan. No se redondean a escondidas: el dinero
 --      que no se dijo no se inventa (principio 2); la tarjeta de voz tampoco deja escribirlos.
 --   2. El total se suma ítem por ítem, redondeado igual que la columna subtotal: total = Σ round(cajas × precio − rebaja, 2).
--- registrar_venta conserva lo de 20261029120000 (una venta por comando de voz, «corregido»).
+-- registrar_venta conserva lo de 20261029162319 (una venta por comando de voz, «corregido»).
 -- create or replace conserva los permisos de cada función (anon sigue sin poder llamarlas).
 
 create or replace function registrar_venta(p jsonb)
