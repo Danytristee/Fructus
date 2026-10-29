@@ -255,3 +255,19 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
 4. Condición null → dos botones grandes: **Pagó** / **Lo debe**.
 5. Al confirmar → `registrar_venta` / `registrar_compra` con `comando_voz_id` (marcan el comando como `confirmado`). Abonos, mermas y gastos se insertan directo en su tabla y la app marca el comando.
 6. Si el usuario editó algo de la tarjeta, marcar el comando como `corregido` **antes** de guardar (la RPC solo cambia comandos que siguen `pendiente`). Si lo descartó, `descartado`.
+
+## 6. Dónde vive y cómo se mide
+
+| Pieza | Archivo | Prueba |
+|---|---|---|
+| Herramientas y validación | `lib/voz/esquemas.ts` (Zod, genera el JSON Schema para Groq) | `lib/voz/esquemas.test.ts` |
+| Prompt de sistema | `lib/voz/prompt.ts` (idéntico a la sección 2; una prueba lo verifica) | `lib/voz/esquemas.test.ts` |
+| Voz a texto | `lib/voz/stt.ts` (Groq Whisper, Gemini de respaldo, tope de 8 s) | `pnpm voz:stt` → `docs/voz/stt-*.md` |
+| Vocabulario y catálogo | `lib/voz/catalogo-reglas.ts`, `lib/voz/catalogo.ts` (caché de 5 min) | `lib/voz/catalogo-reglas.test.ts` |
+| Intérprete | `lib/voz/interprete.ts` (Groq `openai/gpt-oss-120b`, Gemini de respaldo, tope de 8 s) | `pnpm voz:precision` → `docs/voz/precision-*.md` |
+| Tarjeta | `lib/voz/tarjeta-reglas.ts` (lógica pura) | `lib/voz/tarjeta-reglas.test.ts` |
+| Resolver | `lib/voz/resolver.ts` (buscar_*, ultimo_precio) | `tests/e2e/voz-api.spec.ts` |
+| Todo junto | `app/api/voz/route.ts` | `tests/e2e/voz-api.spec.ts` |
+
+El modelo del intérprete se eligió con números (`docs/voz/precision-2026-10-28.md`): `gpt-oss-120b` le ganó a `gpt-oss-20b` en
+intención y datos, con la misma latencia. Se cambia con `GROQ_MODELO_LLM`, y solo después de correr `/voz-precision`.
