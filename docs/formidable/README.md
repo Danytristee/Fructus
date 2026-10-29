@@ -6,4 +6,5 @@ Una fila por pantalla u hoja. Cada informe es historial: no se sobrescribe; una 
 |---|---|---|---|---|
 | «Hoy» | 2026-10-28 | 7.3 → 8.5 | 3 cambios y el ícono del menú aplicados con OK; queda el efectivo separado (A10) | [hoy-2026-10-28](hoy-2026-10-28.md) |
 | Hoja del menú | 2026-10-28 | (dentro de «Hoy») | Ícono de menú en vez de tuerca | [hoy-2026-10-28](hoy-2026-10-28.md) |
+| Hoja de venta por voz | 2026-10-29 | 8.4 | 3 cambios propuestos, esperan OK | [voz-venta-2026-10-29](voz-venta-2026-10-29.md) |
 | Login | — | — | Pendiente | — |
