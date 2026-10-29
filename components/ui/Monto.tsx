@@ -12,7 +12,7 @@ const tonos = {
   deuda: "text-deuda",
 } as const;
 
-type Props = {
+export type PropsMonto = {
   valor: number;
   tamano?: keyof typeof tamanos;
   /** El color nunca va solo: quien muestra una deuda pone también el texto «debe» o «te deben». */
@@ -20,8 +20,12 @@ type Props = {
   className?: string;
 };
 
-export function Monto({ valor, tamano = "lista", tono = "normal", className }: Props) {
+/** Las clases de un monto. Las comparte MontoVivo para que los dos se vean igual. */
+export function clasesMonto({ tamano = "lista", tono = "normal", className }: Omit<PropsMonto, "valor">) {
   // Sin cn(): para él «text-cifra» (tamaño) y «text-deuda» (color) serían la misma clase y borraría el tamaño.
-  const clases = ["cifra inline-block", tamanos[tamano], tonos[tono], className].filter(Boolean).join(" ");
-  return <span className={clases}>{formatearSoles(valor)}</span>;
+  return ["cifra inline-block", tamanos[tamano], tonos[tono], className].filter(Boolean).join(" ");
+}
+
+export function Monto({ valor, ...estilo }: PropsMonto) {
+  return <span className={clasesMonto(estilo)}>{formatearSoles(valor)}</span>;
 }

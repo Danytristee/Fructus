@@ -19,3 +19,10 @@ const fechaLima = new Intl.DateTimeFormat("es-PE", { weekday: "long", day: "nume
 export function formatearFecha(fecha: Date): string {
   return fechaLima.format(fecha).replace(",", "");
 }
+
+/** La hora como se dice en el puesto: «6 a. m.», «12 m.», «3 p. m.». */
+export function formatearHora(hora: number): string {
+  if (hora === 12) return "12 m.";
+  if (hora === 0) return "12 a. m.";
+  return hora < 12 ? `${hora} a. m.` : `${hora - 12} p. m.`;
+}

@@ -32,6 +32,9 @@ export async function entrar(_anterior: EstadoEntrar, formulario: FormData): Pro
     if (error.code === "invalid_credentials") {
       return { correo, error: "El correo o la clave no coinciden. Revísalos e inténtalo otra vez." };
     }
+    if (error.code === "over_request_rate_limit") {
+      return { correo, error: "Hubo muchos intentos seguidos. Espera 5 minutos y vuelve a intentar." };
+    }
     console.error("entrar: Supabase no aceptó el ingreso", { codigo: error.code ?? error.name, estado: error.status });
     return { correo, error: "No pudimos conectar. Revisa tu señal e inténtalo otra vez." };
   }
