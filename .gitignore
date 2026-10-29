@@ -23,3 +23,7 @@ supabase/.branches/
 # Playwright
 playwright-report/
 test-results/
+
+# Audios reales del puesto para /voz-precision: son voces de personas, no van al repo (tests/interprete/audios/LEEME.md).
+tests/interprete/audios/*
+!tests/interprete/audios/LEEME.md

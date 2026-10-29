@@ -19,7 +19,9 @@
     "db:tipos": "supabase gen types typescript --local --schema public > lib/supabase/tipos-db.ts",
     "prepare": "git config core.hooksPath .githooks || true",
     "medir:js": "node scripts/medir-js.mjs",
-    "cuentas:invitar": "node --env-file=.env.local scripts/invitar.mjs"
+    "cuentas:invitar": "node --env-file=.env.local scripts/invitar.mjs",
+    "voz:precision": "vitest run --config vitest.voz.config.ts tests/interprete/precision.voz.ts",
+    "voz:stt": "vitest run --config vitest.voz.config.ts tests/interprete/stt.voz.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

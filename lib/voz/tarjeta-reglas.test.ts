@@ -1,0 +1,125 @@
+import { describe, expect, it } from "vitest";
+
+import { leerInterpretacion, type Interpretacion } from "./esquemas";
+import { armarTarjeta, elegir, type Resolucion } from "./tarjeta-reglas";
+
+const interpretar = (herramienta: string, datos: unknown): Interpretacion => {
+  const r = leerInterpretacion(herramienta, datos);
+  if (!r.ok) throw new Error(r.motivo);
+  return r.interpretacion;
+};
+
+const lucho = { id: 1, nombre: "Luis Paredes", similitud: 0.9 };
+const royal = { id: 10, nombre: "Manzana Royal", similitud: 1 };
+const nada: Resolucion = { clientes: [], proveedores: [], productos: [], precios: [] };
+
+describe("elegir", () => {
+  it("con 0.45 o más se elige solo", () => {
+    expect(elegir("don lucho", [lucho])).toEqual({ dicho: "don lucho", elegido: { id: 1, nombre: "Luis Paredes" }, opciones: [] });
+  });
+
+  it("por debajo de 0.45 ofrece las 3 mejores, de la más parecida a la menos", () => {
+    const e = elegir("el gordo", [
+      { id: 1, nombre: "A", similitud: 0.2 },
+      { id: 2, nombre: "B", similitud: 0.4 },
+      { id: 3, nombre: "C", similitud: 0.1 },
+      { id: 4, nombre: "D", similitud: 0.3 },
+    ]);
+    expect(e.elegido).toBeNull();
+    expect(e.opciones.map((o) => o.id)).toEqual([2, 4, 1]);
+  });
+
+  it("si no se dijo nada, no elige ni ofrece", () => {
+    expect(elegir(null, [lucho])).toEqual({ dicho: null, elegido: null, opciones: [] });
+  });
+});
+
+describe("armarTarjeta · venta", () => {
+  const venta = (extra: object) =>
+    interpretar("registrar_venta", {
+      cliente_texto: "don Lucho",
+      items: [{ producto_texto: "manzana royal", cantidad: 10, precio_unitario: null }],
+      condicion: null,
+      medio_pago: null,
+      ...extra,
+    });
+
+  it("el precio que no se dijo sale del último cobrado y se marca sugerido; el total se calcula", () => {
+    const t = armarTarjeta(venta({}), { ...nada, clientes: [lucho], productos: [[royal]], precios: [128.7] });
+    expect(t.tipo).toBe("venta");
+    if (t.tipo !== "venta") return;
+    expect(t.items[0]!.precio).toEqual({ valor: 128.7, sugerido: true });
+    expect(t.items[0]!.subtotal).toBe(1287);
+    expect(t.total).toBe(1287);
+  });
+
+  it("si no dijo si pagó, se pregunta: la condición queda en null y falta", () => {
+    const t = armarTarjeta(venta({}), { ...nada, clientes: [lucho], productos: [[royal]], precios: [128.7] });
+    expect(t.tipo === "venta" && t.condicion).toBeNull();
+    expect(t.tipo === "venta" && t.falta).toEqual(["condicion"]);
+  });
+
+  it("el precio dicho manda sobre el sugerido y no se marca", () => {
+    const t = armarTarjeta(venta({ items: [{ producto_texto: "manzana royal", cantidad: 10, precio_unitario: 125 }] }), {
+      ...nada,
+      clientes: [lucho],
+      productos: [[royal]],
+      precios: [128.7],
+    });
+    expect(t.tipo === "venta" && t.items[0]!.precio).toEqual({ valor: 125, sugerido: false });
+  });
+
+  it("sin precio dicho ni sugerido, no hay total: nunca se inventa", () => {
+    const t = armarTarjeta(venta({}), { ...nada, clientes: [lucho], productos: [[royal]], precios: [null] });
+    if (t.tipo !== "venta") throw new Error("no es venta");
+    expect(t.items[0]!.precio).toEqual({ valor: null, sugerido: false });
+    expect(t.total).toBeNull();
+    expect(t.falta).toContain("precio");
+  });
+
+  it("si el producto no se eligió solo, no se sugiere precio aunque haya uno", () => {
+    const dudoso = { id: 11, nombre: "Manzana Roja", similitud: 0.3 };
+    const t = armarTarjeta(venta({}), { ...nada, clientes: [lucho], productos: [[dudoso]], precios: [128.7] });
+    if (t.tipo !== "venta") throw new Error("no es venta");
+    expect(t.items[0]!.producto.elegido).toBeNull();
+    expect(t.items[0]!.precio.valor).toBeNull();
+    expect(t.falta).toEqual(expect.arrayContaining(["producto", "precio"]));
+  });
+
+  it("al crédito sin cliente reconocido falta el cliente", () => {
+    const t = armarTarjeta(venta({ condicion: "credito" }), { ...nada, clientes: [{ id: 9, nombre: "X", similitud: 0.1 }], productos: [[royal]], precios: [128.7] });
+    expect(t.tipo === "venta" && t.falta).toContain("cliente");
+  });
+
+  it("al contado sin medio es en efectivo, y el descuento se resta del total", () => {
+    const t = armarTarjeta(venta({ condicion: "contado", descuento_total: 20, items: [{ producto_texto: "manzana royal", cantidad: 2, precio_unitario: 130 }] }), {
+      ...nada,
+      clientes: [lucho],
+      productos: [[royal]],
+      precios: [128.7],
+    });
+    if (t.tipo !== "venta") throw new Error("no es venta");
+    expect(t.medio).toBe("efectivo");
+    expect(t.total).toBe(240);
+    expect(t.falta).toEqual([]);
+  });
+});
+
+describe("armarTarjeta · lo demás", () => {
+  it("un abono sin cliente reconocido pide elegirlo", () => {
+    const t = armarTarjeta(interpretar("registrar_abono", { cliente_texto: "el gordo", monto: 100, medio_pago: "efectivo" }), nada);
+    expect(t).toMatchObject({ tipo: "abono", monto: 100, falta: ["cliente"] });
+  });
+
+  it("una compra sin costo lo pide", () => {
+    const t = armarTarjeta(
+      interpretar("registrar_compra", { proveedor_texto: null, items: [{ producto_texto: "manzana royal", cantidad: 40, costo_unitario: null }], condicion: null }),
+      { ...nada, productos: [[royal]] },
+    );
+    expect(t).toMatchObject({ tipo: "compra", falta: ["costo"] });
+  });
+
+  it("no entendido dice qué hacer, en lenguaje de puesto", () => {
+    expect(armarTarjeta(interpretar("no_entendido", { motivo: "x" }), nada)).toEqual({ tipo: "no_entendido", mensaje: "No te entendí, inténtalo otra vez." });
+  });
+});

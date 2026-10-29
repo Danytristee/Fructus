@@ -40,6 +40,9 @@ export async function proxy(request: NextRequest) {
     return respuesta;
   }
 
+  // Las rutas /api contestan 401 ellas mismas: una API no redirige a una pantalla de login.
+  if (ruta.startsWith("/api/")) return respuesta;
+
   const conSesion = Boolean(data?.claims);
   const destino = !conSesion && !esPublica(ruta) ? "/login" : conSesion && ruta === "/login" ? "/" : null; // /login/clave sí se abre con sesión
   if (!destino) return respuesta;

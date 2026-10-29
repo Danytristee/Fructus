@@ -9,6 +9,8 @@ const config: KnipConfig = {
     // Lo usan el login y el botón de voz (A2 y A5). Se quita de aquí cuando A2 lo importe.
     "lib/supabase/navegador.ts",
   ],
+  // `say` es la voz del Mac con que /voz-precision fabrica audios de prueba (tests/interprete/stt.voz.ts); no es de npm.
+  ignoreBinaries: ["say"],
   // shadcn/ui es materia prima (ADR-0005): genera exportaciones que components/ui/ todavía no usa.
   ignoreIssues: { "components/shadcn/**": ["exports", "types"] },
 };

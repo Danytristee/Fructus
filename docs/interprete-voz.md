@@ -35,8 +35,9 @@ Cómo habla el negocio:
 - "le dejé a 40", "le rebajé 5", "le hice 20 de descuento" = rebaja. Si dice el precio
   final ("le dejé a 40"), ese es precio_unitario; si dice un monto descontado al total,
   va en descuento_total.
-- Crédito: "lo debe", "al fiado", "a cuenta", "me apuntas", "me paga el sábado",
-  "anótalo". Contado: "me pagó", "pagó", "cancelado".
+- Crédito (condicion = "credito"): "lo debe", "al fiado", "a cuenta", "me apuntas",
+  "anótalo", "me paga el sábado" (o cualquier día), "se lo debo" (en compras). Si aparece
+  una de estas, condicion NO es null. Contado: "me pagó", "pagó", "cancelado".
 - Medios: "me yapeó"/"por Yape" = yape; "plin"/"me plineó" = plin; "en efectivo",
   "en billete", "en sencillo" = efectivo; "transferencia", "depósito" = transferencia.
 - A los clientes les dicen por apodo, por su negocio o por su puesto: copia la forma
@@ -49,12 +50,32 @@ Reglas que NO se rompen:
    el último precio cobrado a ese cliente).
 2. Si no dijo si pagó o si lo debe, condicion = null. NO asumas contado. La app le
    preguntará con dos botones.
-3. Si dijo "pagó" pero no cómo, medio_pago = "efectivo".
-4. Si algo es ambiguo, llénalo con tu mejor lectura y explica la duda en `dudas`
+3. Si dijo cómo le pagaron ("me yapeó", "me plineó", "en efectivo", "por transferencia",
+   "cancelado"), entonces pagó: condicion = "contado".
+4. Si dijo "pagó" pero no cómo, medio_pago = "efectivo".
+5. Si algo es ambiguo, llénalo con tu mejor lectura y explica la duda en `dudas`
    (frases cortas, en español, para mostrar en la tarjeta).
-5. Si la frase no es un comando del negocio o no se entiende, usa no_entendido.
-6. Una frase puede traer varios productos para el mismo cliente: van como varios items.
+6. Si la frase no es un comando del negocio o no se entiende, usa no_entendido.
+7. Una frase puede traer varios productos para el mismo cliente: van como varios items.
 ```
+
+### 2b. El catálogo del puesto (medido, todavía NO aplicado)
+
+`lib/voz/catalogo-reglas.ts` lo arma desde la base (productos, clientes con sus apodos y proveedores). Por ejemplo:
+
+```text
+Lo que hay en este puesto (si lo que dijo calza con uno de estos, cópialo completo: "mango edward", no "mango";
+"el flaco Carlos", no "Carlos"):
+- Productos: mango kent, mango edward, plátano de seda, plátano isla, papaya, piña golden, …
+- Clientes: don lucho / lucho (Luis Paredes); la señora rosa / puesto 12 (Rosa Quispe); …
+- Proveedores: el de piura / piura (Transportes Piura Norte); chao / el de chao (Agrícola Chao).
+"Me trajo", "llegó" y "compré" son compras a un proveedor, nunca ventas.
+```
+
+La idea: sin catálogo, el modelo parte «plátano isla del de Chao» en producto y proveedor equivocados y toma «el de Chao me
+trajo…» por una venta (`docs/voz/precision-2026-10-28.md`). **Se midió con el catálogo ficticio del seed y no se aplicó:** no sumó
+datos clave y bajó la intención (`docs/voz/precision-2026-10-28-3.md`). `interpretar()` acepta el catálogo, pero hoy nadie se lo pasa.
+Se vuelve a medir con el catálogo real del puesto y otra redacción.
 
 ## 3. Herramientas (formato OpenAI / Groq)
 
@@ -234,3 +255,19 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
 4. Condición null → dos botones grandes: **Pagó** / **Lo debe**.
 5. Al confirmar → `registrar_venta` / `registrar_compra` con `comando_voz_id` (marcan el comando como `confirmado`). Abonos, mermas y gastos se insertan directo en su tabla y la app marca el comando.
 6. Si el usuario editó algo de la tarjeta, marcar el comando como `corregido` **antes** de guardar (la RPC solo cambia comandos que siguen `pendiente`). Si lo descartó, `descartado`.
+
+## 6. Dónde vive y cómo se mide
+
+| Pieza | Archivo | Prueba |
+|---|---|---|
+| Herramientas y validación | `lib/voz/esquemas.ts` (Zod, genera el JSON Schema para Groq) | `lib/voz/esquemas.test.ts` |
+| Prompt de sistema | `lib/voz/prompt.ts` (idéntico a la sección 2; una prueba lo verifica) | `lib/voz/esquemas.test.ts` |
+| Voz a texto | `lib/voz/stt.ts` (Groq Whisper, Gemini de respaldo, tope de 8 s) | `pnpm voz:stt` → `docs/voz/stt-*.md` |
+| Vocabulario y catálogo | `lib/voz/catalogo-reglas.ts`, `lib/voz/catalogo.ts` (caché de 5 min) | `lib/voz/catalogo-reglas.test.ts` |
+| Intérprete | `lib/voz/interprete.ts` (Groq `openai/gpt-oss-120b`, Gemini de respaldo, tope de 8 s) | `pnpm voz:precision` → `docs/voz/precision-*.md` |
+| Tarjeta | `lib/voz/tarjeta-reglas.ts` (lógica pura) | `lib/voz/tarjeta-reglas.test.ts` |
+| Resolver | `lib/voz/resolver.ts` (buscar_*, ultimo_precio) | `tests/e2e/voz-api.spec.ts` |
+| Todo junto | `app/api/voz/route.ts` | `tests/e2e/voz-api.spec.ts` |
+
+El modelo del intérprete se eligió con números (`docs/voz/precision-2026-10-28.md`): `gpt-oss-120b` le ganó a `gpt-oss-20b` en
+intención y datos, con la misma latencia. Se cambia con `GROQ_MODELO_LLM`, y solo después de correr `/voz-precision`.
