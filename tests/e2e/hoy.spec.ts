@@ -51,3 +51,37 @@ test("«Hoy» entra sin scroll horizontal, con controles de 48 px y las cifras c
   expect(medidas.chicos).toBe(0);
   for (const tamano of medidas.cifras) expect(tamano).toBeGreaterThanOrEqual(28);
 });
+
+test("«Lo último» muestra las 5 operaciones más recientes de la base, en orden", async ({ page }) => {
+  const base = baseLocal();
+  const limaHoy = new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10);
+  const desde = `${limaHoy}T00:00:00-05:00`;
+  const [ventas, abonos, compras, mermas, gastos] = await Promise.all([
+    base.from("ventas").select("fecha, cliente:clientes(nombre)").eq("estado", "registrada").gte("fecha", desde),
+    base.from("abonos").select("fecha, cliente:clientes(nombre)").gte("fecha", desde),
+    base.from("compras").select("fecha, proveedor:proveedores(nombre)").gte("fecha", desde),
+    base.from("movimientos_stock").select("fecha").eq("tipo", "merma").gte("fecha", desde),
+    base.from("gastos").select("fecha, descripcion").gte("fecha", desde),
+  ]);
+  type Fila = { fecha: string; titulo: string };
+  const nombre = (r: unknown) => (r as { nombre?: string } | null)?.nombre;
+  const todas: Fila[] = [
+    ...(ventas.data ?? []).map((v) => ({ fecha: v.fecha, titulo: nombre(v.cliente) ?? "Venta al paso" })),
+    ...(abonos.data ?? []).map((a) => ({ fecha: a.fecha, titulo: nombre(a.cliente) ?? "Abono" })),
+    ...(compras.data ?? []).map((c) => ({ fecha: c.fecha, titulo: nombre(c.proveedor) ?? "Compra" })),
+    ...(mermas.data ?? []).map((m) => ({ fecha: m.fecha, titulo: "Merma" })),
+    ...(gastos.data ?? []).map((g) => ({ fecha: g.fecha, titulo: g.descripcion ?? "Gasto" })),
+  ];
+  const esperadas = todas.sort((a, b) => Date.parse(b.fecha) - Date.parse(a.fecha)).slice(0, 5).map((f) => f.titulo);
+  test.skip(esperadas.length === 0, "La base local no tiene operaciones hoy: corre npx supabase db reset");
+
+  await entrarComo(page, "duenio");
+  const filas = page.getByTestId("lo-ultimo").getByRole("listitem");
+  await expect(filas).toHaveCount(esperadas.length);
+  await expect(filas.locator("span.font-extrabold").first()).toBeVisible();
+  const titulos = await filas.evaluateAll((lis) => lis.map((li) => li.querySelector(".leading-tight")?.textContent ?? ""));
+  expect(titulos).toEqual(esperadas);
+
+  await page.getByRole("link", { name: "Ver todo" }).click();
+  await expect(page).toHaveURL("/ventas");
+});

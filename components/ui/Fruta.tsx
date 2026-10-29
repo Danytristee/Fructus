@@ -1,9 +1,9 @@
 import Image from "next/image";
 import { cn } from "cn";
 
-// Ilustraciones propias en public/frutas/. Las que faltan se dibujan cuando entre su producto al catálogo.
-export const frutasIlustradas = ["mango", "platano", "pina", "naranja"] as const;
-type FrutaIlustrada = (typeof frutasIlustradas)[number];
+import type { FrutaIlustrada } from "@/lib/frutas";
+
+// Ilustraciones propias en public/frutas/. La lista vive en lib/frutas.ts.
 
 type Props = { fruta: FrutaIlustrada; tamano?: number; className?: string };
 
