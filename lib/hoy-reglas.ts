@@ -22,8 +22,9 @@ export type ResumenHoy = {
   /** Vendido = contado + crédito: así cuadra lo que se ve en pantalla. */
   contado: number;
   credito: number;
-  /** Lo que entró a la caja hoy: ventas al contado más abonos. Lo vendido al crédito no se cobró. */
+  /** Lo que entró hoy: ventas al contado más abonos. Lo vendido al crédito no se cobró. */
   cobrado: number;
+  abonos: number;
   /** Todo lo que deben los clientes, de hoy y de antes. */
   porCobrar: number;
   numeroVentas: number;
@@ -37,6 +38,7 @@ export function leerResumen(datos: unknown): ResumenHoy {
     contado: r.ventas_contado,
     credito: r.ventas_credito,
     cobrado: r.ventas_contado + r.abonos,
+    abonos: r.abonos,
     porCobrar: r.por_cobrar_total,
     numeroVentas: r.numero_ventas,
     cajas: r.cajas_vendidas,

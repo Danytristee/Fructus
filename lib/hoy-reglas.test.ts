@@ -17,12 +17,13 @@ const resumen = {
 
 describe("leerResumen", () => {
   it("cobrado es lo del contado más los abonos; lo del crédito no entró a la caja", () => {
-    expect(leerResumen(resumen)).toEqual({ vendido: 2257, contado: 1155, credito: 1102, cobrado: 1355, porCobrar: 1432, numeroVentas: 9, cajas: 58 });
+    expect(leerResumen(resumen)).toEqual({ vendido: 2257, contado: 1155, credito: 1102, cobrado: 1355, abonos: 200, porCobrar: 1432, numeroVentas: 9, cajas: 58 });
   });
 
-  it("lo vendido es contado más crédito", () => {
+  it("lo vendido es contado más crédito, y lo cobrado es contado más abonos", () => {
     const dia = leerResumen(resumen);
     expect(dia.contado + dia.credito).toBe(dia.vendido);
+    expect(dia.contado + dia.abonos).toBe(dia.cobrado);
   });
 
   it("acepta montos que llegan como texto (numeric de Postgres)", () => {

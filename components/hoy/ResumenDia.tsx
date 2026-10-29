@@ -66,7 +66,16 @@ export async function ResumenDia() {
           <span data-testid="monto-cobrado">
             <MontoVivo valor={dia.cobrado} tamano="cifra" tono="exito" />
           </span>
-          <span className="text-texto-suave">Ventas al contado y abonos de hoy</span>
+          {/* Los dos números, para que nadie tenga que restar (segunda prueba ciega de /formidable). */}
+          <span data-testid="desglose-cobrado" className="text-texto-suave">
+            <strong className="cifra font-extrabold text-texto">{formatearSoles(dia.contado)}</strong> de ventas al contado
+            {dia.abonos > 0 && (
+              <>
+                {" "}
+                y <strong className="cifra font-extrabold text-texto">{formatearSoles(dia.abonos)}</strong> de abonos
+              </>
+            )}
+          </span>
         </span>
       </Tarjeta>
 

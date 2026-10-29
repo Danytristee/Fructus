@@ -29,6 +29,11 @@ test("«Hoy» muestra lo mismo que resumen_dia() de la base", async ({ page }) =
   const credito = Number(data.ventas_credito);
   expect(contado + credito).toBeCloseTo(vendido, 2);
   await expect(page.getByTestId("desglose-vendido")).toHaveText(`${enSoles(contado)} al contado y ${enSoles(credito)} al crédito`);
+  // Y lo cobrado es contado más abonos, con los dos números a la vista.
+  const abonos = Number(data.abonos);
+  await expect(page.getByTestId("desglose-cobrado")).toHaveText(
+    abonos > 0 ? `${enSoles(contado)} de ventas al contado y ${enSoles(abonos)} de abonos` : `${enSoles(contado)} de ventas al contado`,
+  );
   await expect(page.getByText(`${Number(data.cajas_vendidas)} cajas en ${ventas} ventas`)).toBeVisible();
   await expect(page.getByRole("figure", { name: /Lo vendido a lo largo del día: la hora que más vendiste fue a las/ })).toBeVisible();
 });
