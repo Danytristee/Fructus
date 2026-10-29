@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { RotateCcw, Undo2 } from "lucide-react";
+import { Eye, RotateCcw, Undo2 } from "lucide-react";
 
 import { descartarComando } from "@/app/(app)/acciones-voz";
 
@@ -23,6 +23,27 @@ const MARCA_APRENDIO = "fructus:voz-aprendida";
 const TOPE_ENVIO_MS = 25_000;
 // Lo que dura el «Deshacer» después de cerrar una tarjeta sin guardar (ley 7: perdonar antes que preguntar).
 const DESHACER_MS = 5_000;
+// La última tarjeta sin confirmar, en esta pestaña: sobrevive a una recarga o a volver a entrar (principio 8: nunca se
+// pierde lo dictado; /chaos 2026-10-29). Si se confirma dos veces, registrar_venta devuelve la misma venta.
+const TARJETA_ABIERTA = "fructus:voz-tarjeta";
+
+function recordarTarjeta(r: ResultadoVoz | null) {
+  try {
+    if (r) sessionStorage.setItem(TARJETA_ABIERTA, JSON.stringify(r));
+    else sessionStorage.removeItem(TARJETA_ABIERTA);
+  } catch {
+    // Sin almacenamiento, una recarga pierde la tarjeta; el comando queda «pendiente» y se dicta otra vez.
+  }
+}
+
+function tarjetaRecordada(): ResultadoVoz | null {
+  try {
+    const t = sessionStorage.getItem(TARJETA_ABIERTA);
+    return t ? (JSON.parse(t) as ResultadoVoz) : null;
+  } catch {
+    return null;
+  }
+}
 
 const POR_FALLA: Record<FallaGrabadora, string> = {
   sin_permiso: "Necesito el micrófono. Dale permiso en el candado de arriba, junto a la dirección.",
@@ -31,7 +52,7 @@ const POR_FALLA: Record<FallaGrabadora, string> = {
 };
 
 export type ResultadoVoz = { comandoId: number; tarjeta: Tarjeta; latenciaMs: number };
-type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "descartada" };
+type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "descartada" } | { tipo: "sin_confirmar"; resultado: ResultadoVoz };
 
 async function enviarAudio({ audio, duracionMs }: Grabacion): Promise<Desenlace> {
   if (!navigator.onLine) return desenlaceSinRed();
@@ -73,9 +94,11 @@ export function VozHoy() {
       } catch {
         setAprendio(false); // sin almacenamiento (modo privado): se enseña siempre
       }
+      const abierta = tarjetaRecordada();
+      if (abierta) setAviso({ tipo: "sin_confirmar", resultado: abierta });
     });
     // Un audio que no salió la última vez: se ofrece enviarlo apenas se abre «Hoy».
-    void leerPendiente().then((p) => p && setAviso({ tipo: "error", mensaje: "Tienes un audio que no se pudo enviar.", pendiente: true }));
+    void leerPendiente().then((p) => p && setAviso((a) => a ?? { tipo: "error", mensaje: "Tienes un audio que no se pudo enviar.", pendiente: true }));
     return () => {
       cancelAnimationFrame(cuadro);
       window.clearInterval(reloj.current);
@@ -89,6 +112,7 @@ export function VozHoy() {
     if (!d) return;
     descarte.current = null;
     window.clearTimeout(d.reloj);
+    recordarTarjeta(null);
     void descartarComando(d.comandoId, d.latenciaMs).catch(() => {
       // Sin red el comando queda «pendiente»: no guarda nada y solo cuenta distinto en la precisión.
     });
@@ -96,6 +120,7 @@ export function VozHoy() {
 
   function alCerrarHoja(motivo: "guardada" | "descartada") {
     setHojaAbierta(false);
+    if (motivo === "guardada") recordarTarjeta(null);
     if (motivo === "guardada" || !resultado || descarte.current) return;
     const { comandoId, latenciaMs } = resultado;
     const reloj = window.setTimeout(() => {
@@ -174,7 +199,9 @@ export function VozHoy() {
     if (desenlace.tipo === "tarjeta") {
       void borrarPendiente();
       // De soltar el botón a ver la tarjeta (CLAUDE.md, regla 9): se guarda al confirmar o descartar.
-      setResultado({ comandoId: desenlace.comandoId, tarjeta: desenlace.tarjeta, latenciaMs: Math.round(performance.now() - desde) });
+      const nuevo = { comandoId: desenlace.comandoId, tarjeta: desenlace.tarjeta, latenciaMs: Math.round(performance.now() - desde) };
+      setResultado(nuevo);
+      recordarTarjeta(nuevo);
       setHojaAbierta(true);
       decir("Listo", 1200);
       return;
@@ -207,6 +234,29 @@ export function VozHoy() {
             etiqueta: aviso.pendiente ? "Borrar el audio guardado" : "Cerrar el aviso",
             alTocar: () => {
               if (aviso.pendiente) void borrarPendiente();
+              setAviso(null);
+            },
+          }}
+        />
+      )}
+      {aviso?.tipo === "sin_confirmar" && (
+        <AvisoVoz
+          tono="info"
+          mensaje="Tienes una venta sin confirmar."
+          accion={{
+            etiqueta: "Verla",
+            icono: <Eye aria-hidden className="size-5" />,
+            alTocar: () => {
+              setResultado(aviso.resultado);
+              setAviso(null);
+              setHojaAbierta(true);
+            },
+          }}
+          cerrar={{
+            etiqueta: "Descartar esa venta",
+            alTocar: () => {
+              recordarTarjeta(null);
+              void descartarComando(aviso.resultado.comandoId, aviso.resultado.latenciaMs).catch(() => {});
               setAviso(null);
             },
           }}

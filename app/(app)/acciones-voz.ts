@@ -2,8 +2,9 @@
 
 import { z } from "zod";
 
-import { exigirSesion } from "@/lib/sesion";
-import { pedidoVenta } from "@/lib/voz/confirmar-venta-reglas";
+import { permisosDe } from "@/lib/permisos-reglas";
+import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { PRECIO_MAXIMO, pedidoVenta } from "@/lib/voz/confirmar-venta-reglas";
 import { preciosSugeridos } from "@/lib/voz/resolver";
 
 // Lo que la tarjeta de voz le pide al servidor: guardar la venta, descartar el comando, buscar quién o qué fue, el precio
@@ -11,6 +12,21 @@ import { preciosSugeridos } from "@/lib/voz/resolver";
 // La RLS es la seguridad; aquí solo se valida la forma y se traducen los errores a lenguaje de puesto.
 
 const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra vez.";
+const SIN_SESION = "Tu sesión terminó. Vuelve a entrar: la venta te espera en «Hoy».";
+const REVISA = "Revisa el precio y las cajas de la tarjeta.";
+
+/**
+ * La sesión de quien toca, o null. No redirige como lib/sesion.ts: dentro de una acción, el redirect llegaba al celular
+ * como una falla y la tarjeta decía «Revisa tu señal» con la sesión vencida (/chaos 2026-10-29).
+ */
+async function sesion() {
+  const supabase = await crearClienteServidor();
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims) return null;
+  const { data: perfil, error } = await supabase.from("perfiles").select("rol").eq("id", data.claims.sub).eq("activo", true).maybeSingle();
+  if (error) console.error("voz: no se pudo leer el perfil", { usuarioId: data.claims.sub, codigo: error.code });
+  return { supabase, permisos: permisosDe(perfil?.rol ?? null) };
+}
 const nombreProducto = (p: { nombre: string; variedad: string | null }) => [p.nombre, p.variedad].filter(Boolean).join(" ");
 
 const borrador = z.object({
@@ -21,7 +37,7 @@ const borrador = z.object({
         productoId: z.number().int().positive().nullable(),
         producto: z.string(),
         cantidad: z.number().positive().max(10_000),
-        precio: z.number().min(0).max(100_000).nullable(),
+        precio: z.number().positive().max(PRECIO_MAXIMO).nullable(),
         sugerido: z.boolean(),
       }),
     )
@@ -39,17 +55,19 @@ const confirmacion = z.object({
   latenciaMs: z.number().int().min(0).max(120_000),
 });
 
-export type ResultadoConfirmar = { ok: true; ventaId: number; saldo: number | null } | { ok: false; error: string };
+export type ResultadoConfirmar = { ok: true; ventaId: number; saldo: number | null } | { ok: false; error: string; sinSesion?: true };
 
 /** Guarda la venta. Idempotente por comando (registrar_venta): un segundo toque devuelve la misma venta. */
 export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Promise<ResultadoConfirmar> {
   const leido = confirmacion.safeParse(entrada);
-  if (!leido.success) return { ok: false, error: "Falta un dato de la venta. Revisa la tarjeta." };
+  if (!leido.success) return { ok: false, error: REVISA };
   const { comandoId, borrador: b, corregido, latenciaMs } = leido.data;
   const pedido = pedidoVenta(b, comandoId, corregido);
-  if (!pedido) return { ok: false, error: "Falta un dato de la venta. Revisa la tarjeta." };
+  if (!pedido) return { ok: false, error: REVISA };
 
-  const { supabase, permisos } = await exigirSesion();
+  const s = await sesion();
+  if (!s) return { ok: false, error: SIN_SESION, sinSesion: true };
+  const { supabase, permisos } = s;
   if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar ventas." };
 
   const { data: ventaId, error } = await supabase.rpc("registrar_venta", { p: pedido });
@@ -57,6 +75,7 @@ export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Pro
     console.error("voz: no se pudo registrar la venta", { comandoId, codigo: error?.code });
     if (error?.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar ventas." };
     if (error?.code === "23514") return { ok: false, error: "Al crédito tienes que elegir a quién le fiaste." };
+    if (error?.message.includes("dos decimales")) return { ok: false, error: "El precio y las cajas van con dos decimales como máximo." };
     return { ok: false, error: SIN_SENAL };
   }
 
@@ -80,8 +99,9 @@ export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Pro
 export async function descartarComando(comandoId: number, latenciaMs: number): Promise<void> {
   const id = z.number().int().positive().safeParse(comandoId);
   if (!id.success) return;
-  const { supabase } = await exigirSesion();
-  const { error } = await supabase
+  const s = await sesion();
+  if (!s) return; // sin sesión el comando queda «pendiente»: no guarda nada y solo cuenta distinto en la precisión
+  const { error } = await s.supabase
     .from("comandos_voz")
     .update({ resultado: "descartado", latencia_ms: Math.max(0, Math.round(latenciaMs)) })
     .eq("id", id.data)
@@ -97,8 +117,9 @@ const busqueda = z.string().trim().min(1).max(60);
 export async function buscarClientes(q: string): Promise<Opcion[] | null> {
   const texto = busqueda.safeParse(q);
   if (!texto.success) return [];
-  const { supabase } = await exigirSesion();
-  const { data, error } = await supabase.rpc("buscar_clientes", { q: texto.data, limite: 6 });
+  const s = await sesion();
+  if (!s) return null;
+  const { data, error } = await s.supabase.rpc("buscar_clientes", { q: texto.data, limite: 6 });
   if (error) {
     console.error("voz: no se pudo buscar clientes", { codigo: error.code });
     return null;
@@ -110,8 +131,9 @@ export async function buscarClientes(q: string): Promise<Opcion[] | null> {
 export async function buscarProductos(q: string): Promise<Opcion[] | null> {
   const texto = busqueda.safeParse(q);
   if (!texto.success) return [];
-  const { supabase } = await exigirSesion();
-  const { data, error } = await supabase.rpc("buscar_productos", { q: texto.data, limite: 6 });
+  const s = await sesion();
+  if (!s) return null;
+  const { data, error } = await s.supabase.rpc("buscar_productos", { q: texto.data, limite: 6 });
   if (error) {
     console.error("voz: no se pudo buscar productos", { codigo: error.code });
     return null;
@@ -124,9 +146,10 @@ export async function sugerirPrecios(clienteId: number | null, productos: number
   const ids = z.array(z.number().int().positive()).max(30).safeParse(productos);
   const cliente = z.number().int().positive().nullable().safeParse(clienteId);
   if (!ids.success || !cliente.success) return null;
-  const { supabase } = await exigirSesion();
+  const s = await sesion();
+  if (!s) return null;
   try {
-    return await preciosSugeridos(supabase, cliente.data, ids.data);
+    return await preciosSugeridos(s.supabase, cliente.data, ids.data);
   } catch (e) {
     console.error("voz: no se pudo sugerir el precio", { error: e instanceof Error ? e.message : "desconocido" });
     return null;
@@ -137,8 +160,9 @@ export async function sugerirPrecios(clienteId: number | null, productos: number
 export async function saldoDe(clienteId: number): Promise<number | null> {
   const id = z.number().int().positive().safeParse(clienteId);
   if (!id.success) return null;
-  const { supabase } = await exigirSesion();
-  const { data, error } = await supabase.from("v_saldo_clientes").select("saldo").eq("cliente_id", id.data).maybeSingle();
+  const s = await sesion();
+  if (!s) return null;
+  const { data, error } = await s.supabase.from("v_saldo_clientes").select("saldo").eq("cliente_id", id.data).maybeSingle();
   if (error) {
     console.error("voz: no se pudo leer el saldo", { clienteId: id.data, codigo: error.code });
     return null;

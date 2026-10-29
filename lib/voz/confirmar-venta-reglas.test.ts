@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { borradorDe, faltaDe, frasesFalta, fueCorregido, pedidoVenta, repartirDescuento, totalDe, type Borrador } from "./confirmar-venta-reglas";
+import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, pedidoVenta, repartirDescuento, totalDe, type Borrador } from "./confirmar-venta-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
 type Venta = Extract<Tarjeta, { tipo: "venta" }>;
@@ -58,6 +58,11 @@ describe("faltaDe y frasesFalta", () => {
   it("al crédito necesita cliente; al contado no", () => {
     expect(faltaDe(b({ cliente: null }))).toEqual(["cliente"]);
     expect(faltaDe(b({ cliente: null, condicion: "contado", medio: "efectivo" }))).toEqual([]);
+  });
+
+  it("un precio de 0 cuenta como que falta", () => {
+    const base = b({});
+    expect(faltaDe({ ...base, items: [{ ...base.items[0]!, precio: 0 }] })).toEqual(["precio"]);
   });
 
   it("sin precio, sin fruta o con cero cajas, falta", () => {
@@ -144,5 +149,30 @@ describe("pedidoVenta", () => {
     const t = venta({ condicion: null });
     expect(pedidoVenta(borradorDe(t), 1, false)).toBeNull();
     expect(pedidoVenta({ ...borradorDe(t), condicion: "contado", medio: "plin" }, 1, true)).toMatchObject({ condicion: "contado", medio_pago: "plin", corregido: true });
+  });
+});
+
+describe("leerPrecio", () => {
+  it("lee 45, 47.50, 47,5 y S/ 45", () => {
+    expect(leerPrecio("45")).toEqual({ ok: true, valor: 45 });
+    expect(leerPrecio("47.50")).toEqual({ ok: true, valor: 47.5 });
+    expect(leerPrecio("47,5")).toEqual({ ok: true, valor: 47.5 });
+    expect(leerPrecio(" S/ 45 ")).toEqual({ ok: true, valor: 45 });
+  });
+
+  it("vacío no es error: falta el precio", () => {
+    expect(leerPrecio("  ")).toEqual({ ok: false, error: null });
+  });
+
+  it("nunca adivina: negativo, tres decimales, separador de miles o texto se rechazan", () => {
+    expect(leerPrecio("-5")).toEqual({ ok: false, error: "El precio no puede ser negativo." });
+    expect(leerPrecio("1,299")).toEqual({ ok: false, error: "Escribe el precio así: 45 o 47.50." });
+    expect(leerPrecio("1,299.50")).toMatchObject({ ok: false });
+    expect(leerPrecio("45 soles")).toMatchObject({ ok: false });
+  });
+
+  it("cero o un monto absurdo se rechazan", () => {
+    expect(leerPrecio("0")).toEqual({ ok: false, error: "El precio tiene que ser más que cero." });
+    expect(leerPrecio("999999")).toMatchObject({ ok: false, error: expect.stringContaining("demasiado") });
   });
 });

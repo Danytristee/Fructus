@@ -33,20 +33,26 @@ type Props = {
   /** La base respondió que se guardó (la hoja muestra el sello y se cierra sola). */
   alGuardar: () => void;
   alDescartar: () => void;
+  /** Mientras guarda, la hoja no se cierra ni se descarta: la pantalla no puede decir «no guardé» de algo que se guardó. */
+  alCambiarGuardando: (guardando: boolean) => void;
 };
 
 const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra vez.";
+// Toda llamada lleva tope (CLAUDE.md, «La voz»). Sin él, con la red colgada, «Guardando…» no terminaba nunca (/chaos).
+const TOPE_CONFIRMAR_MS = 15_000;
+const SIN_RESPUESTA = "La señal no respondió y no sé si se guardó. Toca Confirmar otra vez: no se va a repetir.";
+const mismoNombre = (a: string, b: string) => a.localeCompare(b, "es", { sensitivity: "base" }) === 0;
 const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 
 // La tarjeta de una venta dictada (CLAUDE.md, «La voz»): lo que se entendió en grande, cada dato tocable para corregirlo,
 // ¿pagó o lo debe? si no se dijo, y un solo Confirmar. Guarda por la server action; el éxito se muestra cuando la base
 // respondió. Un segundo toque no duplica: el botón se bloquea y registrar_venta es idempotente por comando.
-export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar }: Props) {
+export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando }: Props) {
   const [borrador, setBorrador] = useState<Borrador>(() => borradorDe(tarjeta));
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const [saldo, setSaldo] = useState<number | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ mensaje: string; sinSesion: boolean } | null>(null);
   const [guardada, setGuardada] = useState<{ saldo: number | null } | null>(null);
   const enviando = useRef(false);
   const esperar = useEspera();
@@ -89,15 +95,24 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
     if (enviando.current || falta.length > 0) return;
     enviando.current = true;
     setGuardando(true);
+    alCambiarGuardando(true);
     setError(null);
-    const r = await esperar(
-      confirmarVenta({ comandoId, borrador, corregido: fueCorregido(tarjeta, borrador), latenciaMs }).catch(() => ({ ok: false as const, error: SIN_SENAL })),
-    );
+    let reloj = 0;
+    const tope = new Promise<{ ok: false; error: string }>((resolve) => {
+      reloj = window.setTimeout(() => resolve({ ok: false, error: SIN_RESPUESTA }), TOPE_CONFIRMAR_MS);
+    });
+    const guardado = confirmarVenta({ comandoId, borrador, corregido: fueCorregido(tarjeta, borrador), latenciaMs }).catch(() => ({
+      ok: false as const,
+      error: SIN_SENAL,
+    }));
+    const r = await esperar(Promise.race([guardado, tope]));
+    window.clearTimeout(reloj);
     setGuardando(false);
+    alCambiarGuardando(false);
     if (!r.ok) {
       // Se puede volver a tocar: si la primera sí llegó a la base, registrar_venta devuelve la misma venta.
       enviando.current = false;
-      setError(r.error);
+      setError({ mensaje: r.error, sinSesion: "sinSesion" in r && r.sinSesion === true });
       return;
     }
     setGuardada({ saldo: r.saldo });
@@ -188,7 +203,16 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           )
         }
         grande={cliente?.nombre ?? (tarjeta.cliente.dicho ? `¿${tarjeta.cliente.dicho}?` : "Sin cliente")}
-        chico={cliente ? undefined : tarjeta.cliente.dicho ? "Toca para elegir quién es" : "Cliente de paso"}
+        chico={
+          cliente
+            ? // Lo que dijo, para reconocer al cliente por su apodo: «Luis Paredes» puede no sonarle a «don Lucho» (/formidable).
+              tarjeta.cliente.dicho && !mismoNombre(tarjeta.cliente.dicho, cliente.nombre)
+              ? `dijiste «${tarjeta.cliente.dicho}»`
+              : undefined
+            : tarjeta.cliente.dicho
+              ? "Toca para elegir quién es"
+              : "Cliente de paso"
+        }
       />
       {borrador.items.map((item, n) => (
         <FilaTarjeta
@@ -215,6 +239,14 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         />
       ))}
 
+      {/* Las dudas del intérprete, junto a lo que se entendió: abajo quedaban tapadas por Confirmar (/formidable 2026-10-29). */}
+      {tarjeta.dudas.map((duda) => (
+        <p key={duda} className="mx-1 flex items-start gap-2 text-texto-suave">
+          <Info aria-hidden className="mt-1 size-[18px] shrink-0" />
+          {duda}
+        </p>
+      ))}
+
       <div className="mx-1 mt-1 mb-1 flex animate-pieza items-baseline justify-between gap-3" style={pieza(borrador.items.length + 1)}>
         <span className="text-lg font-bold text-texto-suave">{borrador.descuento > 0 ? `Total, con ${formatearSoles(borrador.descuento)} de rebaja` : "Total"}</span>
         {total === null ? (
@@ -228,7 +260,6 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         <PagoODebe
           condicion={borrador.condicion}
           medio={borrador.medio}
-          falta={falta.includes("condicion")}
           alCambiar={(condicion, medio) => setBorrador((b) => ({ ...b, condicion, medio }))}
         />
       </div>
@@ -239,13 +270,6 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         </div>
       )}
 
-      {tarjeta.dudas.map((duda) => (
-        <p key={duda} className="mx-1 flex items-start gap-2 text-texto-suave">
-          <Info aria-hidden className="mt-1 size-[18px] shrink-0" />
-          {duda}
-        </p>
-      ))}
-
       {/* Pegado abajo de la hoja: con «Pagó», los medios y la deuda, a 360 px Confirmar se iba debajo del borde (regla 1). */}
       <div
         className="sticky bottom-0 z-10 -mx-4 mt-1 -mb-[calc(16px+env(safe-area-inset-bottom))] grid animate-pieza gap-1 bg-fondo px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-12px_16px_-12px_rgb(var(--sombra-color)/0.25)] md:static md:m-0 md:p-0 md:shadow-none"
@@ -253,14 +277,19 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       >
         {(aviso || error) && (
           <p role={error ? "alert" : undefined} className="mx-1 mb-1 font-bold text-deuda">
-            {error ?? aviso}
+            {error?.mensaje ?? aviso}
           </p>
+        )}
+        {error?.sinSesion && (
+          <Boton variante="secundario" onClick={() => router.push("/login")}>
+            Entrar otra vez
+          </Boton>
         )}
         {/* Mientras falte algo se ve apagado y la línea de arriba dice qué falta: el color no es la única señal. */}
         <Boton onClick={() => void confirmar()} cargando={guardando} disabled={falta.length > 0} className={falta.length > 0 ? "disabled:opacity-45" : undefined}>
           Confirmar venta
         </Boton>
-        <Boton variante="texto" onClick={alDescartar}>
+        <Boton variante="texto" onClick={alDescartar} disabled={guardando}>
           Descartar
         </Boton>
       </div>

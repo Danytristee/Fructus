@@ -166,3 +166,87 @@ test("el cliente dudoso se elige de una lista, y descartar se puede deshacer", a
   await expect.poll(async () => (await comando(comandoId)).resultado).toBe("descartado");
   expect(await ventasDe(comandoId)).toHaveLength(0);
 });
+
+// --- Regresiones de /formidable y /chaos (2026-10-29) ------------------------------------------------------------------
+
+const esAccion = (r: { method(): string; headers(): Record<string, string> }) => r.method() === "POST" && "next-action" in r.headers();
+
+test("se ve lo que dijiste debajo del cliente, y la pregunta de pago va escrita con dos botones", async ({ page }) => {
+  test.slow();
+  const hoja = await dictarVenta(page, await crearComando(), tarjeta(null, { cliente: { dicho: "don lucho", elegido: { id: 1, nombre: "Luis Paredes" }, opciones: [] } }));
+  await expect(hoja.getByText("dijiste «don lucho»")).toBeVisible();
+  const pregunta = hoja.getByRole("group", { name: "¿Pagó o lo debe?" });
+  await expect(pregunta.getByText("¿Pagó o lo debe?")).toBeVisible();
+  await expect(pregunta.getByRole("button")).toHaveCount(2);
+  // Con «Pagó», la deuda vieja es una línea, no una tarjeta con barra.
+  await pregunta.getByRole("button", { name: "Pagó" }).click();
+  await expect(hoja.getByText("De antes, Luis Paredes te debe")).toBeVisible();
+  await expect(hoja.getByText("Hoy no suma")).toHaveCount(0);
+});
+
+test("un precio que no es precio se rechaza con una frase, sin adivinar ni guardar", async ({ page }) => {
+  test.slow();
+  const hoja = await dictarVenta(page, await crearComando(), tarjeta(null, { condicion: "contado", medio: "efectivo", falta: [] }));
+  await hoja.getByRole("button", { name: /10 cajas de Mango Kent/ }).click();
+  const precio = hoja.getByLabel("Precio de la caja");
+  for (const [texto, frase] of [
+    ["-5", "El precio no puede ser negativo."],
+    ["1,299", "Escribe el precio así: 45 o 47.50."],
+    ["0", "El precio tiene que ser más que cero."],
+    ["9999999", "demasiado"],
+  ] as const) {
+    await precio.fill(texto);
+    await expect(hoja.getByRole("alert")).toContainText(frase);
+    await expect(hoja.getByRole("button", { name: "Listo" })).toBeDisabled();
+  }
+  await precio.fill("47,5");
+  await expect(hoja.getByRole("alert")).toHaveCount(0);
+  await expect(hoja.getByText("S/ 475.00")).toBeVisible();
+});
+
+test("mientras guarda no se puede descartar, y si la red se cuelga a los 15 s dice qué hacer sin duplicar", async ({ page }) => {
+  test.setTimeout(90_000);
+  const comandoId = await crearComando();
+  const hoja = await dictarVenta(page, comandoId, tarjeta(null, { condicion: "contado", medio: "efectivo", falta: [] }));
+  let soltar: () => void = () => {};
+  const colgada = new Promise<void>((r) => (soltar = r));
+  await page.route("**/*", async (r) => (esAccion(r.request()) ? (await colgada, r.fallback()) : r.fallback()));
+  await hoja.getByRole("button", { name: "Confirmar venta" }).click();
+  await expect(hoja.getByRole("button", { name: "Descartar" })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(hoja).toBeVisible();
+  await expect(hoja.getByText("La señal no respondió y no sé si se guardó.")).toBeVisible({ timeout: 20_000 });
+  // La red vuelve: el pedido colgado llega, y el segundo toque devuelve la misma venta.
+  soltar();
+  await page.unroute("**/*");
+  await hoja.getByRole("button", { name: "Confirmar venta" }).click();
+  await expect(page.getByText("Venta guardada")).toBeVisible({ timeout: 15_000 });
+  await expect.poll(async () => (await ventasDe(comandoId)).length).toBe(1);
+});
+
+test("con la sesión vencida lo dice y ofrece entrar; al volver, la venta espera y se confirma", async ({ page, context }) => {
+  test.slow();
+  const comandoId = await crearComando();
+  const hoja = await dictarVenta(page, comandoId, tarjeta(null, { condicion: "contado", medio: "efectivo", falta: [] }));
+  await context.clearCookies();
+  await hoja.getByRole("button", { name: "Confirmar venta" }).click();
+  await expect(hoja.getByText("Tu sesión terminó. Vuelve a entrar: la venta te espera en «Hoy».")).toBeVisible();
+  await expect(hoja.getByRole("button", { name: "Entrar otra vez" })).toBeVisible();
+  expect(await ventasDe(comandoId)).toHaveLength(0);
+
+  await entrarComo(page, "duenio");
+  await page.getByRole("button", { name: "Verla" }).click();
+  await page.getByRole("dialog", { name: "¿Así fue la venta?" }).getByRole("button", { name: "Confirmar venta" }).click();
+  await expect(page.getByText("Venta guardada")).toBeVisible({ timeout: 15_000 });
+  expect(await ventasDe(comandoId)).toHaveLength(1);
+});
+
+test("recargar con la tarjeta abierta no pierde lo dictado", async ({ page }) => {
+  test.slow();
+  const comandoId = await crearComando();
+  await dictarVenta(page, comandoId, tarjeta(null, { condicion: "contado", medio: "efectivo", falta: [] }));
+  await page.reload();
+  await expect(page.getByText("Tienes una venta sin confirmar.")).toBeVisible();
+  await page.getByRole("button", { name: "Verla" }).click();
+  await expect(page.getByRole("dialog", { name: "¿Así fue la venta?" }).getByText("10 cajas de Mango Kent")).toBeVisible();
+});

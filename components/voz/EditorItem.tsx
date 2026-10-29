@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
+import { cn } from "cn";
 
 import { buscarProductos, sugerirPrecios } from "@/app/(app)/acciones-voz";
 import { Boton } from "@/components/ui/Boton";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Insignia } from "@/components/ui/Insignia";
 import { formatearSoles } from "@/lib/formato";
-import type { ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
+import { leerPrecio, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { FilaTarjeta } from "./FilaTarjeta";
 
@@ -20,16 +21,14 @@ type Props = {
   alListo: (item: ItemBorrador) => void;
 };
 
-const comoNumero = (texto: string) => {
-  const n = Number(texto.replace(",", ".").replace(/[^\d.]/g, ""));
-  return texto.trim() === "" || !Number.isFinite(n) ? null : n;
-};
-
 // Corregir una fruta de la venta: cuál es, cuántas cajas y a cuánto. El número se escribe con el teclado de números.
 export function EditorItem({ item, opciones, clienteId, alListo }: Props) {
   const [borrador, setBorrador] = useState(item);
   const [eligiendo, setEligiendo] = useState(item.productoId === null);
   const [precioTexto, setPrecioTexto] = useState(item.precio === null ? "" : String(item.precio));
+  // Lo escrito que no es un precio: se dice cómo escribirlo y «Listo» espera (nunca se adivina el número).
+  const lectura = leerPrecio(precioTexto);
+  const errorPrecio = lectura.ok ? null : lectura.error;
 
   async function elegirFruta(o: { id: number; nombre: string }) {
     setEligiendo(false);
@@ -94,28 +93,41 @@ export function EditorItem({ item, opciones, clienteId, alListo }: Props) {
           Precio de la caja
           {borrador.sugerido && <Insignia tipo="sugerido">sugerido</Insignia>}
         </label>
-        <div className="flex min-h-14 items-center gap-2 rounded-control border-2 border-borde/50 bg-superficie px-4 focus-within:border-acento">
+        <div
+          className={cn(
+            "flex min-h-14 items-center gap-2 rounded-control border-2 bg-superficie px-4 focus-within:border-acento",
+            errorPrecio ? "border-deuda" : "border-borde/50",
+          )}
+        >
           <span className="text-lg font-bold text-texto-suave">S/</span>
           <input
             id="precio-caja"
             inputMode="decimal"
             autoComplete="off"
             value={precioTexto}
+            aria-invalid={errorPrecio ? true : undefined}
+            aria-describedby={errorPrecio ? "precio-error" : undefined}
             onChange={(e) => {
+              const leido = leerPrecio(e.target.value);
               setPrecioTexto(e.target.value);
-              setBorrador((b) => ({ ...b, precio: comoNumero(e.target.value), sugerido: false }));
+              setBorrador((b) => ({ ...b, precio: leido.ok ? leido.valor : null, sugerido: false }));
             }}
             className="cifra min-h-12 w-full bg-transparent text-2xl font-extrabold outline-none"
           />
         </div>
-        {borrador.precio !== null && (
+        {errorPrecio && (
+          <p id="precio-error" role="alert" className="font-bold text-deuda">
+            {errorPrecio}
+          </p>
+        )}
+        {borrador.precio !== null && !errorPrecio && (
           <p className="text-texto-suave">
             {cajas} × {formatearSoles(borrador.precio)} = <strong className="cifra text-texto">{formatearSoles(cajas * borrador.precio)}</strong>
           </p>
         )}
       </div>
 
-      <Boton onClick={() => alListo(borrador)} disabled={borrador.productoId === null}>
+      <Boton onClick={() => alListo(borrador)} disabled={borrador.productoId === null || errorPrecio !== null}>
         Listo
       </Boton>
     </div>

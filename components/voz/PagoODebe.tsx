@@ -11,8 +11,6 @@ type Props = {
   condicion: Condicion | null;
   medio: Medio | null;
   alCambiar: (condicion: Condicion, medio: Medio | null) => void;
-  /** Falta elegir: se marca con un borde y el texto de arriba lo dice. */
-  falta?: boolean;
 };
 
 const MEDIOS: { valor: Medio; etiqueta: string }[] = [
@@ -22,21 +20,46 @@ const MEDIOS: { valor: Medio; etiqueta: string }[] = [
   { valor: "transferencia", etiqueta: "Transf." },
 ];
 
-// ¿Pagó o lo debe? Dos botones y una píldora que se desliza al elegido (ADR-0007). Nunca se asume contado: si no se dijo,
-// la píldora no está y la tarjeta lo pide. Si pagó, se ve con qué (efectivo a la vista, y se cambia de un toque).
-export function PagoODebe({ condicion, medio, alCambiar, falta = false }: Props) {
+// ¿Pagó o lo debe? Nunca se asume contado: si no se dijo, la pregunta va escrita y son dos botones separados, cada uno con
+// su color y su icono (en un solo óvalo parecía un campo: /formidable 2026-10-29). Elegido, es una píldora que se desliza
+// (ADR-0007), y si pagó se ve con qué: efectivo a la vista, y se cambia de un toque.
+export function PagoODebe({ condicion, medio, alCambiar }: Props) {
   const elegir = (c: Condicion) => {
     navigator.vibrate?.(10);
     alCambiar(c, c === "contado" ? (medio ?? "efectivo") : null);
   };
+  if (condicion === null) {
+    return (
+      <div role="group" aria-labelledby="pago-pregunta" className="grid gap-2">
+        <p id="pago-pregunta" className="mx-1 text-lg font-extrabold">
+          ¿Pagó o lo debe?
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {(["contado", "credito"] as const).map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => elegir(c)}
+              className={cn(
+                "flex min-h-[58px] items-center justify-center gap-2 rounded-full border-2 bg-superficie text-[19px] font-extrabold transition-transform duration-150 active:scale-[0.97]",
+                c === "contado" ? "border-exito text-exito" : "border-deuda text-deuda",
+              )}
+            >
+              {c === "contado" ? <Check aria-hidden className="size-[22px]" /> : <Clock aria-hidden className="size-[22px]" />}
+              {c === "contado" ? "Pagó" : "Lo debe"}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="grid gap-2">
-      <div role="group" aria-label="¿Pagó o lo debe?" className={cn("relative grid grid-cols-2 rounded-full bg-superficie p-[5px]", falta && "ring-2 ring-deuda")}>
+      <div role="group" aria-label="¿Pagó o lo debe?" className="relative grid grid-cols-2 rounded-full bg-superficie p-[5px]">
         <span
           aria-hidden
           className={cn(
-            "absolute inset-y-[5px] left-[5px] w-[calc(50%-5px)] rounded-full shadow-[0_6px_16px_rgb(0_0_0/0.18)] transition-[translate,background-color,opacity] duration-[420ms] ease-resorte",
-            condicion === null && "opacity-0",
+            "absolute inset-y-[5px] left-[5px] w-[calc(50%-5px)] animate-saltar rounded-full shadow-[0_6px_16px_rgb(0_0_0/0.18)] transition-[translate,background-color] duration-[420ms] ease-resorte [animation-delay:0ms]",
             condicion === "contado" ? "bg-exito" : "translate-x-full bg-deuda",
           )}
         />

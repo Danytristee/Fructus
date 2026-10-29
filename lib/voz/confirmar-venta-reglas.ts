@@ -28,6 +28,27 @@ export type Falta = "cliente" | "producto" | "cantidad" | "precio" | "condicion"
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
+/** Una caja de fruta cuesta decenas o cientos de soles: más que esto es un dedo que se fue (/chaos 2026-10-29). */
+export const PRECIO_MAXIMO = 10_000;
+
+export type LecturaPrecio = { ok: true; valor: number } | { ok: false; error: string | null };
+
+/**
+ * Lo que se escribió en «Precio de la caja». Acepta «45», «47.50», «47,5» y «S/ 45». Nunca adivina: un negativo, más de dos
+ * decimales («1,299» ¿es 1.299 o 1299?), cero o un monto absurdo se rechazan con una frase que dice cómo escribirlo. Vacío
+ * no es error: falta el precio. (La base también rechaza más de dos decimales: 20261029130000_montos_en_centimos.)
+ */
+export function leerPrecio(texto: string): LecturaPrecio {
+  const limpio = texto.replace(/s\/|\s/gi, "");
+  if (limpio === "") return { ok: false, error: null };
+  if (limpio.includes("-")) return { ok: false, error: "El precio no puede ser negativo." };
+  if (!/^\d{1,9}([.,]\d{1,2})?$/.test(limpio)) return { ok: false, error: "Escribe el precio así: 45 o 47.50." };
+  const valor = Number(limpio.replace(",", "."));
+  if (valor <= 0) return { ok: false, error: "El precio tiene que ser más que cero." };
+  if (valor > PRECIO_MAXIMO) return { ok: false, error: `Revisa el precio: ${valor.toLocaleString("es-PE")} soles por caja es demasiado.` };
+  return { ok: true, valor };
+}
+
 export function borradorDe(t: Venta): Borrador {
   return {
     cliente: t.cliente.elegido,
@@ -57,7 +78,8 @@ export function faltaDe(b: Borrador): Falta[] {
   if (b.condicion === "credito" && !b.cliente) falta.push("cliente");
   if (b.items.length === 0 || b.items.some((it) => it.productoId === null)) falta.push("producto");
   if (b.items.some((it) => !(it.cantidad > 0))) falta.push("cantidad");
-  if (b.items.some((it) => it.precio === null || !(it.precio >= 0))) falta.push("precio");
+  // Precio 0 cuenta como que falta: una venta de S/ 0.00 es casi siempre un precio sin poner (/chaos 2026-10-29).
+  if (b.items.some((it) => it.precio === null || !(it.precio > 0) || it.precio > PRECIO_MAXIMO)) falta.push("precio");
   if (b.condicion === null) falta.push("condicion");
   return falta;
 }

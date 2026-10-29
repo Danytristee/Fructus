@@ -21,7 +21,12 @@ export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
   const esVenta = tarjeta.tipo === "venta";
   // El comando que ya se guardó: si la persona cierra la hoja durante el sello, no es un descarte.
   const guardado = useRef<number | null>(null);
-  const cerrar = () => alCerrar(guardado.current === resultado.comandoId ? "guardada" : "descartada");
+  // Mientras guarda no se cierra: deslizar o tocar el velo no puede descartar una venta que está entrando (/chaos).
+  const guardando = useRef(false);
+  const cerrar = () => {
+    if (guardando.current) return;
+    alCerrar(guardado.current === resultado.comandoId ? "guardada" : "descartada");
+  };
   return (
     <Hoja
       abierta={abierta}
@@ -41,6 +46,7 @@ export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
             window.setTimeout(cerrar, 1700); // lo que dura el sello
           }}
           alDescartar={cerrar}
+          alCambiarGuardando={(g) => (guardando.current = g)}
         />
       ) : (
         <div className="grid gap-4">
