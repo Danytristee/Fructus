@@ -3,7 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ChevronRight, ClipboardCheck, LogOut, Settings } from "lucide-react";
+import { ChevronRight, ClipboardCheck, LogOut, Menu, Settings } from "lucide-react";
 
 import { salir } from "@/app/login/acciones";
 
@@ -37,9 +37,10 @@ export function MenuMas({ nombre, rol, verCierre, verAjustes }: Props) {
           setAbierto(true);
         }}
         aria-label="Menú: cierre del día, ajustes y salir"
-        className="vidrio grid size-[52px] shrink-0 place-items-center rounded-full transition-transform duration-200 ease-salida active:scale-90 active:-rotate-12"
+        className="vidrio grid size-[52px] shrink-0 place-items-center rounded-full transition-transform duration-200 ease-salida active:scale-90"
       >
-        <Settings aria-hidden className="size-6" />
+        {/* Tres líneas, no una tuerca: la tuerca se lee «configuración» y escondía el cierre del día (/formidable 2026-10-28). */}
+        <Menu aria-hidden className="size-6" />
       </button>
       {usado && (
         <Hoja abierta={abierto} alCambiar={setAbierto} titulo="Más">
