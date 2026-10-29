@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { camposPrudentes, diferencias, inventos, palabras, percentil } from "./precision-reglas";
+import { camposPrudentes, diferencias, errorPorPalabras, inventos, palabras, percentil } from "./precision-reglas";
+
+describe("errorPorPalabras", () => {
+  it("es 0 si dice lo mismo, sin importar tildes ni signos", () => {
+    expect(errorPorPalabras("Vendí 10 cajas de piña", "vendi 10 cajas de pina.")).toBe(0);
+  });
+  it("cuenta cambios, faltas y sobras sobre lo dicho", () => {
+    expect(errorPorPalabras("diez cajas de manzana royal", "diez cajas de manzana roja")).toBeCloseTo(0.2);
+    expect(errorPorPalabras("a don lucho", "a lucho")).toBeCloseTo(1 / 3);
+  });
+});
 
 describe("palabras", () => {
   it("normaliza tildes, mayúsculas y artículos", () => {

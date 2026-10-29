@@ -68,6 +68,32 @@ export function camposPrudentes(esperado: unknown): number {
   return 0;
 }
 
+// Para el error de transcripción se cuentan todas las palabras, artículos incluidos: se mide el texto, no el sentido.
+const todasLasPalabras = (texto: string) =>
+  texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+/** Error por palabras (WER): cuántas palabras hay que cambiar, quitar o poner para ir de lo dicho a lo transcrito, sobre lo dicho. */
+export function errorPorPalabras(dicho: string, transcrito: string): number {
+  const a = todasLasPalabras(dicho);
+  const b = todasLasPalabras(transcrito);
+  if (a.length === 0) return b.length === 0 ? 0 : 1;
+  let previa = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const fila = [i];
+    for (let j = 1; j <= b.length; j++) {
+      fila[j] = Math.min(previa[j]! + 1, fila[j - 1]! + 1, previa[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    previa = fila;
+  }
+  return previa[b.length]! / a.length;
+}
+
 /** El percentil p (0–100) de una lista de milisegundos. */
 export function percentil(valores: number[], p: number): number {
   if (valores.length === 0) return 0;

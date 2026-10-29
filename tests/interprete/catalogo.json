@@ -1,0 +1,206 @@
+{
+  "descripcion": "Catálogo del puesto para las pruebas de voz: los productos de scripts/demo/catalogo-proyeccion.sql (Excel del dueño) y los clientes y proveedores que hoy tiene el proyecto. Se actualiza cuando cambie el catálogo real.",
+  "productos": [
+    {
+      "nombre": "Manzana",
+      "variedad": "Royal"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Roja"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Verde"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Crispin"
+    },
+    {
+      "nombre": "Pera",
+      "variedad": "Gaucho"
+    },
+    {
+      "nombre": "Pera",
+      "variedad": "Zaledias"
+    },
+    {
+      "nombre": "Pera",
+      "variedad": "chilena"
+    },
+    {
+      "nombre": "Ciruela",
+      "variedad": "nacional"
+    },
+    {
+      "nombre": "Ciruela",
+      "variedad": "chilena"
+    },
+    {
+      "nombre": "Kiwi",
+      "variedad": "importado"
+    },
+    {
+      "nombre": "Kiwi",
+      "variedad": "AAA"
+    },
+    {
+      "nombre": "Kiwi",
+      "variedad": "Cope"
+    },
+    {
+      "nombre": "Naranja",
+      "variedad": null
+    },
+    {
+      "nombre": "Tangelo",
+      "variedad": null
+    },
+    {
+      "nombre": "Lima",
+      "variedad": null
+    },
+    {
+      "nombre": "Uva",
+      "variedad": "Bolón"
+    },
+    {
+      "nombre": "Uva",
+      "variedad": "chilena"
+    },
+    {
+      "nombre": "Uva",
+      "variedad": "Ica"
+    },
+    {
+      "nombre": "Piña",
+      "variedad": "C8"
+    },
+    {
+      "nombre": "Piña",
+      "variedad": "C10"
+    },
+    {
+      "nombre": "Piña",
+      "variedad": "golden"
+    },
+    {
+      "nombre": "Plátano",
+      "variedad": "biscocho"
+    },
+    {
+      "nombre": "Chirimoya",
+      "variedad": "selección"
+    },
+    {
+      "nombre": "Granadilla",
+      "variedad": "selección"
+    },
+    {
+      "nombre": "Níspero",
+      "variedad": "HBS"
+    },
+    {
+      "nombre": "Níspero",
+      "variedad": "ASV"
+    },
+    {
+      "nombre": "Tuna",
+      "variedad": "selección"
+    },
+    {
+      "nombre": "Mango",
+      "variedad": "Kent"
+    },
+    {
+      "nombre": "Kaki",
+      "variedad": null
+    },
+    {
+      "nombre": "Arándano",
+      "variedad": null
+    },
+    {
+      "nombre": "Sandía",
+      "variedad": null
+    },
+    {
+      "nombre": "Papaya",
+      "variedad": null
+    },
+    {
+      "nombre": "Aguaymanto",
+      "variedad": null
+    },
+    {
+      "nombre": "Cocona",
+      "variedad": null
+    },
+    {
+      "nombre": "Carambola",
+      "variedad": null
+    }
+  ],
+  "clientes": [
+    {
+      "nombre": "Luis Paredes",
+      "alias": [
+        "don lucho",
+        "lucho"
+      ]
+    },
+    {
+      "nombre": "Rosa Quispe",
+      "alias": [
+        "la señora rosa",
+        "puesto 12"
+      ]
+    },
+    {
+      "nombre": "Juguería El Paraíso",
+      "alias": [
+        "el paraíso",
+        "juguería",
+        "paraíso"
+      ]
+    },
+    {
+      "nombre": "Bodega Santa Ana",
+      "alias": [
+        "santa ana",
+        "la bodega"
+      ]
+    },
+    {
+      "nombre": "Carlos Mendoza",
+      "alias": [
+        "el flaco",
+        "flaco carlos"
+      ]
+    },
+    {
+      "nombre": "Restaurante Mochica",
+      "alias": [
+        "el mochica",
+        "mochica"
+      ]
+    }
+  ],
+  "proveedores": [
+    {
+      "nombre": "Transportes Piura Norte",
+      "alias": [
+        "el de piura",
+        "piura"
+      ]
+    },
+    {
+      "nombre": "Agrícola Chao",
+      "alias": [
+        "el de chao",
+        "chao"
+      ]
+    }
+  ]
+}
