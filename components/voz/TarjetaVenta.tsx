@@ -188,7 +188,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   }
 
   const { cliente } = borrador;
-  const aviso = frasesFalta(falta);
+  // «Pagó / Lo debe» ya lleva su pregunta escrita encima: el pie no la repite (/formidable 2026-10-29).
+  const aviso = frasesFalta(falta.filter((f) => f !== "condicion"));
   return (
     <div className="grid gap-2">
       <FilaTarjeta
@@ -273,9 +274,10 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         </div>
       )}
 
-      {/* Pegado abajo de la hoja: con «Pagó», los medios y la deuda, a 360 px Confirmar se iba debajo del borde (regla 1). */}
+      {/* Pegado abajo de la hoja: con «Pagó», los medios y la deuda, a 360 px Confirmar se iba debajo del borde (regla 1).
+          El borde inferior negativo iguala al margen: sin scroll no sube, y no tapa lo de arriba. */}
       <div
-        className="sticky bottom-0 z-10 -mx-4 mt-1 -mb-[calc(16px+env(safe-area-inset-bottom))] grid animate-pieza gap-1 bg-fondo px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-12px_16px_-12px_rgb(var(--sombra-color)/0.25)] md:static md:m-0 md:p-0 md:shadow-none"
+        className="sticky -bottom-[calc(16px+env(safe-area-inset-bottom))] z-10 -mx-4 mt-1 -mb-[calc(16px+env(safe-area-inset-bottom))] grid animate-pieza gap-1 bg-fondo px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-12px_16px_-12px_rgb(var(--sombra-color)/0.25)] md:static md:m-0 md:p-0 md:shadow-none"
         style={pieza(borrador.items.length + 3)}
       >
         {(aviso || error) && (
@@ -288,9 +290,16 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
             Entrar otra vez
           </Boton>
         )}
-        {/* Mientras falte algo se ve apagado y la línea de arriba dice qué falta: el color no es la única señal. */}
-        <Boton onClick={() => void confirmar()} cargando={guardando} disabled={falta.length > 0} className={falta.length > 0 ? "disabled:opacity-45" : undefined}>
-          Confirmar venta
+        <Boton
+          onClick={() => void confirmar()}
+          cargando={guardando}
+          disabled={falta.length > 0}
+          // Mientras falta algo, la variante secundaria: texto oscuro que se lee al sol (blanco sobre un botón apagado no).
+          variante={falta.length > 0 ? "secundario" : "principal"}
+          className={falta.length > 0 ? "min-h-[68px] w-full text-[22px]" : undefined}
+        >
+          {/* Si solo falta eso, el botón mismo dice qué hacer: la pregunta está justo arriba (2.ª prueba ciega, /formidable). */}
+          {falta.length === 1 && falta[0] === "condicion" ? "Primero: ¿pagó o lo debe?" : "Confirmar venta"}
         </Boton>
         <Boton variante="texto" onClick={() => alDescartar(incierto.current)} disabled={guardando}>
           Descartar
