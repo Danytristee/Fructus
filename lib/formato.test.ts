@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatearCajas, formatearFecha, formatearHora, formatearSoles } from "./formato";
+import { diaDeLima, formatearCajas, formatearFecha, formatearHace, formatearHora, formatearSoles } from "./formato";
 
 describe("formatearSoles", () => {
   it("escribe soles con separador de miles y dos decimales", () => {
@@ -36,5 +36,17 @@ describe("formatearHora", () => {
     expect(formatearHora(12)).toBe("12 m.");
     expect(formatearHora(15)).toBe("3 p. m.");
     expect(formatearHora(0)).toBe("12 a. m.");
+  });
+});
+
+describe("formatearHace y diaDeLima", () => {
+  const ahora = new Date("2026-10-28T15:00:00Z"); // 10 a. m. en Lima
+  it("cuenta días de Lima, no horas", () => {
+    expect(formatearHace(new Date("2026-10-28T13:00:00Z"), ahora)).toBe("hoy");
+    expect(formatearHace(new Date("2026-10-28T04:00:00Z"), ahora)).toBe("ayer"); // 11 p. m. del 27 en Lima
+    expect(formatearHace(new Date("2026-10-25T15:00:00Z"), ahora)).toBe("hace 3 días");
+  });
+  it("agrupa por el día de Lima", () => {
+    expect(diaDeLima(new Date("2026-10-29T03:00:00Z"))).toBe("2026-10-28");
   });
 });
