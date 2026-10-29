@@ -18,8 +18,12 @@ el contador las crea quien administra. Hacía falta una forma de entregar el acc
   - crea la cuenta con `auth.admin.generateLink({ type: "invite" })`, o pide un enlace `recovery` si la cuenta ya existía;
   - guarda su `perfil` con el rol;
   - **imprime un enlace de un solo uso**, que vence en 1 hora y se envía por WhatsApp.
-- El enlace lleva a `/auth/confirmar`, que canjea el `token_hash` por una sesión con `verifyOtp`. Luego lleva a `/login/clave`, donde
-  la persona elige su clave (8 caracteres como mínimo).
+- El enlace lleva a `/auth/confirmar`, que **muestra un botón «Elegir mi clave» y no canjea nada al abrirse**. El `token_hash` se
+  canjea por una sesión (`verifyOtp`) recién cuando la persona toca el botón. Luego va a `/login/clave`, donde elige su clave
+  (8 caracteres como mínimo).
+  - *Corrección del 2026-10-28:* al principio el canje se hacía al abrir el enlace. La vista previa de WhatsApp abre los enlaces
+    sola para armar la miniatura, así que gastaba el enlace antes que la persona: Nicole lo abrió 36 s después y ya estaba usado
+    (registros de Auth, `/auth/v1/verify` 200 y luego 403). Una vista previa solo lee la página; no toca botones.
 - **Un enlace vencido, usado o inventado** lleva a `/login?enlace=vencido`, con el aviso «Ese enlace ya no sirve».
 - El mismo comando sirve para **reenviar el acceso** a quien olvidó su clave.
 - «Salir» cierra la sesión **solo en ese dispositivo** (`signOut({ scope: "local" })`): si el dueño sale en la computadora, sigue con

@@ -20,8 +20,15 @@ test("una persona invitada abre su enlace, elige su clave y entra con su rol", a
   const correo = `invitada-${Date.now()}-${info.project.name}@puesto.test`;
   const enlace = invitar(correo, "Rosa del puesto", "ayudante");
 
+  // Una vista previa (WhatsApp) abre el enlace antes que la persona: eso no lo puede gastar.
+  const vistaPrevia = await page.request.get(enlace, { maxRedirects: 0 });
+  expect(vistaPrevia.status()).toBe(200);
+
   await page.goto(enlace);
-  await expect(page).toHaveURL("/login/clave");
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("heading", { name: "Ya casi entras a Fructus" })).toBeVisible();
+  await page.getByRole("button", { name: "Elegir mi clave" }).click();
+  await expect(page).toHaveURL("/login/clave", { timeout: 15_000 });
   await page.waitForLoadState("networkidle");
 
   // Una clave corta se rechaza con su razón.
@@ -47,15 +54,20 @@ test("una persona invitada abre su enlace, elige su clave y entra con su rol", a
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page).toHaveURL("/", { timeout: 15_000 });
 
-  // El enlace sirve una sola vez.
+  // El enlace sirve una sola vez: abrirlo de nuevo muestra el botón, pero tocarlo ya no entra.
   await page.context().clearCookies();
   await page.goto(enlace);
-  await expect(page).toHaveURL("/login?enlace=vencido");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Elegir mi clave" }).click();
+  await expect(page).toHaveURL("/login?enlace=vencido", { timeout: 15_000 });
   await expect(page.getByText("Ese enlace ya no sirve")).toBeVisible();
 });
 
 test("un enlace inventado no abre nada", async ({ page }) => {
   await page.goto("/auth/confirmar?token_hash=inventado&type=invite");
+  await page.getByRole("button", { name: "Elegir mi clave" }).click();
+  await expect(page).toHaveURL("/login?enlace=vencido", { timeout: 15_000 });
+  await page.goto("/auth/confirmar");
   await expect(page).toHaveURL("/login?enlace=vencido");
   await page.goto("/login/clave");
   await expect(page).toHaveURL("/login?enlace=vencido");
