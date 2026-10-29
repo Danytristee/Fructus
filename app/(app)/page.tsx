@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { Encabezado } from "@/components/marco/Encabezado";
+import { AvisoInventario } from "@/components/hoy/AvisoInventario";
 import { EsqueletoResumen, EsqueletoUltimas } from "@/components/hoy/EsqueletoResumen";
 import { ResumenDia } from "@/components/hoy/ResumenDia";
 import { UltimasOperaciones } from "@/components/hoy/UltimasOperaciones";
@@ -17,6 +18,10 @@ export default async function Hoy() {
       <Encabezado titulo="Hoy" subtitulo={formatearFecha(new Date())} />
       <Suspense fallback={<EsqueletoResumen />}>
         <ResumenDia />
+      </Suspense>
+      {/* Sin esqueleto: si no hay alertas no ocupa lugar, y si las hay aparece con su animación. */}
+      <Suspense fallback={null}>
+        <AvisoInventario />
       </Suspense>
       <Suspense fallback={<EsqueletoUltimas />}>
         <UltimasOperaciones />

@@ -80,8 +80,9 @@ begin
   end loop;
 
   -- Hoy, temprano: la fruta de Chao.
+  -- Una compra de este tamaño se paga por transferencia: en efectivo dejaría la caja del día en negativo.
   v_id := registrar_compra(jsonb_build_object('proveedor_id', (select id from proveedores where nombre = 'Agrícola Chao'),
-    'condicion', 'contado', 'medio_pago', 'efectivo', 'items', pg_temp.items('[
+    'condicion', 'contado', 'medio_pago', 'transferencia', 'items', pg_temp.items('[
       ["Manzana", "Crispin", 30, 124.56], ["Uva", "Bolón", 25, 129.75], ["Piña", "golden", 40, 41.52], ["Mango", "Kent", 20, 98.61],
       ["Plátano", "biscocho", 60, 20.76], ["Granadilla", "selección", 20, 51.90], ["Pera", "chilena", 20, 117.30]]', 'costo_unitario')));
   perform pg_temp.mover('compras', v_id, v_desde);

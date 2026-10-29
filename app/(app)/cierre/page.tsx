@@ -1,14 +1,48 @@
 import type { Metadata } from "next";
-import { ClipboardCheck } from "lucide-react";
+import { Suspense } from "react";
 
+import { PanelCierre } from "@/components/cierre/PanelCierre";
 import { Encabezado } from "@/components/marco/Encabezado";
 import { Aviso } from "@/components/ui/Aviso";
-import { Vacio } from "@/components/ui/Vacio";
+import { BotonReintentar } from "@/components/ui/BotonReintentar";
+import { Esqueleto } from "@/components/ui/Esqueleto";
+import { calcularCierre, type Medio } from "@/lib/cierre-reglas";
+import { formatearFecha } from "@/lib/formato";
+import { inicioDelDiaLima } from "@/lib/hoy-reglas";
 import { exigirSesion } from "@/lib/sesion";
 
 export const metadata: Metadata = { title: "Cierre del día · Fructus" };
 
-// Marco de A2: la pantalla de verdad llega en A10.
+// Lee lo que entró y salió hoy y lo pasa por lib/cierre-reglas.ts.
+async function Resumen() {
+  const { supabase } = await exigirSesion();
+  const desde = inicioDelDiaLima(new Date());
+  const [ventas, abonos, gastos, compras] = await Promise.all([
+    supabase.from("ventas").select("total, condicion, medio_pago").eq("estado", "registrada").gte("fecha", desde),
+    supabase.from("abonos").select("monto, medio_pago").gte("fecha", desde),
+    supabase.from("gastos").select("monto, medio_pago").gte("fecha", desde),
+    supabase.from("compras").select("total, medio_pago").eq("condicion", "contado").gte("fecha", desde),
+  ]);
+  const error = ventas.error ?? abonos.error ?? gastos.error ?? compras.error;
+  if (error) {
+    console.error("cierre: no se pudo leer el día", { codigo: error.code });
+    return (
+      <Aviso titulo="No pudimos leer tu día" accion={<BotonReintentar />}>
+        Revisa tu señal. Lo que ya guardaste está a salvo.
+      </Aviso>
+    );
+  }
+  const medio = (m: string | null) => m as Medio | null;
+  const cierre = calcularCierre({
+    ventasContado: (ventas.data ?? []).filter((v) => v.condicion === "contado").map((v) => ({ monto: Number(v.total), medio: medio(v.medio_pago) })),
+    ventasCredito: (ventas.data ?? []).filter((v) => v.condicion === "credito").map((v) => Number(v.total)),
+    abonos: (abonos.data ?? []).map((a) => ({ monto: Number(a.monto), medio: medio(a.medio_pago) })),
+    gastos: (gastos.data ?? []).map((g) => ({ monto: Number(g.monto), medio: medio(g.medio_pago) })),
+    compras: (compras.data ?? []).map((c) => ({ monto: Number(c.total), medio: medio(c.medio_pago) })),
+  });
+  return <PanelCierre c={cierre} />;
+}
+
 export default async function Cierre() {
   const { permisos } = await exigirSesion();
   if (!permisos.cierre) {
@@ -21,10 +55,18 @@ export default async function Cierre() {
   }
   return (
     <>
-      <Encabezado titulo="Cierre del día" />
-      <Vacio icono={<ClipboardCheck />} titulo="El resumen para cerrar caja">
-        Aquí vas a ver lo vendido al contado y al crédito, lo cobrado, los gastos y el efectivo que debe haber en caja.
-      </Vacio>
+      <Encabezado titulo="Cierre del día" subtitulo={formatearFecha(new Date())} />
+      <Suspense
+        fallback={
+          <div className="grid gap-2.5" role="status" aria-label="Cargando el cierre">
+            <Esqueleto className="h-[170px] rounded-protagonista" />
+            <Esqueleto className="h-[130px]" />
+            <Esqueleto className="h-[220px]" />
+          </div>
+        }
+      >
+        <Resumen />
+      </Suspense>
     </>
   );
 }

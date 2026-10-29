@@ -26,3 +26,18 @@ export function formatearHora(hora: number): string {
   if (hora === 0) return "12 a. m.";
   return hora < 12 ? `${hora} a. m.` : `${hora - 12} p. m.`;
 }
+
+const diaLima = (f: Date) => new Date(f.getTime() - 5 * 3_600_000).toISOString().slice(0, 10);
+
+/** «hoy», «ayer», «hace 3 días», contados en días de Lima. */
+export function formatearHace(fecha: Date, ahora: Date): string {
+  const dias = Math.round((Date.parse(diaLima(ahora)) - Date.parse(diaLima(fecha))) / 86_400_000);
+  if (dias <= 0) return "hoy";
+  if (dias === 1) return "ayer";
+  return `hace ${dias} días`;
+}
+
+/** El día de Lima (AAAA-MM-DD) de un instante: para agrupar ventas por día. */
+export function diaDeLima(fecha: Date): string {
+  return diaLima(fecha);
+}
