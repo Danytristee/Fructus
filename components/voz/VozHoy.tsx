@@ -2,6 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { RotateCcw, Undo2 } from "lucide-react";
+
+import { descartarComando } from "@/app/(app)/acciones-voz";
 
 import { borrarPendiente, guardarPendiente, leerPendiente } from "@/lib/voz/audio-pendiente";
 import { DURACION_MINIMA_MS, desenlaceDeRespuesta, desenlaceSinRed, type Desenlace } from "@/lib/voz/envio-reglas";
@@ -18,6 +21,8 @@ const TEXTO_LISTO = "Mantén para hablar";
 const MARCA_APRENDIO = "fructus:voz-aprendida";
 // Whisper con respaldo, más el intérprete con respaldo: el servidor puede tardar hasta ~20 s en el peor caso.
 const TOPE_ENVIO_MS = 25_000;
+// Lo que dura el «Deshacer» después de cerrar una tarjeta sin guardar (ley 7: perdonar antes que preguntar).
+const DESHACER_MS = 5_000;
 
 const POR_FALLA: Record<FallaGrabadora, string> = {
   sin_permiso: "Necesito el micrófono. Dale permiso en el candado de arriba, junto a la dirección.",
@@ -26,7 +31,7 @@ const POR_FALLA: Record<FallaGrabadora, string> = {
 };
 
 export type ResultadoVoz = { comandoId: number; tarjeta: Tarjeta; latenciaMs: number };
-type Aviso = { mensaje: string; pendiente: boolean };
+type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "descartada" };
 
 async function enviarAudio({ audio, duracionMs }: Grabacion): Promise<Desenlace> {
   if (!navigator.onLine) return desenlaceSinRed();
@@ -58,6 +63,8 @@ export function VozHoy() {
   const presionado = useRef(false);
   const reloj = useRef(0);
   const vuelta = useRef(0);
+  // El comando cerrado sin guardar: se marca descartado cuando vence el «Deshacer» (o antes, si se dicta otro).
+  const descarte = useRef<{ comandoId: number; latenciaMs: number; reloj: number } | null>(null);
 
   useEffect(() => {
     const cuadro = requestAnimationFrame(() => {
@@ -68,13 +75,44 @@ export function VozHoy() {
       }
     });
     // Un audio que no salió la última vez: se ofrece enviarlo apenas se abre «Hoy».
-    void leerPendiente().then((p) => p && setAviso({ mensaje: "Tienes un audio que no se pudo enviar.", pendiente: true }));
+    void leerPendiente().then((p) => p && setAviso({ tipo: "error", mensaje: "Tienes un audio que no se pudo enviar.", pendiente: true }));
     return () => {
       cancelAnimationFrame(cuadro);
       window.clearInterval(reloj.current);
       window.clearTimeout(vuelta.current);
+      cerrarDescarte(); // se fue de «Hoy» con el «Deshacer» abierto: el descarte vale
     };
   }, []);
+
+  function cerrarDescarte() {
+    const d = descarte.current;
+    if (!d) return;
+    descarte.current = null;
+    window.clearTimeout(d.reloj);
+    void descartarComando(d.comandoId, d.latenciaMs).catch(() => {
+      // Sin red el comando queda «pendiente»: no guarda nada y solo cuenta distinto en la precisión.
+    });
+  }
+
+  function alCerrarHoja(motivo: "guardada" | "descartada") {
+    setHojaAbierta(false);
+    if (motivo === "guardada" || !resultado || descarte.current) return;
+    const { comandoId, latenciaMs } = resultado;
+    const reloj = window.setTimeout(() => {
+      cerrarDescarte();
+      setAviso((a) => (a?.tipo === "descartada" ? null : a));
+    }, DESHACER_MS);
+    descarte.current = { comandoId, latenciaMs, reloj };
+    setAviso({ tipo: "descartada" });
+  }
+
+  function deshacer() {
+    const d = descarte.current;
+    if (d) window.clearTimeout(d.reloj);
+    descarte.current = null;
+    setAviso(null);
+    setHojaAbierta(true);
+  }
 
   function decir(mensaje: string, volverEn = 2500) {
     window.clearTimeout(vuelta.current);
@@ -91,8 +129,18 @@ export function VozHoy() {
       // Sin almacenamiento la ayuda seguirá apareciendo; no pasa nada más.
     }
     window.clearTimeout(vuelta.current);
+    cerrarDescarte();
     setAprendio(true);
     setAviso(null);
+    const falla = await grabadora.empezar();
+    if (falla) {
+      presionado.current = false;
+      setAviso({ tipo: "error", mensaje: POR_FALLA[falla], pendiente: false });
+      return;
+    }
+    if (!presionado.current) return; // lo soltó antes de que el micrófono arrancara
+    // «Te escucho» y la vibración recién cuando el micrófono graba (unos 200 ms después del toque): son la señal para
+    // hablar. Si se mostraran al toque, el «Vendí…» del principio podía quedar fuera del audio.
     setEstado("escuchando");
     navigator.vibrate?.(20);
     const inicio = Date.now();
@@ -100,14 +148,6 @@ export function VozHoy() {
     reloj.current = window.setInterval(() => {
       setTexto(`Te escucho… 0:${String(Math.floor((Date.now() - inicio) / 1000)).padStart(2, "0")}`);
     }, 250);
-    const falla = await grabadora.empezar();
-    if (falla) {
-      presionado.current = false;
-      window.clearInterval(reloj.current);
-      setEstado("listo");
-      setTexto(TEXTO_LISTO);
-      setAviso({ mensaje: POR_FALLA[falla], pendiente: false });
-    }
   }
 
   async function soltar() {
@@ -142,7 +182,7 @@ export function VozHoy() {
     if (desenlace.conservarAudio) await guardarPendiente(grabacion.audio, grabacion.duracionMs);
     else void borrarPendiente();
     setTexto(TEXTO_LISTO);
-    setAviso({ mensaje: desenlace.mensaje, pendiente: desenlace.conservarAudio });
+    setAviso({ tipo: "error", mensaje: desenlace.mensaje, pendiente: desenlace.conservarAudio });
   }
 
   async function reintentar() {
@@ -158,14 +198,31 @@ export function VozHoy() {
       data-voz-fijo
       className="pointer-events-none fixed inset-x-0 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 flex flex-col items-center gap-3"
     >
-      {aviso && (
+      {aviso?.tipo === "error" && (
         <AvisoVoz
+          tono="error"
           mensaje={aviso.mensaje}
-          pendiente={aviso.pendiente}
-          alReintentar={reintentar}
-          alCerrar={() => {
-            if (aviso.pendiente) void borrarPendiente();
-            setAviso(null);
+          accion={aviso.pendiente ? { etiqueta: "Reintentar", icono: <RotateCcw aria-hidden className="size-5" />, alTocar: reintentar } : undefined}
+          cerrar={{
+            etiqueta: aviso.pendiente ? "Borrar el audio guardado" : "Cerrar el aviso",
+            alTocar: () => {
+              if (aviso.pendiente) void borrarPendiente();
+              setAviso(null);
+            },
+          }}
+        />
+      )}
+      {aviso?.tipo === "descartada" && (
+        <AvisoVoz
+          tono="info"
+          mensaje="No guardé esa venta."
+          accion={{ etiqueta: "Deshacer", icono: <Undo2 aria-hidden className="size-5" />, alTocar: deshacer }}
+          cerrar={{
+            etiqueta: "Cerrar el aviso",
+            alTocar: () => {
+              cerrarDescarte();
+              setAviso(null);
+            },
           }}
         />
       )}
@@ -192,7 +249,7 @@ export function VozHoy() {
         }}
         onContextMenu={(e) => e.preventDefault()}
       />
-      {resultado && <HojaVoz resultado={resultado} abierta={hojaAbierta} alCambiar={setHojaAbierta} />}
+      {resultado && <HojaVoz resultado={resultado} abierta={hojaAbierta} alCerrar={alCerrarHoja} />}
     </div>
   );
 }

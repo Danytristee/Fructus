@@ -32,9 +32,12 @@ const avisoVoz = (page: Page) => page.getByRole("alert").filter({ has: page.getB
 
 /** Mantiene el orbe apretado el tiempo dado y lo suelta. */
 async function dictar(page: Page, ms = 1200) {
+  await page.waitForLoadState("networkidle"); // que React monte el botón antes de presionarlo
   const caja = (await page.getByRole("button", { name: "Botón de voz" }).boundingBox())!;
   await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
   await page.mouse.down();
+  // Un toque corto se suelta enseguida; uno largo se cuenta desde que el micrófono graba («Te escucho»), no desde el toque.
+  if (ms >= 600) await expect(page.locator("button[data-estado]")).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
   await page.waitForTimeout(ms);
   await page.mouse.up();
 }
@@ -55,7 +58,7 @@ test("el botón de voz vive abajo al centro, mide 96 px o más, graba al mantene
   const pedido = page.waitForRequest((r) => r.url().endsWith("/api/voz"));
   await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
   await page.mouse.down();
-  await expect(voz).toHaveAttribute("data-estado", "escuchando");
+  await expect(voz).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
   await expect(page.locator("#voz-texto")).toContainText("Te escucho");
   await page.waitForTimeout(1200);
   await page.mouse.up();
