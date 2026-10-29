@@ -4,6 +4,7 @@ import "server-only";
 // Groq primero; si no responde en 8 s o falla, Gemini (si hay clave). Ninguno inventa: si la respuesta no calza con el
 // esquema, no se usa. La transcripción nunca va a los logs (CLAUDE.md, «Seguridad y claves»).
 import { fetchWithTimeout } from "../supabase/fetch-con-tope";
+import { bloqueCatalogo, type Catalogo } from "./catalogo-reglas";
 import { herramientasParaElModelo, leerInterpretacion, type Interpretacion } from "./esquemas";
 import { PROMPT_SISTEMA } from "./prompt";
 
@@ -37,7 +38,7 @@ export type ResultadoInterprete =
 
 type RespuestaChat = { choices?: { message?: { tool_calls?: { function?: { name?: string; arguments?: string } }[] } }[] };
 
-async function preguntar(p: Proveedor, transcripcion: string): Promise<{ ok: true; interpretacion: Interpretacion } | { ok: false; error: string }> {
+async function preguntar(p: Proveedor, sistema: string, transcripcion: string): Promise<{ ok: true; interpretacion: Interpretacion } | { ok: false; error: string }> {
   let respuesta: Response;
   try {
     respuesta = await fetchWithTimeout(p.url, {
@@ -49,7 +50,7 @@ async function preguntar(p: Proveedor, transcripcion: string): Promise<{ ok: tru
         tool_choice: "required",
         tools: herramientasParaElModelo(),
         messages: [
-          { role: "system", content: PROMPT_SISTEMA },
+          { role: "system", content: sistema },
           { role: "user", content: transcripcion },
         ],
         ...p.extra,
@@ -70,11 +71,16 @@ async function preguntar(p: Proveedor, transcripcion: string): Promise<{ ok: tru
 }
 
 /**
- * Interpreta una transcripción. `soloGroq` y `modeloGroq` sirven para medir modelos con /voz-precision sin que el
- * respaldo cambie los números.
+ * Interpreta una transcripción. `catalogo` es lo que hay en el puesto (productos, clientes y proveedores).
+ * `soloGroq` y `modeloGroq` sirven para medir modelos con /voz-precision sin que el respaldo cambie los números.
  */
-export async function interpretar(transcripcion: string, opciones: { modeloGroq?: string; soloGroq?: boolean } = {}): Promise<ResultadoInterprete> {
+export async function interpretar(
+  transcripcion: string,
+  opciones: { catalogo?: Catalogo; modeloGroq?: string; soloGroq?: boolean } = {},
+): Promise<ResultadoInterprete> {
   const inicio = performance.now();
+  // El prompt fijo más el catálogo del puesto (docs/interprete-voz.md, secciones 2 y 2b).
+  const sistema = opciones.catalogo ? `${PROMPT_SISTEMA}\n\n${bloqueCatalogo(opciones.catalogo)}` : PROMPT_SISTEMA;
   const intentos: Intento[] = [];
   for (const p of proveedores(opciones.modeloGroq)) {
     if (opciones.soloGroq && p.nombre !== "groq") break;
@@ -82,7 +88,7 @@ export async function interpretar(transcripcion: string, opciones: { modeloGroq?
       intentos.push({ modelo: p.modelo, error: "sin clave configurada" });
       continue;
     }
-    const r = await preguntar(p, transcripcion);
+    const r = await preguntar(p, sistema, transcripcion);
     if (r.ok) return { ok: true, interpretacion: r.interpretacion, modelo: p.modelo, latenciaMs: Math.round(performance.now() - inicio), intentos };
     console.error("interprete: un proveedor falló", { modelo: p.modelo, error: r.error.slice(0, 120) });
     intentos.push({ modelo: p.modelo, error: r.error });

@@ -7,13 +7,15 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 import { expect, test } from "vitest";
 
+import type { Catalogo } from "../../lib/voz/catalogo-reglas";
 import { interpretar } from "../../lib/voz/interprete";
 import { camposPrudentes, diferencias, inventos, percentil } from "../../lib/voz/precision-reglas";
 
 type Caso = { id: string; transcripcion: string; esperado: { herramienta: string; datos: Record<string, unknown> } };
 type Fila = { id: string; intencion: boolean; datos: boolean; inventos: string[]; fallos: string[]; obtenido: string; ms: number };
 
-const casos = (JSON.parse(readFileSync(process.env.VOZ_CASOS ?? "tests/interprete/casos.json", "utf8")) as { casos: Caso[] }).casos;
+const archivo = JSON.parse(readFileSync(process.env.VOZ_CASOS ?? "tests/interprete/casos.json", "utf8")) as { catalogo?: Catalogo; casos: Caso[] };
+const { casos, catalogo } = archivo;
 const carpeta = process.env.VOZ_INFORMES ?? "docs/voz";
 const modelos = (process.env.VOZ_MODELOS ?? "openai/gpt-oss-120b,openai/gpt-oss-20b").split(",").map((m) => m.trim());
 const espera = (ms: number) => new Promise((listo) => setTimeout(listo, ms));
@@ -22,11 +24,11 @@ const pct = (n: number, d: number) => (d === 0 ? "—" : `${((100 * n) / d).toFi
 async function medir(modelo: string) {
   const filas: Fila[] = [];
   for (const caso of casos) {
-    let r = await interpretar(caso.transcripcion, { modeloGroq: modelo, soloGroq: true });
+    let r = await interpretar(caso.transcripcion, { catalogo, modeloGroq: modelo, soloGroq: true });
     // Plan gratuito: una llamada a la vez; si Groq pide esperar, se espera y se reintenta (hasta 3 veces).
     for (let i = 0; i < 3 && !r.ok && r.intentos.some((x) => x.error.includes("429")); i++) {
       await espera(8_000 * (i + 1));
-      r = await interpretar(caso.transcripcion, { modeloGroq: modelo, soloGroq: true });
+      r = await interpretar(caso.transcripcion, { catalogo, modeloGroq: modelo, soloGroq: true });
     }
     if (!r.ok) {
       filas.push({ id: caso.id, intencion: false, datos: false, inventos: [], fallos: [r.intentos.map((x) => x.error).join(" · ").slice(0, 140)], obtenido: "(sin respuesta)", ms: r.latenciaMs });
@@ -71,7 +73,7 @@ test("precisión del intérprete contra el modelo real", async () => {
   const lineas = [
     `# /voz-precision · ${hoy}`,
     "",
-    `**Casos:** ${total} (\`tests/interprete/casos.json\`). **Proveedor:** Groq, sin respaldo (para comparar modelos limpio). **Medido:** solo el intérprete (texto → herramienta); la voz a texto se mide aparte.`,
+    `**Casos:** ${total} (\`tests/interprete/casos.json\`). **Proveedor:** Groq, sin respaldo (para comparar modelos limpio). **Catálogo en el prompt:** ${catalogo ? "sí (el de seed.sql)" : "no"}. **Medido:** solo el intérprete (texto → herramienta); la voz a texto se mide aparte.`,
     "",
     "| Modelo | Intención (meta ≥ 95 %) | Datos clave (meta ≥ 90 %) | Prudencia con el dinero (meta 100 %) | Latencia p50 | p95 |",
     "|---|---|---|---|---|---|",
