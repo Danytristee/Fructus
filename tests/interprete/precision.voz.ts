@@ -12,7 +12,7 @@ import { interpretar } from "../../lib/voz/interprete";
 import { camposPrudentes, diferencias, inventos, percentil } from "../../lib/voz/precision-reglas";
 
 type Caso = { id: string; transcripcion: string; esperado: { herramienta: string; datos: Record<string, unknown> } };
-type Fila = { id: string; intencion: boolean; datos: boolean; inventos: string[]; fallos: string[]; obtenido: string; ms: number };
+type Fila = { id: string; intencion: boolean; datos: boolean; inventos: string[]; fallos: string[]; obtenido: string; dudas: string[]; ms: number };
 
 const archivo = JSON.parse(readFileSync(process.env.VOZ_CASOS ?? "tests/interprete/casos.json", "utf8")) as { catalogo?: Catalogo; casos: Caso[] };
 const { casos, catalogo } = archivo;
@@ -31,7 +31,7 @@ async function medir(modelo: string) {
       r = await interpretar(caso.transcripcion, { catalogo, modeloGroq: modelo, soloGroq: true });
     }
     if (!r.ok) {
-      filas.push({ id: caso.id, intencion: false, datos: false, inventos: [], fallos: [r.intentos.map((x) => x.error).join(" · ").slice(0, 140)], obtenido: "(sin respuesta)", ms: r.latenciaMs });
+      filas.push({ id: caso.id, intencion: false, datos: false, inventos: [], fallos: [r.intentos.map((x) => x.error).join(" · ").slice(0, 140)], obtenido: "(sin respuesta)", dudas: [], ms: r.latenciaMs });
       continue;
     }
     const { herramienta, datos } = r.interpretacion;
@@ -44,6 +44,7 @@ async function medir(modelo: string) {
       inventos: intencion ? inventos(caso.esperado.datos, datos) : [],
       fallos,
       obtenido: `${herramienta} ${JSON.stringify(datos)}`,
+      dudas: "dudas" in datos && Array.isArray(datos.dudas) ? datos.dudas : [],
       ms: r.latenciaMs,
     });
   }
@@ -93,6 +94,9 @@ test("precisión del intérprete contra el modelo real", async () => {
       lineas.push(`  - vino: \`${f.obtenido.slice(0, 220)}\``);
     }
     lineas.push("");
+    // Las dudas salen tal cual en la tarjeta: se leen aquí para ver si suenan a puesto o a formulario.
+    const conDudas = r.filas.flatMap((f) => (f.dudas.length ? [`- **${f.id}:** ${f.dudas.map((d) => `«${d}»`).join(" · ")}`] : []));
+    lineas.push(`### Dudas que salieron (${conDudas.length} de ${r.filas.length} casos)`, "", ...(conDudas.length ? conDudas : ["Ninguna."]), "");
   }
   writeFileSync(ruta, lineas.join("\n"));
   console.log(`\nInforme: ${ruta}\n${lineas.slice(4, 6 + resultados.length).join("\n")}`);
