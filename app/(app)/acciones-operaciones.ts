@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { leerSaldo, leerStock, marcarComando, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import { ABONO_MAXIMO, pedidoAbono } from "@/lib/voz/confirmar-abono-reglas";
+import { CATEGORIAS, GASTO_MAXIMO, pedidoGasto } from "@/lib/voz/confirmar-gasto-reglas";
 import { CAJAS_MAXIMO, pedidoMerma } from "@/lib/voz/confirmar-merma-reglas";
 
 // Guardar lo que no es una venta: abonos, mermas, gastos y compras dictados (A6). Cada uno es idempotente por comando:
@@ -95,4 +96,40 @@ export async function stockDe(productoId: number): Promise<number | null> {
   const s = await sesion();
   if (!s) return null;
   return leerStock(s.supabase, id.data);
+}
+
+export type ResultadoGasto = { ok: true } | { ok: false; error: string; sinSesion?: true };
+
+const confirmacionGasto = z.object({
+  ...comun,
+  borrador: z.object({
+    categoria: z.enum(CATEGORIAS),
+    monto: z.number().positive().max(GASTO_MAXIMO).nullable(),
+    descripcion: z.string().max(200).nullable(),
+    medio,
+  }),
+});
+
+/** Guarda el gasto (flete, alquiler, servicios, personal u otros). */
+export async function confirmarGasto(entrada: z.input<typeof confirmacionGasto>): Promise<ResultadoGasto> {
+  const leido = confirmacionGasto.safeParse(entrada);
+  if (!leido.success) return { ok: false, error: "Revisa el monto de la tarjeta." };
+  const { comandoId, borrador, corregido, latenciaMs } = leido.data;
+  const pedido = pedidoGasto(borrador, comandoId);
+  if (!pedido) return { ok: false, error: "Revisa el monto de la tarjeta." };
+
+  const s = await sesion();
+  if (!s) return { ok: false, error: sinSesion("el gasto"), sinSesion: true };
+  const { supabase, permisos } = s;
+  if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar gastos." };
+
+  const { error } = await supabase.from("gastos").insert(pedido);
+  if (error && error.code !== YA_GUARDADO) {
+    console.error("voz: no se pudo registrar el gasto", { comandoId, codigo: error.code });
+    if (error.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar gastos." };
+    return { ok: false, error: SIN_SENAL };
+  }
+
+  await marcarComando(supabase, comandoId, corregido, latenciaMs);
+  return { ok: true };
 }
