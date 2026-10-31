@@ -48,3 +48,12 @@ muy largos.
 | Dueño (S/ 7) y ayudante (S/ 11) abonan a la vez al mismo cliente | Saldo 120 → 102 |
 | La misma compra, mismo comando, en dos sesiones a la vez | Las dos devuelven la compra 37; 1 fila |
 | El contador inserta abono, gasto, merma y compra | Rechazado por RLS en los 4 |
+
+## Arreglados con OK (31-10)
+
+1. **Respuesta perdida:** `useConfirmar` trata la falla de red como «no sé si se guardó» (y descartar avisa en incierto). Prueba:
+   `tests/e2e/voz-abono.spec.ts` «respuesta perdida al confirmar». Vale también para la venta.
+2. **Texto largo:** `borradorMerma` y `borradorGasto` recortan el motivo (120) y la descripción (200). Pruebas: Vitest de las dos reglas
+   y `tests/e2e/voz-gasto.spec.ts` «una descripción dictada muy larga».
+
+El mismo ataque con la semilla 31 ahora resiste: las dos pruebas fallaban antes del arreglo y pasan después.

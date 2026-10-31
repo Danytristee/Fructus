@@ -15,12 +15,14 @@ export type FaltaMerma = "producto" | "cantidad";
 
 /** Más cajas que esto es un número mal oído. */
 export const CAJAS_MAXIMO = 10_000;
+/** El motivo lo escribe el intérprete, que no tiene tope: se recorta aquí, no se rechaza (/chaos 2026-10-31). */
+export const MOTIVO_MAXIMO = 120;
 
 const centimos = (n: number) => Math.round(n * 100);
 const cajasValidas = (n: number) => n > 0 && n <= CAJAS_MAXIMO && centimos(n) === n * 100;
 
 export function borradorMerma(t: Merma): BorradorMerma {
-  return { producto: t.producto.elegido, cantidad: t.cantidad, motivo: t.motivo };
+  return { producto: t.producto.elegido, cantidad: t.cantidad, motivo: t.motivo?.slice(0, MOTIVO_MAXIMO) ?? null };
 }
 
 export function faltaMerma(b: BorradorMerma): FaltaMerma[] {

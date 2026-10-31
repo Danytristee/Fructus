@@ -105,3 +105,19 @@ test("sin saber quién pagó no se guarda: se elige de la lista, y descartar avi
   await expect(page.getByText("No guardé ese abono.")).toBeVisible();
   expect(await abonosDe(comandoId)).toEqual([]);
 });
+
+test("respuesta perdida al confirmar: no dice «no se pudo guardar» de lo que se guardó (/chaos 2026-10-31)", async ({ page }, info) => {
+  test.slow();
+  const cliente = clientes.menor[info.project.name as Ancho];
+  const comandoId = await crearComando("registrar_abono");
+  const hoja = await dictarAbono(page, comandoId, tarjeta(cliente, { monto: 1 }));
+  // El pedido llega al servidor y se guarda, pero la respuesta se pierde en el camino.
+  await page.route("**/*", async (r) => (r.request().method() === "POST" && r.request().headers()["next-action"] ? (await r.fetch(), r.abort()) : r.fallback()));
+  await hoja.getByRole("button", { name: "Confirmar abono" }).click();
+  await expect(hoja.getByRole("alert")).toHaveText("La señal no respondió y no sé si se guardó. Toca Confirmar otra vez: no se va a repetir.");
+  expect(await abonosDe(comandoId)).toHaveLength(1);
+
+  await page.unrouteAll();
+  await hoja.getByRole("button", { name: "Descartar" }).click();
+  await expect(page.getByText("Lo descarté. Si alcanzó a guardarse, lo ves en «Lo último».")).toBeVisible();
+});

@@ -68,3 +68,13 @@ test("descartar un gasto avisa qué no guardó y no deja nada en la base", async
   await expect(page.getByText("No guardé ese gasto.")).toBeVisible();
   expect(await gastosDe(comandoId)).toEqual([]);
 });
+
+test("una descripción dictada muy larga no deja la tarjeta sin poder guardarse (/chaos 2026-10-31)", async ({ page }) => {
+  test.slow();
+  const comandoId = await crearComando("registrar_gasto");
+  const hoja = await dictarGasto(page, comandoId, tarjeta({ descripcion: "bolsas para la fruta y ".repeat(15).trim() }));
+  await hoja.getByRole("button", { name: "Confirmar gasto" }).click();
+  await expect(page.getByText("Gasto guardado")).toBeVisible();
+  const [gasto] = await gastosDe(comandoId);
+  expect(gasto!.descripcion!.length).toBeLessThanOrEqual(200);
+});

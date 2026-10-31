@@ -69,3 +69,10 @@ describe("pedidoMerma", () => {
     expect(pedidoMerma({ producto: null, cantidad: 3, motivo: null }, 33)).toBeNull();
   });
 });
+
+describe("borradorMerma con texto largo", () => {
+  it("recorta motivo a 120 letras: el intérprete no tiene tope y la acción sí (/chaos 2026-10-31)", () => {
+    const b = borradorMerma(tarjeta({ motivo: "x".repeat(500) }));
+    expect(b.motivo).toHaveLength(120);
+  });
+});

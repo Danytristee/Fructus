@@ -8,7 +8,6 @@ import { sonarGuardado, vibrar } from "./senales";
 
 type Fallo = { ok: false; error: string; sinSesion?: true };
 
-const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra vez.";
 // Toda llamada lleva tope (CLAUDE.md, «La voz»). Sin él, con la red colgada, «Guardando…» no terminaba nunca (/chaos).
 const TOPE_CONFIRMAR_MS = 15_000;
 const SIN_RESPUESTA = "La señal no respondió y no sé si se guardó. Toca Confirmar otra vez: no se va a repetir.";
@@ -46,7 +45,9 @@ export function useConfirmar<R extends { ok: true }>({ alGuardar, alCambiarGuard
     const tope = new Promise<Fallo>((resolve) => {
       reloj = window.setTimeout(() => resolve({ ok: false, error: SIN_RESPUESTA }), TOPE_CONFIRMAR_MS);
     });
-    const r = await esperar(Promise.race([guardar().catch((): Fallo => ({ ok: false, error: SIN_SENAL })), tope]));
+    // Si la acción falla por red, no se sabe si llegó: pudo guardarse y perderse la respuesta. Decir «no se pudo guardar»
+    // llevaba a dictarlo otra vez, y eso es otro comando: el abono se registraba dos veces (/chaos 2026-10-31).
+    const r = await esperar(Promise.race([guardar().catch((): Fallo => ({ ok: false, error: SIN_RESPUESTA })), tope]));
     window.clearTimeout(reloj);
     setGuardando(false);
     alCambiarGuardando(false);

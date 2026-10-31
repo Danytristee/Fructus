@@ -6,8 +6,8 @@ import { leerSaldo, leerStock, marcarComando, sesion, SIN_SENAL, sinSesion } fro
 import type { Opcion } from "@/app/(app)/acciones-voz";
 import { ABONO_MAXIMO, pedidoAbono } from "@/lib/voz/confirmar-abono-reglas";
 import { pedidoCompra } from "@/lib/voz/confirmar-compra-reglas";
-import { CATEGORIAS, GASTO_MAXIMO, pedidoGasto } from "@/lib/voz/confirmar-gasto-reglas";
-import { CAJAS_MAXIMO, pedidoMerma } from "@/lib/voz/confirmar-merma-reglas";
+import { CATEGORIAS, DESCRIPCION_MAXIMO, GASTO_MAXIMO, pedidoGasto } from "@/lib/voz/confirmar-gasto-reglas";
+import { CAJAS_MAXIMO, MOTIVO_MAXIMO, pedidoMerma } from "@/lib/voz/confirmar-merma-reglas";
 import { PRECIO_MAXIMO } from "@/lib/voz/confirmar-venta-reglas";
 import { buscarProveedores, costosSugeridos } from "@/lib/voz/resolver";
 
@@ -65,7 +65,7 @@ const confirmacionMerma = z.object({
   borrador: z.object({
     producto: z.object({ id: z.number().int().positive(), nombre: z.string() }).nullable(),
     cantidad: z.number().positive().max(CAJAS_MAXIMO),
-    motivo: z.string().max(120).nullable(),
+    motivo: z.string().max(MOTIVO_MAXIMO).nullable(),
   }),
 });
 
@@ -109,7 +109,7 @@ const confirmacionGasto = z.object({
   borrador: z.object({
     categoria: z.enum(CATEGORIAS),
     monto: z.number().positive().max(GASTO_MAXIMO).nullable(),
-    descripcion: z.string().max(200).nullable(),
+    descripcion: z.string().max(DESCRIPCION_MAXIMO).nullable(),
     medio,
   }),
 });

@@ -57,3 +57,10 @@ describe("pedidoGasto", () => {
     expect(pedidoGasto({ ...borradorGasto(tarjeta()), monto: null }, 33)).toBeNull();
   });
 });
+
+describe("borradorGasto con texto largo", () => {
+  it("recorta descripcion a 200 letras: el intérprete no tiene tope y la acción sí (/chaos 2026-10-31)", () => {
+    const b = borradorGasto(tarjeta({ descripcion: "x".repeat(500) }));
+    expect(b.descripcion).toHaveLength(200);
+  });
+});

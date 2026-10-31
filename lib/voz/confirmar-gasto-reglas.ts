@@ -14,13 +14,20 @@ export type BorradorGasto = { categoria: Categoria; monto: number | null; descri
 
 /** Un gasto del puesto es de decenas o cientos de soles; el alquiler, de miles. Más que esto es un dedo que se fue. */
 export const GASTO_MAXIMO = 50_000;
+/** La descripción la escribe el intérprete, que no tiene tope: se recorta aquí, no se rechaza (/chaos 2026-10-31). */
+export const DESCRIPCION_MAXIMO = 200;
 
 export const leerGasto = (texto: string) => leerMonto(texto, { nombre: "monto", maximo: GASTO_MAXIMO });
 
 const esCategoria = (c: string): c is Categoria => (CATEGORIAS as readonly string[]).includes(c);
 
 export function borradorGasto(t: Gasto): BorradorGasto {
-  return { categoria: esCategoria(t.categoria) ? t.categoria : "otros", monto: t.monto, descripcion: t.descripcion, medio: t.medio };
+  return {
+    categoria: esCategoria(t.categoria) ? t.categoria : "otros",
+    monto: t.monto,
+    descripcion: t.descripcion?.slice(0, DESCRIPCION_MAXIMO) ?? null,
+    medio: t.medio,
+  };
 }
 
 export function faltaGasto(b: BorradorGasto): "monto"[] {
