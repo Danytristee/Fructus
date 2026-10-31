@@ -38,7 +38,7 @@ test("merma: dice cuántas cajas quedan y, con dos toques, la guarda una vez", a
   const hoja = await dictarMerma(page, comandoId, tarjeta(fruta));
 
   await expect(hoja.getByRole("button", { name: new RegExp(`2 cajas de ${fruta.nombre}`) })).toBeVisible();
-  await expect(hoja.getByText("«se pasó»")).toBeVisible();
+  await expect(hoja.getByText("dijiste «se pasó»")).toBeVisible();
   await expect(hoja.getByText(`Con esta merma te quedan ${antes - 2} cajas de ${fruta.nombre}`)).toBeVisible();
 
   const confirmar = hoja.getByRole("button", { name: "Confirmar merma" });

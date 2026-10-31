@@ -109,7 +109,8 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         onClick={() => setEditando(true)}
         icono={<IconoFruta nombre={producto?.nombre ?? tarjeta.producto.dicho ?? "?"} tamano={48} />}
         grande={producto ? `${formatearCajas(cantidad)} de ${producto.nombre}` : `¿${tarjeta.producto.dicho}?`}
-        chico={producto ? (borrador.motivo ? `«${borrador.motivo}»` : "Se malogró") : "Toca para elegir la fruta"}
+        // «dijiste»: entre comillas solas no se sabía si era lo dicho o lo que eligió la app (/formidable 2026-10-31).
+        chico={producto ? (borrador.motivo ? `dijiste «${borrador.motivo}»` : "Se malogró") : "Toca para elegir la fruta"}
       />
 
       {producto && quedan !== null && stock !== null && (

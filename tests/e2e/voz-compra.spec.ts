@@ -37,7 +37,7 @@ test("compra sin decir si se pagó: lo pregunta, y al crédito con dos toques se
   const hoja = await dictarCompra(page, comandoId, tarjeta(fruta));
 
   // Nunca asume contado: falta decir si se pagó, y Confirmar no guarda.
-  await expect(hoja.getByRole("button", { name: "Primero: ¿la pagaste?" })).toBeDisabled();
+  await expect(hoja.getByRole("button", { name: "Primero: ¿pagaste o debes?" })).toBeDisabled();
   await expect(hoja.getByText(enSoles(1250))).toBeVisible();
   await hoja.getByRole("button", { name: "La debo", exact: true }).click();
 

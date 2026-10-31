@@ -27,7 +27,8 @@ type Props = {
   alCambiarGuardando: (guardando: boolean) => void;
 };
 
-const NOMBRES: Record<Categoria, string> = { flete: "Flete", alquiler: "Alquiler", servicios: "Servicios", personal: "Personal", otros: "Otros" };
+// «Personal» se leía como «gasto mío»: es el pago a ayudantes y cargadores (/formidable 2026-10-31). La base guarda `personal`.
+const NOMBRES: Record<Categoria, string> = { flete: "Flete", alquiler: "Alquiler", servicios: "Servicios", personal: "Ayudantes", otros: "Otros" };
 const OPCIONES = CATEGORIAS.map((c) => ({ valor: c, etiqueta: NOMBRES[c] }));
 const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 
@@ -86,7 +87,7 @@ export function TarjetaGasto({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           </span>
         }
         grande={monto === null || falta.length > 0 ? "¿Cuánto gastaste?" : <Monto valor={monto} tamano="cifra" />}
-        chico={borrador.descripcion ? `«${borrador.descripcion}»` : "Toca para cambiar el monto"}
+        chico={borrador.descripcion ? `dijiste «${borrador.descripcion}»` : "Toca para cambiar el monto"}
       />
 
       <div className="mx-1 mt-1 grid animate-pieza gap-2" style={pieza(1)}>

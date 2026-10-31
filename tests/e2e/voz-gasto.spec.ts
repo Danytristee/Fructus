@@ -25,8 +25,8 @@ test("gasto dictado: se ve en qué fue y, con dos toques, se guarda una vez", as
   const hoja = await dictarGasto(page, comandoId, tarjeta());
 
   await expect(hoja.getByText("S/ 50.00")).toBeVisible();
-  await expect(hoja.getByText("«cargador»")).toBeVisible();
-  await expect(hoja.getByRole("button", { name: "Personal" })).toHaveAttribute("aria-pressed", "true");
+  await expect(hoja.getByText("dijiste «cargador»")).toBeVisible();
+  await expect(hoja.getByRole("button", { name: "Ayudantes" })).toHaveAttribute("aria-pressed", "true");
   await expect(hoja.getByRole("button", { name: "Efectivo" })).toHaveAttribute("aria-pressed", "true");
 
   const confirmar = hoja.getByRole("button", { name: "Confirmar gasto" });
@@ -35,7 +35,7 @@ test("gasto dictado: se ve en qué fue y, con dos toques, se guarda una vez", as
     b.click();
   });
   await expect(page.getByText("Gasto guardado")).toBeVisible();
-  await expect(page.getByText("S/ 50.00 en personal")).toBeVisible();
+  await expect(page.getByText("S/ 50.00 en ayudantes")).toBeVisible();
 
   expect(await gastosDe(comandoId)).toEqual([{ categoria: "personal", monto: 50, descripcion: "cargador", medio_pago: "efectivo" }]);
   expect(await comando(comandoId)).toEqual({ resultado: "confirmado", latencia_ms: expect.any(Number) });

@@ -78,3 +78,14 @@ El círculo negro con «N» es el indicador de Next en desarrollo: en producció
 - La «P» morada de Papaya (letra de respaldo de `IconoFruta`) se lee como el avatar de una persona: faltan íconos de fruta.
 - «sugerido» a 15 px (identidad).
 - La línea fina bajo «Descartar» a 1280 px (`PieConfirmar`, ya anotada en `voz-venta-2026-10-29.md`).
+
+## 5. Aplicado con OK (31-10)
+
+| Cambio | Antes → después | Verificado |
+|---|---|---|
+| «dijiste …» en merma y gasto | «se pasó» → dijiste «se pasó»; «cargador» → dijiste «cargador» | e2e de merma y gasto; capturas `voz-{merma,gasto}-despues-{412,360}.png` |
+| Botón pendiente de la compra | «Primero: ¿la pagaste?» → «Primero: ¿pagaste o debes?» | e2e de compra; 68 px de alto a 412 (una línea) y 82 px a 360 (dos líneas, como se acordó) |
+| Categoría del gasto | «Personal» → «Ayudantes» (la base sigue guardando `personal`) | e2e de gasto; cabe a 360 px |
+
+Notas nuevas: ley 1 · 8 → 8.5, ley 4 · 8 → 9, ley 8 · 8.5 → 9. **Total 8.8 → 9.0.** Queda sin tocar, por decisión: el medio de pago
+marcado por defecto (regla 4 del prompt).

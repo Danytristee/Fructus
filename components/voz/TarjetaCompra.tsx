@@ -199,7 +199,8 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
         guardando={guardando}
         listo={falta.length === 0}
         etiqueta="Confirmar compra"
-        etiquetaPendiente={falta.length === 1 && falta[0] === "condicion" ? "Primero: ¿la pagaste?" : undefined}
+        // Las dos opciones, aunque a 360 px ocupe dos líneas: «¿la pagaste?» solo no parecía botón ni aviso (/formidable 2026-10-31).
+        etiquetaPendiente={falta.length === 1 && falta[0] === "condicion" ? "Primero: ¿pagaste o debes?" : undefined}
         alConfirmar={confirmar}
         alDescartar={() => alDescartar(incierto.current)}
       />
