@@ -57,3 +57,14 @@ Cuatro respuestas: «quién me debe», «cuánto me debe don Lucho», «cuánta 
 - **Lo que sobra (ley 8):** la fila «Te deben, en total» dentro de «Tu día».
 - **Lo que nadie pidió y más importa:** el enlace de «¿cuánto me debe?» lleva a la lista de clientes, no a la ficha de ese cliente,
   porque la ficha no existe todavía (llega en A8).
+
+## 5. Aplicado con OK (31-10)
+
+| Cambio | Antes → después | Verificado |
+|---|---|---|
+| «Tu día» habla solo de hoy | «Cobraste · Te deben, en total · Gastaste y compraste» → «Cobraste al contado · Te abonaron · Fiaste hoy · Gastaste · Compraste fruta» | Vitest y e2e; a 412 y 360 px ninguna etiqueta se corta («Cobraste (contado y abonos)» se cortaba a 360 y se partió en dos filas) |
+| «dijiste …» bajo el nombre | «Luis Paredes te debe» → con «dijiste «don lucho»» debajo; igual con la fruta y con lo elegido de la lista | e2e de deuda y de cliente elegido |
+| Enlace a Clientes | «Y 1 más. Ver todo el cuaderno» → «Ver a los 6 en Clientes» (o «Ver en Clientes») | e2e de «quién me debe» |
+
+Capturas `voz-respuesta-{dia,deuda,quien}-despues-{412,360}.png`. Notas nuevas: ley 1 · 8.5 → 9, ley 3 · 7.5 → 9, ley 4 · 8.5 → 9,
+ley 8 · 8.5 → 9. **Total 8.8 → 9.1.**

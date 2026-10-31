@@ -21,8 +21,7 @@ describe("respuestaQuienMeDebe", () => {
       etiqueta: "Te deben",
       cifra: { tipo: "soles", valor: 1472.5, tono: "deuda" },
       detalle: "entre 6 clientes",
-      mas: 1,
-      enlace: { texto: "Ver todo el cuaderno", href: "/clientes" },
+      enlace: { texto: "Ver a los 6 en Clientes", href: "/clientes" },
     });
     expect(r.filas.map((f) => f.nombre)).toEqual(["Luis Paredes", "Bodega Santa Ana", "Carlos Mendoza", "Juguería El Paraíso", "Rosa Quispe"]);
     expect(r.filas[0]).toEqual({ id: 1, nombre: "Luis Paredes", valor: formatearSoles(680), tono: "deuda", icono: "cliente" });
@@ -45,7 +44,7 @@ describe("respuestaQuienMeDebe", () => {
       { id: 1, nombre: "Luis Paredes", saldo: 0 },
       { id: 2, nombre: "Rosa Quispe", saldo: -70 },
     ]);
-    expect(r).toMatchObject({ etiqueta: "Nadie te debe", cifra: null, filas: [], mas: 0, hablado: "Nadie te debe. Tu cuaderno está al día." });
+    expect(r).toMatchObject({ etiqueta: "Nadie te debe", cifra: null, filas: [], hablado: "Nadie te debe. Tu cuaderno está al día." });
   });
 });
 
@@ -56,7 +55,7 @@ describe("respuestaDeudaCliente", () => {
       etiqueta: "Luis Paredes te debe",
       cifra: { tipo: "soles", valor: 1580, tono: "deuda" },
       hablado: "Luis Paredes te debe mil quinientos ochenta soles.",
-      enlace: { texto: "Ver el cuaderno", href: "/clientes" },
+      enlace: { texto: "Ver en Clientes", href: "/clientes" },
     });
   });
 
@@ -132,17 +131,23 @@ describe("respuestaGastosHoy", () => {
 });
 
 describe("respuestaResumenDia", () => {
-  it("vendido en grande; cobrado, lo que te deben y lo que salió en la lista", () => {
+  it("solo lo de hoy: vendido en grande; cobrado, fiado, gastado y comprado aparte (/formidable 2026-10-31)", () => {
     const r = respuestaResumenDia(dia);
     expect(r).toMatchObject({ titulo: "Tu día", etiqueta: "Hoy vendiste", cifra: { tipo: "soles", valor: 2257, tono: "normal" }, detalle: textoVentas(9, 58) });
     expect(r.filas.map((f) => [f.nombre, f.valor])).toEqual([
-      ["Cobraste", formatearSoles(1355)],
-      ["Te deben, en total", formatearSoles(1432)],
-      ["Gastaste y compraste", formatearSoles(3400)],
+      ["Cobraste al contado", formatearSoles(1155)],
+      ["Te abonaron", formatearSoles(200)],
+      ["Fiaste hoy", formatearSoles(1102)],
+      ["Gastaste", formatearSoles(40)],
+      ["Compraste fruta", formatearSoles(3360)],
     ]);
     expect(r.hablado).toBe(
-      "Hoy vendiste dos mil doscientos cincuenta y siete soles y cobraste mil trescientos cincuenta y cinco. Entre todos te deben mil cuatrocientos treinta y dos soles.",
+      "Hoy vendiste dos mil doscientos cincuenta y siete soles y cobraste mil trescientos cincuenta y cinco, con los abonos. Fiaste mil ciento dos.",
     );
+  });
+
+  it("sin fiado, no lo dice", () => {
+    expect(respuestaResumenDia({ ...dia, credito: 0 }).hablado).toBe("Hoy vendiste dos mil doscientos cincuenta y siete soles y cobraste mil trescientos cincuenta y cinco, con los abonos.");
   });
 });
 

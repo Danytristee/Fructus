@@ -40,6 +40,7 @@ test("«¿quién me debe?»: el total en grande, los que más deben y dicho en v
   await expect(hoja.getByText(new RegExp(totales.map((t) => t.replace(/[.$()]/g, "\\$&")).join("|"))).first()).toBeVisible();
   await expect(hoja.getByText(/entre \d+ clientes/)).toBeVisible();
   await expect(hoja.getByRole("listitem").first()).toBeVisible();
+  await expect(hoja.getByRole("link", { name: /^Ver (a los \d+ )?en Clientes$/ })).toBeVisible();
 
   // Se dijo apenas llegó, con los montos en palabras; «Escuchar» lo repite. (En desarrollo, React monta dos veces y
   // la frase se corta y vuelve a empezar: se cuenta lo último que se dijo, no cuántas veces.)
@@ -64,8 +65,7 @@ test("la respuesta que llega con la tarjeta se muestra sin pedirla otra vez, y r
     cifra: null,
     detalle: "Tu cuaderno está al día",
     filas: [],
-    mas: 0,
-    enlace: { texto: "Ver todo el cuaderno", href: "/clientes" },
+    enlace: { texto: "Ver en Clientes", href: "/clientes" },
     hablado: "Nadie te debe. Tu cuaderno está al día.",
   };
   // Solo cuentan las acciones que se piden después de dictar (entrar también usa una acción).
@@ -96,6 +96,8 @@ test("«¿cuánto me debe don Lucho?»: su deuda en grande y dicha", async ({ pa
   const antes = await saldoDe(lucho.id);
   const hoja = await dictar(page, await crearComando("consultar"), consulta("deuda_cliente", { cliente: { dicho: "don lucho", elegido: lucho, opciones: [] } }), "Cuánto te debe");
   await expect(hoja.getByText(/Luis Paredes (te debe|no te debe nada|tiene a favor)/)).toBeVisible({ timeout: 15_000 });
+  // Lo que se dijo, debajo del nombre del cuaderno: «Luis Paredes» puede no sonarle a «don Lucho».
+  await expect(hoja.getByText("dijiste «don lucho»")).toBeVisible();
   // Otras pruebas le fían a don Lucho en paralelo: vale lo de antes o lo de después.
   const despues = await saldoDe(lucho.id);
   await expect(hoja.getByText(new RegExp([antes, despues].map((s) => enSoles(Math.abs(s)).replace(/[.$()]/g, "\\$&")).join("|"))).first()).toBeVisible();
@@ -109,6 +111,7 @@ test("si no se entendió de quién, se elige de la lista y recién se responde",
   await expect(hoja.getByText("¿De quién me preguntas?")).toBeVisible();
   await hoja.getByRole("button", { name: /Rosa Quispe/ }).click();
   await expect(hoja.getByText(/Rosa Quispe (te debe|no te debe nada|tiene a favor)/)).toBeVisible({ timeout: 15_000 });
+  await expect(hoja.getByText("dijiste «la del puesto»")).toBeVisible();
 });
 
 test("«¿cuántas cajas de piña me quedan?»: elegida de la lista si hace falta, en cajas y dicha", async ({ page }) => {
@@ -149,7 +152,7 @@ test("«¿cuánto vendí?», «¿cuánto gasté?» y «¿cómo voy?» cuadran co
 
   await page.context().clearCookies();
   hoja = await dictar(page, await crearComando("consultar"), consulta("resumen_dia"), "Tu día");
-  for (const fila of ["Cobraste", "Te deben, en total", "Gastaste y compraste"]) await expect(hoja.getByText(fila)).toBeVisible({ timeout: 15_000 });
+  for (const fila of ["Cobraste al contado", "Te abonaron", "Fiaste hoy", "Gastaste", "Compraste fruta"]) await expect(hoja.getByText(fila)).toBeVisible({ timeout: 15_000 });
 });
 
 test("«¿qué me queda?»: las cajas que hay y de qué frutas, la que más primero", async ({ page }) => {

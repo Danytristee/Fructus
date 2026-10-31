@@ -30,7 +30,8 @@ type Props = {
 
 const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 
-type Eleccion = { clienteId: number | null; productoId: number | null };
+type Eleccion = { clienteId: number | null; productoId: number | null; /** El nombre de lo elegido, para «dijiste …». */ nombre: string | null };
+const mismoNombre = (a: string, b: string) => a.localeCompare(b, "es", { sensitivity: "base" }) === 0;
 
 /** Lo que falta elegir antes de poder responder: de quién es la deuda o de qué fruta es el stock. */
 function faltaElegir(consulta: Consulta["consulta"], e: Eleccion): "cliente" | "producto" | null {
@@ -43,7 +44,11 @@ function faltaElegir(consulta: Consulta["consulta"], e: Eleccion): "cliente" | "
 // al abrir (CLAUDE.md, «La voz»). Si la respuesta no llegó con la tarjeta, se pide aquí: la pregunta no se pierde. Si el
 // nombre no se entendió bien («¿cuánto me debe la del puesto?»), primero se elige de la lista y después se responde.
 export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Props) {
-  const inicial: Eleccion = { clienteId: tarjeta.cliente?.elegido?.id ?? null, productoId: tarjeta.producto?.elegido?.id ?? null };
+  const inicial: Eleccion = {
+    clienteId: tarjeta.cliente?.elegido?.id ?? null,
+    productoId: tarjeta.producto?.elegido?.id ?? null,
+    nombre: tarjeta.cliente?.elegido?.nombre ?? tarjeta.producto?.elegido?.nombre ?? null,
+  };
   const falta = faltaElegir(tarjeta.consulta, inicial);
   const [respuesta, setRespuesta] = useState<Respuesta | null>(tarjeta.respuesta);
   const [estado, setEstado] = useState<"listo" | "eligiendo" | "pidiendo" | "sin_respuesta" | "error">(
@@ -55,7 +60,7 @@ export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Pro
   async function pedir(e: Eleccion = eleccion) {
     setEleccion(e);
     setEstado("pidiendo");
-    const r = await responderConsulta({ comandoId, consulta: tarjeta.consulta, ...e, latenciaMs }).catch(() => ({ ok: false as const, error: "No pude leer tu cuaderno. Revisa tu señal e inténtalo otra vez." }));
+    const r = await responderConsulta({ comandoId, consulta: tarjeta.consulta, clienteId: e.clienteId, productoId: e.productoId, latenciaMs }).catch(() => ({ ok: false as const, error: "No pude leer tu cuaderno. Revisa tu señal e inténtalo otra vez." }));
     if (!r.ok) {
       setError(r.error);
       setEstado("error");
@@ -96,7 +101,7 @@ export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Pro
         inicial={opcion?.dicho ?? ""}
         opciones={(opcion?.opciones ?? []).map((o) => ({ ...o, detalle: null }))}
         buscar={buscarClientes}
-        alElegir={(o) => void pedir({ ...eleccion, clienteId: o.id })}
+        alElegir={(o) => void pedir({ ...eleccion, clienteId: o.id, nombre: o.nombre })}
         icono={(o) => <Avatar iniciales={iniciales(o.nombre)} tono={tonoDe(o.id)} />}
         sinResultados="No encuentro a nadie así. Prueba con otro nombre o apodo."
       />
@@ -106,7 +111,7 @@ export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Pro
         inicial={opcion?.dicho ?? ""}
         opciones={(opcion?.opciones ?? []).map((o) => ({ ...o, detalle: null }))}
         buscar={buscarProductos}
-        alElegir={(o) => void pedir({ ...eleccion, productoId: o.id })}
+        alElegir={(o) => void pedir({ ...eleccion, productoId: o.id, nombre: o.nombre })}
         icono={(o) => <IconoFruta nombre={o.nombre} tamano={40} />}
         sinResultados="No encuentro esa fruta. Prueba con otro nombre."
       />
@@ -130,12 +135,16 @@ export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Pro
   }
 
   const { cifra } = respuesta;
+  // Lo que dijo, si no es igual al nombre del cuaderno: «Luis Paredes» puede no sonarle a «don Lucho» (/formidable 2026-10-31).
+  const dicho = tarjeta.consulta === "deuda_cliente" ? tarjeta.cliente?.dicho : tarjeta.consulta === "stock_producto" ? tarjeta.producto?.dicho : null;
+  const decirDicho = dicho && eleccion.nombre && !mismoNombre(dicho, eleccion.nombre) ? `dijiste «${dicho}»` : null;
   // Una sola columna que no crece más que la hoja: con «auto», un nombre largo y su monto la estiraban y a 360 px
   // se cortaban la lista y «Listo» (captura del 31-10).
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <div className="mx-1 grid animate-pieza gap-0.5" style={pieza(0)}>
         <p className="text-lg font-bold text-texto-suave">{respuesta.etiqueta}</p>
+        {decirDicho && <p className="text-texto-suave">{decirDicho}</p>}
         {cifra &&
           (cifra.tipo === "soles" ? (
             <Monto valor={cifra.valor} tamano="total" tono={cifra.tono} />
@@ -166,7 +175,7 @@ export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Pro
           className="mx-1 flex min-h-12 animate-pieza items-center justify-between gap-2 font-extrabold text-acento-texto"
           style={pieza(2)}
         >
-          {respuesta.mas > 0 ? `Y ${respuesta.mas} más. ${respuesta.enlace.texto}` : respuesta.enlace.texto}
+          {respuesta.enlace.texto}
           <ChevronRight aria-hidden />
         </Link>
       )}

@@ -29,8 +29,6 @@ export type Respuesta = {
   detalle: string | null;
   /** El detalle, en filas: cada una con su ícono (el avatar del cliente, la fruta, o ninguno para un dato del día). */
   filas: { id: number; nombre: string; valor: string; tono?: "deuda"; icono: "cliente" | "fruta" | "ninguno" }[];
-  /** Cuántos más hay fuera de la lista. */
-  mas: number;
   /** A dónde ir para ver todo. */
   enlace: { texto: string; href: string } | null;
   /** Lo que se dice en voz alta: frases cortas, montos en palabras. */
@@ -43,9 +41,10 @@ const EN_LISTA = 5;
 /** «¿Quién me debe?»: el total, entre cuántos, y los que más deben primero. */
 export function respuestaQuienMeDebe(clientes: { id: number; nombre: string; saldo: number }[]): Respuesta {
   const deben = clientes.filter((c) => c.saldo > 0).sort((a, b) => b.saldo - a.saldo);
-  const base = { titulo: TITULO_CONSULTA.quien_me_debe, enlace: { texto: "Ver todo el cuaderno", href: "/clientes" } };
+  // «Clientes», como la pestaña de abajo: «el cuaderno» no se sabía qué abría (/formidable 2026-10-31).
+  const base = { titulo: TITULO_CONSULTA.quien_me_debe, enlace: { texto: deben.length > EN_LISTA ? `Ver a los ${deben.length} en Clientes` : "Ver en Clientes", href: "/clientes" } };
   if (deben.length === 0) {
-    return { ...base, etiqueta: "Nadie te debe", cifra: null, detalle: "Tu cuaderno está al día", filas: [], mas: 0, hablado: "Nadie te debe. Tu cuaderno está al día." };
+    return { ...base, etiqueta: "Nadie te debe", cifra: null, detalle: "Tu cuaderno está al día", filas: [], hablado: "Nadie te debe. Tu cuaderno está al día." };
   }
   const total = deben.reduce((s, c) => s + Math.round(c.saldo * 100), 0) / 100;
   const primero = deben[0]!;
@@ -56,7 +55,6 @@ export function respuestaQuienMeDebe(clientes: { id: number; nombre: string; sal
     cifra: { tipo: "soles", valor: total, tono: "deuda" },
     detalle: solo ? `solo ${primero.nombre}` : `entre ${deben.length} clientes`,
     filas: deben.slice(0, EN_LISTA).map((c) => ({ id: c.id, nombre: c.nombre, valor: formatearSoles(c.saldo), tono: "deuda", icono: "cliente" })),
-    mas: Math.max(0, deben.length - EN_LISTA),
     hablado: solo
       ? `Solo te debe ${primero.nombre}: ${solesEnPalabras(primero.saldo)}.`
       : `Te deben ${solesEnPalabras(total)}, entre ${numeroEnPalabras(deben.length)} clientes. El que más te debe es ${primero.nombre}, con ${solesEnPalabras(primero.saldo)}.`,
@@ -65,7 +63,7 @@ export function respuestaQuienMeDebe(clientes: { id: number; nombre: string; sal
 
 /** «¿Cuánto me debe el flaco?»: lo que debe, que está al día, o lo que tiene a favor. */
 export function respuestaDeudaCliente(c: { id: number; nombre: string; saldo: number }): Respuesta {
-  const base = { titulo: TITULO_CONSULTA.deuda_cliente, detalle: null, filas: [], mas: 0, enlace: { texto: "Ver el cuaderno", href: "/clientes" } };
+  const base = { titulo: TITULO_CONSULTA.deuda_cliente, detalle: null, filas: [], enlace: { texto: "Ver en Clientes", href: "/clientes" } };
   if (c.saldo > 0) {
     return { ...base, etiqueta: `${c.nombre} te debe`, cifra: { tipo: "soles", valor: c.saldo, tono: "deuda" }, hablado: `${c.nombre} te debe ${solesEnPalabras(c.saldo)}.` };
   }
@@ -82,7 +80,7 @@ export function respuestaDeudaCliente(c: { id: number; nombre: string; saldo: nu
 
 /** «¿Cuántas cajas de mango me quedan?». Con stock en cero o negativo no se muestra una cifra imposible: se dice. */
 export function respuestaStockProducto(p: { id: number; nombre: string; stock: number }): Respuesta {
-  const base = { titulo: TITULO_CONSULTA.stock_producto, filas: [], mas: 0, enlace: { texto: "Ver todo el stock", href: "/stock" } };
+  const base = { titulo: TITULO_CONSULTA.stock_producto, filas: [], enlace: { texto: "Ver todo el stock", href: "/stock" } };
   if (p.stock > 0) {
     return {
       ...base,
@@ -106,7 +104,7 @@ const dato = (id: number, nombre: string, valor: number) => ({ id, nombre, valor
 
 /** «¿Cuánto vendí?»: lo vendido hoy, partido en contado y crédito, igual que «Hoy». */
 export function respuestaVentasHoy(r: ResumenHoy): Respuesta {
-  const base = { titulo: TITULO_CONSULTA.ventas_hoy, mas: 0, enlace: { texto: "Ver las ventas", href: "/ventas" } };
+  const base = { titulo: TITULO_CONSULTA.ventas_hoy, enlace: { texto: "Ver las ventas", href: "/ventas" } };
   if (r.numeroVentas === 0) return { ...base, etiqueta: "Hoy todavía no vendes", cifra: null, detalle: null, filas: [], hablado: "Hoy todavía no vendes nada." };
   return {
     ...base,
@@ -122,7 +120,7 @@ export function respuestaVentasHoy(r: ResumenHoy): Respuesta {
 
 /** «¿Cuánto gasté hoy?»: los gastos (flete, ayudantes…) y, aparte, lo que se pagó en fruta. */
 export function respuestaGastosHoy(r: ResumenHoy): Respuesta {
-  const base = { titulo: TITULO_CONSULTA.gastos_hoy, filas: [], mas: 0, enlace: null };
+  const base = { titulo: TITULO_CONSULTA.gastos_hoy, filas: [], enlace: null };
   const compras = r.compras > 0 ? `En compras de fruta, ${solesEnPalabras(r.compras)}.` : "";
   if (r.gastos === 0 && r.compras === 0) return { ...base, etiqueta: "Hoy no tienes gastos", cifra: null, detalle: null, hablado: "Hoy no tienes gastos." };
   if (r.gastos === 0) return { ...base, etiqueta: "Hoy no tienes gastos", cifra: null, detalle: `Y en compras de fruta, ${formatearSoles(r.compras)}`, hablado: `Hoy no tienes gastos. ${compras}` };
@@ -135,20 +133,29 @@ export function respuestaGastosHoy(r: ResumenHoy): Respuesta {
   };
 }
 
-/** «¿Cómo voy?»: lo vendido en grande; lo cobrado, lo que te deben y lo que salió, en la lista. */
+/**
+ * «¿Cómo voy?»: solo lo de hoy. Lo vendido en grande; lo cobrado, lo fiado, lo gastado y lo comprado, cada uno aparte. La
+ * deuda de todos los días vive en «¿quién me debe?»: mezclada aquí, las cifras no cuadraban (/formidable 2026-10-31).
+ */
 export function respuestaResumenDia(r: ResumenHoy): Respuesta {
-  const salio = (centimos(r.gastos) + centimos(r.compras)) / 100;
   return {
     titulo: TITULO_CONSULTA.resumen_dia,
     etiqueta: "Hoy vendiste",
     cifra: { tipo: "soles", valor: r.vendido, tono: "normal" },
     detalle: textoVentas(r.numeroVentas, r.cajas),
-    filas: [dato(1, "Cobraste", r.cobrado), { ...dato(2, "Te deben, en total", r.porCobrar), tono: "deuda" }, dato(3, "Gastaste y compraste", salio)],
-    mas: 0,
+    filas: [
+      // Dos filas cortas en vez de «Cobraste (contado y abonos)», que a 360 px se cortaba.
+      dato(1, "Cobraste al contado", r.contado),
+      dato(5, "Te abonaron", r.abonos),
+      { ...dato(2, "Fiaste hoy", r.credito), tono: "deuda" },
+      dato(3, "Gastaste", r.gastos),
+      dato(4, "Compraste fruta", r.compras),
+    ],
+   
     enlace: { texto: "Ver el cierre del día", href: "/cierre" },
     hablado:
-      `Hoy vendiste ${solesEnPalabras(r.vendido)} y cobraste ${numeroEnPalabras(r.cobrado)}.` +
-      (r.porCobrar > 0 ? ` Entre todos te deben ${solesEnPalabras(r.porCobrar)}.` : " Nadie te debe."),
+      `Hoy vendiste ${solesEnPalabras(r.vendido)} y cobraste ${numeroEnPalabras(r.cobrado)}, con los abonos.` +
+      (r.credito > 0 ? ` Fiaste ${numeroEnPalabras(r.credito)}.` : ""),
   };
 }
 
@@ -156,7 +163,7 @@ export function respuestaResumenDia(r: ResumenHoy): Respuesta {
 export function respuestaStock(productos: { id: number; nombre: string; stock: number }[]): Respuesta {
   const hay = productos.filter((p) => p.stock > 0).sort((a, b) => b.stock - a.stock);
   const base = { titulo: TITULO_CONSULTA.stock, enlace: { texto: "Ver todo el stock", href: "/stock" } };
-  if (hay.length === 0) return { ...base, etiqueta: "No te queda fruta", cifra: null, detalle: null, filas: [], mas: 0, hablado: "No te queda fruta." };
+  if (hay.length === 0) return { ...base, etiqueta: "No te queda fruta", cifra: null, detalle: null, filas: [], hablado: "No te queda fruta." };
   const total = hay.reduce((s, p) => s + centimos(p.stock), 0) / 100;
   const primera = hay[0]!;
   return {
@@ -165,7 +172,6 @@ export function respuestaStock(productos: { id: number; nombre: string; stock: n
     cifra: { tipo: "cajas", valor: total },
     detalle: `de ${hay.length} ${hay.length === 1 ? "fruta" : "frutas"}`,
     filas: hay.slice(0, EN_LISTA).map((p) => ({ id: p.id, nombre: p.nombre, valor: formatearCajas(p.stock), icono: "fruta" })),
-    mas: Math.max(0, hay.length - EN_LISTA),
     hablado:
       `Tienes ${cajasEnPalabras(total)}, de ${numeroEnPalabras(hay.length).replace(/uno$/, "una")} ${hay.length === 1 ? "fruta" : "frutas"}. ` +
       `La que más tienes es ${primera.nombre}, con ${cajasEnPalabras(primera.stock)}.`,
