@@ -44,7 +44,7 @@ export type Tarjeta =
       proveedor: Eleccion;
       /** costo por caja: el dicho, o el último que se pagó por esa fruta (marcado «sugerido»). null si no hay ninguno. */
       items: { producto: Eleccion; cantidad: number; costo: { valor: number | null; sugerido: boolean } }[];
-      /** null: se pregunta con dos botones. Nunca se asume contado (20261031120300_compra_por_voz). */
+      /** null: se pregunta con dos botones. Nunca se asume contado (20261031211551_compra_por_voz). */
       condicion: "contado" | "credito" | null;
       dudas: string[];
       falta: ("proveedor" | "producto" | "costo" | "condicion")[];
