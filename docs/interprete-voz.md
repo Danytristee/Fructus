@@ -75,7 +75,9 @@ Lo que hay en este puesto (si lo que dijo calza con uno de estos, cópialo compl
 La idea: sin catálogo, el modelo parte «plátano isla del de Chao» en producto y proveedor equivocados y toma «el de Chao me
 trajo…» por una venta (`docs/voz/precision-2026-10-28.md`). **Se midió con el catálogo ficticio del seed y no se aplicó:** no sumó
 datos clave y bajó la intención (`docs/voz/precision-2026-10-28-3.md`). `interpretar()` acepta el catálogo, pero hoy nadie se lo pasa.
-Se vuelve a medir con el catálogo real del puesto y otra redacción.
+**Medido otra vez el 30-10 con el catálogo real** (`tests/interprete/catalogo.json`): la intención cae de 100 % a 70.8 %, porque
+el modelo responde `no_entendido` cuando la fruta no está en la lista («Producto 'limón' no está en el catálogo»). Antes de volver a
+probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, no que manda (`docs/bitacora/2026-10-30-dudas-y-cupo-groq.md`).
 
 ## 3. Herramientas (formato OpenAI / Groq)
 
