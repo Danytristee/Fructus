@@ -1,6 +1,7 @@
 // De la tarjeta de venta (lo que se entendió) al borrador que la persona corrige, y del borrador a lo que recibe
 // registrar_venta. Reglas de dinero (CLAUDE.md, principio 2): no se guarda sin precio, sin saber si pagó, ni al crédito
 // sin cliente; la rebaja dicha para toda la venta se reparte entre las frutas según su peso en el total. Lógica pura.
+import { leerMonto } from "./monto-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
 type Venta = Extract<Tarjeta, { tipo: "venta" }>;
@@ -31,23 +32,11 @@ const redondear = (n: number) => Math.round(n * 100) / 100;
 /** Una caja de fruta cuesta decenas o cientos de soles: más que esto es un dedo que se fue (/chaos 2026-10-29). */
 export const PRECIO_MAXIMO = 10_000;
 
-export type LecturaPrecio = { ok: true; valor: number } | { ok: false; error: string | null };
-
 /**
- * Lo que se escribió en «Precio de la caja». Acepta «45», «47.50», «47,5» y «S/ 45». Nunca adivina: un negativo, más de dos
- * decimales («1,299» ¿es 1.299 o 1299?), cero o un monto absurdo se rechazan con una frase que dice cómo escribirlo. Vacío
- * no es error: falta el precio. (La base también rechaza más de dos decimales: 20261029162351_montos_en_centimos.)
+ * Lo que se escribió en «Precio de la caja» (lib/voz/monto-reglas.ts). La base también rechaza más de dos decimales
+ * (20261029162351_montos_en_centimos).
  */
-export function leerPrecio(texto: string): LecturaPrecio {
-  const limpio = texto.replace(/s\/|\s/gi, "");
-  if (limpio === "") return { ok: false, error: null };
-  if (limpio.includes("-")) return { ok: false, error: "El precio no puede ser negativo." };
-  if (!/^\d{1,9}([.,]\d{1,2})?$/.test(limpio)) return { ok: false, error: "Escribe el precio así: 45 o 47.50." };
-  const valor = Number(limpio.replace(",", "."));
-  if (valor <= 0) return { ok: false, error: "El precio tiene que ser más que cero." };
-  if (valor > PRECIO_MAXIMO) return { ok: false, error: `Revisa el precio: ${valor.toLocaleString("es-PE")} soles por caja es demasiado.` };
-  return { ok: true, valor };
-}
+export const leerPrecio = (texto: string) => leerMonto(texto, { nombre: "precio", maximo: PRECIO_MAXIMO, unidad: "por caja" });
 
 export function borradorDe(t: Venta): Borrador {
   return {

@@ -1,7 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { baseLocal, enSoles } from "./base";
-import { cuentas, entrarComo } from "./cuentas";
+import { entrarComo } from "./cuentas";
+import { comando, crearComando, dictar } from "./dictar";
 
 // Dictar → tarjeta → Confirmar, contra la base local. La voz se simula (/api/voz), pero el comando de voz es real: la
 // venta pasa por registrar_venta y se revisa lo que quedó en la base. Cada ancho usa su propio cliente para que las
@@ -11,25 +12,8 @@ const base = baseLocal();
 const clientePorAncho = { "s25-412": { id: 1, nombre: "Luis Paredes" }, "gama-media-360": { id: 4, nombre: "Bodega Santa Ana" } } as const;
 type Ancho = keyof typeof clientePorAncho;
 
-async function idDelDuenio() {
-  const { data } = await base.auth.admin.listUsers();
-  return data.users.find((u) => u.email === cuentas.duenio)!.id;
-}
-
-/** Un comando de voz pendiente, como lo deja /api/voz. */
-async function crearComando() {
-  const { data, error } = await base
-    .from("comandos_voz")
-    .insert({ transcripcion: "prueba e2e", intencion: "registrar_venta", resultado: "pendiente", registrado_por: await idDelDuenio() })
-    .select("id")
-    .single();
-  if (error) throw error;
-  return data.id;
-}
-
 const saldoDe = async (clienteId: number) => Number((await base.from("v_saldo_clientes").select("saldo").eq("cliente_id", clienteId).single()).data!.saldo);
 const ventasDe = async (comandoId: number) => (await base.from("ventas").select("*, venta_items(*)").eq("comando_voz_id", comandoId)).data ?? [];
-const comando = async (id: number) => (await base.from("comandos_voz").select("resultado, latencia_ms").eq("id", id).single()).data!;
 
 function tarjeta(cliente: { id: number; nombre: string } | null, cambios: Record<string, unknown> = {}) {
   return {
@@ -47,23 +31,7 @@ function tarjeta(cliente: { id: number; nombre: string } | null, cambios: Record
   };
 }
 
-/** Entra, simula la voz con esa tarjeta, dicta y espera la hoja. */
-async function dictarVenta(page: Page, comandoId: number, t: ReturnType<typeof tarjeta>) {
-  await entrarComo(page, "duenio");
-  await page.route("/api/voz", (r) => r.fulfill({ json: { comandoId, tarjeta: t, latenciaMs: 900 } }));
-  await page.waitForLoadState("networkidle"); // que React monte el botón antes de presionarlo
-  const caja = (await page.getByRole("button", { name: "Botón de voz" }).boundingBox())!;
-  await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
-  await page.mouse.down();
-  // Se cuenta desde que el micrófono graba (vibra y dice «Te escucho»), no desde el toque.
-  await expect(page.locator("button[data-estado]")).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
-  await page.waitForTimeout(900);
-  await page.mouse.up();
-  const hoja = page.getByRole("dialog", { name: "¿Así fue la venta?" });
-  // En desarrollo, la primera vez se compila la hoja (se carga en diferido).
-  await expect(hoja).toBeVisible({ timeout: 15_000 });
-  return hoja;
-}
+const dictarVenta = (page: Page, comandoId: number, t: ReturnType<typeof tarjeta>) => dictar(page, comandoId, t, "¿Así fue la venta?");
 
 test("venta a crédito: pregunta si pagó, muestra cómo queda la deuda y la guarda una vez", async ({ page }, info) => {
   test.slow();

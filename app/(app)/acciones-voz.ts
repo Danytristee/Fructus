@@ -2,8 +2,7 @@
 
 import { z } from "zod";
 
-import { permisosDe } from "@/lib/permisos-reglas";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { leerSaldo, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import { PRECIO_MAXIMO, pedidoVenta } from "@/lib/voz/confirmar-venta-reglas";
 import { preciosSugeridos } from "@/lib/voz/resolver";
 
@@ -11,22 +10,9 @@ import { preciosSugeridos } from "@/lib/voz/resolver";
 // sugerido y la deuda del cliente. En «Hoy» el navegador no carga supabase-js (CLAUDE.md, regla 9): todo pasa por aquí.
 // La RLS es la seguridad; aquí solo se valida la forma y se traducen los errores a lenguaje de puesto.
 
-const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra vez.";
-const SIN_SESION = "Tu sesión terminó. Vuelve a entrar: la venta te espera en «Hoy».";
+const SIN_SESION = sinSesion("la venta");
 const REVISA = "Revisa el precio y las cajas de la tarjeta.";
 
-/**
- * La sesión de quien toca, o null. No redirige como lib/sesion.ts: dentro de una acción, el redirect llegaba al celular
- * como una falla y la tarjeta decía «Revisa tu señal» con la sesión vencida (/chaos 2026-10-29).
- */
-async function sesion() {
-  const supabase = await crearClienteServidor();
-  const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) return null;
-  const { data: perfil, error } = await supabase.from("perfiles").select("rol").eq("id", data.claims.sub).eq("activo", true).maybeSingle();
-  if (error) console.error("voz: no se pudo leer el perfil", { usuarioId: data.claims.sub, codigo: error.code });
-  return { supabase, permisos: permisosDe(perfil?.rol ?? null) };
-}
 const nombreProducto = (p: { nombre: string; variedad: string | null }) => [p.nombre, p.variedad].filter(Boolean).join(" ");
 
 const borrador = z.object({
@@ -83,12 +69,7 @@ export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Pro
   const { error: errorLatencia } = await supabase.from("comandos_voz").update({ latencia_ms: latenciaMs }).eq("id", comandoId);
   if (errorLatencia) console.error("voz: no se pudo guardar la latencia", { comandoId, codigo: errorLatencia.code });
 
-  let saldo: number | null = null;
-  if (pedido.cliente_id !== null) {
-    const { data, error: errorSaldo } = await supabase.from("v_saldo_clientes").select("saldo").eq("cliente_id", pedido.cliente_id).maybeSingle();
-    if (errorSaldo) console.error("voz: no se pudo leer el saldo", { ventaId, codigo: errorSaldo.code });
-    else saldo = Number(data?.saldo ?? 0);
-  }
+  const saldo = pedido.cliente_id === null ? null : await leerSaldo(supabase, pedido.cliente_id);
 
   // Sin revalidatePath: rearmar «Hoy» dentro de esta respuesta demoraba el sello 2 a 5 s. El celular refresca «Hoy» por
   // detrás (router.refresh) mientras el sello se anima.
@@ -156,16 +137,11 @@ export async function sugerirPrecios(clienteId: number | null, productos: number
   }
 }
 
-/** Cuánto debe hoy el cliente, para mostrar cómo queda con esta venta. */
+/** Cuánto debe hoy el cliente, para mostrar cómo queda con esta venta o este abono. */
 export async function saldoDe(clienteId: number): Promise<number | null> {
   const id = z.number().int().positive().safeParse(clienteId);
   if (!id.success) return null;
   const s = await sesion();
   if (!s) return null;
-  const { data, error } = await s.supabase.from("v_saldo_clientes").select("saldo").eq("cliente_id", id.data).maybeSingle();
-  if (error) {
-    console.error("voz: no se pudo leer el saldo", { clienteId: id.data, codigo: error.code });
-    return null;
-  }
-  return Number(data?.saldo ?? 0);
+  return leerSaldo(s.supabase, id.data);
 }

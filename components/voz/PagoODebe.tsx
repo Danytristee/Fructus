@@ -4,6 +4,7 @@ import { Check, Clock } from "lucide-react";
 import { cn } from "cn";
 
 import type { Medio } from "@/lib/voz/confirmar-venta-reglas";
+import { SelectorMedio } from "./SelectorMedio";
 
 type Condicion = "contado" | "credito";
 
@@ -11,19 +12,18 @@ type Props = {
   condicion: Condicion | null;
   medio: Medio | null;
   alCambiar: (condicion: Condicion, medio: Medio | null) => void;
+  /** Cómo se pregunta: en la venta, por el cliente («¿Pagó o lo debe?»); en la compra, por uno mismo («¿La pagaste…?»). */
+  textos?: Textos;
 };
 
-const MEDIOS: { valor: Medio; etiqueta: string }[] = [
-  { valor: "efectivo", etiqueta: "Efectivo" },
-  { valor: "yape", etiqueta: "Yape" },
-  { valor: "plin", etiqueta: "Plin" },
-  { valor: "transferencia", etiqueta: "Transf." },
-];
+type Textos = { pregunta: string; contado: string; credito: string; conQue: string };
+
+const DE_VENTA: Textos = { pregunta: "¿Pagó o lo debe?", contado: "Pagó", credito: "Lo debe", conQue: "¿Con qué pagó?" };
 
 // ¿Pagó o lo debe? Nunca se asume contado: si no se dijo, la pregunta va escrita y son dos botones separados, cada uno con
 // su color y su icono (en un solo óvalo parecía un campo: /formidable 2026-10-29). Elegido, es una píldora que se desliza
 // (ADR-0007), y si pagó se ve con qué: efectivo a la vista, y se cambia de un toque.
-export function PagoODebe({ condicion, medio, alCambiar }: Props) {
+export function PagoODebe({ condicion, medio, alCambiar, textos = DE_VENTA }: Props) {
   const elegir = (c: Condicion) => {
     navigator.vibrate?.(10);
     alCambiar(c, c === "contado" ? (medio ?? "efectivo") : null);
@@ -32,7 +32,7 @@ export function PagoODebe({ condicion, medio, alCambiar }: Props) {
     return (
       <div role="group" aria-labelledby="pago-pregunta" className="grid gap-2">
         <p id="pago-pregunta" className="mx-1 text-lg font-extrabold">
-          ¿Pagó o lo debe?
+          {textos.pregunta}
         </p>
         <div className="grid grid-cols-2 gap-2">
           {(["contado", "credito"] as const).map((c) => (
@@ -46,7 +46,7 @@ export function PagoODebe({ condicion, medio, alCambiar }: Props) {
               )}
             >
               {c === "contado" ? <Check aria-hidden className="size-[22px]" /> : <Clock aria-hidden className="size-[22px]" />}
-              {c === "contado" ? "Pagó" : "Lo debe"}
+              {c === "contado" ? textos.contado : textos.credito}
             </button>
           ))}
         </div>
@@ -55,7 +55,7 @@ export function PagoODebe({ condicion, medio, alCambiar }: Props) {
   }
   return (
     <div className="grid gap-2">
-      <div role="group" aria-label="¿Pagó o lo debe?" className="relative grid grid-cols-2 rounded-full bg-superficie p-[5px]">
+      <div role="group" aria-label={textos.pregunta} className="relative grid grid-cols-2 rounded-full bg-superficie p-[5px]">
         <span
           aria-hidden
           className={cn(
@@ -75,28 +75,11 @@ export function PagoODebe({ condicion, medio, alCambiar }: Props) {
             )}
           >
             {c === "contado" ? <Check aria-hidden className="size-[22px]" /> : <Clock aria-hidden className="size-[22px]" />}
-            {c === "contado" ? "Pagó" : "Lo debe"}
+            {c === "contado" ? textos.contado : textos.credito}
           </button>
         ))}
       </div>
-      {condicion === "contado" && (
-        <div role="group" aria-label="¿Con qué pagó?" className="grid animate-pieza grid-cols-4 gap-2">
-          {MEDIOS.map((m) => (
-            <button
-              key={m.valor}
-              type="button"
-              aria-pressed={medio === m.valor}
-              onClick={() => alCambiar("contado", m.valor)}
-              className={cn(
-                "min-h-12 rounded-full px-1 text-base font-extrabold transition-colors duration-200",
-                medio === m.valor ? "bg-texto text-superficie" : "bg-superficie text-texto",
-              )}
-            >
-              {m.etiqueta}
-            </button>
-          ))}
-        </div>
-      )}
+      {condicion === "contado" && <SelectorMedio medio={medio} alCambiar={(m) => alCambiar("contado", m)} pregunta={textos.conQue} />}
     </div>
   );
 }
