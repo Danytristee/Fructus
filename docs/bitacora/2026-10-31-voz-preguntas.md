@@ -14,6 +14,10 @@
 - Cómo se verificó: Vitest (15 de consultas) y 14 e2e de consultas a 412 y 360 px.
 - **Entorno local, no la app:** con los 3 Supabase de CAYLA corriendo en Docker (36 contenedores), los e2e en paralelo hicieron que el servidor no alcanzara a Auth (`AuthRetryableFetchError`, estado 0) y que PostgREST dejara conexiones «idle in transaction (aborted)», que después responden `25P02` a todo. Se arregla con `docker restart supabase_rest_fructus supabase_kong_fructus` y corriendo con `--workers=1`. Después: 14 de 14.
 
+**Actividad 4 · Cierre.**
+- 8 casos nuevos de consulta en `tests/interprete/casos.json` (56 en total). `/voz-precision` sobre los 16 de consulta: 100 % de intención y de datos clave (`docs/voz/precision-2026-10-31-consultas.md`). Los 56 no se midieron: el cupo del día de Groq no alcanzaba.
+- JavaScript de «Hoy»: 177.3 KB brotli (tope 180). `/formidable` 8.8, con 3 cambios propuestos (`docs/formidable/voz-respuestas-2026-10-31.md`). `/chaos` no aplica: la hoja no guarda.
+
 ## Pendiente
 - El contador no puede dictar (`/api/voz` responde 403), así que tampoco puede preguntar. Decidir si las consultas se abren al contador.
 - En desarrollo, React monta dos veces y la respuesta empieza a decirse dos veces (la segunda corta a la primera). En producción no pasa.
