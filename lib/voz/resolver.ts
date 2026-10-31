@@ -1,6 +1,6 @@
 import "server-only";
 
-// Lo que dijo la persona → ids de la base: clientes, productos y proveedores, más el precio sugerido de cada ítem.
+// Lo que dijo la persona → ids de la base: clientes, productos y proveedores, más el precio (o costo) sugerido de cada ítem.
 // Dos vueltas en paralelo (búsquedas, después precios), con las RPC buscar_* y ultimo_precio (docs/interprete-voz.md, §5).
 // La regla de qué se elige solo y qué se pregunta vive en tarjeta-reglas.ts; aquí solo se consulta.
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -29,7 +29,7 @@ async function buscarProductos(supabase: Cliente, q: string): Promise<Candidato[
 }
 
 // Los proveedores son pocos y no tienen RPC de búsqueda: se comparan aquí con la misma similitud que pg_trgm.
-async function buscarProveedores(supabase: Cliente, q: string | null): Promise<Candidato[]> {
+export async function buscarProveedores(supabase: Cliente, q: string | null): Promise<Candidato[]> {
   if (!q) return [];
   const { data, error } = await supabase.from("proveedores").select("id, nombre, alias").eq("activo", true);
   if (error) throw new Error(`proveedores (${error.code})`);
@@ -59,6 +59,18 @@ export async function preciosSugeridos(supabase: Cliente, clienteId: number | nu
   );
 }
 
+/** El costo sugerido de cada fruta: lo que se pagó por caja en su última compra. null si nunca se compró. */
+export async function costosSugeridos(supabase: Cliente, productos: (number | null)[]): Promise<(number | null)[]> {
+  return Promise.all(
+    productos.map(async (p) => {
+      if (p === null) return null;
+      const { data, error } = await supabase.from("compra_items").select("costo_unitario").eq("producto_id", p).order("id", { ascending: false }).limit(1).maybeSingle();
+      if (error) throw new Error(`ultimo_costo (${error.code})`);
+      return data === null ? null : Number(data.costo_unitario);
+    }),
+  );
+}
+
 export async function resolver(supabase: Cliente, i: Interpretacion): Promise<Resolucion> {
   const vacia: Resolucion = { clientes: [], proveedores: [], productos: [], precios: [] };
   switch (i.herramienta) {
@@ -79,7 +91,9 @@ export async function resolver(supabase: Cliente, i: Interpretacion): Promise<Re
         buscarProveedores(supabase, i.datos.proveedor_texto),
         ...i.datos.items.map((it) => buscarProductos(supabase, it.producto_texto)),
       ]);
-      return { ...vacia, proveedores, productos };
+      // Igual que el precio en la venta: solo se sugiere costo para la fruta que se eligió sola.
+      const elegidos = i.datos.items.map((it, n) => elegir(it.producto_texto, productos[n] ?? []).elegido?.id ?? null);
+      return { ...vacia, proveedores, productos, precios: await costosSugeridos(supabase, elegidos) };
     }
     case "registrar_merma":
       return { ...vacia, productos: [await buscarProductos(supabase, i.datos.producto_texto)] };

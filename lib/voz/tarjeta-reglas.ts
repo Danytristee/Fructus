@@ -42,10 +42,12 @@ export type Tarjeta =
   | {
       tipo: "compra";
       proveedor: Eleccion;
-      items: { producto: Eleccion; cantidad: number; costo: number | null }[];
+      /** costo por caja: el dicho, o el último que se pagó por esa fruta (marcado «sugerido»). null si no hay ninguno. */
+      items: { producto: Eleccion; cantidad: number; costo: { valor: number | null; sugerido: boolean } }[];
+      /** null: se pregunta con dos botones. Nunca se asume contado (20261031211551_compra_por_voz). */
       condicion: "contado" | "credito" | null;
       dudas: string[];
-      falta: ("producto" | "costo")[];
+      falta: ("proveedor" | "producto" | "costo" | "condicion")[];
     }
   | { tipo: "merma"; producto: Eleccion; cantidad: number; motivo: string | null; falta: "producto"[] }
   | { tipo: "gasto"; categoria: string; monto: number; descripcion: string | null; medio: Medio }
@@ -58,7 +60,7 @@ export type Resolucion = {
   proveedores: Candidato[];
   /** Una lista de candidatos por ítem (o una sola, para merma y consultas de producto). */
   productos: Candidato[][];
-  /** El precio sugerido de cada ítem (ultimo_precio); null si no hay producto elegido o no hay ninguno. */
+  /** El precio (venta) o costo (compra) sugerido de cada ítem; null si no hay producto elegido o no hay ninguno. */
   precios: (number | null)[];
 };
 
@@ -112,11 +114,20 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
       return { tipo: "abono", cliente, monto: i.datos.monto, medio: i.datos.medio_pago, dudas: i.datos.dudas, falta: cliente.elegido ? [] : ["cliente"] };
     }
     case "registrar_compra": {
-      const items = i.datos.items.map((it, n) => ({ producto: elegir(it.producto_texto, r.productos[n] ?? []), cantidad: it.cantidad, costo: it.costo_unitario }));
-      const falta: ("producto" | "costo")[] = [];
+      const proveedor = elegir(i.datos.proveedor_texto, r.proveedores);
+      const items = i.datos.items.map((it, n) => {
+        const producto = elegir(it.producto_texto, r.productos[n] ?? []);
+        const sugerido = producto.elegido ? (r.precios[n] ?? null) : null;
+        const costo = it.costo_unitario !== null ? { valor: it.costo_unitario, sugerido: false } : { valor: sugerido, sugerido: sugerido !== null };
+        return { producto, cantidad: it.cantidad, costo };
+      });
+      const falta: Extract<Tarjeta, { tipo: "compra" }>["falta"] = [];
+      // Al crédito hay que saber a quién se le debe (la base también lo exige: compra_credito_requiere_proveedor).
+      if (i.datos.condicion === "credito" && !proveedor.elegido) falta.push("proveedor");
       if (items.some((x) => !x.producto.elegido)) falta.push("producto");
-      if (items.some((x) => x.costo === null)) falta.push("costo");
-      return { tipo: "compra", proveedor: elegir(i.datos.proveedor_texto, r.proveedores), items, condicion: i.datos.condicion, dudas: i.datos.dudas, falta };
+      if (items.some((x) => x.costo.valor === null)) falta.push("costo");
+      if (i.datos.condicion === null) falta.push("condicion");
+      return { tipo: "compra", proveedor, items, condicion: i.datos.condicion, dudas: i.datos.dudas, falta };
     }
     case "registrar_merma": {
       const producto = elegir(i.datos.producto_texto, r.productos[0] ?? []);

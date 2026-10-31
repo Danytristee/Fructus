@@ -35,7 +35,7 @@ set local role authenticated;
 -- --- Dueño: llega fruta -------------------------------------------------------
 select pg_temp.como('00000000-0000-0000-0000-0000000000d1');
 select lives_ok(
-  $$ select registrar_compra('{"proveedor_id":2,"medio_pago":"efectivo","items":[{"producto_id":1,"cantidad":50,"costo_unitario":30},{"producto_id":3,"cantidad":40,"costo_unitario":20}]}') $$,
+  $$ select registrar_compra('{"proveedor_id":2,"condicion":"contado","medio_pago":"efectivo","items":[{"producto_id":1,"cantidad":50,"costo_unitario":30},{"producto_id":3,"cantidad":40,"costo_unitario":20}]}') $$,
   'el dueño registra una compra');
 select is((select stock from v_stock where producto_id = 1), (select stock_mango + 50 from inicio), 'la compra suma 50 cajas de mango al stock');
 

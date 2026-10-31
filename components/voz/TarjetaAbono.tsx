@@ -1,0 +1,200 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { ChevronLeft, HandCoins, TriangleAlert } from "lucide-react";
+
+import { confirmarAbono } from "@/app/(app)/acciones-operaciones";
+import { buscarClientes, saldoDe } from "@/app/(app)/acciones-voz";
+import { Avatar } from "@/components/ui/Avatar";
+import { Monto } from "@/components/ui/Monto";
+import { formatearSoles } from "@/lib/formato";
+import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
+import {
+  borradorAbono,
+  faltaAbono,
+  frasesFaltaAbono,
+  fueCorregidoAbono,
+  leerAbono,
+  saldoTrasAbono,
+  type BorradorAbono,
+} from "@/lib/voz/confirmar-abono-reglas";
+import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
+import { DudasVoz } from "./DudasVoz";
+import { EditorBusqueda } from "./EditorBusqueda";
+import { EditorMonto } from "./EditorMonto";
+import { FilaCliente } from "./FilaCliente";
+import { FilaTarjeta } from "./FilaTarjeta";
+import { Guardado } from "./Guardado";
+import { PieConfirmar } from "./PieConfirmar";
+import { SelectorMedio } from "./SelectorMedio";
+import { useConfirmar } from "./useConfirmar";
+
+type Abono = Extract<Tarjeta, { tipo: "abono" }>;
+
+type Props = {
+  tarjeta: Abono;
+  comandoId: number;
+  latenciaMs: number;
+  alGuardar: () => void;
+  alDescartar: (incierto: boolean) => void;
+  alCambiarGuardando: (guardando: boolean) => void;
+};
+
+const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
+
+// La tarjeta de un abono dictado («el flaco me dio 80 a cuenta»): quién pagó, cuánto y con qué, y cómo queda su deuda.
+// Si paga más de lo que debe se deja guardar, pero se dice en grande antes de Confirmar (decisión del 31-10).
+export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando }: Props) {
+  const [borrador, setBorrador] = useState<BorradorAbono>(() => borradorAbono(tarjeta));
+  const [vista, setVista] = useState<"tarjeta" | "cliente" | "monto">("tarjeta");
+  const [saldo, setSaldo] = useState<number | null>(null);
+  const { confirmar: enviar, guardando, error, guardado, incierto } = useConfirmar<{ ok: true; saldo: number | null }>({ alGuardar, alCambiarGuardando });
+
+  const clienteId = borrador.cliente?.id ?? null;
+  useEffect(() => {
+    if (clienteId === null) return;
+    let vigente = true;
+    void saldoDe(clienteId)
+      .catch(() => null)
+      .then((s) => vigente && setSaldo(s));
+    return () => {
+      vigente = false;
+    };
+  }, [clienteId]);
+
+  const falta = faltaAbono(borrador);
+  const { cliente, monto } = borrador;
+
+  function confirmar() {
+    if (falta.length > 0) return;
+    void enviar(() => confirmarAbono({ comandoId, borrador, corregido: fueCorregidoAbono(tarjeta, borrador), latenciaMs }));
+  }
+
+  if (guardado) {
+    const queda = guardado.saldo;
+    return (
+      <Guardado titulo="Abono guardado">
+        {cliente &&
+          queda !== null &&
+          (queda > 0 ? (
+            <>
+              {cliente.nombre} te debe <strong className="cifra text-deuda">{formatearSoles(queda)}</strong>
+            </>
+          ) : queda < 0 ? (
+            `${cliente.nombre} tiene ${formatearSoles(-queda)} a favor`
+          ) : (
+            `${cliente.nombre} no te debe nada`
+          ))}
+      </Guardado>
+    );
+  }
+
+  if (vista !== "tarjeta") {
+    const volver = () => setVista("tarjeta");
+    return (
+      <div className="grid animate-pieza gap-3">
+        <button type="button" onClick={volver} className="-ml-2 flex min-h-12 items-center gap-1 justify-self-start px-2 font-extrabold text-acento-texto">
+          <ChevronLeft aria-hidden />
+          Volver al abono
+        </button>
+        {vista === "cliente" ? (
+          <EditorBusqueda
+            etiqueta="¿Quién te pagó?"
+            inicial={cliente?.nombre ?? tarjeta.cliente.dicho ?? ""}
+            opciones={tarjeta.cliente.opciones.map((o) => ({ ...o, detalle: null }))}
+            buscar={buscarClientes}
+            alElegir={(o) => {
+              setSaldo(null);
+              setBorrador((b) => ({ ...b, cliente: { id: o.id, nombre: o.nombre } }));
+              volver();
+            }}
+            icono={(o) => <Avatar iniciales={iniciales(o.nombre)} tono={tonoDe(o.id)} />}
+            sinResultados="No encuentro a nadie así. Prueba con otro nombre o apodo."
+          />
+        ) : (
+          <EditorMonto
+            etiqueta="¿Cuánto te dio?"
+            inicial={monto}
+            leer={leerAbono}
+            alListo={(m) => {
+              setBorrador((b) => ({ ...b, monto: m }));
+              volver();
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  const tras = cliente && saldo !== null && monto !== null && !falta.includes("monto") ? saldoTrasAbono(saldo, monto) : null;
+  return (
+    <div className="grid gap-2">
+      <FilaCliente
+        style={pieza(0)}
+        className="animate-pieza"
+        cliente={cliente}
+        dicho={tarjeta.cliente.dicho}
+        falta={falta.includes("cliente")}
+        sinNombre="Toca para elegir quién es"
+        alTocar={() => setVista("cliente")}
+      />
+      <FilaTarjeta
+        style={pieza(1)}
+        className="animate-pieza"
+        falta={falta.includes("monto")}
+        onClick={() => setVista("monto")}
+        icono={
+          <span className="grid size-12 place-items-center rounded-full bg-exito/12 text-exito">
+            <HandCoins aria-hidden />
+          </span>
+        }
+        grande={monto === null || falta.includes("monto") ? "¿Cuánto te dio?" : <Monto valor={monto} tamano="cifra" />}
+        chico="Toca para cambiar el monto"
+      />
+
+      <div className="mx-1 mt-1 grid animate-pieza gap-2" style={pieza(2)}>
+        <p className="text-lg font-extrabold">¿Con qué te pagó?</p>
+        <SelectorMedio medio={borrador.medio} alCambiar={(medio) => setBorrador((b) => ({ ...b, medio }))} pregunta="¿Con qué te pagó?" />
+      </div>
+
+      <DudasVoz dudas={tarjeta.dudas} />
+
+      {cliente && tras && (
+        <div className="animate-pieza" style={pieza(3)}>
+          {tras.tipo === "a_favor" ? (
+            <div role="note" className="flex items-start gap-3 rounded-[20px] bg-superficie px-3.5 py-3 ring-2 ring-deuda">
+              <TriangleAlert aria-hidden className="mt-0.5 size-6 shrink-0 text-deuda" />
+              <p className="text-lg">
+                <strong>Te dio más de lo que debe.</strong> A {cliente.nombre} le quedan{" "}
+                <strong className="cifra text-deuda">{formatearSoles(tras.monto)}</strong> a favor. Si no fue así, toca el monto.
+              </p>
+            </div>
+          ) : (
+            <p className="mx-1 text-lg">
+              {tras.tipo === "debe" ? (
+                <>
+                  Con este abono, {cliente.nombre} te debe <strong className="cifra text-deuda">{formatearSoles(tras.monto)}</strong>
+                </>
+              ) : (
+                <>
+                  Con este abono, {cliente.nombre} <strong className="text-exito">queda al día</strong>
+                </>
+              )}
+            </p>
+          )}
+        </div>
+      )}
+
+      <PieConfirmar
+        style={pieza(4)}
+        aviso={frasesFaltaAbono(falta)}
+        error={error}
+        guardando={guardando}
+        listo={falta.length === 0}
+        etiqueta="Confirmar abono"
+        alConfirmar={confirmar}
+        alDescartar={() => alDescartar(incierto.current)}
+      />
+    </div>
+  );
+}
