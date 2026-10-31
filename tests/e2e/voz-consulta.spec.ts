@@ -32,7 +32,8 @@ test("«¿quién me debe?»: el total en grande, los que más deben y dicho en v
   const comandoId = await crearComando("consultar");
   const hoja = await dictar(page, comandoId, consulta("quien_me_debe"), "Quién te debe");
 
-  await expect(hoja.getByText("Te deben")).toBeVisible();
+  // En desarrollo, la primera vez se compila la acción que responde: hasta 15 s, como la hoja (dictar()).
+  await expect(hoja.getByText("Te deben")).toBeVisible({ timeout: 15_000 });
   const despues = await deudas();
   // Las otras pruebas abonan y fían en paralelo: vale el total de antes o el de después.
   const totales = [enSoles(antes.total), enSoles(despues.total)];
@@ -87,7 +88,7 @@ test("la respuesta que llega con la tarjeta se muestra sin pedirla otra vez, y r
 test("una pregunta que todavía no se responde lo dice, y se cierra sin aviso", async ({ page }) => {
   test.slow();
   const hoja = await dictar(page, await crearComando("consultar"), consulta("stock"), "Tu stock");
-  await expect(hoja.getByText("Esa pregunta todavía no la sé responder.", { exact: false })).toBeVisible();
+  await expect(hoja.getByText("Esa pregunta todavía no la sé responder.", { exact: false })).toBeVisible({ timeout: 15_000 });
   await hoja.getByRole("button", { name: "Entendido" }).click();
   await expect(page.getByText(/No guardé/)).toHaveCount(0);
 });
