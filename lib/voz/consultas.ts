@@ -6,7 +6,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "../supabase/tipos-db";
-import { respuestaQuienMeDebe, type Respuesta } from "./consultas-reglas";
+import { respuestaDeudaCliente, respuestaQuienMeDebe, respuestaStockProducto, type Respuesta } from "./consultas-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
 type Cliente = SupabaseClient<Database>;
@@ -21,6 +21,21 @@ export async function responderConsulta(supabase: Cliente, p: PedidoConsulta): P
       const { data, error } = await supabase.from("v_saldo_clientes").select("cliente_id, nombre, saldo").gt("saldo", 0);
       if (error) throw new Error(`v_saldo_clientes (${error.code})`);
       return respuestaQuienMeDebe((data ?? []).map((c) => ({ id: c.cliente_id, nombre: c.nombre, saldo: Number(c.saldo) })));
+    }
+    case "deuda_cliente": {
+      if (p.clienteId === null) return null; // falta elegir de quién
+      const [{ data: cliente, error: e1 }, { data: saldo, error: e2 }] = await Promise.all([
+        supabase.from("clientes").select("id, nombre").eq("id", p.clienteId).single(),
+        supabase.from("v_saldo_clientes").select("saldo").eq("cliente_id", p.clienteId).maybeSingle(),
+      ]);
+      if (e1 || e2) throw new Error(`deuda_cliente (${e1?.code ?? e2?.code})`);
+      return respuestaDeudaCliente({ id: cliente.id, nombre: cliente.nombre, saldo: Number(saldo?.saldo ?? 0) });
+    }
+    case "stock_producto": {
+      if (p.productoId === null) return null; // falta elegir qué fruta
+      const { data, error } = await supabase.from("v_stock").select("producto_id, nombre, variedad, stock").eq("producto_id", p.productoId).single();
+      if (error) throw new Error(`stock_producto (${error.code})`);
+      return respuestaStockProducto({ id: data.producto_id, nombre: [data.nombre, data.variedad].filter(Boolean).join(" "), stock: Number(data.stock ?? 0) });
     }
     default:
       return null;

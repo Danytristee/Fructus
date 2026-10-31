@@ -92,3 +92,45 @@ test("una pregunta que todavía no se responde lo dice, y se cierra sin aviso", 
   await hoja.getByRole("button", { name: "Entendido" }).click();
   await expect(page.getByText(/No guardé/)).toHaveCount(0);
 });
+
+const saldoDe = async (id: number) => Number((await base.from("v_saldo_clientes").select("saldo").eq("cliente_id", id).single()).data!.saldo);
+const stockDe = async (id: number) => Number((await base.from("v_stock").select("stock").eq("producto_id", id).single()).data!.stock);
+const lucho = { id: 1, nombre: "Luis Paredes" };
+const pina = { id: 6, nombre: "Piña golden" };
+
+test("«¿cuánto me debe don Lucho?»: su deuda en grande y dicha", async ({ page }) => {
+  test.slow();
+  await grabarLoDicho(page);
+  const antes = await saldoDe(lucho.id);
+  const hoja = await dictar(page, await crearComando("consultar"), consulta("deuda_cliente", { cliente: { dicho: "don lucho", elegido: lucho, opciones: [] } }), "Cuánto te debe");
+  await expect(hoja.getByText(/Luis Paredes (te debe|no te debe nada|tiene a favor)/)).toBeVisible({ timeout: 15_000 });
+  // Otras pruebas le fían a don Lucho en paralelo: vale lo de antes o lo de después.
+  const despues = await saldoDe(lucho.id);
+  await expect(hoja.getByText(new RegExp([antes, despues].map((s) => enSoles(Math.abs(s)).replace(/[.$()]/g, "\\$&")).join("|"))).first()).toBeVisible();
+  await expect.poll(async () => (await loDicho(page)).at(-1)).toMatch(/^Luis Paredes /);
+});
+
+test("si no se entendió de quién, se elige de la lista y recién se responde", async ({ page }) => {
+  test.slow();
+  const dudoso = { dicho: "la del puesto", elegido: null, opciones: [{ id: 2, nombre: "Rosa Quispe" }, { id: 3, nombre: "Juguería El Paraíso" }] };
+  const hoja = await dictar(page, await crearComando("consultar"), consulta("deuda_cliente", { cliente: dudoso }), "Cuánto te debe");
+  await expect(hoja.getByText("¿De quién me preguntas?")).toBeVisible();
+  await hoja.getByRole("button", { name: /Rosa Quispe/ }).click();
+  await expect(hoja.getByText(/Rosa Quispe (te debe|no te debe nada|tiene a favor)/)).toBeVisible({ timeout: 15_000 });
+});
+
+test("«¿cuántas cajas de piña me quedan?»: elegida de la lista si hace falta, en cajas y dicha", async ({ page }) => {
+  test.slow();
+  await grabarLoDicho(page);
+  const stock = await stockDe(pina.id);
+  const dudosa = { dicho: "la amarilla", elegido: null, opciones: [pina, { id: 5, nombre: "Papaya" }] };
+  const hoja = await dictar(page, await crearComando("consultar"), consulta("stock_producto", { producto: dudosa }), "Cuánto te queda");
+  await hoja.getByRole("button", { name: /Piña golden/ }).click();
+  if (stock > 0) {
+    await expect(hoja.getByText("De Piña golden te quedan")).toBeVisible({ timeout: 15_000 });
+    await expect(hoja.getByText(`${stock} cajas`)).toBeVisible();
+    await expect.poll(async () => (await loDicho(page)).at(-1)).toMatch(/^Te quedan? .* de Piña golden\.$/);
+  } else {
+    await expect(hoja.getByText("No te queda Piña golden")).toBeVisible({ timeout: 15_000 });
+  }
+});

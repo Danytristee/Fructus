@@ -5,14 +5,17 @@ import Link from "next/link";
 import { ChevronRight, Volume2 } from "lucide-react";
 
 import { responderConsulta } from "@/app/(app)/acciones-consultas";
+import { buscarClientes, buscarProductos } from "@/app/(app)/acciones-voz";
 import { Avatar } from "@/components/ui/Avatar";
 import { Boton } from "@/components/ui/Boton";
 import { Esqueleto } from "@/components/ui/Esqueleto";
+import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Monto } from "@/components/ui/Monto";
 import { formatearCajas } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import type { Respuesta } from "@/lib/voz/consultas-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
+import { EditorBusqueda } from "./EditorBusqueda";
 import { callar, hablar } from "./hablar";
 
 type Consulta = Extract<Tarjeta, { tipo: "consulta" }>;
@@ -27,22 +30,32 @@ type Props = {
 
 const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 
+type Eleccion = { clienteId: number | null; productoId: number | null };
+
+/** Lo que falta elegir antes de poder responder: de quién es la deuda o de qué fruta es el stock. */
+function faltaElegir(consulta: Consulta["consulta"], e: Eleccion): "cliente" | "producto" | null {
+  if (consulta === "deuda_cliente" && e.clienteId === null) return "cliente";
+  if (consulta === "stock_producto" && e.productoId === null) return "producto";
+  return null;
+}
+
 // La respuesta a una pregunta dictada («¿quién me debe?»): un veredicto en grande, el detalle debajo, y dicha en voz alta
-// al abrir (CLAUDE.md, «La voz»). Si la respuesta no llegó con la tarjeta, se pide aquí: la pregunta no se pierde.
+// al abrir (CLAUDE.md, «La voz»). Si la respuesta no llegó con la tarjeta, se pide aquí: la pregunta no se pierde. Si el
+// nombre no se entendió bien («¿cuánto me debe la del puesto?»), primero se elige de la lista y después se responde.
 export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Props) {
+  const inicial: Eleccion = { clienteId: tarjeta.cliente?.elegido?.id ?? null, productoId: tarjeta.producto?.elegido?.id ?? null };
+  const falta = faltaElegir(tarjeta.consulta, inicial);
   const [respuesta, setRespuesta] = useState<Respuesta | null>(tarjeta.respuesta);
-  const [estado, setEstado] = useState<"listo" | "pidiendo" | "sin_respuesta" | "error">(tarjeta.respuesta ? "listo" : "pidiendo");
+  const [estado, setEstado] = useState<"listo" | "eligiendo" | "pidiendo" | "sin_respuesta" | "error">(
+    tarjeta.respuesta ? "listo" : falta ? "eligiendo" : "pidiendo",
+  );
+  const [eleccion, setEleccion] = useState(inicial);
   const [error, setError] = useState<string | null>(null);
 
-  async function pedir() {
+  async function pedir(e: Eleccion = eleccion) {
+    setEleccion(e);
     setEstado("pidiendo");
-    const r = await responderConsulta({
-      comandoId,
-      consulta: tarjeta.consulta,
-      clienteId: tarjeta.cliente?.elegido?.id ?? null,
-      productoId: tarjeta.producto?.elegido?.id ?? null,
-      latenciaMs,
-    }).catch(() => ({ ok: false as const, error: "No pude leer tu cuaderno. Revisa tu señal e inténtalo otra vez." }));
+    const r = await responderConsulta({ comandoId, consulta: tarjeta.consulta, ...e, latenciaMs }).catch(() => ({ ok: false as const, error: "No pude leer tu cuaderno. Revisa tu señal e inténtalo otra vez." }));
     if (!r.ok) {
       setError(r.error);
       setEstado("error");
@@ -53,7 +66,7 @@ export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Pro
   }
 
   useEffect(() => {
-    if (tarjeta.respuesta) return;
+    if (tarjeta.respuesta || falta) return;
     // La respuesta no llegó con la tarjeta: se pide una vez al abrir.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- pedir() cambia el estado al responder, no antes de pintar
     void pedir();
@@ -75,11 +88,36 @@ export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Pro
     );
   }
 
+  if (estado === "eligiendo") {
+    const opcion = falta === "cliente" ? tarjeta.cliente : tarjeta.producto;
+    return falta === "cliente" ? (
+      <EditorBusqueda
+        etiqueta="¿De quién me preguntas?"
+        inicial={opcion?.dicho ?? ""}
+        opciones={(opcion?.opciones ?? []).map((o) => ({ ...o, detalle: null }))}
+        buscar={buscarClientes}
+        alElegir={(o) => void pedir({ ...eleccion, clienteId: o.id })}
+        icono={(o) => <Avatar iniciales={iniciales(o.nombre)} tono={tonoDe(o.id)} />}
+        sinResultados="No encuentro a nadie así. Prueba con otro nombre o apodo."
+      />
+    ) : (
+      <EditorBusqueda
+        etiqueta="¿De qué fruta me preguntas?"
+        inicial={opcion?.dicho ?? ""}
+        opciones={(opcion?.opciones ?? []).map((o) => ({ ...o, detalle: null }))}
+        buscar={buscarProductos}
+        alElegir={(o) => void pedir({ ...eleccion, productoId: o.id })}
+        icono={(o) => <IconoFruta nombre={o.nombre} tamano={40} />}
+        sinResultados="No encuentro esa fruta. Prueba con otro nombre."
+      />
+    );
+  }
+
   if (estado !== "listo" || !respuesta) {
     return (
       <div className="grid gap-4">
         <p className="text-lg" role={estado === "error" ? "alert" : undefined}>
-          {estado === "error" ? error : "Esa pregunta todavía no la sé responder. Por ahora te digo quién te debe."}
+          {estado === "error" ? error : "Esa pregunta todavía no la sé responder. Por ahora te digo quién te debe, cuánto te debe un cliente y cuántas cajas te quedan de una fruta."}
         </p>
         {estado === "error" && (
           <Boton variante="secundario" onClick={() => void pedir()}>

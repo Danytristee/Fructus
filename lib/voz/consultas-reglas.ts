@@ -2,7 +2,7 @@
 // primero («Te deben S/ 1,472.50»), el detalle después (ley 3). Lógica pura: los datos llegan de lib/voz/consultas.ts.
 import { formatearSoles } from "../formato";
 import type { Interpretacion } from "./esquemas";
-import { numeroEnPalabras, solesEnPalabras } from "./palabras-reglas";
+import { cajasEnPalabras, numeroEnPalabras, solesEnPalabras } from "./palabras-reglas";
 
 export type TipoConsulta = Extract<Interpretacion, { herramienta: "consultar" }>["datos"]["consulta"];
 
@@ -58,5 +58,43 @@ export function respuestaQuienMeDebe(clientes: { id: number; nombre: string; sal
     hablado: solo
       ? `Solo te debe ${primero.nombre}: ${solesEnPalabras(primero.saldo)}.`
       : `Te deben ${solesEnPalabras(total)}, entre ${numeroEnPalabras(deben.length)} clientes. El que más te debe es ${primero.nombre}, con ${solesEnPalabras(primero.saldo)}.`,
+  };
+}
+
+/** «¿Cuánto me debe el flaco?»: lo que debe, que está al día, o lo que tiene a favor. */
+export function respuestaDeudaCliente(c: { id: number; nombre: string; saldo: number }): Respuesta {
+  const base = { titulo: TITULO_CONSULTA.deuda_cliente, detalle: null, filas: [], mas: 0, enlace: { texto: "Ver el cuaderno", href: "/clientes" } };
+  if (c.saldo > 0) {
+    return { ...base, etiqueta: `${c.nombre} te debe`, cifra: { tipo: "soles", valor: c.saldo, tono: "deuda" }, hablado: `${c.nombre} te debe ${solesEnPalabras(c.saldo)}.` };
+  }
+  if (c.saldo < 0) {
+    return {
+      ...base,
+      etiqueta: `${c.nombre} tiene a favor`,
+      cifra: { tipo: "soles", valor: -c.saldo, tono: "exito" },
+      hablado: `${c.nombre} no te debe. Tiene ${solesEnPalabras(-c.saldo)} a favor.`,
+    };
+  }
+  return { ...base, etiqueta: `${c.nombre} no te debe nada`, cifra: null, hablado: `${c.nombre} no te debe nada.` };
+}
+
+/** «¿Cuántas cajas de mango me quedan?». Con stock en cero o negativo no se muestra una cifra imposible: se dice. */
+export function respuestaStockProducto(p: { id: number; nombre: string; stock: number }): Respuesta {
+  const base = { titulo: TITULO_CONSULTA.stock_producto, filas: [], mas: 0, enlace: { texto: "Ver todo el stock", href: "/stock" } };
+  if (p.stock > 0) {
+    return {
+      ...base,
+      etiqueta: `De ${p.nombre} te quedan`,
+      cifra: { tipo: "cajas", valor: p.stock },
+      detalle: null,
+      hablado: `Te ${p.stock === 1 ? "queda" : "quedan"} ${cajasEnPalabras(p.stock)} de ${p.nombre}.`,
+    };
+  }
+  return {
+    ...base,
+    etiqueta: `No te queda ${p.nombre}`,
+    cifra: null,
+    detalle: p.stock < 0 ? `Según la app faltan ${-p.stock} cajas: revisa el stock.` : null,
+    hablado: `No te queda ${p.nombre}.`,
   };
 }
