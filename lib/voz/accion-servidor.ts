@@ -48,3 +48,13 @@ export async function leerSaldo(supabase: Cliente, clienteId: number): Promise<n
   }
   return Number(data?.saldo ?? 0);
 }
+
+/** Cuántas cajas hay hoy de esa fruta (v_stock); null si no se pudo leer (la operación igual se guardó). */
+export async function leerStock(supabase: Cliente, productoId: number): Promise<number | null> {
+  const { data, error } = await supabase.from("v_stock").select("stock").eq("producto_id", productoId).maybeSingle();
+  if (error) {
+    console.error("voz: no se pudo leer el stock", { productoId, codigo: error.code });
+    return null;
+  }
+  return Number(data?.stock ?? 0);
+}

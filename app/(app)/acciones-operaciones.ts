@@ -2,8 +2,9 @@
 
 import { z } from "zod";
 
-import { leerSaldo, marcarComando, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
+import { leerSaldo, leerStock, marcarComando, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import { ABONO_MAXIMO, pedidoAbono } from "@/lib/voz/confirmar-abono-reglas";
+import { CAJAS_MAXIMO, pedidoMerma } from "@/lib/voz/confirmar-merma-reglas";
 
 // Guardar lo que no es una venta: abonos, mermas, gastos y compras dictados (A6). Cada uno es idempotente por comando:
 // un segundo toque, o un reintento tras una respuesta que no llegó, devuelve lo mismo y no guarda dos veces (el índice
@@ -50,4 +51,48 @@ export async function confirmarAbono(entrada: z.input<typeof confirmacionAbono>)
 
   await marcarComando(supabase, comandoId, corregido, latenciaMs);
   return { ok: true, saldo: await leerSaldo(supabase, pedido.cliente_id) };
+}
+
+export type ResultadoMerma = { ok: true; stock: number | null } | { ok: false; error: string; sinSesion?: true };
+
+const confirmacionMerma = z.object({
+  ...comun,
+  borrador: z.object({
+    producto: z.object({ id: z.number().int().positive(), nombre: z.string() }).nullable(),
+    cantidad: z.number().positive().max(CAJAS_MAXIMO),
+    motivo: z.string().max(120).nullable(),
+  }),
+});
+
+/** Saca del stock la fruta que se malogró y devuelve cuántas cajas quedan. */
+export async function confirmarMerma(entrada: z.input<typeof confirmacionMerma>): Promise<ResultadoMerma> {
+  const leido = confirmacionMerma.safeParse(entrada);
+  if (!leido.success) return { ok: false, error: "Revisa la fruta y las cajas de la tarjeta." };
+  const { comandoId, borrador, corregido, latenciaMs } = leido.data;
+  const pedido = pedidoMerma(borrador, comandoId);
+  if (!pedido) return { ok: false, error: "Revisa la fruta y las cajas de la tarjeta." };
+
+  const s = await sesion();
+  if (!s) return { ok: false, error: sinSesion("la merma"), sinSesion: true };
+  const { supabase, permisos } = s;
+  if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar mermas." };
+
+  const { error } = await supabase.from("movimientos_stock").insert(pedido);
+  if (error && error.code !== YA_GUARDADO) {
+    console.error("voz: no se pudo registrar la merma", { comandoId, codigo: error.code });
+    if (error.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar mermas." };
+    return { ok: false, error: SIN_SENAL };
+  }
+
+  await marcarComando(supabase, comandoId, corregido, latenciaMs);
+  return { ok: true, stock: await leerStock(supabase, pedido.producto_id) };
+}
+
+/** Cuántas cajas hay hoy de esa fruta, para mostrar cuántas quedan con esta merma. */
+export async function stockDe(productoId: number): Promise<number | null> {
+  const id = z.number().int().positive().safeParse(productoId);
+  if (!id.success) return null;
+  const s = await sesion();
+  if (!s) return null;
+  return leerStock(s.supabase, id.data);
 }

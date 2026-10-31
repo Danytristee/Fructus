@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 import { Boton } from "@/components/ui/Boton";
 import { Hoja } from "@/components/ui/Hoja";
 import { TarjetaAbono } from "./TarjetaAbono";
+import { TarjetaMerma } from "./TarjetaMerma";
 import { TarjetaVenta } from "./TarjetaVenta";
 import type { ResultadoVoz } from "./VozHoy";
 
@@ -16,13 +17,13 @@ type Props = {
   alCerrar: (motivo: "guardada" | "descartada", incierto?: boolean) => void;
 };
 
-const TITULOS = { venta: "¿Así fue la venta?", abono: "¿Así fue el abono?" } as const;
+const TITULOS = { venta: "¿Así fue la venta?", abono: "¿Así fue el abono?", merma: "¿Así fue la merma?" } as const;
 
-// La hoja de lo que se entendió. Ventas y abonos se registran por voz; mermas, gastos y compras llegan en A6, y las
+// La hoja de lo que se entendió. Ventas, abonos y mermas se registran por voz; gastos y compras llegan en A6, y las
 // preguntas en A7.
 export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
   const { tarjeta } = resultado;
-  const soportada = tarjeta.tipo === "venta" || tarjeta.tipo === "abono";
+  const soportada = tarjeta.tipo === "venta" || tarjeta.tipo === "abono" || tarjeta.tipo === "merma";
   // El comando que ya se guardó: si la persona cierra la hoja durante el sello, no es un descarte.
   const guardado = useRef<number | null>(null);
   // Mientras guarda no se cierra: deslizar o tocar el velo no puede descartar una venta que está entrando (/chaos).
@@ -53,12 +54,14 @@ export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
       {soportada ? (
         tarjeta.tipo === "venta" ? (
           <TarjetaVenta key={resultado.comandoId} tarjeta={tarjeta} {...comunes} />
-        ) : (
+        ) : tarjeta.tipo === "abono" ? (
           <TarjetaAbono key={resultado.comandoId} tarjeta={tarjeta} {...comunes} />
+        ) : (
+          <TarjetaMerma key={resultado.comandoId} tarjeta={tarjeta} {...comunes} />
         )
       ) : (
         <div className="grid gap-4">
-          <p className="text-lg">Por ahora registro ventas y abonos por voz. Las compras, mermas, gastos y preguntas llegan en unos días.</p>
+          <p className="text-lg">Por ahora registro ventas, abonos y mermas por voz. Las compras, gastos y preguntas llegan en unos días.</p>
           <Boton variante="secundario" onClick={() => alCerrar("descartada")}>
             Entendido
           </Boton>

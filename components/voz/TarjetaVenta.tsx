@@ -11,7 +11,7 @@ import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
-import { borradorDe, faltaDe, frasesFalta, fueCorregido, totalDe, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
+import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { DudasVoz } from "./DudasVoz";
@@ -133,7 +133,11 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           <EditorItem
             item={borrador.items[vista.n]!}
             opciones={tarjeta.items[vista.n]?.producto.opciones ?? []}
-            clienteId={clienteId}
+            monto={{
+              etiqueta: "Precio de la caja",
+              leer: leerPrecio,
+              sugerir: (id) => sugerirPrecios(clienteId, [id]).then((p) => p?.[0] ?? null),
+            }}
             alListo={(item: ItemBorrador) => {
               setBorrador((b) => ({ ...b, items: b.items.map((it, n) => (n === vista.n ? item : it)) }));
               volver();

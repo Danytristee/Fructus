@@ -45,16 +45,30 @@ export async function dictar(page: Page, comandoId: number, tarjeta: object, tit
   return hoja;
 }
 
-/** Le fía a un cliente (una venta al crédito de 1 caja de Mango Kent), como dueño, para que tenga deuda que abonar. */
-export async function fiar(clienteId: number, monto: number) {
+/** Una sesión de dueño contra la base local, para preparar datos por las mismas RPC que usa la app. */
+async function comoDuenio() {
   const e = entornoLocal();
   const duenio = createClient(e.NEXT_PUBLIC_SUPABASE_URL!, e.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false } });
-  const { error: errorEntrar } = await duenio.auth.signInWithPassword({ email: cuentas.duenio, password: CLAVE_PRUEBA });
-  if (errorEntrar) throw errorEntrar;
-  const { error } = await duenio.rpc("registrar_venta", {
+  const { error } = await duenio.auth.signInWithPassword({ email: cuentas.duenio, password: CLAVE_PRUEBA });
+  if (error) throw error;
+  return duenio;
+}
+
+/** Le fía a un cliente (una venta al crédito de 1 caja de Mango Kent), para que tenga deuda que abonar. */
+export async function fiar(clienteId: number, monto: number) {
+  const { error } = await (await comoDuenio()).rpc("registrar_venta", {
     p: { cliente_id: clienteId, condicion: "credito", items: [{ producto_id: 1, cantidad: 1, precio_unitario: monto }] },
   });
   if (error) throw error;
 }
 
+/** Compra cajas de una fruta al contado, para que haya stock que mermar. */
+export async function abastecer(productoId: number, cajas: number) {
+  const { error } = await (await comoDuenio()).rpc("registrar_compra", {
+    p: { condicion: "contado", medio_pago: "efectivo", items: [{ producto_id: productoId, cantidad: cajas, costo_unitario: 20 }] },
+  });
+  if (error) throw error;
+}
+
+export const stockDe = async (productoId: number) => Number((await base.from("v_stock").select("stock").eq("producto_id", productoId).single()).data!.stock);
 export const saldoDe = async (clienteId: number) => Number((await base.from("v_saldo_clientes").select("saldo").eq("cliente_id", clienteId).single()).data!.saldo);
