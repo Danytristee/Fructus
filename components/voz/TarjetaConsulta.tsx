@@ -29,6 +29,9 @@ type Props = {
 };
 
 const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
+// Toda llamada lleva tope (CLAUDE.md, «La voz»): con la señal colgada, el esqueleto se quedaba para siempre.
+const TOPE_RESPUESTA_MS = 15_000;
+const SIN_RESPUESTA = "No pude leer tu cuaderno. Revisa tu señal e inténtalo otra vez.";
 
 type Eleccion = { clienteId: number | null; productoId: number | null; /** El nombre de lo elegido, para «dijiste …». */ nombre: string | null };
 const mismoNombre = (a: string, b: string) => a.localeCompare(b, "es", { sensitivity: "base" }) === 0;
@@ -60,7 +63,18 @@ export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Pro
   async function pedir(e: Eleccion = eleccion) {
     setEleccion(e);
     setEstado("pidiendo");
-    const r = await responderConsulta({ comandoId, consulta: tarjeta.consulta, clienteId: e.clienteId, productoId: e.productoId, latenciaMs }).catch(() => ({ ok: false as const, error: "No pude leer tu cuaderno. Revisa tu señal e inténtalo otra vez." }));
+    let reloj = 0;
+    const tope = new Promise<{ ok: false; error: string }>((resolve) => {
+      reloj = window.setTimeout(() => resolve({ ok: false, error: SIN_RESPUESTA }), TOPE_RESPUESTA_MS);
+    });
+    const r = await Promise.race([
+      responderConsulta({ comandoId, consulta: tarjeta.consulta, clienteId: e.clienteId, productoId: e.productoId, latenciaMs }).catch(() => ({
+        ok: false as const,
+        error: SIN_RESPUESTA,
+      })),
+      tope,
+    ]);
+    window.clearTimeout(reloj);
     if (!r.ok) {
       setError(r.error);
       setEstado("error");

@@ -18,8 +18,11 @@
 - 8 casos nuevos de consulta en `tests/interprete/casos.json` (56 en total). `/voz-precision` sobre los 16 de consulta: 100 % de intención y de datos clave (`docs/voz/precision-2026-10-31-consultas.md`). Los 56 no se midieron: el cupo del día de Groq no alcanzaba.
 - JavaScript de «Hoy»: 177.3 KB brotli (tope 180). `/formidable` 8.8, con 3 cambios propuestos (`docs/formidable/voz-respuestas-2026-10-31.md`). `/chaos` no aplica: la hoja no guarda.
 
+- La tarjeta de respuesta no tenía tope al pedir la respuesta: con la señal colgada, el esqueleto quedaba para siempre. Ahora, a los 15 s, dice «No pude leer tu cuaderno…» y ofrece «Intentar otra vez» (e2e «si la señal se cuelga»).
+
 ## Pendiente
 - El contador no puede dictar (`/api/voz` responde 403), así que tampoco puede preguntar. Decidir si las consultas se abren al contador.
 - En desarrollo, React monta dos veces y la respuesta empieza a decirse dos veces (la segunda corta a la primera). En producción no pasa.
 - Ver si el tope de 8 s de `fetchWithTimeout` (que corta pedidos a PostgREST con la máquina cargada) es lo que deja las conexiones abortadas; en producción no se ha visto.
+- Next corre las server actions de a una: si un pedido queda colgado, el reintento (aquí y en Confirmar) espera a que el navegador lo dé por caído. Con una señal que se cae no pasa; con una que se cuelga minutos, sí. Ver si conviene cortar el pedido en el cliente.
 - `voz-abono` «respuesta perdida» falló una vez con 48 pruebas en paralelo y no se repitió en 2 corridas más: vigilar.

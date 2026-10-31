@@ -162,3 +162,20 @@ test("«¿qué me queda?»: las cajas que hay y de qué frutas, la que más prim
   const { data } = await base.from("v_stock").select("stock").gt("stock", 0);
   if ((data ?? []).length > 0) await expect(hoja.getByText(/^de \d+ frutas?$/)).toBeVisible();
 });
+
+test("si la señal se cuelga al pedir la respuesta, a los 15 s lo dice y deja intentar otra vez", async ({ page }) => {
+  test.slow();
+  // Solo se cuelga el pedido de esta pregunta (entrar también usa una acción y tiene que pasar): no responde en 18 s y
+  // después se cae, como una señal mala. Next corre las acciones de a una, así que el reintento espera a que se caiga.
+  let colgar = true;
+  await page.route("**/*", (r) => {
+    if (r.request().method() === "POST" && colgar && (r.request().postData() ?? "").includes("quien_me_debe")) setTimeout(() => void r.abort(), 18_000);
+    else void r.fallback();
+  });
+  const hoja = await dictar(page, await crearComando("consultar"), consulta("quien_me_debe"), "Quién te debe");
+  await expect(hoja.getByRole("alert")).toHaveText("No pude leer tu cuaderno. Revisa tu señal e inténtalo otra vez.", { timeout: 25_000 });
+
+  colgar = false;
+  await hoja.getByRole("button", { name: "Intentar otra vez" }).click();
+  await expect(hoja.getByText(/Te deben|Nadie te debe/)).toBeVisible({ timeout: 15_000 });
+});
