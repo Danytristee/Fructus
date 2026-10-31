@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 import { Boton } from "@/components/ui/Boton";
 import { Hoja } from "@/components/ui/Hoja";
 import { TarjetaAbono } from "./TarjetaAbono";
+import { TarjetaCompra } from "./TarjetaCompra";
 import { TarjetaGasto } from "./TarjetaGasto";
 import { TarjetaMerma } from "./TarjetaMerma";
 import { TarjetaVenta } from "./TarjetaVenta";
@@ -23,6 +24,7 @@ const TITULOS: Partial<Record<ResultadoVoz["tarjeta"]["tipo"], string>> = {
   abono: "¿Así fue el abono?",
   merma: "¿Así fue la merma?",
   gasto: "¿Así fue el gasto?",
+  compra: "¿Así fue la compra?",
 };
 
 type Comunes = {
@@ -44,13 +46,14 @@ function TarjetaDe({ tarjeta, comunes }: { tarjeta: ResultadoVoz["tarjeta"]; com
       return <TarjetaMerma tarjeta={tarjeta} {...comunes} />;
     case "gasto":
       return <TarjetaGasto tarjeta={tarjeta} {...comunes} />;
+    case "compra":
+      return <TarjetaCompra tarjeta={tarjeta} {...comunes} />;
     default:
       return null;
   }
 }
 
-// La hoja de lo que se entendió. Ventas, abonos, mermas y gastos se registran por voz; las compras llegan en A6, y las
-// preguntas en A7.
+// La hoja de lo que se entendió. Ventas, abonos, compras, mermas y gastos se registran por voz; las preguntas llegan en A7.
 export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
   const { tarjeta } = resultado;
   // El comando que ya se guardó: si la persona cierra la hoja durante el sello, no es un descarte.
@@ -85,7 +88,7 @@ export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
         <TarjetaDe key={resultado.comandoId} tarjeta={tarjeta} comunes={comunes} />
       ) : (
         <div className="grid gap-4">
-          <p className="text-lg">Por ahora registro ventas, abonos, mermas y gastos por voz. Las compras y las preguntas llegan en unos días.</p>
+          <p className="text-lg">Por ahora registro ventas, abonos, compras, mermas y gastos por voz. Las preguntas llegan en unos días.</p>
           <Boton variante="secundario" onClick={() => alCerrar("descartada")}>
             Entendido
           </Boton>

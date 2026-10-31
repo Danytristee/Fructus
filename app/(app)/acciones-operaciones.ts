@@ -3,9 +3,13 @@
 import { z } from "zod";
 
 import { leerSaldo, leerStock, marcarComando, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
+import type { Opcion } from "@/app/(app)/acciones-voz";
 import { ABONO_MAXIMO, pedidoAbono } from "@/lib/voz/confirmar-abono-reglas";
+import { pedidoCompra } from "@/lib/voz/confirmar-compra-reglas";
 import { CATEGORIAS, GASTO_MAXIMO, pedidoGasto } from "@/lib/voz/confirmar-gasto-reglas";
 import { CAJAS_MAXIMO, pedidoMerma } from "@/lib/voz/confirmar-merma-reglas";
+import { PRECIO_MAXIMO } from "@/lib/voz/confirmar-venta-reglas";
+import { buscarProveedores, costosSugeridos } from "@/lib/voz/resolver";
 
 // Guardar lo que no es una venta: abonos, mermas, gastos y compras dictados (A6). Cada uno es idempotente por comando:
 // un segundo toque, o un reintento tras una respuesta que no llegó, devuelve lo mismo y no guarda dos veces (el índice
@@ -132,4 +136,86 @@ export async function confirmarGasto(entrada: z.input<typeof confirmacionGasto>)
 
   await marcarComando(supabase, comandoId, corregido, latenciaMs);
   return { ok: true };
+}
+
+export type ResultadoCompra = { ok: true; compraId: number } | { ok: false; error: string; sinSesion?: true };
+
+const confirmacionCompra = z.object({
+  ...comun,
+  borrador: z.object({
+    proveedor: z.object({ id: z.number().int().positive(), nombre: z.string() }).nullable(),
+    items: z
+      .array(
+        z.object({
+          productoId: z.number().int().positive().nullable(),
+          producto: z.string(),
+          cantidad: z.number().positive().max(CAJAS_MAXIMO),
+          precio: z.number().positive().max(PRECIO_MAXIMO).nullable(),
+          sugerido: z.boolean(),
+        }),
+      )
+      .min(1)
+      .max(30),
+    condicion: z.enum(["contado", "credito"]).nullable(),
+    medio: medio.nullable(),
+  }),
+});
+
+/** Guarda la compra: entra el stock y, si se debe, queda la deuda con el proveedor. Idempotente por comando (registrar_compra). */
+export async function confirmarCompra(entrada: z.input<typeof confirmacionCompra>): Promise<ResultadoCompra> {
+  const leido = confirmacionCompra.safeParse(entrada);
+  if (!leido.success) return { ok: false, error: "Revisa el costo y las cajas de la tarjeta." };
+  const { comandoId, borrador, corregido, latenciaMs } = leido.data;
+  const pedido = pedidoCompra(borrador, comandoId, corregido);
+  if (!pedido) return { ok: false, error: "Revisa el costo y las cajas de la tarjeta." };
+
+  const s = await sesion();
+  if (!s) return { ok: false, error: sinSesion("la compra"), sinSesion: true };
+  const { supabase, permisos } = s;
+  if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar compras." };
+
+  const { data: compraId, error } = await supabase.rpc("registrar_compra", { p: pedido });
+  if (error || compraId === null) {
+    console.error("voz: no se pudo registrar la compra", { comandoId, codigo: error?.code });
+    if (error?.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar compras." };
+    if (error?.code === "23514") return { ok: false, error: "Al crédito tienes que elegir a quién le debes." };
+    if (error?.code === "23502") return { ok: false, error: "Falta decir si la pagaste o la debes." };
+    if (error?.message.includes("dos decimales")) return { ok: false, error: "El costo y las cajas van con dos decimales como máximo." };
+    return { ok: false, error: SIN_SENAL };
+  }
+
+  // La latencia va aparte (registrar_compra ya marcó el comando): si no se guarda, la compra igual vale.
+  const { error: errorLatencia } = await supabase.from("comandos_voz").update({ latencia_ms: latenciaMs }).eq("id", comandoId);
+  if (errorLatencia) console.error("voz: no se pudo guardar la latencia", { comandoId, codigo: errorLatencia.code });
+  return { ok: true, compraId };
+}
+
+const busqueda = z.string().trim().min(1).max(60);
+
+/** Proveedores por nombre o apodo, para corregir quién trajo la fruta. */
+export async function buscarProveedoresVoz(q: string): Promise<Opcion[] | null> {
+  const texto = busqueda.safeParse(q);
+  if (!texto.success) return [];
+  const s = await sesion();
+  if (!s) return null;
+  try {
+    return (await buscarProveedores(s.supabase, texto.data)).map((p) => ({ id: p.id, nombre: p.nombre, detalle: null }));
+  } catch (e) {
+    console.error("voz: no se pudo buscar proveedores", { error: e instanceof Error ? e.message : "desconocido" });
+    return null;
+  }
+}
+
+/** El costo sugerido de una fruta: lo que se pagó por caja en su última compra. */
+export async function sugerirCosto(productoId: number): Promise<number | null> {
+  const id = z.number().int().positive().safeParse(productoId);
+  if (!id.success) return null;
+  const s = await sesion();
+  if (!s) return null;
+  try {
+    return (await costosSugeridos(s.supabase, [id.data]))[0] ?? null;
+  } catch (e) {
+    console.error("voz: no se pudo sugerir el costo", { error: e instanceof Error ? e.message : "desconocido" });
+    return null;
+  }
 }

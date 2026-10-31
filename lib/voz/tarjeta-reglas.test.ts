@@ -111,12 +111,28 @@ describe("armarTarjeta · lo demás", () => {
     expect(t).toMatchObject({ tipo: "abono", monto: 100, falta: ["cliente"] });
   });
 
-  it("una compra sin costo lo pide", () => {
+  it("una compra sin costo ni costo anterior lo pide, y sin decir si se pagó, lo pregunta", () => {
     const t = armarTarjeta(
       interpretar("registrar_compra", { proveedor_texto: null, items: [{ producto_texto: "manzana royal", cantidad: 40, costo_unitario: null }], condicion: null }),
       { ...nada, productos: [[royal]] },
     );
-    expect(t).toMatchObject({ tipo: "compra", falta: ["costo"] });
+    expect(t).toMatchObject({ tipo: "compra", items: [{ costo: { valor: null, sugerido: false } }], falta: ["costo", "condicion"] });
+  });
+
+  it("una compra sin costo dicho sugiere el último y lo marca; nunca asume contado", () => {
+    const t = armarTarjeta(
+      interpretar("registrar_compra", { proveedor_texto: null, items: [{ producto_texto: "manzana royal", cantidad: 40, costo_unitario: null }], condicion: null }),
+      { ...nada, productos: [[royal]], precios: [95] },
+    );
+    expect(t).toMatchObject({ tipo: "compra", items: [{ costo: { valor: 95, sugerido: true } }], condicion: null, falta: ["condicion"] });
+  });
+
+  it("una compra al crédito pide a quién se le debe", () => {
+    const t = armarTarjeta(
+      interpretar("registrar_compra", { proveedor_texto: null, items: [{ producto_texto: "manzana royal", cantidad: 40, costo_unitario: 90 }], condicion: "credito" }),
+      { ...nada, productos: [[royal]] },
+    );
+    expect(t).toMatchObject({ tipo: "compra", items: [{ costo: { valor: 90, sugerido: false } }], falta: ["proveedor"] });
   });
 
   it("no entendido dice qué hacer, en lenguaje de puesto", () => {

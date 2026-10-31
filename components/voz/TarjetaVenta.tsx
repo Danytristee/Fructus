@@ -7,7 +7,6 @@ import { buscarClientes, confirmarVenta, saldoDe, sugerirPrecios } from "@/app/(
 import { Avatar } from "@/components/ui/Avatar";
 import { Boton } from "@/components/ui/Boton";
 import { IconoFruta } from "@/components/ui/IconoFruta";
-import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
@@ -19,6 +18,7 @@ import { EditorItem } from "./EditorItem";
 import { FilaCliente } from "./FilaCliente";
 import { FilaTarjeta } from "./FilaTarjeta";
 import { Guardado } from "./Guardado";
+import { InsigniaSugerido } from "./InsigniaSugerido";
 import { MedidorDeuda } from "./MedidorDeuda";
 import { PagoODebe } from "./PagoODebe";
 import { PieConfirmar } from "./PieConfirmar";
@@ -176,12 +176,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
               <span className="cifra">
                 {item.productoId === null ? "Toca para elegir la fruta" : item.precio === null ? "Toca para poner el precio" : `${formatearSoles(item.precio)} la caja`}
               </span>
-              {item.sugerido && (
-                <Insignia tipo="sugerido" className="relative overflow-hidden">
-                  sugerido
-                  <span aria-hidden className="absolute inset-0 animate-barrido bg-linear-[100deg] from-transparent from-30% via-superficie/70 to-transparent to-70%" />
-                </Insignia>
-              )}
+              {item.sugerido && <InsigniaSugerido />}
             </span>
           }
         />
