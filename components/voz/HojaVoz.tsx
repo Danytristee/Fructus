@@ -5,8 +5,10 @@ import { Sparkles } from "lucide-react";
 
 import { Boton } from "@/components/ui/Boton";
 import { Hoja } from "@/components/ui/Hoja";
+import { TITULO_CONSULTA } from "@/lib/voz/consultas-reglas";
 import { TarjetaAbono } from "./TarjetaAbono";
 import { TarjetaCompra } from "./TarjetaCompra";
+import { TarjetaConsulta } from "./TarjetaConsulta";
 import { TarjetaGasto } from "./TarjetaGasto";
 import { TarjetaMerma } from "./TarjetaMerma";
 import { TarjetaVenta } from "./TarjetaVenta";
@@ -48,12 +50,15 @@ function TarjetaDe({ tarjeta, comunes }: { tarjeta: ResultadoVoz["tarjeta"]; com
       return <TarjetaGasto tarjeta={tarjeta} {...comunes} />;
     case "compra":
       return <TarjetaCompra tarjeta={tarjeta} {...comunes} />;
+    case "consulta":
+      return <TarjetaConsulta tarjeta={tarjeta} comandoId={comunes.comandoId} latenciaMs={comunes.latenciaMs} alListo={() => comunes.alDescartar(false)} />;
     default:
       return null;
   }
 }
 
-// La hoja de lo que se entendió. Ventas, abonos, compras, mermas y gastos se registran por voz; las preguntas llegan en A7.
+// La hoja de lo que se entendió: las tarjetas que guardan (venta, abono, compra, merma, gasto) y las respuestas a lo que se
+// pregunta (A7).
 export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
   const { tarjeta } = resultado;
   // El comando que ya se guardó: si la persona cierra la hoja durante el sello, no es un descarte.
@@ -62,7 +67,9 @@ export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
   const guardando = useRef(false);
   const cerrar = (incierto = false) => {
     if (guardando.current) return;
-    alCerrar(guardado.current === resultado.comandoId ? "guardada" : "descartada", incierto);
+    // Una pregunta no se «descarta»: no había nada que guardar, así que no hay aviso ni Deshacer.
+    const leida = tarjeta.tipo === "consulta";
+    alCerrar(leida || guardado.current === resultado.comandoId ? "guardada" : "descartada", incierto);
   };
   // Lo mismo para toda tarjeta: con qué comando, cuánto tardó, y qué hace la hoja al guardar o descartar.
   const comunes: Comunes = {
@@ -75,7 +82,7 @@ export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
     alDescartar: cerrar,
     alCambiarGuardando: (g) => (guardando.current = g),
   };
-  const titulo = TITULOS[tarjeta.tipo];
+  const titulo = tarjeta.tipo === "consulta" ? TITULO_CONSULTA[tarjeta.consulta] : TITULOS[tarjeta.tipo];
   return (
     <Hoja
       abierta={abierta}
@@ -88,7 +95,7 @@ export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
         <TarjetaDe key={resultado.comandoId} tarjeta={tarjeta} comunes={comunes} />
       ) : (
         <div className="grid gap-4">
-          <p className="text-lg">Por ahora registro ventas, abonos, compras, mermas y gastos por voz. Las preguntas llegan en unos días.</p>
+          <p className="text-lg">Esto todavía no lo sé hacer por voz. Inténtalo con otras palabras.</p>
           <Boton variante="secundario" onClick={() => alCerrar("descartada")}>
             Entendido
           </Boton>
