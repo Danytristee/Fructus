@@ -7,6 +7,7 @@ import { Eye, RotateCcw, Undo2 } from "lucide-react";
 import { descartarComando } from "@/app/(app)/acciones-voz";
 
 import { borrarPendiente, guardarPendiente, leerPendiente } from "@/lib/voz/audio-pendiente";
+import { avisoDescarte, nombreOperacion } from "@/lib/voz/nombre-operacion-reglas";
 import { DURACION_MINIMA_MS, desenlaceDeRespuesta, desenlaceSinRed, type Desenlace } from "@/lib/voz/envio-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { AvisoVoz } from "./AvisoVoz";
@@ -52,7 +53,7 @@ const POR_FALLA: Record<FallaGrabadora, string> = {
 };
 
 export type ResultadoVoz = { comandoId: number; tarjeta: Tarjeta; latenciaMs: number };
-type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "descartada"; incierto: boolean } | { tipo: "sin_confirmar"; resultado: ResultadoVoz };
+type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "descartada"; incierto: boolean; que: string } | { tipo: "sin_confirmar"; resultado: ResultadoVoz };
 
 async function enviarAudio({ audio, duracionMs }: Grabacion): Promise<Desenlace> {
   if (!navigator.onLine) return desenlaceSinRed();
@@ -128,7 +129,7 @@ export function VozHoy() {
       setAviso((a) => (a?.tipo === "descartada" ? null : a));
     }, DESHACER_MS);
     descarte.current = { comandoId, latenciaMs, reloj };
-    setAviso({ tipo: "descartada", incierto });
+    setAviso({ tipo: "descartada", incierto, que: resultado.tarjeta.tipo });
   }
 
   function deshacer() {
@@ -242,7 +243,7 @@ export function VozHoy() {
       {aviso?.tipo === "sin_confirmar" && (
         <AvisoVoz
           tono="info"
-          mensaje="Tienes una venta sin confirmar."
+          mensaje={`Tienes ${nombreOperacion(aviso.resultado.tarjeta.tipo).uno} sin confirmar.`}
           accion={{
             etiqueta: "Verla",
             icono: <Eye aria-hidden className="size-5" />,
@@ -253,7 +254,7 @@ export function VozHoy() {
             },
           }}
           cerrar={{
-            etiqueta: "Descartar esa venta",
+            etiqueta: `Descartar ${nombreOperacion(aviso.resultado.tarjeta.tipo).ese}`,
             alTocar: () => {
               recordarTarjeta(null);
               void descartarComando(aviso.resultado.comandoId, aviso.resultado.latenciaMs).catch(() => {});
@@ -265,8 +266,7 @@ export function VozHoy() {
       {aviso?.tipo === "descartada" && (
         <AvisoVoz
           tono="info"
-          // Si el último Confirmar no tuvo respuesta, pudo haberse guardado: el aviso no lo niega (/chaos 2026-10-29).
-          mensaje={aviso.incierto ? "La descarté. Si alcanzó a guardarse, la ves en «Lo último»." : "No guardé esa venta."}
+          mensaje={avisoDescarte(aviso.que, aviso.incierto)}
           accion={{ etiqueta: "Deshacer", icono: <Undo2 aria-hidden className="size-5" />, alTocar: deshacer }}
           cerrar={{
             etiqueta: "Cerrar el aviso",

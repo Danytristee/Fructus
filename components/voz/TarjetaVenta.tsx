@@ -1,27 +1,28 @@
 "use client";
 
-import { startTransition, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronLeft, Info, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronLeft } from "lucide-react";
 
 import { buscarClientes, confirmarVenta, saldoDe, sugerirPrecios } from "@/app/(app)/acciones-voz";
 import { Avatar } from "@/components/ui/Avatar";
 import { Boton } from "@/components/ui/Boton";
-import { useEspera } from "@/components/ui/Espera";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
-import { Sello } from "@/components/ui/Sello";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, faltaDe, frasesFalta, fueCorregido, totalDe, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
+import { DudasVoz } from "./DudasVoz";
 import { EditorItem } from "./EditorItem";
+import { FilaCliente } from "./FilaCliente";
 import { FilaTarjeta } from "./FilaTarjeta";
+import { Guardado } from "./Guardado";
 import { MedidorDeuda } from "./MedidorDeuda";
 import { PagoODebe } from "./PagoODebe";
-import { sonarGuardado, vibrar } from "./senales";
+import { PieConfirmar } from "./PieConfirmar";
+import { useConfirmar } from "./useConfirmar";
 
 type Venta = Extract<Tarjeta, { tipo: "venta" }>;
 type Vista = { tipo: "tarjeta" } | { tipo: "cliente" } | { tipo: "item"; n: number };
@@ -38,11 +39,6 @@ type Props = {
   alCambiarGuardando: (guardando: boolean) => void;
 };
 
-const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra vez.";
-// Toda llamada lleva tope (CLAUDE.md, «La voz»). Sin él, con la red colgada, «Guardando…» no terminaba nunca (/chaos).
-const TOPE_CONFIRMAR_MS = 15_000;
-const SIN_RESPUESTA = "La señal no respondió y no sé si se guardó. Toca Confirmar otra vez: no se va a repetir.";
-const mismoNombre = (a: string, b: string) => a.localeCompare(b, "es", { sensitivity: "base" }) === 0;
 const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 
 // La tarjeta de una venta dictada (CLAUDE.md, «La voz»): lo que se entendió en grande, cada dato tocable para corregirlo,
@@ -52,13 +48,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [borrador, setBorrador] = useState<Borrador>(() => borradorDe(tarjeta));
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const [saldo, setSaldo] = useState<number | null>(null);
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState<{ mensaje: string; sinSesion: boolean } | null>(null);
-  const [guardada, setGuardada] = useState<{ saldo: number | null } | null>(null);
-  const enviando = useRef(false);
-  const incierto = useRef(false);
-  const esperar = useEspera();
-  const router = useRouter();
+  const { confirmar: enviar, guardando, error, guardado: guardada, incierto } = useConfirmar<{ ok: true; saldo: number | null }>({ alGuardar, alCambiarGuardando });
 
   const clienteId = borrador.cliente?.id ?? null;
   useEffect(() => {
@@ -93,57 +83,24 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
     }));
   }
 
-  async function confirmar() {
-    if (enviando.current || falta.length > 0) return;
-    enviando.current = true;
-    setGuardando(true);
-    alCambiarGuardando(true);
-    setError(null);
-    let reloj = 0;
-    const tope = new Promise<{ ok: false; error: string }>((resolve) => {
-      reloj = window.setTimeout(() => resolve({ ok: false, error: SIN_RESPUESTA }), TOPE_CONFIRMAR_MS);
-    });
-    const guardado = confirmarVenta({ comandoId, borrador, corregido: fueCorregido(tarjeta, borrador), latenciaMs }).catch(() => ({
-      ok: false as const,
-      error: SIN_SENAL,
-    }));
-    const r = await esperar(Promise.race([guardado, tope]));
-    window.clearTimeout(reloj);
-    setGuardando(false);
-    alCambiarGuardando(false);
-    if (!r.ok) {
-      // Se puede volver a tocar: si la primera sí llegó a la base, registrar_venta devuelve la misma venta.
-      enviando.current = false;
-      incierto.current = r.error === SIN_RESPUESTA;
-      setError({ mensaje: r.error, sinSesion: "sinSesion" in r && r.sinSesion === true });
-      return;
-    }
-    setGuardada({ saldo: r.saldo });
-    vibrar(30);
-    sonarGuardado();
-    alGuardar();
-    // «Hoy» (lo vendido, lo último, la deuda) se rearma por detrás mientras el sello se anima.
-    startTransition(() => router.refresh());
+  function confirmar() {
+    if (falta.length > 0) return;
+    void enviar(() => confirmarVenta({ comandoId, borrador, corregido: fueCorregido(tarjeta, borrador), latenciaMs }));
   }
 
   if (guardada) {
     const nombre = borrador.cliente?.nombre;
     return (
-      <div role="status" className="grid justify-items-center gap-1 py-5 text-center">
-        <Sello />
-        <p className="mt-3 text-2xl font-extrabold">Venta guardada</p>
-        {nombre && guardada.saldo !== null && (
-          <p className="text-lg text-texto-suave">
-            {guardada.saldo > 0 ? (
-              <>
-                {nombre} te debe <strong className="cifra text-deuda">{formatearSoles(guardada.saldo)}</strong>
-              </>
-            ) : (
-              `${nombre} no te debe nada`
-            )}
-          </p>
-        )}
-      </div>
+      <Guardado titulo="Venta guardada">
+        {nombre && guardada.saldo !== null &&
+          (guardada.saldo > 0 ? (
+            <>
+              {nombre} te debe <strong className="cifra text-deuda">{formatearSoles(guardada.saldo)}</strong>
+            </>
+          ) : (
+            `${nombre} no te debe nada`
+          ))}
+      </Guardado>
     );
   }
 
@@ -192,31 +149,14 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const aviso = frasesFalta(falta.filter((f) => f !== "condicion"));
   return (
     <div className="grid gap-2">
-      <FilaTarjeta
+      <FilaCliente
         style={pieza(0)}
         className="animate-pieza"
+        cliente={cliente}
+        dicho={tarjeta.cliente.dicho}
         falta={falta.includes("cliente")}
-        onClick={() => setVista({ tipo: "cliente" })}
-        icono={
-          cliente ? (
-            <Avatar iniciales={iniciales(cliente.nombre)} tono={tonoDe(cliente.id)} />
-          ) : (
-            <span className="grid size-12 place-items-center rounded-full bg-texto/8 text-texto-suave">
-              <UserRound aria-hidden />
-            </span>
-          )
-        }
-        grande={cliente?.nombre ?? (tarjeta.cliente.dicho ? `¿${tarjeta.cliente.dicho}?` : "Sin cliente")}
-        chico={
-          cliente
-            ? // Lo que dijo, para reconocer al cliente por su apodo: «Luis Paredes» puede no sonarle a «don Lucho» (/formidable).
-              tarjeta.cliente.dicho && !mismoNombre(tarjeta.cliente.dicho, cliente.nombre)
-              ? `dijiste «${tarjeta.cliente.dicho}»`
-              : undefined
-            : tarjeta.cliente.dicho
-              ? "Toca para elegir quién es"
-              : "Cliente de paso"
-        }
+        sinNombre="Cliente de paso"
+        alTocar={() => setVista({ tipo: "cliente" })}
       />
       {borrador.items.map((item, n) => (
         <FilaTarjeta
@@ -243,13 +183,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         />
       ))}
 
-      {/* Las dudas del intérprete, junto a lo que se entendió: abajo quedaban tapadas por Confirmar (/formidable 2026-10-29). */}
-      {tarjeta.dudas.map((duda) => (
-        <p key={duda} className="mx-1 flex items-start gap-2 text-texto-suave">
-          <Info aria-hidden className="mt-1 size-[18px] shrink-0" />
-          {duda}
-        </p>
-      ))}
+      <DudasVoz dudas={tarjeta.dudas} />
 
       <div className="mx-1 mt-1 mb-1 flex animate-pieza items-baseline justify-between gap-3" style={pieza(borrador.items.length + 1)}>
         <span className="text-lg font-bold text-texto-suave">{borrador.descuento > 0 ? `Total, con ${formatearSoles(borrador.descuento)} de rebaja` : "Total"}</span>
@@ -274,37 +208,18 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         </div>
       )}
 
-      {/* Pegado abajo de la hoja: con «Pagó», los medios y la deuda, a 360 px Confirmar se iba debajo del borde (regla 1).
-          El borde inferior negativo iguala al margen: sin scroll no sube, y no tapa lo de arriba. */}
-      <div
-        className="sticky -bottom-[calc(16px+env(safe-area-inset-bottom))] z-10 -mx-4 mt-1 -mb-[calc(16px+env(safe-area-inset-bottom))] grid animate-pieza gap-1 bg-fondo px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-12px_16px_-12px_rgb(var(--sombra-color)/0.25)] md:static md:m-0 md:p-0 md:shadow-none"
+      <PieConfirmar
         style={pieza(borrador.items.length + 3)}
-      >
-        {(aviso || error) && (
-          <p role={error ? "alert" : undefined} className="mx-1 mb-1 font-bold text-deuda">
-            {error?.mensaje ?? aviso}
-          </p>
-        )}
-        {error?.sinSesion && (
-          <Boton variante="secundario" onClick={() => router.push("/login")}>
-            Entrar otra vez
-          </Boton>
-        )}
-        <Boton
-          onClick={() => void confirmar()}
-          cargando={guardando}
-          disabled={falta.length > 0}
-          // Mientras falta algo, la variante secundaria: texto oscuro que se lee al sol (blanco sobre un botón apagado no).
-          variante={falta.length > 0 ? "secundario" : "principal"}
-          className={falta.length > 0 ? "min-h-[68px] w-full text-[22px]" : undefined}
-        >
-          {/* Si solo falta eso, el botón mismo dice qué hacer: la pregunta está justo arriba (2.ª prueba ciega, /formidable). */}
-          {falta.length === 1 && falta[0] === "condicion" ? "Primero: ¿pagó o lo debe?" : "Confirmar venta"}
-        </Boton>
-        <Boton variante="texto" onClick={() => alDescartar(incierto.current)} disabled={guardando}>
-          Descartar
-        </Boton>
-      </div>
+        aviso={aviso}
+        error={error}
+        guardando={guardando}
+        listo={falta.length === 0}
+        etiqueta="Confirmar venta"
+        // Si solo falta eso, el botón mismo dice qué hacer: la pregunta está justo arriba (2.ª prueba ciega, /formidable).
+        etiquetaPendiente={falta.length === 1 && falta[0] === "condicion" ? "Primero: ¿pagó o lo debe?" : undefined}
+        alConfirmar={confirmar}
+        alDescartar={() => alDescartar(incierto.current)}
+      />
     </div>
   );
 }

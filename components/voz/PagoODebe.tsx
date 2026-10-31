@@ -4,6 +4,7 @@ import { Check, Clock } from "lucide-react";
 import { cn } from "cn";
 
 import type { Medio } from "@/lib/voz/confirmar-venta-reglas";
+import { SelectorMedio } from "./SelectorMedio";
 
 type Condicion = "contado" | "credito";
 
@@ -12,13 +13,6 @@ type Props = {
   medio: Medio | null;
   alCambiar: (condicion: Condicion, medio: Medio | null) => void;
 };
-
-const MEDIOS: { valor: Medio; etiqueta: string }[] = [
-  { valor: "efectivo", etiqueta: "Efectivo" },
-  { valor: "yape", etiqueta: "Yape" },
-  { valor: "plin", etiqueta: "Plin" },
-  { valor: "transferencia", etiqueta: "Transf." },
-];
 
 // ¿Pagó o lo debe? Nunca se asume contado: si no se dijo, la pregunta va escrita y son dos botones separados, cada uno con
 // su color y su icono (en un solo óvalo parecía un campo: /formidable 2026-10-29). Elegido, es una píldora que se desliza
@@ -79,24 +73,7 @@ export function PagoODebe({ condicion, medio, alCambiar }: Props) {
           </button>
         ))}
       </div>
-      {condicion === "contado" && (
-        <div role="group" aria-label="¿Con qué pagó?" className="grid animate-pieza grid-cols-4 gap-2">
-          {MEDIOS.map((m) => (
-            <button
-              key={m.valor}
-              type="button"
-              aria-pressed={medio === m.valor}
-              onClick={() => alCambiar("contado", m.valor)}
-              className={cn(
-                "min-h-12 rounded-full px-1 text-base font-extrabold transition-colors duration-200",
-                medio === m.valor ? "bg-texto text-superficie" : "bg-superficie text-texto",
-              )}
-            >
-              {m.etiqueta}
-            </button>
-          ))}
-        </div>
-      )}
+      {condicion === "contado" && <SelectorMedio medio={medio} alCambiar={(m) => alCambiar("contado", m)} pregunta="¿Con qué pagó?" />}
     </div>
   );
 }
