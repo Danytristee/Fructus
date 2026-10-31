@@ -1,0 +1,6 @@
+# 2026-10-31 · Dudas del intérprete: tercera redacción, tampoco se aplica
+
+- **Qué se probó:** la regla 5 pidiendo dudas solo para lo ambiguo de verdad («¿Rosa o Rosita?») y diciendo que lo que no se dijo no va en `dudas`, sin ejemplos de pago. Una corrida completa con el catálogo de siempre, comparada con la del mismo día (`docs/voz/precision-2026-10-31.md`: 100 % · 93.8 % · 0 inventos).
+- **Resultado** (`docs/voz/precision-2026-10-31-2.md`): 97.9 % de intención, 89.6 % de datos clave, 0 inventos, y **ninguna duda en 48 casos** (el tono de formulario desaparece). «Anótalo» salió como crédito (con el prompt de hoy no). Los fallos nuevos parecen ruido del modelo: «Don Lucho» escrito como «Don Luevo» y «Le di 50 al cargador» como no entendido (ya falló el 28 con el prompt viejo).
+- **Decisión:** no se aplica, porque bajó una cifra (regla de `/voz-precision`). Con una corrida por prompt no se separa el ruido del efecto.
+- **Pendiente:** si se vuelve a intentar, correr cada prompt 3 veces (o con una segunda organización de Groq, para no gastar el cupo de producción) y comparar promedios. Mientras tanto la tarjeta ya pide lo que falta, así que la duda de formulario es ruido visual, no un error de dinero.
