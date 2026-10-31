@@ -85,14 +85,6 @@ test("la respuesta que llega con la tarjeta se muestra sin pedirla otra vez, y r
   await expect(page.getByText(/sin confirmar/)).toHaveCount(0);
 });
 
-test("una pregunta que todavía no se responde lo dice, y se cierra sin aviso", async ({ page }) => {
-  test.slow();
-  const hoja = await dictar(page, await crearComando("consultar"), consulta("stock"), "Tu stock");
-  await expect(hoja.getByText("Esa pregunta todavía no la sé responder.", { exact: false })).toBeVisible({ timeout: 15_000 });
-  await hoja.getByRole("button", { name: "Entendido" }).click();
-  await expect(page.getByText(/No guardé/)).toHaveCount(0);
-});
-
 const saldoDe = async (id: number) => Number((await base.from("v_saldo_clientes").select("saldo").eq("cliente_id", id).single()).data!.saldo);
 const stockDe = async (id: number) => Number((await base.from("v_stock").select("stock").eq("producto_id", id).single()).data!.stock);
 const lucho = { id: 1, nombre: "Luis Paredes" };
@@ -133,4 +125,37 @@ test("«¿cuántas cajas de piña me quedan?»: elegida de la lista si hace falt
   } else {
     await expect(hoja.getByText("No te queda Piña golden")).toBeVisible({ timeout: 15_000 });
   }
+});
+
+/** Alguno de estos montos está en la hoja (las otras pruebas venden y gastan en paralelo). */
+const unoDe = (montos: number[]) => new RegExp(montos.map((m) => enSoles(m).replace(/[.$()]/g, "\\$&")).join("|"));
+const resumen = async () => (await base.rpc("resumen_dia")).data as { ventas_total: number; gastos: number };
+
+test("«¿cuánto vendí?», «¿cuánto gasté?» y «¿cómo voy?» cuadran con el resumen del día", async ({ page }) => {
+  test.slow();
+  const antes = await resumen();
+  let hoja = await dictar(page, await crearComando("consultar"), consulta("ventas_hoy"), "Lo que vendiste hoy");
+  await expect(hoja.getByText(/Hoy vendiste|Hoy todavía no vendes/)).toBeVisible({ timeout: 15_000 });
+  let despues = await resumen();
+  if (Number(despues.ventas_total) > 0) await expect(hoja.getByText(unoDe([Number(antes.ventas_total), Number(despues.ventas_total)])).first()).toBeVisible();
+  await hoja.getByRole("button", { name: "Listo" }).click();
+
+  await page.context().clearCookies();
+  hoja = await dictar(page, await crearComando("consultar"), consulta("gastos_hoy"), "Lo que gastaste hoy");
+  await expect(hoja.getByText(/Hoy gastaste|Hoy no tienes gastos/)).toBeVisible({ timeout: 15_000 });
+  despues = await resumen();
+  if (Number(despues.gastos) > 0) await expect(hoja.getByText(unoDe([Number(antes.gastos), Number(despues.gastos)])).first()).toBeVisible();
+  await hoja.getByRole("button", { name: "Listo" }).click();
+
+  await page.context().clearCookies();
+  hoja = await dictar(page, await crearComando("consultar"), consulta("resumen_dia"), "Tu día");
+  for (const fila of ["Cobraste", "Te deben, en total", "Gastaste y compraste"]) await expect(hoja.getByText(fila)).toBeVisible({ timeout: 15_000 });
+});
+
+test("«¿qué me queda?»: las cajas que hay y de qué frutas, la que más primero", async ({ page }) => {
+  test.slow();
+  const hoja = await dictar(page, await crearComando("consultar"), consulta("stock"), "Tu stock");
+  await expect(hoja.getByText(/^(Tienes|No te queda fruta)$/)).toBeVisible({ timeout: 15_000 });
+  const { data } = await base.from("v_stock").select("stock").gt("stock", 0);
+  if ((data ?? []).length > 0) await expect(hoja.getByText(/^de \d+ frutas?$/)).toBeVisible();
 });

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { formatearSoles } from "../formato";
-import { respuestaDeudaCliente, respuestaQuienMeDebe, respuestaStockProducto } from "./consultas-reglas";
+import { formatearCajas, formatearSoles } from "../formato";
+import { textoVentas, type ResumenHoy } from "../hoy-reglas";
+import { respuestaDeudaCliente, respuestaGastosHoy, respuestaQuienMeDebe, respuestaResumenDia, respuestaStock, respuestaStockProducto, respuestaVentasHoy } from "./consultas-reglas";
 
 const deudores = [
   { id: 2, nombre: "Rosa Quispe", saldo: 100 },
@@ -24,7 +25,7 @@ describe("respuestaQuienMeDebe", () => {
       enlace: { texto: "Ver todo el cuaderno", href: "/clientes" },
     });
     expect(r.filas.map((f) => f.nombre)).toEqual(["Luis Paredes", "Bodega Santa Ana", "Carlos Mendoza", "Juguería El Paraíso", "Rosa Quispe"]);
-    expect(r.filas[0]).toEqual({ id: 1, nombre: "Luis Paredes", valor: formatearSoles(680), tono: "deuda" });
+    expect(r.filas[0]).toEqual({ id: 1, nombre: "Luis Paredes", valor: formatearSoles(680), tono: "deuda", icono: "cliente" });
   });
 
   it("lo hablado dice los montos como se dicen y nombra al que más debe", () => {
@@ -88,5 +89,84 @@ describe("respuestaStockProducto", () => {
       cifra: null,
       detalle: "Según la app faltan 4 cajas: revisa el stock.",
     });
+  });
+});
+
+const dia: ResumenHoy = { vendido: 2257, contado: 1155, credito: 1102, cobrado: 1355, abonos: 200, porCobrar: 1432, numeroVentas: 9, cajas: 58, compras: 3360, gastos: 40 };
+const vacio: ResumenHoy = { vendido: 0, contado: 0, credito: 0, cobrado: 0, abonos: 0, porCobrar: 0, numeroVentas: 0, cajas: 0, compras: 0, gastos: 0 };
+
+describe("respuestaVentasHoy", () => {
+  it("lo vendido, partido en contado y crédito, igual que «Hoy»", () => {
+    expect(respuestaVentasHoy(dia)).toMatchObject({
+      titulo: "Lo que vendiste hoy",
+      etiqueta: "Hoy vendiste",
+      cifra: { tipo: "soles", valor: 2257, tono: "normal" },
+      detalle: textoVentas(9, 58),
+      hablado: "Hoy vendiste dos mil doscientos cincuenta y siete soles, en nueve ventas: mil ciento cincuenta y cinco al contado y mil ciento dos al crédito.",
+    });
+    expect(respuestaVentasHoy(dia).filas.map((f) => [f.nombre, f.valor, f.icono])).toEqual([
+      ["Al contado", formatearSoles(1155), "ninguno"],
+      ["Al crédito", formatearSoles(1102), "ninguno"],
+    ]);
+  });
+
+  it("sin ventas, lo dice", () => {
+    expect(respuestaVentasHoy(vacio)).toMatchObject({ etiqueta: "Hoy todavía no vendes", cifra: null, filas: [], hablado: "Hoy todavía no vendes nada." });
+  });
+});
+
+describe("respuestaGastosHoy", () => {
+  it("los gastos, y aparte lo que pagaste en fruta", () => {
+    expect(respuestaGastosHoy(dia)).toMatchObject({
+      titulo: "Lo que gastaste hoy",
+      etiqueta: "Hoy gastaste",
+      cifra: { tipo: "soles", valor: 40, tono: "normal" },
+      detalle: `Y en compras de fruta, ${formatearSoles(3360)}`,
+      hablado: "Hoy gastaste cuarenta soles. En compras de fruta, tres mil trescientos sesenta soles.",
+    });
+  });
+
+  it("sin gastos ni compras, lo dice", () => {
+    expect(respuestaGastosHoy(vacio)).toMatchObject({ etiqueta: "Hoy no tienes gastos", cifra: null, detalle: null, hablado: "Hoy no tienes gastos." });
+  });
+});
+
+describe("respuestaResumenDia", () => {
+  it("vendido en grande; cobrado, lo que te deben y lo que salió en la lista", () => {
+    const r = respuestaResumenDia(dia);
+    expect(r).toMatchObject({ titulo: "Tu día", etiqueta: "Hoy vendiste", cifra: { tipo: "soles", valor: 2257, tono: "normal" }, detalle: textoVentas(9, 58) });
+    expect(r.filas.map((f) => [f.nombre, f.valor])).toEqual([
+      ["Cobraste", formatearSoles(1355)],
+      ["Te deben, en total", formatearSoles(1432)],
+      ["Gastaste y compraste", formatearSoles(3400)],
+    ]);
+    expect(r.hablado).toBe(
+      "Hoy vendiste dos mil doscientos cincuenta y siete soles y cobraste mil trescientos cincuenta y cinco. Entre todos te deben mil cuatrocientos treinta y dos soles.",
+    );
+  });
+});
+
+describe("respuestaStock", () => {
+  const productos = [
+    { id: 1, nombre: "Mango Kent", stock: 15 },
+    { id: 3, nombre: "Plátano de seda", stock: 34 },
+    { id: 7, nombre: "Mandarina", stock: 0 },
+    { id: 8, nombre: "Uva red globe", stock: -2 },
+    { id: 5, nombre: "Papaya", stock: 10.5 },
+  ];
+
+  it("cuántas cajas hay y de qué, la que más primero; lo que no hay no se cuenta", () => {
+    const r = respuestaStock(productos);
+    expect(r).toMatchObject({ titulo: "Tu stock", etiqueta: "Tienes", cifra: { tipo: "cajas", valor: 59.5 }, detalle: "de 3 frutas" });
+    expect(r.filas.map((f) => [f.nombre, f.valor, f.icono])).toEqual([
+      ["Plátano de seda", formatearCajas(34), "fruta"],
+      ["Mango Kent", formatearCajas(15), "fruta"],
+      ["Papaya", formatearCajas(10.5), "fruta"],
+    ]);
+    expect(r.hablado).toBe("Tienes cincuenta y nueve cajas y media, de tres frutas. La que más tienes es Plátano de seda, con treinta y cuatro cajas.");
+  });
+
+  it("sin fruta, lo dice", () => {
+    expect(respuestaStock([{ id: 7, nombre: "Mandarina", stock: 0 }])).toMatchObject({ etiqueta: "No te queda fruta", cifra: null, hablado: "No te queda fruta." });
   });
 });

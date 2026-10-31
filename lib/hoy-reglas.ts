@@ -15,6 +15,8 @@ const esquemaResumen = z.object({
   por_cobrar_total: numero,
   numero_ventas: numero,
   cajas_vendidas: numero,
+  compras: numero,
+  gastos: numero,
 });
 
 export type ResumenHoy = {
@@ -29,6 +31,9 @@ export type ResumenHoy = {
   porCobrar: number;
   numeroVentas: number;
   cajas: number;
+  /** Lo que salió hoy: compras de fruta y gastos (flete, ayudantes…). Lo usan las respuestas por voz (A7). */
+  compras: number;
+  gastos: number;
 };
 
 export function leerResumen(datos: unknown): ResumenHoy {
@@ -42,6 +47,8 @@ export function leerResumen(datos: unknown): ResumenHoy {
     porCobrar: r.por_cobrar_total,
     numeroVentas: r.numero_ventas,
     cajas: r.cajas_vendidas,
+    compras: r.compras,
+    gastos: r.gastos,
   };
 }
 

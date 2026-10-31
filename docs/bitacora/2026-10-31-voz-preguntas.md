@@ -9,7 +9,13 @@
 - Qué cambió: `respuestaDeudaCliente` (debe, al día o a favor) y `respuestaStockProducto` (sin stock o en negativo no muestra una cifra imposible: dice «No te queda»). Si el nombre no se entendió, `TarjetaConsulta` pide elegirlo con `EditorBusqueda` y recién responde.
 - Cómo se verificó: Vitest (8 de consultas) y 12 e2e a 412 y 360 px; a 360 px nada se sale de la hoja.
 
+**Actividad 3 · Ventas, gastos, resumen del día y stock general.**
+- Qué cambió: `respuestaVentasHoy`, `respuestaGastosHoy`, `respuestaResumenDia` y `respuestaStock`, con el mismo `resumen_dia()` y el mismo `leerResumen()` que «Hoy» (ahora también trae compras y gastos), así lo que se dice cuadra con lo que se ve. Cada fila lleva su ícono: el cliente, la fruta o ninguno.
+- Cómo se verificó: Vitest (15 de consultas) y 14 e2e de consultas a 412 y 360 px.
+- **Entorno local, no la app:** con los 3 Supabase de CAYLA corriendo en Docker (36 contenedores), los e2e en paralelo hicieron que el servidor no alcanzara a Auth (`AuthRetryableFetchError`, estado 0) y que PostgREST dejara conexiones «idle in transaction (aborted)», que después responden `25P02` a todo. Se arregla con `docker restart supabase_rest_fructus supabase_kong_fructus` y corriendo con `--workers=1`. Después: 14 de 14.
+
 ## Pendiente
 - El contador no puede dictar (`/api/voz` responde 403), así que tampoco puede preguntar. Decidir si las consultas se abren al contador.
 - En desarrollo, React monta dos veces y la respuesta empieza a decirse dos veces (la segunda corta a la primera). En producción no pasa.
+- Ver si el tope de 8 s de `fetchWithTimeout` (que corta pedidos a PostgREST con la máquina cargada) es lo que deja las conexiones abortadas; en producción no se ha visto.
 - `voz-abono` «respuesta perdida» falló una vez con 48 pruebas en paralelo y no se repitió en 2 corridas más: vigilar.

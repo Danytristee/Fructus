@@ -6,7 +6,17 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "../supabase/tipos-db";
-import { respuestaDeudaCliente, respuestaQuienMeDebe, respuestaStockProducto, type Respuesta } from "./consultas-reglas";
+import { leerResumen } from "../hoy-reglas";
+import {
+  respuestaDeudaCliente,
+  respuestaGastosHoy,
+  respuestaQuienMeDebe,
+  respuestaResumenDia,
+  respuestaStock,
+  respuestaStockProducto,
+  respuestaVentasHoy,
+  type Respuesta,
+} from "./consultas-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
 type Cliente = SupabaseClient<Database>;
@@ -14,7 +24,7 @@ type Consulta = Extract<Tarjeta, { tipo: "consulta" }>;
 
 export type PedidoConsulta = { consulta: Consulta["consulta"]; clienteId: number | null; productoId: number | null };
 
-/** La respuesta, o null si esa pregunta todavía no se responde (o le falta elegir el cliente o la fruta). */
+/** La respuesta, o null si le falta elegir el cliente o la fruta. */
 export async function responderConsulta(supabase: Cliente, p: PedidoConsulta): Promise<Respuesta | null> {
   switch (p.consulta) {
     case "quien_me_debe": {
@@ -35,12 +45,26 @@ export async function responderConsulta(supabase: Cliente, p: PedidoConsulta): P
       if (p.productoId === null) return null; // falta elegir qué fruta
       const { data, error } = await supabase.from("v_stock").select("producto_id, nombre, variedad, stock").eq("producto_id", p.productoId).single();
       if (error) throw new Error(`stock_producto (${error.code})`);
-      return respuestaStockProducto({ id: data.producto_id, nombre: [data.nombre, data.variedad].filter(Boolean).join(" "), stock: Number(data.stock ?? 0) });
+      return respuestaStockProducto({ id: data.producto_id, nombre: nombreFruta(data), stock: Number(data.stock ?? 0) });
     }
-    default:
-      return null;
+    case "ventas_hoy":
+    case "gastos_hoy":
+    case "resumen_dia": {
+      // El mismo resumen_dia() que «Hoy»: lo que se dice y lo que se ve en pantalla cuadran.
+      const { data, error } = await supabase.rpc("resumen_dia");
+      if (error) throw new Error(`resumen_dia (${error.code})`);
+      const dia = leerResumen(data);
+      return p.consulta === "ventas_hoy" ? respuestaVentasHoy(dia) : p.consulta === "gastos_hoy" ? respuestaGastosHoy(dia) : respuestaResumenDia(dia);
+    }
+    case "stock": {
+      const { data, error } = await supabase.from("v_stock").select("producto_id, nombre, variedad, stock");
+      if (error) throw new Error(`stock (${error.code})`);
+      return respuestaStock((data ?? []).map((x) => ({ id: x.producto_id, nombre: nombreFruta(x), stock: Number(x.stock ?? 0) })));
+    }
   }
 }
+
+const nombreFruta = (p: { nombre: string; variedad: string | null }) => [p.nombre, p.variedad].filter(Boolean).join(" ");
 
 /** El pedido que sale de la tarjeta de consulta: lo que se preguntó y lo que se eligió solo. */
 export const pedidoDe = (t: Consulta): PedidoConsulta => ({

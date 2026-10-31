@@ -117,7 +117,7 @@ export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Pro
     return (
       <div className="grid gap-4">
         <p className="text-lg" role={estado === "error" ? "alert" : undefined}>
-          {estado === "error" ? error : "Esa pregunta todavía no la sé responder. Por ahora te digo quién te debe, cuánto te debe un cliente y cuántas cajas te quedan de una fruta."}
+          {estado === "error" ? error : "Esa pregunta todavía no la sé responder. Pregúntame cuánto vendiste, quién te debe o cuánto te queda."}
         </p>
         {estado === "error" && (
           <Boton variante="secundario" onClick={() => void pedir()}>
@@ -149,7 +149,8 @@ export function TarjetaConsulta({ tarjeta, comandoId, latenciaMs, alListo }: Pro
         <ul className="grid animate-pieza grid-cols-[minmax(0,1fr)] gap-1 rounded-[20px] bg-superficie p-2" style={pieza(1)}>
           {respuesta.filas.map((f) => (
             <li key={f.id} className="flex min-h-14 items-center gap-3 px-1.5">
-              <Avatar iniciales={iniciales(f.nombre)} tono={tonoDe(f.id)} />
+              {f.icono === "cliente" && <Avatar iniciales={iniciales(f.nombre)} tono={tonoDe(f.id)} />}
+              {f.icono === "fruta" && <IconoFruta nombre={f.nombre} tamano={40} />}
               <span className="min-w-0 flex-1 truncate text-lg font-bold">{f.nombre}</span>
               {/* El monto no se achica: si falta espacio, se corta el nombre, nunca la cifra. */}
               <span className={f.tono === "deuda" ? "cifra shrink-0 text-lg font-extrabold text-deuda" : "cifra shrink-0 text-lg font-extrabold"}>{f.valor}</span>
