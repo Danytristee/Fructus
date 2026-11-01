@@ -2,6 +2,7 @@
 // Reglas de dinero: nunca se inventa un precio (si no lo dijo, se sugiere el último y se marca «sugerido»), nunca se asume
 // contado (si no lo dijo, se pregunta), y el total solo existe si todos los precios existen. Lógica pura: no importa React
 // ni Supabase; las búsquedas en la base las hace lib/voz/resolver.ts y llegan aquí como datos.
+import type { Respuesta } from "./consultas-reglas";
 import type { Interpretacion } from "./esquemas";
 
 /** Desde esta similitud (pg_trgm) un nombre se elige solo; por debajo, la persona elige entre las 3 mejores (CLAUDE.md, «La voz»). */
@@ -51,7 +52,14 @@ export type Tarjeta =
     }
   | { tipo: "merma"; producto: Eleccion; cantidad: number; motivo: string | null; falta: "producto"[] }
   | { tipo: "gasto"; categoria: string; monto: number; descripcion: string | null; medio: Medio }
-  | { tipo: "consulta"; consulta: string; cliente: Eleccion | null; producto: Eleccion | null }
+  | {
+      tipo: "consulta";
+      consulta: Extract<Interpretacion, { herramienta: "consultar" }>["datos"]["consulta"];
+      cliente: Eleccion | null;
+      producto: Eleccion | null;
+      /** La respuesta ya armada (/api/voz la agrega con lib/voz/consultas.ts); null si falta elegir o todavía no se responde. */
+      respuesta: Respuesta | null;
+    }
   | { tipo: "no_entendido"; mensaje: string };
 
 /** Lo que trajeron las búsquedas en la base, en el mismo orden que la interpretación. */
@@ -141,6 +149,7 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
         consulta: i.datos.consulta,
         cliente: i.datos.cliente_texto ? elegir(i.datos.cliente_texto, r.clientes) : null,
         producto: i.datos.producto_texto ? elegir(i.datos.producto_texto, r.productos[0] ?? []) : null,
+        respuesta: null,
       };
     case "no_entendido":
       return { tipo: "no_entendido", mensaje: "No te entendí, inténtalo otra vez." };

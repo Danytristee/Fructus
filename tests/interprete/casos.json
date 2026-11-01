@@ -716,6 +716,89 @@
         "herramienta": "no_entendido",
         "datos": {}
       }
+    },
+    {
+      "id": "consulta-cuanto-llevo",
+      "transcripcion": "¿Cuánto llevo vendido?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "ventas_hoy"
+        }
+      }
+    },
+    {
+      "id": "consulta-como-voy",
+      "transcripcion": "¿Cómo voy?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "resumen_dia"
+        }
+      }
+    },
+    {
+      "id": "consulta-que-me-queda",
+      "transcripcion": "¿Qué me queda?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "stock"
+        }
+      }
+    },
+    {
+      "id": "consulta-hay-papaya",
+      "transcripcion": "¿Hay papaya todavía?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "stock_producto",
+          "producto_texto": "papaya"
+        }
+      }
+    },
+    {
+      "id": "consulta-cuantas-jabas",
+      "transcripcion": "¿Cuántas jabas de plátano isla tengo?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "stock_producto",
+          "producto_texto": "plátano isla"
+        }
+      }
+    },
+    {
+      "id": "consulta-quien-falta-pagar",
+      "transcripcion": "¿Quiénes me faltan pagar?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "quien_me_debe"
+        }
+      }
+    },
+    {
+      "id": "consulta-deuda-puesto-12",
+      "transcripcion": "¿Cuánto me debe la del puesto doce?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "deuda_cliente",
+          "cliente_texto": "la del puesto 12"
+        }
+      }
+    },
+    {
+      "id": "consulta-gaste-flete",
+      "transcripcion": "¿Cuánto se fue hoy en gastos?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "gastos_hoy"
+        }
+      }
     }
   ]
 }

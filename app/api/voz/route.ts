@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { permisosDe } from "@/lib/permisos-reglas";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { leerCatalogo } from "@/lib/voz/catalogo";
+import { pedidoDe, responderConsulta } from "@/lib/voz/consultas";
 import { vocabularioWhisper } from "@/lib/voz/catalogo-reglas";
 import { interpretar } from "@/lib/voz/interprete";
 import { resolver } from "@/lib/voz/resolver";
@@ -82,9 +83,24 @@ export async function POST(request: NextRequest) {
     return responder(503, { error: "No pudimos buscar en tu cuaderno. Revisa tu señal e inténtalo otra vez.", conservarAudio: true });
   }
 
-  // 7. La latencia del servidor queda en el comando (el navegador le suma la red).
+  // 7. Si es una pregunta, la respuesta viaja con la tarjeta (sin otra vuelta). Si falla la lectura, la tarjeta la pide
+  //    de nuevo con la acción responderConsulta: la pregunta no se pierde.
+  if (tarjeta.tipo === "consulta") {
+    try {
+      tarjeta = { ...tarjeta, respuesta: await responderConsulta(supabase, pedidoDe(tarjeta)) };
+    } catch (e) {
+      console.error("voz: no se pudo responder la consulta", { comandoId: comando.id, error: e instanceof Error ? e.message : "desconocido" });
+    }
+  }
+  // Una pregunta respondida no tiene nada que confirmar: el comando queda confirmado (cuenta en la precisión).
+  const respondida = tarjeta.tipo === "consulta" && tarjeta.respuesta !== null;
+
+  // 8. La latencia del servidor queda en el comando (el navegador le suma la red).
   const latenciaMs = Math.round(performance.now() - inicio);
-  const { error: errorLatencia } = await supabase.from("comandos_voz").update({ latencia_ms: latenciaMs }).eq("id", comando.id);
+  const { error: errorLatencia } = await supabase
+    .from("comandos_voz")
+    .update(respondida ? { latencia_ms: latenciaMs, resultado: "confirmado" } : { latencia_ms: latenciaMs })
+    .eq("id", comando.id);
   if (errorLatencia) console.error("voz: no se pudo guardar la latencia", { comandoId: comando.id, codigo: errorLatencia.code });
 
   return responder(200, { comandoId: comando.id, transcripcion: texto.texto, tarjeta, latenciaMs });

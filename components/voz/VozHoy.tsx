@@ -202,7 +202,8 @@ export function VozHoy() {
       // De soltar el botón a ver la tarjeta (CLAUDE.md, regla 9): se guarda al confirmar o descartar.
       const nuevo = { comandoId: desenlace.comandoId, tarjeta: desenlace.tarjeta, latenciaMs: Math.round(performance.now() - desde) };
       setResultado(nuevo);
-      recordarTarjeta(nuevo);
+      // Una pregunta no queda «sin confirmar»: no hay nada que guardar si se recarga la página.
+      if (nuevo.tarjeta.tipo !== "consulta") recordarTarjeta(nuevo);
       setHojaAbierta(true);
       decir("Listo", 1200);
       return;
