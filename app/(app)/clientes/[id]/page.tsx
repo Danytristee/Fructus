@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { AbonoAMano } from "@/components/clientes/AbonoAMano";
+import { BotonCliente } from "@/components/clientes/BotonCliente";
 import { DatosCliente } from "@/components/clientes/DatosCliente";
 import { HistorialCliente } from "@/components/clientes/HistorialCliente";
 import { TarjetaDeuda } from "@/components/clientes/TarjetaDeuda";
@@ -10,6 +11,7 @@ import { Encabezado } from "@/components/marco/Encabezado";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
+import { borradorDeCliente } from "@/lib/cliente-reglas";
 import { HISTORIAL_TOPE, historialDelCliente } from "@/lib/ficha-cliente-reglas";
 import { iniciales, tonoDe, type Medio } from "@/lib/operaciones-reglas";
 import { exigirSesion } from "@/lib/sesion";
@@ -21,6 +23,7 @@ const VOLVER = { href: "/clientes", texto: "Clientes" };
 type Cliente = {
   id: number;
   nombre: string;
+  alias: string[];
   tipo_documento: string | null;
   numero_documento: string | null;
   telefono: string | null;
@@ -86,6 +89,7 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
         documento={cliente.tipo_documento && cliente.numero_documento ? `${cliente.tipo_documento} ${cliente.numero_documento}` : null}
         direccion={cliente.direccion}
         notas={cliente.notas}
+        editar={permisos.ajustes ? <BotonCliente cliente={{ id: cliente.id, borrador: borradorDeCliente(cliente) }} /> : undefined}
       />
       <HistorialCliente dias={dias} hayMas={hayMas} tope={HISTORIAL_TOPE} />
       {permisos.registrar && <AbonoAMano cliente={persona} />}

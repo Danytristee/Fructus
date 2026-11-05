@@ -24,7 +24,7 @@ type Filtro = "deben" | "al_dia" | "todos";
 const sinTildes = (t: string) => t.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
 
 // El cuaderno: quién te debe y cuánto, con buscador por nombre o apodo. Un toque en un cliente abre su ficha.
-export function ListaClientes({ clientes }: { clientes: ClienteCuaderno[] }) {
+export function ListaClientes({ clientes, nuevo }: { clientes: ClienteCuaderno[]; nuevo?: React.ReactNode }) {
   const [filtro, setFiltro] = useState<Filtro>("deben");
   const [busqueda, setBusqueda] = useState("");
   const q = sinTildes(busqueda.trim());
@@ -37,17 +37,20 @@ export function ListaClientes({ clientes }: { clientes: ClienteCuaderno[] }) {
       <h2 id="cuaderno" className="sr-only">
         Cuaderno de clientes
       </h2>
-      <label className="vidrio mb-3 flex min-h-14 items-center gap-3 rounded-full px-4">
-        <Search aria-hidden className="size-5 text-texto-suave" />
-        <span className="sr-only">Buscar cliente</span>
-        <input
-          type="search"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Busca por nombre o apodo"
-          className="min-h-12 w-full bg-transparent text-lg outline-none placeholder:text-texto-suave"
-        />
-      </label>
+      <div className="mb-3 flex items-center gap-2">
+        <label className="vidrio flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-full px-4">
+          <Search aria-hidden className="size-5 text-texto-suave" />
+          <span className="sr-only">Buscar cliente</span>
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Busca por nombre o apodo"
+            className="min-h-12 w-full bg-transparent text-lg outline-none placeholder:text-texto-suave"
+          />
+        </label>
+        {nuevo}
+      </div>
       <Filtros
         etiqueta="Filtrar clientes"
         valor={filtro}

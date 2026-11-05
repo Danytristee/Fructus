@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { HandCoins } from "lucide-react";
 
 import { AbonoAMano } from "@/components/clientes/AbonoAMano";
+import { BotonCliente } from "@/components/clientes/BotonCliente";
 import { ListaClientes, type ClienteCuaderno } from "@/components/clientes/ListaClientes";
 import { Encabezado } from "@/components/marco/Encabezado";
 import { Aviso } from "@/components/ui/Aviso";
@@ -55,7 +56,7 @@ async function Cuaderno() {
           {deben.length === 0 ? "Nadie te debe" : `entre ${deben.length} ${deben.length === 1 ? "cliente" : "clientes"}; más que nadie, ${deben[0]!.nombre}`}
         </span>
       </Tarjeta>
-      <ListaClientes clientes={clientes} />
+      <ListaClientes clientes={clientes} nuevo={permisos.ajustes ? <BotonCliente cliente={null} /> : null} />
       {permisos.registrar && <AbonoAMano cliente={null} sugeridos={sugeridosParaAbono(clientes)} />}
     </>
   );

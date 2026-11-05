@@ -74,8 +74,10 @@ test("un cliente sin movimientos está al día y la ficha dice qué falta, sin f
     await expect(page.getByTestId("deuda-cliente")).toContainText("Al día");
     await expect(page.getByTestId("deuda-cliente")).toContainText("No te debe nada");
     await expect(page.getByText("Todavía no hay movimientos")).toBeVisible();
-    // Sin teléfono, documento, dirección ni notas no hay sección de datos.
-    await expect(page.getByRole("heading", { name: "Sus datos" })).toHaveCount(0);
+    // Sin teléfono, documento, dirección ni notas, el dueño ve que faltan y puede agregarlos (el contador, nada: no hay fila vacía).
+    await expect(page.getByRole("heading", { name: "Sus datos" })).toBeVisible();
+    await expect(page.getByText("Todavía no tiene teléfono ni documento.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Editar" })).toBeVisible();
 
     const { desborde, chicos } = await medir(page);
     expect(desborde).toBeLessThanOrEqual(0);
