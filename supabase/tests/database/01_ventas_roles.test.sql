@@ -52,7 +52,7 @@ insert into abonos (cliente_id, monto, medio_pago) values (1, 200, 'efectivo');
 select is((select saldo from v_saldo_clientes where cliente_id = 1), (select deuda_lucho + 230 from inicio), 'tras abonar 200, la deuda nueva baja a 230');
 
 select throws_ok(
-  $$ select anular_venta((select max(id) from ventas)) $$,
+  $$ select anular_venta((select max(id) from ventas), 'motivo de prueba') $$,
   'P0001', 'Solo el dueño o el administrador pueden anular ventas',
   'el ayudante no puede anular');
 
@@ -72,7 +72,7 @@ select throws_ok(
 
 -- --- Dueño: anula y el stock vuelve ---------------------------------------------
 select pg_temp.como('00000000-0000-0000-0000-0000000000d1');
-select lives_ok($$ select anular_venta((select max(id) from ventas)) $$, 'el dueño anula la venta');
+select lives_ok($$ select anular_venta((select max(id) from ventas), 'motivo de prueba') $$, 'el dueño anula la venta');
 select is((select stock from v_stock where producto_id = 1), (select stock_mango + 50 from inicio), 'la anulación devuelve las 10 cajas');
 
 -- --- Funciones reservadas al servidor --------------------------------------------

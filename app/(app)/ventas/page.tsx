@@ -20,14 +20,13 @@ const nombreFruta = (p: { nombre: string; variedad: string | null } | null) => (
 // El historial de ventas de los últimos 7 días, agrupado por día de Lima, de la más reciente a la más antigua. Cada venta trae
 // todo su detalle (fruta, precios, quién la registró) para abrirlo al tocarla sin pedir nada más.
 async function Historial() {
-  const { supabase } = await exigirSesion();
+  const { supabase, permisos } = await exigirSesion();
   const ahora = new Date();
   const { data, error } = await supabase
     .from("ventas")
     .select(
-      "id, fecha, total, condicion, medio_pago, cliente:clientes(id, nombre), registrador:perfiles!registrado_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad))",
+      "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad))",
     )
-    .eq("estado", "registrada")
     .gte("fecha", new Date(ahora.getTime() - 7 * DIA_MS).toISOString())
     .order("fecha", { ascending: false })
     .limit(300);
@@ -54,8 +53,10 @@ async function Historial() {
       cliente: v.cliente,
       items: v.items.map((i) => ({ cantidad: Number(i.cantidad), producto: i.producto })),
     });
+    const anulada = v.estado === "anulada";
     porDia.get(dia)!.ventas.push({
       ...op,
+      estado: anulada ? "anulada" : op.estado,
       credito: v.condicion === "credito",
       completa: {
         id: v.id,
@@ -72,10 +73,11 @@ async function Historial() {
           subtotal: Number(i.subtotal),
         })),
         registradaPor: v.registrador?.nombre ?? null,
+        anulacion: anulada ? { cuando: v.anulada_en ?? v.fecha, por: v.anulador?.nombre ?? null, motivo: v.motivo_anulacion ?? "" } : null,
       },
     });
   }
-  return <HistorialVentas dias={[...porDia.values()]} hoy={diaDeLima(ahora)} />;
+  return <HistorialVentas dias={[...porDia.values()]} hoy={diaDeLima(ahora)} puedeAnular={permisos.anular} />;
 }
 
 export default function Ventas() {

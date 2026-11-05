@@ -29,7 +29,7 @@ export async function sesion() {
   if (!data?.claims) return null;
   const { data: perfil, error } = await supabase.from("perfiles").select("rol").eq("id", data.claims.sub).eq("activo", true).maybeSingle();
   if (error) console.error("voz: no se pudo leer el perfil", { usuarioId: data.claims.sub, codigo: error.code });
-  return { supabase, permisos: permisosDe(perfil?.rol ?? null) };
+  return { supabase, usuarioId: data.claims.sub, permisos: permisosDe(perfil?.rol ?? null) };
 }
 
 type Cliente = NonNullable<Awaited<ReturnType<typeof sesion>>>["supabase"];

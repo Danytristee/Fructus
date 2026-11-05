@@ -21,18 +21,19 @@ type Filtro = "todas" | "contado" | "credito";
 
 // El historial de ventas: lo de hoy o lo de los últimos 7 días, con cuánto se vendió arriba, día por día, filtrado por contado
 // o crédito. Tocar una venta abre su detalle.
-export function HistorialVentas({ dias, hoy }: { dias: DiaVentas[]; hoy: string }) {
+export function HistorialVentas({ dias, hoy, puedeAnular }: { dias: DiaVentas[]; hoy: string; puedeAnular: boolean }) {
   const [periodo, setPeriodo] = useState<Periodo>("hoy");
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [abierta, setAbierta] = useState<DetalleVenta | null>(null);
 
   const delPeriodo = periodo === "hoy" ? dias.filter((d) => d.dia === hoy) : dias;
-  const todas = delPeriodo.flatMap((d) => d.ventas);
+  const todas = delPeriodo.flatMap((d) => d.ventas).filter((v) => v.estado !== "anulada"); // lo anulado se ve, pero no cuenta
   const resumen = resumirPeriodo(todas.map((v) => ({ total: v.monto ?? 0, credito: v.credito })));
   const pasa = (v: { credito: boolean }) => filtro === "todas" || (filtro === "credito" ? v.credito : !v.credito);
   const visibles = delPeriodo.map((d) => ({ ...d, ventas: d.ventas.filter(pasa) })).filter((d) => d.ventas.length > 0);
-  const deLaSemana = dias.flatMap((d) => d.ventas).length;
-  const deHoy = dias.filter((d) => d.dia === hoy).flatMap((d) => d.ventas).length;
+  const vigentes = (d: DiaVentas) => d.ventas.filter((v) => v.estado !== "anulada");
+  const deLaSemana = dias.flatMap(vigentes).length;
+  const deHoy = dias.filter((d) => d.dia === hoy).flatMap(vigentes).length;
 
   return (
     <section aria-labelledby="historial">
@@ -81,7 +82,9 @@ export function HistorialVentas({ dias, hoy }: { dias: DiaVentas[]; hoy: string 
       ) : (
         <div key={`${periodo}-${filtro}`} className="mt-3 grid gap-2.5">
           {visibles.map((d, i) => {
-            const total = d.ventas.reduce((s, v) => s + (v.monto ?? 0), 0);
+            const vigentesDelDia = d.ventas.filter((v) => v.estado !== "anulada");
+            const anuladas = d.ventas.length - vigentesDelDia.length;
+            const total = vigentesDelDia.reduce((s, v) => s + (v.monto ?? 0), 0);
             return (
               <div key={d.dia} className="vidrio animate-subir rounded-tarjeta px-4 py-1" style={{ animationDelay: `${i * 50}ms` }}>
                 <Desplegable
@@ -91,7 +94,8 @@ export function HistorialVentas({ dias, hoy }: { dias: DiaVentas[]; hoy: string 
                       <span className="grid">
                         <span className="font-extrabold capitalize">{d.etiqueta}</span>
                         <span className="text-base text-texto-suave">
-                          {d.ventas.length} {d.ventas.length === 1 ? "venta" : "ventas"}
+                          {vigentesDelDia.length} {vigentesDelDia.length === 1 ? "venta" : "ventas"}
+                          {anuladas > 0 && ` · ${anuladas} ${anuladas === 1 ? "anulada" : "anuladas"}`}
                         </span>
                       </span>
                       <Monto valor={total} />
@@ -110,7 +114,7 @@ export function HistorialVentas({ dias, hoy }: { dias: DiaVentas[]; hoy: string 
         </div>
       )}
 
-      <HojaVenta venta={abierta} alCerrar={() => setAbierta(null)} />
+      <HojaVenta venta={abierta} puedeAnular={puedeAnular} alCerrar={() => setAbierta(null)} />
     </section>
   );
 }

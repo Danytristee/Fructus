@@ -71,7 +71,7 @@ function Formulario({ cliente, alCerrar, alCambiarGuardando }: { cliente: Client
   const [tocados, setTocados] = useState<ReadonlySet<CampoCliente>>(new Set());
   // Los parecidos de un texto concreto: si el nombre ya cambió, ese aviso no vale.
   const [parecidos, setParecidos] = useState<{ texto: string; lista: Parecido[] }>({ texto: "", lista: [] });
-  const { confirmar, guardando, error, guardado } = useConfirmar<ClienteGuardado>({ alGuardar: () => undefined, alCambiarGuardando });
+  const { confirmar, guardando, error, guardado } = useConfirmar<ClienteGuardado>({ alGuardar: () => undefined, alCambiarGuardando, boton: "Guardar cliente" });
 
   const tocar = (campo: CampoCliente) => setTocados((t) => new Set(t).add(campo));
   const cambiar = (cambios: Partial<BorradorCliente>) => setB((x) => ({ ...x, ...cambios }));

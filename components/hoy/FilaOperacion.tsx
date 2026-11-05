@@ -13,6 +13,7 @@ const insignias: Record<Estado, string> = {
   compra: "Compra",
   merma: "Merma",
   gasto: "Gasto",
+  anulada: "Anulada",
 };
 
 // Sin persona detrás (compra, merma, gasto, venta al paso), un icono ocupa el lugar del avatar.
@@ -40,7 +41,8 @@ export function FilaOperacion({ op, alTocar }: { op: Operacion; alTocar?: () => 
         <span className="text-base leading-snug text-texto-suave">{op.detalle}</span>
       </span>
       <span className="grid justify-items-end gap-1">
-        {op.monto !== null && <Monto valor={op.monto} />}
+        {/* Una venta anulada ya no cuenta: el monto se ve, pero tachado. */}
+        {op.monto !== null && (op.estado === "anulada" ? <span className="line-through opacity-60"><Monto valor={op.monto} /></span> : <Monto valor={op.monto} />)}
         <Insignia tipo={op.estado}>{insignias[op.estado]}</Insignia>
       </span>
     </>

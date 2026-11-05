@@ -19,7 +19,7 @@ export type CompraLeida = { id: number; fecha: string; total: number; proveedor:
 export type MermaLeida = { id: number; fecha: string; cantidad: number; motivo: string | null; producto: Producto | null };
 export type GastoLeido = { id: number; fecha: string; monto: number; categoria: string; descripcion: string | null };
 
-export type Estado = "pago" | "debe" | "abono" | "compra" | "merma" | "gasto";
+export type Estado = "pago" | "debe" | "abono" | "compra" | "merma" | "gasto" | "anulada";
 
 export type Operacion = {
   clave: string;

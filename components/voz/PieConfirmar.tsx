@@ -13,6 +13,8 @@ type Props = {
   listo: boolean;
   /** A mano (A8): lo que falta se dice como instrucción, en texto normal, no en rojo. Los errores siguen en rojo. */
   avisoNeutro?: boolean;
+  /** Lo que dice el segundo botón si «Descartar» no se entiende: al anular una venta, «No, dejarla». */
+  etiquetaDescartar?: string;
   /** «Confirmar venta», «Confirmar abono». */
   etiqueta: string;
   /** Lo que dice el botón mientras no está listo, si lo que falta está justo arriba («Primero: ¿pagó o lo debe?»). */
@@ -25,7 +27,7 @@ type Props = {
 // El pie de toda tarjeta de voz: qué falta o qué falló, Confirmar y Descartar. Pegado abajo de la hoja: con todo lo de
 // arriba, a 360 px Confirmar se iba debajo del borde (regla 1). El borde inferior negativo iguala al margen: sin scroll no
 // sube, y no tapa lo de arriba.
-export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = false, etiqueta, etiquetaPendiente, alConfirmar, alDescartar, style }: Props) {
+export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = false, etiqueta, etiquetaPendiente, etiquetaDescartar = "Descartar", alConfirmar, alDescartar, style }: Props) {
   const router = useRouter();
   return (
     <div
@@ -53,7 +55,7 @@ export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = fal
         {!listo && etiquetaPendiente ? etiquetaPendiente : etiqueta}
       </Boton>
       <Boton variante="texto" onClick={alDescartar} disabled={guardando}>
-        Descartar
+        {etiquetaDescartar}
       </Boton>
     </div>
   );

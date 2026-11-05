@@ -15,6 +15,8 @@ export type DetalleVenta = {
   items: ItemDeVenta[];
   /** Quién la registró, si se puede ver (el ayudante no lee los perfiles de los demás). */
   registradaPor: string | null;
+  /** Si está anulada: cuándo, quién (si se puede ver) y por qué. null mientras vale. */
+  anulacion: { cuando: string; por: string | null; motivo: string } | null;
 };
 
 export type Periodo = "hoy" | "semana";

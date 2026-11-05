@@ -107,7 +107,7 @@ test("respuesta perdida al guardar: no se crea otro cliente, y al reintentar es 
   // El pedido llega al servidor y se guarda, pero la respuesta se pierde en el camino.
   await page.route("**/*", async (r) => (r.request().method() === "POST" && r.request().headers()["next-action"] ? (await r.fetch(), r.abort()) : r.fallback()));
   await hoja.getByRole("button", { name: "Guardar cliente" }).click();
-  await expect(hoja.getByRole("alert")).toHaveText("La señal no respondió y no sé si se guardó. Toca Confirmar otra vez: no se va a repetir.");
+  await expect(hoja.getByRole("alert")).toHaveText("La señal no respondió y no sé si se guardó. Toca Guardar cliente otra vez: no se va a repetir.");
   expect(await clientesDe(nombre)).toHaveLength(1);
 
   // La persona toca otra vez, como le dice la hoja: el servidor ve que es el mismo cliente y responde con él.
