@@ -1,6 +1,6 @@
 # ADR-0010 — Registrar a mano con las mismas tarjetas, y dos reglas nuevas en la base
 
-**Fecha:** 2026-11-05 · **Estado:** aceptado (las dos migraciones esperan el OK para el proyecto de Supabase)
+**Fecha:** 2026-11-05 · **Estado:** aceptado (las dos migraciones se aplicaron al proyecto de Supabase el 5-11, con OK)
 
 ## Contexto
 
@@ -47,8 +47,7 @@ su comando y un índice único por comando rechaza el segundo (abonos, mermas, g
   Se pueden limpiar los `manual` pendientes de más de un día.
 - Hay un hallazgo de permisos pendiente, informado por separado a quien dirige el proyecto: no forma parte de A8 y no se detalla aquí.
 - La tarjeta de abono ahora admite `monto: null` (a mano arranca sin monto). La de merma usa `cantidad: 0` como «sin cajas».
-- Las dos migraciones se probaron en local (`db reset` desde cero, 93 pruebas pgTAP de 11 archivos, invariantes). **No están en el proyecto
-  de Supabase:** al aplicarlas se renombran a la versión real que asigne Supabase y se regeneran los tipos desde el proyecto
-  (`lib/supabase/tipos-db.ts` de esta rama sale de la base local, sin el esquema `graphql_public`).
-- Antes de aplicar `clientes_nombre_unico` a un proyecto con datos hay que comprobar que no haya dos clientes activos con el mismo nombre
-  (la consulta está en el comentario de la migración).
+- Las dos migraciones se probaron en local (`db reset` desde cero, 93 pruebas pgTAP de 11 archivos, invariantes) y se aplicaron al proyecto
+  de Supabase el 5-11, con OK, como `20261105231144_nombre_cliente_unico` y `20261105231206_anular_venta_con_motivo`. Antes de aplicarlas se
+  comprobó en el proyecto que no había clientes activos repetidos ni ventas anuladas. `lib/supabase/tipos-db.ts` sale de la base local
+  (sin el esquema `graphql_public`) y coincide con el proyecto en lo que estas migraciones tocan.

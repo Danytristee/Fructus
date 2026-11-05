@@ -39,5 +39,12 @@ rechaza el alta y la edición.
 
 - Dos clientes distintos pueden tener el mismo DNI o RUC: la base no lo impide. No es un hallazgo (no rompe un total), pero conviene
   decidirlo antes de emitir facturas (A9).
-- La migración `20261105180000_nombre_cliente_unico.sql` está probada en local (10 pruebas pgTAP). **No se ha aplicado al proyecto de
-  Supabase:** va con el OK, junto con la de anular ventas, y se renombra a la versión real que asigne Supabase.
+- La migración `20261105231144_nombre_cliente_unico.sql` está probada en local (10 pruebas pgTAP) y aplicada al proyecto de Supabase el 5-11, con OK.
+
+## Arreglado con OK (5-11)
+
+| Hallazgo | Arreglo | Prueba |
+|---|---|---|
+| 1 · Dos ediciones a la vez: la última pisa a la primera | La hoja manda también lo que se abrió (`inicial`) y el servidor guarda **solo lo que cambió** (`cambiosDeCliente`): una persona cambia el teléfono, otra agrega un apodo, y quedan los dos. Dos cambios al mismo campo siguen ganando el último. El tipo y el número de documento viajan juntos porque la base exige los dos o ninguno. | 5 casos de Vitest y e2e «dos personas editan campos distintos del mismo cliente a la vez, y los dos cambios quedan» (falló antes del cambio) |
+
+Con la misma situación del ataque (dueño y administrador editando a la vez): teléfono nuevo y apodo nuevo, los dos en la base.

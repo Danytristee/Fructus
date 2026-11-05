@@ -39,3 +39,12 @@ La hoja vacía, y llena con un parecido, un apodo, un teléfono y un RUC mal esc
    alcanza a las siete hojas; en las cortas no cambia nada (pegado solo se nota si el contenido no cabe).
 
 Sin nota hasta una pasada completa de la pantalla Clientes (alta, ficha y abono juntos) al cerrar A8.
+
+## 4. Aplicado con OK (5-11)
+
+| Cambio | Antes → después | Verificado |
+|---|---|---|
+| «Sin documento» → «Ninguno» | La opción se partía en dos líneas a 412 px y casi tocaba los bordes a 360 px → una línea | e2e (la prueba de documento usa «Ninguno») |
+| El pie de la hoja pegado desde 768 px | A 1280 px, con el formulario largo, «Guardar cliente» quedaba al 111 % desde arriba (fuera de la vista); con el celular de lado (915 × 412) también → «Guardar» y «Confirmar» a la vista, sin deslizar | e2e a 1280 × 800 y a 915 × 412, en esta hoja y en la de abono (fallaron antes del cambio). Afecta a las siete hojas: en las cortas no cambia nada |
+
+Sin nota: esta fue una pasada rápida. La pantalla Clientes completa (ficha, alta y abono) pasó `/formidable` con la ficha y el abono (8.5 → 8.9).

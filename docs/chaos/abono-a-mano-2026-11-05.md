@@ -11,7 +11,7 @@ pantalla con la hoja abierta. Dirigido, fuera del sorteo y por lectura del códi
 
 **Conteo:** 11 ataques (el de montos con 20 entradas); 6 resistieron, 5 hallazgos. **Uno de ellos es de permisos y se informó por
 chat, no se escribe aquí.** Los 4 de este archivo son de gravedad 4 o menor: **ninguno dejó la base en un estado imposible**.
-**Después de los arreglos (mismos ataques, misma semilla):** 10 resisten; queda el de la pantalla girada, que va a A11.
+**Después de los arreglos (mismos ataques, misma semilla):** 10 resisten; el de la pantalla girada se resolvió el 5-11 con el pie de la hoja pegado desde 768 px.
 
 ## Hallazgos
 
@@ -43,6 +43,9 @@ chat, no se escribe aquí.** Los 4 de este archivo son de gravedad 4 o menor: **
   escritorio, y un celular de lado también lo activa.
 - **Arreglo propuesto:** fijar la orientación vertical en el manifest de la PWA (ya es parte de A11). Mientras tanto no se toca la
   pieza compartida.
+- **Resuelto el 5-11, con OK, en otra parte:** el pie de `PieConfirmar` quedó pegado también desde 768 px (se quitó `md:static`), así que
+  «Confirmar» se ve con el celular de lado y en escritorio sin deslizar. Prueba e2e «con la pantalla de lado, «Confirmar abono» queda a la vista»
+  (falló antes del cambio). La orientación en el manifest sigue siendo buena idea en A11, pero ya no hace falta para esto.
 
 ### 4 · Gravedad 2 (menor) · «4s/0» se lee como 40
 
