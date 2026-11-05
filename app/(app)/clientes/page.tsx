@@ -9,7 +9,6 @@ import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
 import { MontoVivo } from "@/components/ui/MontoVivo";
 import { Tarjeta } from "@/components/ui/Tarjeta";
-import { formatearHace } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { exigirSesion } from "@/lib/sesion";
 
@@ -18,7 +17,7 @@ export const metadata: Metadata = { title: "Clientes · Fructus" };
 // El cuaderno de clientes: cuánto te deben en total, quién más, y el detalle de cada uno (v_saldo_clientes).
 async function Cuaderno() {
   const { supabase } = await exigirSesion();
-  const { data, error } = await supabase.from("v_saldo_clientes").select("cliente_id, nombre, alias, saldo, ultima_venta_credito, ultimo_abono");
+  const { data, error } = await supabase.from("v_saldo_clientes").select("cliente_id, nombre, alias, saldo");
   if (error) {
     console.error("clientes: no se pudo leer el cuaderno", { codigo: error.code });
     return (
@@ -27,7 +26,6 @@ async function Cuaderno() {
       </Aviso>
     );
   }
-  const ahora = new Date();
   const clientes: ClienteCuaderno[] = (data ?? [])
     .map((c) => ({
       id: c.cliente_id ?? 0,
@@ -36,8 +34,6 @@ async function Cuaderno() {
       iniciales: iniciales(c.nombre ?? "?"),
       tono: tonoDe(c.cliente_id ?? 0),
       saldo: Number(c.saldo ?? 0),
-      ultimaVenta: c.ultima_venta_credito ? formatearHace(new Date(c.ultima_venta_credito), ahora) : null,
-      ultimoAbono: c.ultimo_abono ? formatearHace(new Date(c.ultimo_abono), ahora) : null,
     }))
     .sort((a, b) => b.saldo - a.saldo);
   const total = clientes.reduce((s, c) => s + Math.max(0, c.saldo), 0);
@@ -57,7 +53,7 @@ async function Cuaderno() {
           {deben.length === 0 ? "Nadie te debe" : `entre ${deben.length} ${deben.length === 1 ? "cliente" : "clientes"}; más que nadie, ${deben[0]!.nombre}`}
         </span>
       </Tarjeta>
-      <ListaClientes clientes={clientes} totalDeuda={total} />
+      <ListaClientes clientes={clientes} />
     </>
   );
 }

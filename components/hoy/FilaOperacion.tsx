@@ -1,4 +1,4 @@
-import { PackagePlus, ReceiptText, TriangleAlert, ShoppingBasket } from "lucide-react";
+import { HandCoins, PackagePlus, ReceiptText, TriangleAlert, ShoppingBasket } from "lucide-react";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Fruta } from "@/components/ui/Fruta";
@@ -17,7 +17,8 @@ const insignias: Record<Estado, string> = {
 
 // Sin persona detrás (compra, merma, gasto, venta al paso), un icono ocupa el lugar del avatar.
 function SinPersona({ estado }: { estado: Estado }) {
-  const Icono = estado === "compra" ? PackagePlus : estado === "merma" ? TriangleAlert : estado === "gasto" ? ReceiptText : ShoppingBasket;
+  const Icono =
+    estado === "compra" ? PackagePlus : estado === "merma" ? TriangleAlert : estado === "gasto" ? ReceiptText : estado === "abono" ? HandCoins : ShoppingBasket;
   return (
     <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-full bg-acento/10 text-acento-texto">
       <Icono className="size-6" />
