@@ -4,6 +4,11 @@ import { defineConfig } from "@playwright/test";
 // de gama media. El escritorio se agrega cuando una pantalla lo necesite.
 const celular = { isMobile: true, hasTouch: true, deviceScaleFactor: 3, locale: "es-PE" } as const;
 
+// Cada worktree puede correr su propio `pnpm dev` en otro puerto: `PUERTO=3100 pnpm e2e`. Sin esto, con otro worktree
+// ya sirviendo el 3000, la prueba reusaba ese servidor y probaba el código de otra rama.
+const puerto = process.env.PUERTO ?? "3000";
+const inicio = `http://127.0.0.1:${puerto}`;
+
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
@@ -13,7 +18,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: inicio,
     timezoneId: "America/Lima",
     trace: "retain-on-failure",
     // Un micrófono falso que acepta el permiso solo: el botón de voz graba de verdad (un tono) y /api/voz se simula.
@@ -24,8 +29,8 @@ export default defineConfig({
     { name: "gama-media-360", use: { ...celular, viewport: { width: 360, height: 800 } } },
   ],
   webServer: {
-    command: "pnpm dev",
-    url: "http://127.0.0.1:3000",
+    command: `pnpm dev --port ${puerto}`,
+    url: inicio,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
