@@ -39,7 +39,7 @@ type ClienteGuardado = Extract<ResultadoGuardarCliente, { ok: true }>;
 type Opcion = "ninguno" | TipoDocumento;
 
 const OPCIONES_DOCUMENTO = [
-  { valor: "ninguno", etiqueta: "Sin documento" },
+  { valor: "ninguno", etiqueta: "Ninguno" },
   { valor: "DNI", etiqueta: "DNI" },
   { valor: "RUC", etiqueta: "RUC" },
 ] as const;
@@ -132,7 +132,7 @@ function Formulario({ cliente, alCerrar, alCambiarGuardando }: { cliente: Client
   function guardar() {
     if (falta !== null || !cambios) return;
     const borrador = conApodo();
-    void confirmar(() => guardarCliente({ id: cliente?.id ?? null, borrador }));
+    void confirmar(() => guardarCliente({ id: cliente?.id ?? null, borrador, inicial: cliente?.borrador ?? null }));
   }
 
   if (guardado) {

@@ -92,7 +92,7 @@ test("un documento o un teléfono mal escritos no se guardan y dicen cómo escri
 
   await hoja.getByLabel("Teléfono").fill("");
   await expect(guardar).toBeEnabled();
-  await hoja.getByRole("button", { name: "Sin documento" }).click();
+  await hoja.getByRole("button", { name: "Ninguno" }).click();
   await expect(hoja.getByLabel("Número de RUC")).toHaveCount(0);
   expect(await clientesDe(nombre)).toEqual([]);
 });
@@ -230,3 +230,60 @@ for (const rol of ["ayudante", "contador"] as const) {
     await expect(page.getByRole("button", { name: "Editar" })).toHaveCount(0);
   });
 }
+
+// ---- Lo que cambió con el OK del 2026-11-05 (cada prueba falló antes del cambio) ----
+
+test("regresión /chaos: dos personas editan campos distintos del mismo cliente a la vez, y los dos cambios quedan", async ({ page, browser }) => {
+  const nombre = nombreUnico();
+  const { data } = await base.from("clientes").insert({ nombre, telefono: "987 000 000" }).select("id").single();
+  const abrirEdicion = async (p: Page, rol: Rol) => {
+    await entrarComo(p, rol);
+    await p.goto(`/clientes/${data!.id}`);
+    await p.getByRole("button", { name: "Editar" }).click();
+    const hoja = p.getByRole("dialog", { name: "Editar cliente" });
+    await expect(hoja).toBeVisible({ timeout: 20_000 });
+    return hoja;
+  };
+  const hojaA = await abrirEdicion(page, "duenio");
+  const contexto = await browser.newContext({ baseURL: "http://127.0.0.1:3000", viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
+  const paginaB = await contexto.newPage();
+  const hojaB = await abrirEdicion(paginaB, "administrador");
+
+  // Una cambia el teléfono; la otra agrega un apodo. Las dos guardan al mismo tiempo.
+  await hojaA.getByLabel("Teléfono").fill("987 111 111");
+  await hojaB.getByLabel("Apodos: cómo le dices").fill("el otro");
+  await hojaB.getByRole("button", { name: "Agregar apodo" }).click();
+  await Promise.all([hojaA.getByRole("button", { name: "Guardar cliente" }).click(), hojaB.getByRole("button", { name: "Guardar cliente" }).click()]);
+  await expect(page.getByText("Cambios guardados")).toBeVisible();
+  await expect(paginaB.getByText("Cambios guardados")).toBeVisible();
+  await contexto.close();
+
+  const filas = await clientesDe(nombre);
+  expect(filas).toEqual([expect.objectContaining({ telefono: "987 111 111", alias: ["el otro"] })]);
+});
+
+test("con la pantalla de lado, «Guardar cliente» queda a la vista y no hay que deslizar la hoja", async ({ page }) => {
+  const hoja = await abrirNuevo(page);
+  await hoja.getByLabel("Nombre", { exact: true }).fill(nombreUnico());
+  await page.setViewportSize({ width: 915, height: 412 }); // el celular girado
+  await page.waitForTimeout(700);
+  const guardar = await hoja.getByRole("button", { name: "Guardar cliente" }).boundingBox();
+  expect(guardar!.y).toBeGreaterThanOrEqual(0);
+  expect(guardar!.y + guardar!.height).toBeLessThanOrEqual(412);
+});
+
+test("en escritorio, con el formulario largo, «Guardar cliente» queda a la vista", async ({ browser }) => {
+  const contexto = await browser.newContext({ baseURL: "http://127.0.0.1:3000", viewport: { width: 1280, height: 800 }, locale: "es-PE", timezoneId: "America/Lima" });
+  const pagina = await contexto.newPage();
+  const hoja = await abrirNuevo(pagina);
+  await hoja.getByLabel("Nombre", { exact: true }).fill("Luis Paredez");
+  await hoja.getByLabel("Apodos: cómo le dices").fill("don prueba");
+  await hoja.getByRole("button", { name: "Agregar apodo" }).click();
+  await hoja.getByRole("button", { name: "RUC", exact: true }).click();
+  await hoja.getByLabel("Número de RUC").fill("2060123456");
+  await hoja.getByRole("button", { name: /Más datos/ }).click();
+  await pagina.waitForTimeout(900);
+  const guardar = await hoja.getByRole("button", { name: "Guardar cliente" }).boundingBox();
+  await contexto.close();
+  expect(guardar!.y + guardar!.height).toBeLessThanOrEqual(800);
+});

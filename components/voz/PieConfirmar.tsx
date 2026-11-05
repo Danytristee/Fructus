@@ -31,7 +31,7 @@ export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = fal
   const router = useRouter();
   return (
     <div
-      className="sticky -bottom-[calc(16px+env(safe-area-inset-bottom))] z-10 -mx-4 mt-1 -mb-[calc(16px+env(safe-area-inset-bottom))] grid animate-pieza gap-2 bg-fondo px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-12px_16px_-12px_rgb(var(--sombra-color)/0.25)] md:static md:m-0 md:p-0 md:shadow-none"
+      className="sticky -bottom-[calc(16px+env(safe-area-inset-bottom))] z-10 -mx-4 mt-1 -mb-[calc(16px+env(safe-area-inset-bottom))] grid animate-pieza gap-2 bg-fondo px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-12px_16px_-12px_rgb(var(--sombra-color)/0.25)] md:-bottom-5 md:-mb-5"
       style={style}
     >
       {(aviso || error) && (

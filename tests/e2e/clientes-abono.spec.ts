@@ -251,3 +251,13 @@ test("/formidable: la hoja vacía no marca nada en rojo, dice qué hacer y separ
   const descartar = await hoja.getByRole("button", { name: "Descartar" }).boundingBox();
   expect(descartar!.y - (confirmar!.y + confirmar!.height)).toBeGreaterThanOrEqual(8);
 });
+
+test("con la pantalla de lado, «Confirmar abono» queda a la vista y no hay que deslizar la hoja", async ({ page }) => {
+  const c = await clienteConDeuda(100);
+  const hoja = await abrirDesdeLaFicha(page, c.id);
+  await page.setViewportSize({ width: 915, height: 412 }); // el celular girado (/chaos 2026-11-05)
+  await page.waitForTimeout(700);
+  const confirmar = await hoja.getByRole("button", { name: "Confirmar abono" }).boundingBox();
+  expect(confirmar!.y).toBeGreaterThanOrEqual(0);
+  expect(confirmar!.y + confirmar!.height).toBeLessThanOrEqual(412);
+});

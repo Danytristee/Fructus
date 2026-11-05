@@ -5,6 +5,7 @@ import {
   avisoParecidos,
   BORRADOR_VACIO,
   borradorDeCliente,
+  cambiosDeCliente,
   hayCambios,
   leerDocumento,
   leerTelefono,
@@ -143,5 +144,34 @@ describe("avisoParecidos", () => {
 
   it("sin parecidos no dice nada", () => {
     expect(avisoParecidos([])).toBeNull();
+  });
+});
+
+describe("cambiosDeCliente", () => {
+  const base = { nombre: "Luis Paredes", alias: ["don lucho"], tipo_documento: "DNI" as const, numero_documento: "40123456", telefono: null, direccion: null, notas: null };
+
+  it("sin cambios no hay nada que guardar", () => {
+    expect(cambiosDeCliente(base, { ...base })).toEqual({});
+  });
+
+  it("guarda solo el campo que cambió: dos personas que editan campos distintos no se pisan", () => {
+    expect(cambiosDeCliente(base, { ...base, telefono: "987 654 321" })).toEqual({ telefono: "987 654 321" });
+    expect(cambiosDeCliente(base, { ...base, alias: ["don lucho", "el flaco"] })).toEqual({ alias: ["don lucho", "el flaco"] });
+    expect(cambiosDeCliente(base, { ...base, notas: "Paga los viernes", direccion: "Mercado Mayorista" })).toEqual({ notas: "Paga los viernes", direccion: "Mercado Mayorista" });
+  });
+
+  it("quitar un dato lo deja en null, no lo ignora", () => {
+    const con = { ...base, telefono: "987 654 321" };
+    expect(cambiosDeCliente(con, { ...con, telefono: null })).toEqual({ telefono: null });
+    expect(cambiosDeCliente(base, { ...base, alias: [] })).toEqual({ alias: [] });
+  });
+
+  it("el tipo y el número de documento viajan juntos: la base exige los dos o ninguno", () => {
+    expect(cambiosDeCliente(base, { ...base, numero_documento: "40123457" })).toEqual({ tipo_documento: "DNI", numero_documento: "40123457" });
+    expect(cambiosDeCliente(base, { ...base, tipo_documento: null, numero_documento: null })).toEqual({ tipo_documento: null, numero_documento: null });
+  });
+
+  it("cambiar las mayúsculas del nombre también es un cambio", () => {
+    expect(cambiosDeCliente(base, { ...base, nombre: "LUIS PAREDES" })).toEqual({ nombre: "LUIS PAREDES" });
   });
 });

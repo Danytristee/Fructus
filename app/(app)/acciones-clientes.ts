@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { mismaFila, NOMBRE_REPETIDO, PARECIDO_DESDE, validarCliente, type ErroresCliente, type FilaCliente } from "@/lib/cliente-reglas";
+import { cambiosDeCliente, mismaFila, NOMBRE_REPETIDO, PARECIDO_DESDE, validarCliente, type ErroresCliente, type FilaCliente } from "@/lib/cliente-reglas";
 import { sesion, SIN_SENAL } from "@/lib/voz/accion-servidor";
 
 // Dar de alta y editar un cliente a mano (A8). Solo el dueño y el administrador (la RLS lo exige: `clientes_gestion`); aquí
@@ -20,7 +20,8 @@ const borrador = z.object({
   notas: z.string().max(2000),
 });
 
-const entrada = z.object({ id: z.number().int().positive().nullable(), borrador });
+// `inicial` es el borrador tal como se abrió la hoja: sirve para guardar solo lo que cambió (dos personas que editan campos distintos no se pisan).
+const entrada = z.object({ id: z.number().int().positive().nullable(), borrador, inicial: borrador.nullable().optional() });
 
 export type ResultadoGuardarCliente =
   | { ok: true; id: number }
@@ -37,7 +38,7 @@ export async function guardarCliente(datos: z.input<typeof entrada>): Promise<Re
   const validado = validarCliente(leido.data.borrador);
   if (!validado.ok) return { ok: false, error: "Revisa los datos del cliente.", errores: validado.errores };
   const { fila } = validado;
-  const { id } = leido.data;
+  const { id, inicial } = leido.data;
 
   const s = await sesion();
   if (!s) return { ok: false, error: "Tu sesión terminó. Vuelve a entrar y guarda al cliente otra vez.", sinSesion: true };
@@ -45,8 +46,12 @@ export async function guardarCliente(datos: z.input<typeof entrada>): Promise<Re
   const { supabase } = s;
 
   if (id !== null) {
+    // Solo lo que cambió. Si lo que se abrió no se puede leer (datos viejos que no pasan las reglas), se guarda todo.
+    const original = inicial ? validarCliente(inicial) : null;
+    const cambios = original?.ok ? cambiosDeCliente(original.fila, fila) : fila;
+    if (Object.keys(cambios).length === 0) return { ok: true, id };
     // Un update sin permiso o sobre un cliente que no existe no falla: no toca filas. Por eso se pide lo que tocó.
-    const { data, error } = await supabase.from("clientes").update(fila).eq("id", id).select("id");
+    const { data, error } = await supabase.from("clientes").update(cambios).eq("id", id).select("id");
     if (error) return traducir(error.code, id);
     if ((data ?? []).length === 0) return { ok: false, error: "No encontré a ese cliente: puede que ya no esté en tu cuaderno." };
     return { ok: true, id };

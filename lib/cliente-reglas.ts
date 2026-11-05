@@ -161,6 +161,23 @@ export function mismaFila(a: FilaCliente, b: FilaCliente): boolean {
   );
 }
 
+/**
+ * Lo que cambió entre lo que se abrió y lo que se quiere guardar, y solo eso. Editar guardaba la fila entera: si dos personas
+ * editaban al mismo cliente a la vez (una el teléfono, otra un apodo), la última pisaba a la primera sin avisar (/chaos 2026-11-05).
+ * El tipo y el número de documento viajan juntos: la base los exige a los dos o a ninguno (`clientes_check`).
+ */
+export function cambiosDeCliente(inicial: FilaCliente, ahora: FilaCliente): Partial<FilaCliente> {
+  const cambios: Partial<FilaCliente> = {};
+  if (inicial.nombre !== ahora.nombre) cambios.nombre = ahora.nombre;
+  if (inicial.alias.length !== ahora.alias.length || inicial.alias.some((a, i) => a !== ahora.alias[i])) cambios.alias = ahora.alias;
+  if (inicial.tipo_documento !== ahora.tipo_documento || inicial.numero_documento !== ahora.numero_documento) {
+    cambios.tipo_documento = ahora.tipo_documento;
+    cambios.numero_documento = ahora.numero_documento;
+  }
+  for (const campo of ["telefono", "direccion", "notas"] as const) if (inicial[campo] !== ahora[campo]) cambios[campo] = ahora[campo];
+  return cambios;
+}
+
 /** Si lo escrito cambia algo de lo que ya había: editar sin cambiar nada no se guarda. */
 export function hayCambios(inicial: BorradorCliente, ahora: BorradorCliente): boolean {
   const [a, b] = [validarCliente(inicial), validarCliente(ahora)];
