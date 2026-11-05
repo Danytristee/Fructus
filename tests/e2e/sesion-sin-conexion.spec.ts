@@ -6,14 +6,14 @@ import { entornoLocal } from "./base";
 import { entrarComo } from "./cuentas";
 
 // Una caída de la base no es una cuenta sin acceso (CLAUDE.md, principio 8). Con la API de la base local detenida,
-// quien entra debe leer «No pudimos conectar con tu cuaderno» y poder reintentar; nunca «Tu cuenta todavía no está activa»
+// quien entra debe leer «No pudimos conectar» y poder reintentar; nunca «Tu cuenta todavía no está activa»
 // ni un «no tienes acceso» por permisos que no se pudieron leer.
 //
 // Detiene el contenedor REST de la base local, y mientras está caído cualquier otra prueba que corra a la vez falla sin
 // culpa de la app. Por eso se salta sola si hay más de un worker: córrela de a una, y sin que otra sesión use la misma base:
 //   pnpm e2e tests/e2e/sesion-sin-conexion.spec.ts --workers=1
 const API = "supabase_rest_fructus";
-const AVISO = "No pudimos conectar con tu cuaderno";
+const AVISO = "No pudimos conectar";
 
 test.describe.configure({ mode: "serial" });
 // Cada prueba para la API, espera a que no conteste, la levanta y espera a que conteste de nuevo: tarda.
@@ -68,11 +68,12 @@ test("sin conexión con la base, dice que no pudo conectar (no «cuenta no activ
   await expect(page.getByText("Pídele al dueño del puesto")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Botón de voz" })).toHaveCount(0);
 
-  // El botón se alcanza con el pulgar: 48 px como mínimo, y la pantalla no se sale de los bordes.
+  // El botón se alcanza con el pulgar (C1: tercio de abajo), mide 48 px o más y la pantalla no se sale de los bordes.
   const reintentar = aviso.getByRole("button", { name: "Volver a intentar" });
-  const caja = await reintentar.boundingBox();
-  expect(caja!.height).toBeGreaterThanOrEqual(48);
-  expect(caja!.width).toBeGreaterThanOrEqual(48);
+  const caja = (await reintentar.boundingBox())!;
+  expect(caja.height).toBeGreaterThanOrEqual(48);
+  expect(caja.width).toBeGreaterThanOrEqual(48);
+  expect(caja.y + caja.height / 2).toBeGreaterThan((page.viewportSize()!.height * 2) / 3);
   await sinDesborde(page);
 
   // Reintentar con la base todavía caída: sigue diciendo lo mismo y el botón vuelve a quedar usable.
