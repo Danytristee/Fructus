@@ -44,6 +44,13 @@ Lista aprobada: 1 ficha del cliente · 2 abono a mano · 3 alta y edición de cl
 - Cómo se verificó: pgTAP (`11_anular_venta_con_motivo`, 15 de 15; falló donde debía antes de la migración; `01_ventas_roles` se actualizó al motivo; `05_funciones_sin_anon` confirma que la función nueva no queda abierta sin sesión); Vitest (8 de `anular-reglas`, 253 en total); e2e a 412 y 360 px: anula con motivo y deja quién y por qué, una sola devolución con dos toques, el resumen de «Hoy» baja lo que valía, «Otro motivo», «No, dejarla», **respuesta perdida sin devolver la fruta dos veces**, **dueño y administrador anulando la misma a la vez (gana uno; el otro lee «ya estaba anulada por X: «motivo»»; una sola devolución)**, venta con comprobante enviado, sesión vencida, ayudante y contador sin botón, y medidas. Invariantes en orden después de cada prueba.
 - Lo que enseñó una prueba mala: mi primer e2e del comprobante inventó números (900000…) y rompió INV-10 (el número no puede pasar del último que entregó la serie). Ahora pide el número a `tomar_numero`, como lo hará el servidor.
 
+## Cierre de A8
+
+- **Suite completa sobre la base recién rehecha** (`npx supabase db reset`, sin ninguna otra sesión usando Docker): 262 e2e a 412 y 360 px, **257 pasaron, 1 se omite y 1 intermitente**. La intermitente es `voz-api.spec.ts` («una venta dictada…»): llama a Groq de verdad y a veces la fruta no se elige sola; con el mismo audio pasó en un intento y falló en el siguiente. No toca nada de A8.
+- **Base:** las dos migraciones aplican limpias desde cero; pgTAP, 93 de 93 en 11 archivos; las 12 invariantes en orden.
+- **Presupuesto de JavaScript** (compilación de producción, brotli): «Hoy» 177.5 KB (tope 180; antes 177.3), «Ventas» 177.0 KB (la hoja de detalle pasó a carga diferida: era 191.5), «Stock» 177.0 KB y «Clientes» 172.3 KB.
+- Vitest 253, tipos, lint y Knip en verde.
+
 ## Pendiente
 - **Esperan OK (de la actividad 3):** actualizar solo lo que cambió al editar (arregla el hallazgo de `/chaos`); «Ninguno» en vez de «Sin documento»; pie de la hoja pegado desde 768 px (resuelve también la pantalla girada de la actividad 2).
 - **pgTAP `08_gasto_por_voz` falla en una base con datos de los e2e** (cuenta los gastos «cargador» y las pruebas de voz dejan varios): no es un error del código. `npx supabase db reset` lo deja en verde; correr toda la suite pgTAP después de un reset, antes del PR.
@@ -57,3 +64,6 @@ Lista aprobada: 1 ficha del cliente · 2 abono a mano · 3 alta y edición de cl
 - **Para correr los e2e:** «Hoy» espera ventas de hoy. Con una base local sembrada otro día, `hoy.spec.ts` falla sin que la app tenga la culpa; `npx supabase db reset` lo arregla.
 - **Tres pestañas de filtro que se cortan a 412 px** (`Filtros`: «Todos» en Clientes, «Al crédito» en Ventas): es una pieza compartida; se resuelve en el cierre de A8.
 - **e2e y base local:** las pruebas dejan datos (50 clientes, 140 ventas de hoy, frutas de prueba) y la prueba de la barra de `marco.spec.ts`, que espera a que terminen las animaciones de cada pantalla, a veces pasa de los 30 s a 360 px con la base llena (con más tiempo pasa en 15 s). `npx supabase db reset` antes de una corrida larga.
+- **`/formidable` completo de Stock, Ventas y de las hojas de compra y de anular:** en las actividades 4 a 7 solo se midió con e2e (controles de 48 px, sin desborde, píldoras) y se miró en el navegador; falta la pasada con prueba ciega, que es obligatoria al cerrar cada pantalla. Conviene hacerla en Stock y Ventas antes de la demo.
+- **Aplicar las dos migraciones al proyecto de Supabase** (con OK): renombrarlas a la versión real, regenerar `lib/supabase/tipos-db.ts` desde el proyecto, correr `get_advisors` y explicar cada aviso nuevo.
+- **Permisos:** hay un hallazgo de permisos pendiente de corregir. Se informó por chat y no se escribe aquí (CLAUDE.md, «Seguridad y claves»).
