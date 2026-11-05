@@ -7,40 +7,79 @@ import { FilaOperacion } from "@/components/hoy/FilaOperacion";
 import { Desplegable } from "@/components/ui/Desplegable";
 import { Filtros } from "@/components/ui/Filtros";
 import { Monto } from "@/components/ui/Monto";
+import { Tarjeta } from "@/components/ui/Tarjeta";
 import { Vacio } from "@/components/ui/Vacio";
+import { formatearSoles } from "@/lib/formato";
 import type { Operacion } from "@/lib/operaciones-reglas";
+import { etiquetaDelPeriodo, resumirPeriodo, type DetalleVenta, type Periodo } from "@/lib/ventas-reglas";
+import { HojaVenta } from "./HojaVenta";
 
-export type DiaVentas = { dia: string; etiqueta: string; ventas: (Operacion & { credito: boolean })[] };
+/** La fila (`Operacion`, con su `detalle` de una línea) y, aparte, la venta completa (`completa`) para su hoja. */
+type VentaDelDia = Operacion & { credito: boolean; completa: DetalleVenta };
+export type DiaVentas = { dia: string; etiqueta: string; ventas: VentaDelDia[] };
 type Filtro = "todas" | "contado" | "credito";
 
-// Las ventas de la semana, día por día: cada día se abre y se cierra, y se filtra por contado o crédito.
-export function HistorialVentas({ dias }: { dias: DiaVentas[] }) {
+// El historial de ventas: lo de hoy o lo de los últimos 7 días, con cuánto se vendió arriba, día por día, filtrado por contado
+// o crédito. Tocar una venta abre su detalle.
+export function HistorialVentas({ dias, hoy }: { dias: DiaVentas[]; hoy: string }) {
+  const [periodo, setPeriodo] = useState<Periodo>("hoy");
   const [filtro, setFiltro] = useState<Filtro>("todas");
-  const todas = dias.flatMap((d) => d.ventas);
+  const [abierta, setAbierta] = useState<DetalleVenta | null>(null);
+
+  const delPeriodo = periodo === "hoy" ? dias.filter((d) => d.dia === hoy) : dias;
+  const todas = delPeriodo.flatMap((d) => d.ventas);
+  const resumen = resumirPeriodo(todas.map((v) => ({ total: v.monto ?? 0, credito: v.credito })));
   const pasa = (v: { credito: boolean }) => filtro === "todas" || (filtro === "credito" ? v.credito : !v.credito);
-  const visibles = dias.map((d) => ({ ...d, ventas: d.ventas.filter(pasa) })).filter((d) => d.ventas.length > 0);
+  const visibles = delPeriodo.map((d) => ({ ...d, ventas: d.ventas.filter(pasa) })).filter((d) => d.ventas.length > 0);
+  const deLaSemana = dias.flatMap((d) => d.ventas).length;
+  const deHoy = dias.filter((d) => d.dia === hoy).flatMap((d) => d.ventas).length;
 
   return (
     <section aria-labelledby="historial">
       <h2 id="historial" className="sr-only">
-        Ventas de la semana
+        Historial de ventas
       </h2>
+
+      <Tarjeta protagonista className="mb-3 grid animate-subir gap-1" data-testid="resumen-periodo">
+        <span className="font-bold text-texto-suave">{etiquetaDelPeriodo(periodo)}</span>
+        <Monto valor={resumen.total} tamano="total" />
+        <span className="text-texto-suave">
+          {resumen.ventas === 0
+            ? periodo === "hoy"
+              ? "Todavía no hay ventas hoy"
+              : "No hay ventas en estos días"
+            : `${resumen.ventas} ${resumen.ventas === 1 ? "venta" : "ventas"}: ${formatearSoles(resumen.contado)} al contado y ${formatearSoles(resumen.credito)} al crédito`}
+        </span>
+      </Tarjeta>
+
       <Filtros
-        etiqueta="Filtrar ventas"
-        valor={filtro}
-        alCambiar={setFiltro}
+        etiqueta="Período"
+        valor={periodo}
+        alCambiar={setPeriodo}
         opciones={[
-          { valor: "todas", etiqueta: "Todas", cuenta: todas.length },
-          { valor: "contado", etiqueta: "Al contado", cuenta: todas.filter((v) => !v.credito).length },
-          { valor: "credito", etiqueta: "Al crédito", cuenta: todas.filter((v) => v.credito).length },
+          { valor: "hoy", etiqueta: "Hoy", cuenta: deHoy },
+          { valor: "semana", etiqueta: "7 días", cuenta: deLaSemana },
         ]}
       />
+      <div className="mt-2">
+        <Filtros
+          etiqueta="Filtrar ventas"
+          valor={filtro}
+          alCambiar={setFiltro}
+          opciones={[
+            { valor: "todas", etiqueta: "Todas", cuenta: todas.length },
+            { valor: "contado", etiqueta: "Al contado", cuenta: todas.filter((v) => !v.credito).length },
+            { valor: "credito", etiqueta: "Al crédito", cuenta: todas.filter((v) => v.credito).length },
+          ]}
+        />
+      </div>
+
       {visibles.length === 0 ? (
-        <Vacio className="mt-3" icono={<Receipt />} titulo="No hay ventas así">
-          Cambia el filtro para ver las demás.
+        <Vacio className="mt-3" icono={<Receipt />} titulo={todas.length === 0 ? "Todavía no hay ventas" : "No hay ventas así"}>
+          {todas.length === 0 ? "Cuando vendas, aparecen aquí, venta por venta." : "Cambia el filtro para ver las demás."}
         </Vacio>
       ) : (
-        <div key={filtro} className="mt-3 grid gap-2.5">
+        <div key={`${periodo}-${filtro}`} className="mt-3 grid gap-2.5">
           {visibles.map((d, i) => {
             const total = d.ventas.reduce((s, v) => s + (v.monto ?? 0), 0);
             return (
@@ -61,7 +100,7 @@ export function HistorialVentas({ dias }: { dias: DiaVentas[] }) {
                 >
                   <ul className="-mx-4 divide-y divide-border border-t border-border">
                     {d.ventas.map((v) => (
-                      <FilaOperacion key={v.clave} op={v} />
+                      <FilaOperacion key={v.clave} op={v} alTocar={() => setAbierta(v.completa)} />
                     ))}
                   </ul>
                 </Desplegable>
@@ -70,6 +109,8 @@ export function HistorialVentas({ dias }: { dias: DiaVentas[] }) {
           })}
         </div>
       )}
+
+      <HojaVenta venta={abierta} alCerrar={() => setAbierta(null)} />
     </section>
   );
 }

@@ -50,7 +50,7 @@ export function tonoDe(id: number): number {
   return (id * 137) % 360;
 }
 
-const medios: Record<Medio, string> = {
+export const medios: Record<Medio, string> = {
   efectivo: "en efectivo",
   yape: "con Yape",
   plin: "con Plin",

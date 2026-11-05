@@ -62,6 +62,15 @@ export async function fiar(clienteId: number, monto: number) {
   if (error) throw error;
 }
 
+/** Una venta al contado «al paso» (sin cliente) de 1 caja de Mango Kent, para que el historial tenga una venta sin nombre. */
+export async function venderAlPaso(monto: number, medio: "efectivo" | "yape" | "plin" | "transferencia" = "efectivo") {
+  const { data, error } = await (await comoDuenio()).rpc("registrar_venta", {
+    p: { condicion: "contado", medio_pago: medio, items: [{ producto_id: 1, cantidad: 1, precio_unitario: monto }] },
+  });
+  if (error) throw error;
+  return data as number;
+}
+
 /** Compra cajas de una fruta al contado, para que haya stock que mermar. */
 export async function abastecer(productoId: number, cajas: number) {
   const { error } = await (await comoDuenio()).rpc("registrar_compra", {

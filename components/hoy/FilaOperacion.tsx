@@ -26,10 +26,11 @@ function SinPersona({ estado }: { estado: Estado }) {
   );
 }
 
-// Una línea de «Lo último»: quién (con su cara o un icono y la fruta), qué pasó, cuánto y su estado.
-export function FilaOperacion({ op }: { op: Operacion }) {
-  return (
-    <li className="grid min-h-[72px] grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-3">
+// Una línea de «Lo último»: quién (con su cara o un icono y la fruta), qué pasó, cuánto y su estado. Con `alTocar`, toda la
+// fila es un botón (el historial de ventas abre así el detalle de cada una).
+export function FilaOperacion({ op, alTocar }: { op: Operacion; alTocar?: () => void }) {
+  const cuerpo = (
+    <>
       <span className="relative">
         {op.persona ? <Avatar iniciales={op.persona.iniciales} tono={op.persona.tono} /> : <SinPersona estado={op.estado} />}
         {op.fruta && <Fruta fruta={op.fruta} tamano={26} className="absolute -right-2 -bottom-1.5" />}
@@ -42,6 +43,15 @@ export function FilaOperacion({ op }: { op: Operacion }) {
         {op.monto !== null && <Monto valor={op.monto} />}
         <Insignia tipo={op.estado}>{insignias[op.estado]}</Insignia>
       </span>
+    </>
+  );
+  const clases = "grid min-h-[72px] grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-3";
+  if (!alTocar) return <li className={clases}>{cuerpo}</li>;
+  return (
+    <li>
+      <button type="button" onClick={alTocar} className={`${clases} w-full text-left transition-transform duration-150 active:scale-[0.99]`}>
+        {cuerpo}
+      </button>
     </li>
   );
 }

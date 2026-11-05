@@ -33,6 +33,11 @@ Lista aprobada: 1 ficha del cliente · 2 abono a mano · 3 alta y edición de cl
 - Hallazgo propio de esta actividad: a 360 px las dos píldoras no cabían en una fila y la segunda bajaba; el relleno lateral de la variante `flotante` pasó de 28 a 20 px.
 - Sin informe aparte de `/chaos` ni `/formidable`, como en la actividad 4: lo nuevo está en e2e y la tarjeta es la de la compra por voz (que ya pasó las dos el 31-10). La pasada de `/formidable` de toda la pantalla Stock queda para el cierre de A8.
 
+**Actividad 6 · Detalle de venta e historial.**
+- Qué cambió: «Ventas» abre en **«Hoy»**, con el veredicto arriba («Hoy vendiste S/ 24,213.50 · 140 ventas: S/ 10,671.50 al contado y S/ 13,542.00 al crédito»), un selector «Hoy / 7 días» y, debajo, los filtros de contado y crédito de antes. Tocar una venta abre su **detalle**: a quién (con enlace a su ficha, o «Venta al paso»), el total, si pagó (y con qué) o lo debe, cuándo, cada fruta con sus cajas y su precio, y quién la registró (quien no lee los perfiles, como el ayudante o el contador, no lo ve). Todo viene en la misma lectura de la página: tocar no pide nada más. La lógica pura está en `lib/ventas-reglas.ts`; `FilaOperacion` gana `alTocar` (en «Hoy» sigue igual).
+- Cómo se verificó: Vitest (9 de `ventas-reglas`, 245 en total) y e2e a 412 y 360 px: el resumen de «Hoy» es el de `resumen_dia()` y el de «7 días» suma lo de la base, el detalle de una venta al crédito y de una al paso, el contador lo ve, sin desborde y con controles de 48 px. Las de marco, «Hoy» y roles siguen en verde. No escribe en la base: no aplica `/chaos`.
+- Los textos de ventas anuladas y el botón «Anular» llegan con la actividad 7 (el historial solo muestra las registradas).
+
 ## Pendiente
 - **Esperan OK (de la actividad 3):** actualizar solo lo que cambió al editar (arregla el hallazgo de `/chaos`); «Ninguno» en vez de «Sin documento»; pie de la hoja pegado desde 768 px (resuelve también la pantalla girada de la actividad 2).
 - **pgTAP `08_gasto_por_voz` falla en una base con datos de los e2e** (cuenta los gastos «cargador» y las pruebas de voz dejan varios): no es un error del código. `npx supabase db reset` lo deja en verde; correr toda la suite pgTAP después de un reset, antes del PR.
@@ -44,3 +49,5 @@ Lista aprobada: 1 ficha del cliente · 2 abono a mano · 3 alta y edición de cl
 - **El abono a mano deja un comando pendiente** si se cierra la pestaña sin tocar Descartar (inofensivo; un abono no mira su comando).
 - **Dos sesiones, una sola base local.** El Supabase de Docker es uno para todos los worktrees: una sesión que detiene `supabase_rest_fructus` (o corre `db reset`) tumba los e2e de otra, con fallas que parecen de la app («No pudimos leer…»). Antes y después de una corrida larga, comparar `docker inspect supabase_rest_fructus --format '{{.State.StartedAt}}'`: si cambió, la corrida no vale.
 - **Para correr los e2e:** «Hoy» espera ventas de hoy. Con una base local sembrada otro día, `hoy.spec.ts` falla sin que la app tenga la culpa; `npx supabase db reset` lo arregla.
+- **Tres pestañas de filtro que se cortan a 412 px** (`Filtros`: «Todos» en Clientes, «Al crédito» en Ventas): es una pieza compartida; se resuelve en el cierre de A8.
+- **e2e y base local:** las pruebas dejan datos (50 clientes, 140 ventas de hoy, frutas de prueba) y la prueba de la barra de `marco.spec.ts`, que espera a que terminen las animaciones de cada pantalla, a veces pasa de los 30 s a 360 px con la base llena (con más tiempo pasa en 15 s). `npx supabase db reset` antes de una corrida larga.
