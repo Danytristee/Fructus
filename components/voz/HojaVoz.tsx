@@ -19,6 +19,10 @@ type Props = {
   abierta: boolean;
   /** La hoja se cerró: «guardada» después del sello; «descartada» con Descartar, el velo o deslizando hacia abajo. */
   alCerrar: (motivo: "guardada" | "descartada", incierto?: boolean) => void;
+  /** A mano (A8): el título y el icono de la operación, en vez de «¿Así fue…?» con las chispas del intérprete. */
+  titulo?: string;
+  icono?: React.ReactNode;
+  aMano?: boolean;
 };
 
 const TITULOS: Partial<Record<ResultadoVoz["tarjeta"]["tipo"], string>> = {
@@ -38,12 +42,12 @@ type Comunes = {
 };
 
 /** La tarjeta de cada operación que se registra por voz (las que tienen título en TITULOS). */
-function TarjetaDe({ tarjeta, comunes }: { tarjeta: ResultadoVoz["tarjeta"]; comunes: Comunes }) {
+function TarjetaDe({ tarjeta, comunes, aMano }: { tarjeta: ResultadoVoz["tarjeta"]; comunes: Comunes; aMano: boolean }) {
   switch (tarjeta.tipo) {
     case "venta":
       return <TarjetaVenta tarjeta={tarjeta} {...comunes} />;
     case "abono":
-      return <TarjetaAbono tarjeta={tarjeta} {...comunes} />;
+      return <TarjetaAbono tarjeta={tarjeta} {...comunes} aMano={aMano} />;
     case "merma":
       return <TarjetaMerma tarjeta={tarjeta} {...comunes} />;
     case "gasto":
@@ -59,7 +63,7 @@ function TarjetaDe({ tarjeta, comunes }: { tarjeta: ResultadoVoz["tarjeta"]; com
 
 // La hoja de lo que se entendió: las tarjetas que guardan (venta, abono, compra, merma, gasto) y las respuestas a lo que se
 // pregunta (A7).
-export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
+export function HojaVoz({ resultado, abierta, alCerrar, titulo: tituloPropio, icono, aMano = false }: Props) {
   const { tarjeta } = resultado;
   // El comando que ya se guardó: si la persona cierra la hoja durante el sello, no es un descarte.
   const guardado = useRef<number | null>(null);
@@ -82,17 +86,17 @@ export function HojaVoz({ resultado, abierta, alCerrar }: Props) {
     alDescartar: cerrar,
     alCambiarGuardando: (g) => (guardando.current = g),
   };
-  const titulo = tarjeta.tipo === "consulta" ? TITULO_CONSULTA[tarjeta.consulta] : TITULOS[tarjeta.tipo];
+  const titulo = tituloPropio ?? (tarjeta.tipo === "consulta" ? TITULO_CONSULTA[tarjeta.consulta] : TITULOS[tarjeta.tipo]);
   return (
     <Hoja
       abierta={abierta}
       alCambiar={(abrir) => !abrir && cerrar()}
       titulo={titulo ?? "Esto llega muy pronto"}
-      icono={<Sparkles aria-hidden />}
+      icono={icono ?? <Sparkles aria-hidden />}
     >
       {/* La key reinicia la tarjeta con cada comando: nada de una operación anterior queda a medias en la siguiente. */}
       {titulo ? (
-        <TarjetaDe key={resultado.comandoId} tarjeta={tarjeta} comunes={comunes} />
+        <TarjetaDe key={resultado.comandoId} tarjeta={tarjeta} comunes={comunes} aMano={aMano} />
       ) : (
         <div className="grid gap-4">
           <p className="text-lg">Esto todavía no lo sé hacer por voz. Inténtalo con otras palabras.</p>

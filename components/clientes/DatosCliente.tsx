@@ -35,7 +35,7 @@ export function DatosCliente({ telefono, documento, direccion, notas }: Props) {
       <dl className="vidrio divide-y divide-border rounded-tarjeta px-4">
         {filas.map((f) => (
           <div key={f.clave} className="grid min-h-14 grid-cols-[7rem_1fr] items-center gap-3 py-2">
-            <dt className="text-[15px] text-texto-suave">{f.etiqueta}</dt>
+            <dt className="text-texto-suave">{f.etiqueta}</dt>
             <dd className="min-w-0 font-bold break-words">{f.valor}</dd>
           </div>
         ))}

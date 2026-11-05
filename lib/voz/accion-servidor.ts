@@ -7,6 +7,9 @@ import { crearClienteServidor } from "@/lib/supabase/servidor";
 
 export const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra vez.";
 
+/** La llave foránea se rompió (23503): el cliente se borró mientras la tarjeta estaba abierta. Reintentar no sirve: hay que elegir otro. */
+export const CLIENTE_YA_NO_ESTA = "Ese cliente ya no está en tu cuaderno. Elige a otro.";
+
 /** «Tu sesión terminó. Vuelve a entrar: el abono te espera en «Hoy».» */
 export const sinSesion = (que: string) => `Tu sesión terminó. Vuelve a entrar: ${que} te espera en «Hoy».`;
 

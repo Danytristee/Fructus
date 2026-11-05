@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { HandCoins } from "lucide-react";
 
+import { AbonoAMano } from "@/components/clientes/AbonoAMano";
 import { ListaClientes, type ClienteCuaderno } from "@/components/clientes/ListaClientes";
 import { Encabezado } from "@/components/marco/Encabezado";
 import { Aviso } from "@/components/ui/Aviso";
@@ -9,6 +10,7 @@ import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
 import { MontoVivo } from "@/components/ui/MontoVivo";
 import { Tarjeta } from "@/components/ui/Tarjeta";
+import { sugeridosParaAbono } from "@/lib/a-mano-reglas";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { exigirSesion } from "@/lib/sesion";
 
@@ -16,7 +18,7 @@ export const metadata: Metadata = { title: "Clientes · Fructus" };
 
 // El cuaderno de clientes: cuánto te deben en total, quién más, y el detalle de cada uno (v_saldo_clientes).
 async function Cuaderno() {
-  const { supabase } = await exigirSesion();
+  const { supabase, permisos } = await exigirSesion();
   const { data, error } = await supabase.from("v_saldo_clientes").select("cliente_id, nombre, alias, saldo");
   if (error) {
     console.error("clientes: no se pudo leer el cuaderno", { codigo: error.code });
@@ -54,6 +56,7 @@ async function Cuaderno() {
         </span>
       </Tarjeta>
       <ListaClientes clientes={clientes} />
+      {permisos.registrar && <AbonoAMano cliente={null} sugeridos={sugeridosParaAbono(clientes)} />}
     </>
   );
 }

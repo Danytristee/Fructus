@@ -46,11 +46,11 @@ export function TarjetaDeuda({ iniciales, tono, saldo, deudaTotal, ultimaVentaCr
       </Tarjeta>
       <dl className="mt-2.5 grid grid-cols-2 gap-2.5">
         <div className="rounded-control bg-texto/5 px-3 py-2">
-          <dt className="text-[15px] text-texto-suave">Última venta al crédito</dt>
+          <dt className="text-texto-suave">Último fiado</dt>
           <dd className="font-extrabold">{ultimaVentaCredito ? formatearHace(new Date(ultimaVentaCredito), ahora) : "—"}</dd>
         </div>
         <div className="rounded-control bg-texto/5 px-3 py-2">
-          <dt className="text-[15px] text-texto-suave">Último abono</dt>
+          <dt className="text-texto-suave">Último abono</dt>
           <dd className="font-extrabold">{ultimoAbono ? formatearHace(new Date(ultimoAbono), ahora) : "nunca"}</dd>
         </div>
       </dl>

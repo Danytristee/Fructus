@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 
-import { leerSaldo, leerStock, marcarComando, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
+import { sinSesionAMano } from "@/lib/a-mano-reglas";
+import { CLIENTE_YA_NO_ESTA, leerSaldo, leerStock, marcarComando, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import type { Opcion } from "@/app/(app)/acciones-voz";
 import { ABONO_MAXIMO, pedidoAbono } from "@/lib/voz/confirmar-abono-reglas";
 import { pedidoCompra } from "@/lib/voz/confirmar-compra-reglas";
@@ -27,6 +28,8 @@ export type ResultadoAbono = { ok: true; saldo: number | null } | { ok: false; e
 
 const confirmacionAbono = z.object({
   ...comun,
+  /** Registrado a mano (A8): con la sesión vencida, la frase cambia porque a mano no queda nada esperando en «Hoy». */
+  aMano: z.boolean().optional(),
   borrador: z.object({
     cliente: z.object({ id: z.number().int().positive(), nombre: z.string() }).nullable(),
     monto: z.number().positive().max(ABONO_MAXIMO).nullable(),
@@ -38,12 +41,12 @@ const confirmacionAbono = z.object({
 export async function confirmarAbono(entrada: z.input<typeof confirmacionAbono>): Promise<ResultadoAbono> {
   const leido = confirmacionAbono.safeParse(entrada);
   if (!leido.success) return { ok: false, error: "Revisa el monto de la tarjeta." };
-  const { comandoId, borrador, corregido, latenciaMs } = leido.data;
+  const { comandoId, borrador, corregido, latenciaMs, aMano } = leido.data;
   const pedido = pedidoAbono(borrador, comandoId);
   if (!pedido) return { ok: false, error: "Revisa el monto de la tarjeta." };
 
   const s = await sesion();
-  if (!s) return { ok: false, error: sinSesion("el abono"), sinSesion: true };
+  if (!s) return { ok: false, error: aMano ? sinSesionAMano("el abono") : sinSesion("el abono"), sinSesion: true };
   const { supabase, permisos } = s;
   if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar abonos." };
 
@@ -51,6 +54,7 @@ export async function confirmarAbono(entrada: z.input<typeof confirmacionAbono>)
   if (error && error.code !== YA_GUARDADO) {
     console.error("voz: no se pudo registrar el abono", { comandoId, codigo: error.code });
     if (error.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar abonos." };
+    if (error.code === "23503") return { ok: false, error: CLIENTE_YA_NO_ESTA };
     return { ok: false, error: SIN_SENAL };
   }
 

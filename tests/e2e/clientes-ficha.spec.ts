@@ -1,28 +1,12 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { baseLocal, enSoles } from "./base";
 import { entrarComo } from "./cuentas";
+import { medir } from "./medir";
 
 // La ficha de un cliente (A8): lo que dice la pantalla es lo que dice la base, y nada se sale de 360 px.
 
 test.setTimeout(60_000);
-
-/** Cuánto se sale de la pantalla y qué controles miden menos de 48 px. Se mide cuando terminó de entrar. */
-async function medir(page: Page) {
-  await page.waitForFunction(() =>
-    document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getTiming().iterations === Infinity),
-  );
-  return page.evaluate(() => ({
-    desborde: document.documentElement.scrollWidth - innerWidth,
-    chicos: [...document.querySelectorAll("button, a, input")]
-      .filter((e) => !e.closest("nextjs-portal") && !e.getAttribute("aria-label")?.startsWith("Open Next.js"))
-      .filter((e) => {
-        const r = e.getBoundingClientRect();
-        return r.width > 0 && (r.width < 48 || r.height < 48);
-      })
-      .map((e) => e.textContent?.trim()),
-  }));
-}
 
 /** Un cliente de prueba en la base local; `limpiar` lo quita al terminar (es la base de pruebas, no la del puesto). */
 async function crearCliente(datos: Record<string, string | null>) {
@@ -62,6 +46,15 @@ test("el cuaderno abre la ficha de quien más debe, con su deuda y su historial 
   const primera = page.getByTestId("movimientos").getByRole("listitem").first();
   await expect(primera).not.toContainText(deudor!.nombre!);
   await expect(primera.getByText(/Lo debe|Pagó|Abono/)).toBeVisible();
+
+  // Las etiquetas dicen lo del puesto («fiado»), miden 17 px o más y no se parten en dos líneas a 360 px (/formidable 2026-11-05).
+  await expect(page.getByText("Último fiado")).toBeVisible();
+  const etiquetas = await page.locator("dt").evaluateAll((els) => els.map((e) => ({ px: parseFloat(getComputedStyle(e).fontSize), lineas: Math.round(e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight)) })));
+  expect(etiquetas.length).toBeGreaterThan(0);
+  for (const e of etiquetas) {
+    expect(e.px).toBeGreaterThanOrEqual(17);
+    expect(e.lineas).toBe(1);
+  }
 
   const { desborde, chicos } = await medir(page);
   expect(desborde, "nada se sale de la pantalla").toBeLessThanOrEqual(0);

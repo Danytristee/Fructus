@@ -10,6 +10,8 @@ const variantes = cva(
       variante: {
         principal: "min-h-[68px] w-full bg-acento px-6 text-[22px] text-sobre-acento hover:bg-acento",
         secundario: "vidrio min-h-14 px-5 text-lg text-texto hover:bg-vidrio",
+        // La acción de una pantalla que flota sobre su contenido: una píldora, no una franja de lado a lado que lo tape.
+        flotante: "min-h-14 w-auto bg-acento px-7 text-[20px] text-sobre-acento shadow-[0_10px_30px_rgb(var(--sombra-color)/0.28)] hover:bg-acento",
         texto: "min-h-12 bg-transparent px-5 text-base text-texto-suave shadow-none hover:bg-transparent",
       },
     },
@@ -28,7 +30,7 @@ export function Boton({ variante, cargando = false, disabled, className, childre
   return (
     <Button
       // «ghost» no trae fondo propio: así el vidrio de la variante secundaria no compite con bg-primary.
-      variant={variante === "principal" || variante == null ? "default" : "ghost"}
+      variant={variante === "principal" || variante === "flotante" || variante == null ? "default" : "ghost"}
       className={cn(variantes({ variante }), "relative grid place-items-center", className)}
       disabled={disabled || cargando}
       aria-busy={cargando || undefined}

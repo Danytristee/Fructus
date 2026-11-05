@@ -38,13 +38,15 @@ type Props = {
   alGuardar: () => void;
   alDescartar: (incierto: boolean) => void;
   alCambiarGuardando: (guardando: boolean) => void;
+  /** Registrado a mano (A8): lo que falta se pide en vez de marcarse en rojo, y el monto empieza vacío. */
+  aMano?: boolean;
 };
 
 const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 
 // La tarjeta de un abono dictado («el flaco me dio 80 a cuenta»): quién pagó, cuánto y con qué, y cómo queda su deuda.
 // Si paga más de lo que debe se deja guardar, pero se dice en grande antes de Confirmar (decisión del 31-10).
-export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando }: Props) {
+export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando, aMano = false }: Props) {
   const [borrador, setBorrador] = useState<BorradorAbono>(() => borradorAbono(tarjeta));
   const [vista, setVista] = useState<"tarjeta" | "cliente" | "monto">("tarjeta");
   const [saldo, setSaldo] = useState<number | null>(null);
@@ -67,7 +69,7 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
   function confirmar() {
     if (falta.length > 0) return;
-    void enviar(() => confirmarAbono({ comandoId, borrador, corregido: fueCorregidoAbono(tarjeta, borrador), latenciaMs }));
+    void enviar(() => confirmarAbono({ comandoId, borrador, corregido: fueCorregidoAbono(tarjeta, borrador), latenciaMs, aMano }));
   }
 
   if (guardado) {
@@ -134,14 +136,17 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         className="animate-pieza"
         cliente={cliente}
         dicho={tarjeta.cliente.dicho}
-        falta={falta.includes("cliente")}
-        sinNombre="Toca para elegir quién es"
+        falta={!aMano && falta.includes("cliente")}
+        pendiente={aMano && falta.includes("cliente")}
+        sinCliente={aMano ? "¿Quién te pagó?" : undefined}
+        sinNombre={aMano ? "Toca para elegir" : "Toca para elegir quién es"}
         alTocar={() => setVista("cliente")}
       />
       <FilaTarjeta
         style={pieza(1)}
         className="animate-pieza"
-        falta={falta.includes("monto")}
+        falta={!aMano && falta.includes("monto")}
+        pendiente={aMano && falta.includes("monto")}
         onClick={() => setVista("monto")}
         icono={
           <span className="grid size-12 place-items-center rounded-full bg-exito/12 text-exito">
@@ -149,7 +154,7 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           </span>
         }
         grande={monto === null || falta.includes("monto") ? "¿Cuánto te dio?" : <Monto valor={monto} tamano="cifra" />}
-        chico="Toca para cambiar el monto"
+        chico={monto === null || falta.includes("monto") ? "Toca para poner el monto" : "Toca para cambiar el monto"}
       />
 
       <div className="mx-1 mt-1 grid animate-pieza gap-2" style={pieza(2)}>
@@ -188,6 +193,7 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       <PieConfirmar
         style={pieza(4)}
         aviso={frasesFaltaAbono(falta)}
+        avisoNeutro={aMano}
         error={error}
         guardando={guardando}
         listo={falta.length === 0}

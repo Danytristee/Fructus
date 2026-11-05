@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { AbonoAMano } from "@/components/clientes/AbonoAMano";
 import { DatosCliente } from "@/components/clientes/DatosCliente";
 import { HistorialCliente } from "@/components/clientes/HistorialCliente";
 import { TarjetaDeuda } from "@/components/clientes/TarjetaDeuda";
@@ -29,7 +30,7 @@ type Cliente = {
 
 // Su deuda, sus datos y su historial. Todo sale de la misma verdad que el cuaderno: v_saldo_clientes, ventas y abonos.
 async function Cuenta({ cliente }: { cliente: Cliente }) {
-  const { supabase } = await exigirSesion();
+  const { supabase, permisos } = await exigirSesion();
   const [saldo, deudas, ventas, abonos] = await Promise.all([
     supabase.from("v_saldo_clientes").select("saldo, ultima_venta_credito, ultimo_abono").eq("cliente_id", cliente.id).maybeSingle(),
     supabase.from("v_saldo_clientes").select("saldo"),
@@ -87,6 +88,7 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
         notas={cliente.notas}
       />
       <HistorialCliente dias={dias} hayMas={hayMas} tope={HISTORIAL_TOPE} />
+      {permisos.registrar && <AbonoAMano cliente={persona} />}
     </>
   );
 }

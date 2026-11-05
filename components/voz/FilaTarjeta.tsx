@@ -7,10 +7,12 @@ type Props = Omit<React.ComponentProps<"button">, "children"> & {
   chico?: React.ReactNode;
   /** Falta este dato: se marca y se anuncia, sin depender solo del color. */
   falta?: boolean;
+  /** A mano (A8): el dato todavía no se llena. Borde del acento, no rojo: el rojo es para lo que el intérprete no entendió. */
+  pendiente?: boolean;
 };
 
 // Un dato de la tarjeta de voz (cliente, fruta): grande para leerlo de un vistazo y tocable para corregirlo.
-export function FilaTarjeta({ icono, grande, chico, falta = false, className, ...props }: Props) {
+export function FilaTarjeta({ icono, grande, chico, falta = false, pendiente = false, className, ...props }: Props) {
   return (
     <button
       type="button"
@@ -18,6 +20,7 @@ export function FilaTarjeta({ icono, grande, chico, falta = false, className, ..
         "grid min-h-[72px] w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-[20px] bg-superficie px-3.5 py-3 text-left shadow-[0_2px_10px_rgb(var(--sombra-color)/0.06)]",
         "transition-transform duration-150 ease-out active:scale-[0.98]",
         falta && "ring-2 ring-deuda",
+        pendiente && !falta && "ring-2 ring-acento/50",
         className,
       )}
       {...props}
