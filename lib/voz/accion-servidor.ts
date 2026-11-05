@@ -10,6 +10,9 @@ export const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra
 /** La llave foránea se rompió (23503): el cliente se borró mientras la tarjeta estaba abierta. Reintentar no sirve: hay que elegir otro. */
 export const CLIENTE_YA_NO_ESTA = "Ese cliente ya no está en tu cuaderno. Elige a otro.";
 
+/** Lo mismo con lo de una compra: la fruta o el proveedor se borraron mientras la tarjeta estaba abierta. */
+export const COMPRA_YA_NO_ESTA = "Una fruta o el proveedor de la compra ya no está. Vuelve a elegirlos.";
+
 /** Lo mismo con la fruta: se desactivó o se borró mientras la tarjeta estaba abierta. */
 export const PRODUCTO_YA_NO_ESTA = "Esa fruta ya no está en tu catálogo. Elige otra.";
 

@@ -53,7 +53,7 @@ function TarjetaDe({ tarjeta, comunes, aMano }: { tarjeta: ResultadoVoz["tarjeta
     case "gasto":
       return <TarjetaGasto tarjeta={tarjeta} {...comunes} />;
     case "compra":
-      return <TarjetaCompra tarjeta={tarjeta} {...comunes} />;
+      return <TarjetaCompra tarjeta={tarjeta} {...comunes} aMano={aMano} />;
     case "consulta":
       return <TarjetaConsulta tarjeta={tarjeta} comandoId={comunes.comandoId} latenciaMs={comunes.latenciaMs} alListo={() => comunes.alDescartar(false)} />;
     default:

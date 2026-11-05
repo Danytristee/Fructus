@@ -28,8 +28,8 @@ type Props = {
   /** El texto del botón; si no se dice, el título. */
   etiqueta?: string;
   /**
-   * `flotante`: una píldora sobre la barra de abajo (la acción de la pantalla; el pulgar la alcanza). `fila`: un botón
-   * normal dentro de la pantalla, junto a lo que registra.
+   * `flotante`: una píldora de la acción de la pantalla; va dentro de una `BarraFlotante`, que la pone sobre la barra de abajo
+   * donde el pulgar la alcanza. `fila`: un botón normal dentro de la pantalla, junto a lo que registra.
    */
   variante: "flotante" | "fila";
 };
@@ -72,7 +72,7 @@ export function OperacionAMano({ intencion, tarjeta, titulo, icono, etiqueta, va
   }
 
   const aviso = error && (
-    <p role="alert" className="pointer-events-auto justify-self-stretch rounded-control bg-superficie px-3.5 py-2.5 font-bold text-deuda ring-2 ring-deuda">
+    <p role="alert" className="pointer-events-auto w-full rounded-control bg-superficie px-3.5 py-2.5 font-bold text-deuda ring-2 ring-deuda">
       {error}
     </p>
   );
@@ -81,15 +81,11 @@ export function OperacionAMano({ intencion, tarjeta, titulo, icono, etiqueta, va
     <>
       {variante === "flotante" ? (
         <>
-          {/* El último renglón de la pantalla no puede quedar debajo del botón flotante. */}
-          <div aria-hidden className="h-16" />
-          <div className="pointer-events-none fixed inset-x-0 bottom-[calc(96px+env(safe-area-inset-bottom))] z-20 mx-auto grid max-w-xl justify-items-center gap-2 px-4">
-            {aviso}
-            <Boton variante="flotante" onClick={() => void abrir()} cargando={abriendo} className="pointer-events-auto">
-              {icono}
-              {etiqueta ?? titulo}
-            </Boton>
-          </div>
+          {aviso}
+          <Boton variante="flotante" onClick={() => void abrir()} cargando={abriendo} className="pointer-events-auto">
+            {icono}
+            {etiqueta ?? titulo}
+          </Boton>
         </>
       ) : (
         <div className="grid gap-2">

@@ -1,6 +1,7 @@
 // Registrar a mano lo mismo que se registra por voz (A8): la misma tarjeta de confirmación, pero llenada con lo que la
 // persona toca en vez de con lo que oyó el intérprete. Una sola tarjeta por operación (una función, una pieza), así el
 // guardado, el doble toque y los errores se comportan igual con la voz y sin ella. Lógica pura.
+import type { ItemBorrador } from "./voz/confirmar-venta-reglas";
 import type { Tarjeta } from "./voz/tarjeta-reglas";
 
 type Persona = { id: number; nombre: string };
@@ -39,6 +40,33 @@ export function sugeridosParaMerma(frutas: { id: number; nombre: string; stock: 
   return frutas
     .filter((f) => f.stock > 0)
     .sort((a, b) => b.desgaste - a.desgaste)
+    .slice(0, cuantos)
+    .map(({ id, nombre }) => ({ id, nombre }));
+}
+
+/** Una fruta de la compra que todavía no se llena: sin fruta, sin cajas y sin costo (nunca se inventa un precio). */
+export const itemCompraVacio = (): ItemBorrador => ({ productoId: null, producto: "", cantidad: 0, precio: null, sugerido: false });
+
+/**
+ * La tarjeta de una compra a mano: una fruta vacía, sin proveedor (se puede dejar así si fue en el mercado) y **sin saber si se
+ * pagó**: nunca se asume contado (principio 2). Ofrece primero a los proveedores y a las frutas que más conviene reponer.
+ */
+export function tarjetaCompraAMano(proveedores: Persona[] = [], frutas: Persona[] = []): Extract<Tarjeta, { tipo: "compra" }> {
+  return {
+    tipo: "compra",
+    proveedor: { dicho: null, elegido: null, opciones: proveedores },
+    items: [{ producto: { dicho: null, elegido: null, opciones: frutas }, cantidad: 0, costo: { valor: null, sugerido: false } }],
+    condicion: null,
+    dudas: [],
+    falta: ["producto", "costo", "condicion"],
+  };
+}
+
+/** Qué fruta ofrecer primero al comprar: las que menos días alcanzan, y que se estén vendiendo. */
+export function sugeridosParaCompra(frutas: { id: number; nombre: string; coberturaDias: number | null }[], cuantos = 5): Persona[] {
+  return frutas
+    .filter((f) => f.coberturaDias !== null)
+    .sort((a, b) => a.coberturaDias! - b.coberturaDias!)
     .slice(0, cuantos)
     .map(({ id, nombre }) => ({ id, nombre }));
 }

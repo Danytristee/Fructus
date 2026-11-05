@@ -11,7 +11,7 @@ const variantes = cva(
         principal: "min-h-[68px] w-full bg-acento px-6 text-[22px] text-sobre-acento hover:bg-acento",
         secundario: "vidrio min-h-14 px-5 text-lg text-texto hover:bg-vidrio",
         // La acción de una pantalla que flota sobre su contenido: una píldora, no una franja de lado a lado que lo tape.
-        flotante: "min-h-14 w-auto bg-acento px-7 text-[20px] text-sobre-acento shadow-[0_10px_30px_rgb(var(--sombra-color)/0.28)] hover:bg-acento",
+        flotante: "min-h-14 w-auto bg-acento px-5 text-[20px] text-sobre-acento shadow-[0_10px_30px_rgb(var(--sombra-color)/0.28)] hover:bg-acento",
         texto: "min-h-12 bg-transparent px-5 text-base text-texto-suave shadow-none hover:bg-transparent",
       },
     },

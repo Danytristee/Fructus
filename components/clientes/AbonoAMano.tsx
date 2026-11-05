@@ -1,5 +1,6 @@
 import { HandCoins } from "lucide-react";
 
+import { BarraFlotante } from "@/components/ui/BarraFlotante";
 import { OperacionAMano } from "@/components/voz/OperacionAMano";
 import { tarjetaAbonoAMano } from "@/lib/a-mano-reglas";
 
@@ -10,12 +11,14 @@ type Persona = { id: number; nombre: string };
 // más deben.
 export function AbonoAMano({ cliente, sugeridos = [] }: { cliente: Persona | null; sugeridos?: Persona[] }) {
   return (
-    <OperacionAMano
-      intencion="registrar_abono"
-      tarjeta={tarjetaAbonoAMano(cliente, sugeridos)}
-      titulo="Registrar abono"
-      icono={<HandCoins aria-hidden />}
-      variante="flotante"
-    />
+    <BarraFlotante>
+      <OperacionAMano
+        intencion="registrar_abono"
+        tarjeta={tarjetaAbonoAMano(cliente, sugeridos)}
+        titulo="Registrar abono"
+        icono={<HandCoins aria-hidden />}
+        variante="flotante"
+      />
+    </BarraFlotante>
   );
 }

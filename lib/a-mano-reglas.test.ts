@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { sinSesionAMano, sugeridosParaAbono, sugeridosParaMerma, tarjetaAbonoAMano, tarjetaMermaAMano } from "./a-mano-reglas";
+import {
+  itemCompraVacio,
+  sinSesionAMano,
+  sugeridosParaAbono,
+  sugeridosParaCompra,
+  sugeridosParaMerma,
+  tarjetaAbonoAMano,
+  tarjetaCompraAMano,
+  tarjetaMermaAMano,
+} from "./a-mano-reglas";
 import { borradorAbono, faltaAbono, fueCorregidoAbono } from "./voz/confirmar-abono-reglas";
+import { borradorCompra, faltaCompra, frasesFaltaCompra, pedidoCompra, totalCompra } from "./voz/confirmar-compra-reglas";
 import { borradorMerma, faltaMerma, fueCorregidaMerma, pedidoMerma } from "./voz/confirmar-merma-reglas";
 
 const rosa = { id: 2, nombre: "Rosa Quispe" };
@@ -117,6 +127,84 @@ describe("sugeridosParaMerma", () => {
   it("corta en la cantidad pedida y no cambia la lista original", () => {
     const copia = [...frutas];
     expect(sugeridosParaMerma(frutas, 2).map((f) => f.id)).toEqual([2, 4]);
+    expect(frutas).toEqual(copia);
+  });
+});
+
+describe("tarjetaCompraAMano", () => {
+  const chao = { id: 2, nombre: "Agrícola Chao" };
+  const mango = { id: 1, nombre: "Mango Kent" };
+
+  it("arranca con una fruta vacía, sin proveedor y sin saber si se pagó: nunca se asume contado", () => {
+    const t = tarjetaCompraAMano([chao], [mango]);
+    expect(t.proveedor).toEqual({ dicho: null, elegido: null, opciones: [chao] });
+    expect(t.items).toHaveLength(1);
+    expect(t.items[0]).toMatchObject({ cantidad: 0, costo: { valor: null, sugerido: false } });
+    expect(t.items[0]!.producto.opciones).toEqual([mango]);
+    expect(t.condicion).toBeNull();
+    expect(faltaCompra(borradorCompra(t))).toEqual(["producto", "cantidad", "costo", "condicion"]);
+    expect(frasesFaltaCompra(["producto", "cantidad", "costo"])).toBe("Falta elegir qué fruta fue, cuántas cajas y a cuánto la caja.");
+  });
+
+  it("con todo puesto y si se pagó, se puede guardar; sin proveedor está bien si fue contado", () => {
+    const b = borradorCompra(tarjetaCompraAMano());
+    const lleno = { ...b, items: [{ productoId: 1, producto: "Mango Kent", cantidad: 5, precio: 20, sugerido: false }], condicion: "contado" as const, medio: "efectivo" as const };
+    expect(faltaCompra(lleno)).toEqual([]);
+    expect(totalCompra(lleno)).toBe(100);
+    expect(pedidoCompra(lleno, 9, true)).toEqual({
+      proveedor_id: null,
+      condicion: "contado",
+      medio_pago: "efectivo",
+      comando_voz_id: 9,
+      corregido: true,
+      items: [{ producto_id: 1, cantidad: 5, costo_unitario: 20 }],
+    });
+  });
+
+  it("al crédito exige proveedor: una deuda con nadie es un estado imposible", () => {
+    const b = borradorCompra(tarjetaCompraAMano());
+    const credito = { ...b, items: [{ productoId: 1, producto: "Mango Kent", cantidad: 5, precio: 20, sugerido: false }], condicion: "credito" as const, medio: null };
+    expect(faltaCompra(credito)).toEqual(["proveedor"]);
+    expect(pedidoCompra(credito, 9, true)).toBeNull();
+    expect(faltaCompra({ ...credito, proveedor: chao })).toEqual([]);
+  });
+
+  it("el total no existe hasta que todas las frutas tienen costo, y suma fruta por fruta en céntimos", () => {
+    const b = borradorCompra(tarjetaCompraAMano());
+    const dos = { ...b, items: [{ productoId: 1, producto: "Mango Kent", cantidad: 3, precio: 12.5, sugerido: false }, itemCompraVacio()] };
+    expect(totalCompra(dos)).toBeNull();
+    const completo = { ...dos, items: [dos.items[0]!, { productoId: 2, producto: "Papaya", cantidad: 2, precio: 7.33, sugerido: false }] };
+    expect(totalCompra(completo)).toBe(52.16);
+  });
+
+  it("una fruta vacía agregada de más impide guardar hasta llenarla o quitarla", () => {
+    const b = borradorCompra(tarjetaCompraAMano());
+    const conVacia = {
+      ...b,
+      items: [{ productoId: 1, producto: "Mango Kent", cantidad: 5, precio: 20, sugerido: false }, itemCompraVacio()],
+      condicion: "contado" as const,
+      medio: "efectivo" as const,
+    };
+    expect(faltaCompra(conVacia)).toEqual(["producto", "cantidad", "costo"]);
+    expect(pedidoCompra(conVacia, 1, true)).toBeNull();
+  });
+});
+
+describe("sugeridosParaCompra", () => {
+  const frutas = [
+    { id: 1, nombre: "Mango Kent", coberturaDias: 6 },
+    { id: 2, nombre: "Papaya", coberturaDias: 0.5 },
+    { id: 3, nombre: "Piña golden", coberturaDias: null },
+    { id: 4, nombre: "Uva", coberturaDias: 2 },
+  ];
+
+  it("ofrece primero la fruta que menos días alcanza, y solo si se vende", () => {
+    expect(sugeridosParaCompra(frutas).map((f) => f.id)).toEqual([2, 4, 1]);
+  });
+
+  it("corta en la cantidad pedida y no cambia la lista original", () => {
+    const copia = [...frutas];
+    expect(sugeridosParaCompra(frutas, 1).map((f) => f.id)).toEqual([2]);
     expect(frutas).toEqual(copia);
   });
 });

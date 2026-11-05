@@ -86,7 +86,7 @@ test("desde el botón flotante de Stock: se elige la fruta por su nombre y se po
   const antes = await stockDe(f.id);
   await entrarComo(page, "duenio");
   await page.goto("/stock");
-  await page.getByRole("button", { name: "Registrar merma" }).click();
+  await page.getByRole("button", { name: "Merma", exact: true }).click();
   const hoja = page.getByRole("dialog", { name: "Registrar merma" });
   await expect(hoja).toBeVisible({ timeout: 20_000 });
 
@@ -137,7 +137,7 @@ test("regresión /chaos: si la fruta ya no existe, lo dice, y no manda a revisar
   const f = await fruta(null); // sin compras ni movimientos, para que la base deje borrarla
   await entrarComo(page, "duenio");
   await page.goto("/stock");
-  await page.getByRole("button", { name: "Registrar merma" }).click();
+  await page.getByRole("button", { name: "Merma", exact: true }).click();
   const hoja = page.getByRole("dialog", { name: "Registrar merma" });
   await expect(hoja).toBeVisible({ timeout: 20_000 });
   await hoja.getByRole("button", { name: /¿Qué fruta se malogró\?/ }).click();
@@ -165,7 +165,7 @@ test("el botón flotante es una píldora compacta que no tapa el último rengló
   await fruta(10);
   await entrarComo(page, "duenio");
   await page.goto("/stock");
-  const boton = page.getByRole("button", { name: "Registrar merma" });
+  const boton = page.getByRole("button", { name: "Merma", exact: true });
   await expect(boton).toBeVisible();
   const { desborde } = await medir(page);
   expect(desborde).toBeLessThanOrEqual(0);
@@ -175,7 +175,6 @@ test("el botón flotante es una píldora compacta que no tapa el último rengló
   expect(caja!.height).toBeLessThanOrEqual(56);
   expect(caja!.width).toBeLessThan(ancho * 0.75);
   expect(caja!.y).toBeGreaterThan((alto * 2) / 3);
-  expect(Math.abs(caja!.x + caja!.width / 2 - ancho / 2)).toBeLessThan(2);
 
   // Hasta abajo del todo, la última fruta queda por encima del botón, no debajo.
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -200,7 +199,7 @@ test("el contador ve el stock pero no «Registrar merma» ni «Se malogró»", a
   const fila = page.getByRole("listitem").filter({ hasText: f.nombre });
   await fila.getByRole("button", { name: new RegExp(f.nombre) }).click();
   await expect(fila.getByText("Alcanza para")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Registrar merma" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Merma", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Se malogró" })).toHaveCount(0);
 });
 
