@@ -49,7 +49,7 @@ function TarjetaDe({ tarjeta, comunes, aMano }: { tarjeta: ResultadoVoz["tarjeta
     case "abono":
       return <TarjetaAbono tarjeta={tarjeta} {...comunes} aMano={aMano} />;
     case "merma":
-      return <TarjetaMerma tarjeta={tarjeta} {...comunes} />;
+      return <TarjetaMerma tarjeta={tarjeta} {...comunes} aMano={aMano} />;
     case "gasto":
       return <TarjetaGasto tarjeta={tarjeta} {...comunes} />;
     case "compra":

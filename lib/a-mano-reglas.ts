@@ -23,6 +23,26 @@ export function tarjetaAbonoAMano(cliente: Persona | null, sugeridos: Persona[] 
   };
 }
 
+/** La tarjeta de una merma a mano: con la fruta ya elegida si se viene de su fila, y sin cajas (0 = todavía sin poner: nunca se inventa). */
+export function tarjetaMermaAMano(producto: Persona | null, sugeridos: Persona[] = []): Extract<Tarjeta, { tipo: "merma" }> {
+  return {
+    tipo: "merma",
+    producto: { dicho: null, elegido: producto, opciones: producto ? [] : sugeridos },
+    cantidad: 0,
+    motivo: null,
+    falta: producto ? [] : ["producto"],
+  };
+}
+
+/** Qué fruta ofrecer primero al registrar una merma: las que más se están gastando, de más a menos, y que tengan stock. */
+export function sugeridosParaMerma(frutas: { id: number; nombre: string; stock: number; desgaste: number }[], cuantos = 5): Persona[] {
+  return frutas
+    .filter((f) => f.stock > 0)
+    .sort((a, b) => b.desgaste - a.desgaste)
+    .slice(0, cuantos)
+    .map(({ id, nombre }) => ({ id, nombre }));
+}
+
 /** A quién ofrecer primero al elegir quién pagó: a quienes te deben, de quien más a quien menos. */
 export function sugeridosParaAbono(clientes: { id: number; nombre: string; saldo: number }[], cuantos = 5): Persona[] {
   return clientes

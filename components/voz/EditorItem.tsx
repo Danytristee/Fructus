@@ -134,7 +134,7 @@ export function EditorItem({ item, opciones, monto, alListo }: Props) {
         </div>
       )}
 
-      <Boton onClick={() => alListo(borrador)} disabled={borrador.productoId === null || errorPrecio !== null}>
+      <Boton onClick={() => alListo(borrador)} disabled={borrador.productoId === null || borrador.cantidad < 1 || errorPrecio !== null}>
         Listo
       </Boton>
     </div>

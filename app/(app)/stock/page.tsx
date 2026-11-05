@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { MermaAMano } from "@/components/inventario/MermaAMano";
 import { ResumenInventario } from "@/components/inventario/ResumenInventario";
 import { TableroStock } from "@/components/inventario/TableroStock";
 import { Encabezado } from "@/components/marco/Encabezado";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
+import { sugeridosParaMerma } from "@/lib/a-mano-reglas";
 import { leerInventario } from "@/lib/inventario";
 import { exigirSesion } from "@/lib/sesion";
 
@@ -14,7 +16,7 @@ export const metadata: Metadata = { title: "Stock · Fructus" };
 
 // El dashboard inteligente de inventario: existencias, frescura de cada lote, demanda y alertas con su recomendación.
 async function Tablero() {
-  const { supabase } = await exigirSesion();
+  const { supabase, permisos } = await exigirSesion();
   const inventario = await leerInventario(supabase).catch((e: unknown) => {
     console.error("stock: no se pudo leer el inventario", { error: e instanceof Error ? e.message : "desconocido" });
     return null;
@@ -29,7 +31,8 @@ async function Tablero() {
   return (
     <>
       <ResumenInventario resumen={inventario.resumen} estados={inventario.estados} />
-      <TableroStock alertas={inventario.alertas} estados={inventario.estados} />
+      <TableroStock alertas={inventario.alertas} estados={inventario.estados} puedeRegistrar={permisos.registrar} />
+      {permisos.registrar && <MermaAMano producto={null} sugeridos={sugeridosParaMerma(inventario.estados)} variante="flotante" />}
     </>
   );
 }

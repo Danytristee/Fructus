@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { sinSesionAMano, sugeridosParaAbono, tarjetaAbonoAMano } from "./a-mano-reglas";
+import { sinSesionAMano, sugeridosParaAbono, sugeridosParaMerma, tarjetaAbonoAMano, tarjetaMermaAMano } from "./a-mano-reglas";
 import { borradorAbono, faltaAbono, fueCorregidoAbono } from "./voz/confirmar-abono-reglas";
+import { borradorMerma, faltaMerma, fueCorregidaMerma, pedidoMerma } from "./voz/confirmar-merma-reglas";
 
 const rosa = { id: 2, nombre: "Rosa Quispe" };
 
@@ -65,5 +66,57 @@ describe("sugeridosParaAbono", () => {
 
   it("sin deudores no ofrece a nadie", () => {
     expect(sugeridosParaAbono([{ id: 3, nombre: "Al día", saldo: 0 }])).toEqual([]);
+  });
+});
+
+describe("tarjetaMermaAMano", () => {
+  const mango = { id: 1, nombre: "Mango Kent" };
+
+  it("desde la fila de una fruta trae la fruta elegida y sin cajas: falta decir cuántas", () => {
+    const t = tarjetaMermaAMano(mango);
+    expect(t).toMatchObject({ tipo: "merma", cantidad: 0, motivo: null, falta: [] });
+    expect(t.producto).toEqual({ dicho: null, elegido: mango, opciones: [] });
+    expect(faltaMerma(borradorMerma(t))).toEqual(["cantidad"]);
+  });
+
+  it("desde Stock pide elegir la fruta y ofrece primero las que más se gastan", () => {
+    const sugeridos = [{ id: 5, nombre: "Papaya" }];
+    const t = tarjetaMermaAMano(null, sugeridos);
+    expect(t.producto).toEqual({ dicho: null, elegido: null, opciones: sugeridos });
+    expect(t.falta).toEqual(["producto"]);
+    expect(faltaMerma(borradorMerma(t))).toEqual(["producto", "cantidad"]);
+  });
+
+  it("con fruta y cajas se puede guardar: la merma resta, sin motivo inventado, y cuenta como corregida", () => {
+    const t = tarjetaMermaAMano(mango);
+    const borrador = { ...borradorMerma(t), cantidad: 3 };
+    expect(faltaMerma(borrador)).toEqual([]);
+    expect(pedidoMerma(borrador, 77)).toEqual({ producto_id: 1, tipo: "merma", cantidad: -3, motivo: null, comando_voz_id: 77 });
+    expect(fueCorregidaMerma(t, borrador)).toBe(true);
+  });
+
+  it("cero cajas, o más de dos decimales, no se guardan", () => {
+    const t = tarjetaMermaAMano(mango);
+    expect(pedidoMerma({ ...borradorMerma(t), cantidad: 0 }, 1)).toBeNull();
+    expect(pedidoMerma({ ...borradorMerma(t), cantidad: 1.234 }, 1)).toBeNull();
+  });
+});
+
+describe("sugeridosParaMerma", () => {
+  const frutas = [
+    { id: 1, nombre: "Mango Kent", stock: 20, desgaste: 0.2 },
+    { id: 2, nombre: "Papaya", stock: 8, desgaste: 0.9 },
+    { id: 3, nombre: "Piña golden", stock: 0, desgaste: 1 },
+    { id: 4, nombre: "Uva", stock: 12, desgaste: 0.6 },
+  ];
+
+  it("ofrece primero la fruta más gastada y solo si hay stock", () => {
+    expect(sugeridosParaMerma(frutas).map((f) => f.id)).toEqual([2, 4, 1]);
+  });
+
+  it("corta en la cantidad pedida y no cambia la lista original", () => {
+    const copia = [...frutas];
+    expect(sugeridosParaMerma(frutas, 2).map((f) => f.id)).toEqual([2, 4]);
+    expect(frutas).toEqual(copia);
   });
 });

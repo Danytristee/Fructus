@@ -8,6 +8,7 @@ import { Desplegable } from "@/components/ui/Desplegable";
 import { Filtros } from "@/components/ui/Filtros";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Vacio } from "@/components/ui/Vacio";
+import { MermaAMano } from "./MermaAMano";
 import type { Alerta, EstadoProducto, TipoAlerta } from "@/lib/inventario-reglas";
 
 type Filtro = "todas" | TipoAlerta;
@@ -51,7 +52,7 @@ function TarjetaAlerta({ a, nombreFruta, i }: { a: Alerta; nombreFruta: string; 
   );
 }
 
-function FilaProducto({ e }: { e: EstadoProducto }) {
+function FilaProducto({ e, puedeRegistrar }: { e: EstadoProducto; puedeRegistrar: boolean }) {
   const frescura = Math.round((1 - e.desgaste) * 100);
   const color = e.desgaste >= 0.85 ? "bg-deuda" : e.desgaste >= 0.6 ? "bg-sol" : "bg-exito";
   return (
@@ -87,13 +88,19 @@ function FilaProducto({ e }: { e: EstadoProducto }) {
           ))}
         </dl>
         {e.alertas[0] && <p className="pb-2 text-texto-suave">{e.alertas[0].recomendacion}</p>}
+        {/* Registrar lo que se malogró de esta fruta: ya trae la fruta, solo falta decir cuántas cajas. */}
+        {puedeRegistrar && (
+          <div className="pb-2">
+            <MermaAMano producto={{ id: e.id, nombre: e.nombre }} variante="fila" />
+          </div>
+        )}
       </Desplegable>
     </li>
   );
 }
 
 // El tablero de Stock: alertas con su recomendación, filtrables por tipo, y la lista de frutas con su frescura.
-export function TableroStock({ alertas, estados }: { alertas: Alerta[]; estados: EstadoProducto[] }) {
+export function TableroStock({ alertas, estados, puedeRegistrar }: { alertas: Alerta[]; estados: EstadoProducto[]; puedeRegistrar: boolean }) {
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const cuenta = (t: TipoAlerta) => alertas.filter((a) => a.tipo === t).length;
   const visibles = filtro === "todas" ? alertas : alertas.filter((a) => a.tipo === filtro);
@@ -135,7 +142,7 @@ export function TableroStock({ alertas, estados }: { alertas: Alerta[]; estados:
         <p className="mb-2.5 text-texto-suave">Primero lo que más se está gastando. Toca una fruta para ver el detalle.</p>
         <ul className="vidrio divide-y divide-border overflow-hidden rounded-tarjeta">
           {conStock.map((e) => (
-            <FilaProducto key={e.id} e={e} />
+            <FilaProducto key={e.id} e={e} puedeRegistrar={puedeRegistrar} />
           ))}
         </ul>
       </section>

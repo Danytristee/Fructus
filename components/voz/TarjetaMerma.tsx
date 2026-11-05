@@ -30,13 +30,15 @@ type Props = {
   alGuardar: () => void;
   alDescartar: (incierto: boolean) => void;
   alCambiarGuardando: (guardando: boolean) => void;
+  /** Registrada a mano (A8): empieza sin cajas, lo que falta se pide en vez de marcarse en rojo. */
+  aMano?: boolean;
 };
 
 const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 
 // La tarjeta de una merma dictada («se malograron 3 de mango»): qué fruta, cuántas cajas y cuántas quedan. Si el stock
 // queda en negativo se deja guardar, pero se dice (decisión del 28-10: el conteo inicial llega en A8).
-export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando }: Props) {
+export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando, aMano = false }: Props) {
   const [borrador, setBorrador] = useState<BorradorMerma>(() => borradorMerma(tarjeta));
   const [editando, setEditando] = useState(false);
   const [stock, setStock] = useState<number | null>(null);
@@ -59,7 +61,7 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
   function confirmar() {
     if (falta.length > 0) return;
-    void enviar(() => confirmarMerma({ comandoId, borrador, corregido: fueCorregidaMerma(tarjeta, borrador), latenciaMs }));
+    void enviar(() => confirmarMerma({ comandoId, borrador, corregido: fueCorregidaMerma(tarjeta, borrador), latenciaMs, aMano }));
   }
 
   if (guardado) {
@@ -105,12 +107,21 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       <FilaTarjeta
         style={pieza(0)}
         className="animate-pieza"
-        falta={falta.length > 0}
+        falta={!aMano && falta.length > 0}
+        pendiente={aMano && falta.length > 0}
         onClick={() => setEditando(true)}
         icono={<IconoFruta nombre={producto?.nombre ?? tarjeta.producto.dicho ?? "?"} tamano={48} />}
-        grande={producto ? `${formatearCajas(cantidad)} de ${producto.nombre}` : `¿${tarjeta.producto.dicho}?`}
+        grande={
+          producto
+            ? cantidad > 0
+              ? `${formatearCajas(cantidad)} de ${producto.nombre}`
+              : `¿Cuántas cajas de ${producto.nombre}?`
+            : aMano
+              ? "¿Qué fruta se malogró?"
+              : `¿${tarjeta.producto.dicho}?`
+        }
         // «dijiste»: entre comillas solas no se sabía si era lo dicho o lo que eligió la app (/formidable 2026-10-31).
-        chico={producto ? (borrador.motivo ? `dijiste «${borrador.motivo}»` : "Se malogró") : "Toca para elegir la fruta"}
+        chico={producto ? (cantidad === 0 ? "Toca para poner las cajas" : borrador.motivo ? `dijiste «${borrador.motivo}»` : "Se malogró") : "Toca para elegir la fruta"}
       />
 
       {producto && quedan !== null && stock !== null && (
@@ -135,6 +146,7 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       <PieConfirmar
         style={pieza(2)}
         aviso={frasesFaltaMerma(falta)}
+        avisoNeutro={aMano}
         error={error}
         guardando={guardando}
         listo={falta.length === 0}
