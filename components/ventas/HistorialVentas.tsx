@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { Receipt } from "lucide-react";
 
 import { FilaOperacion } from "@/components/hoy/FilaOperacion";
@@ -12,9 +13,13 @@ import { Vacio } from "@/components/ui/Vacio";
 import { formatearSoles } from "@/lib/formato";
 import type { Operacion } from "@/lib/operaciones-reglas";
 import { etiquetaDelPeriodo, resumirPeriodo, type DetalleVenta, type Periodo } from "@/lib/ventas-reglas";
-import { HojaVenta } from "./HojaVenta";
 
 /** La fila (`Operacion`, con su `detalle` de una línea) y, aparte, la venta completa (`completa`) para su hoja. */
+// La hoja del detalle (con el flujo de anular) llega en diferido: no pesa en la primera carga. Se pide por detrás apenas la pantalla
+// queda lista, para que al tocar una venta suba sin esperar.
+const cargarHoja = () => import("./HojaVenta").then((m) => m.HojaVenta);
+const HojaVenta = dynamic(cargarHoja, { ssr: false });
+
 type VentaDelDia = Operacion & { credito: boolean; completa: DetalleVenta };
 export type DiaVentas = { dia: string; etiqueta: string; ventas: VentaDelDia[] };
 type Filtro = "todas" | "contado" | "credito";
@@ -25,6 +30,10 @@ export function HistorialVentas({ dias, hoy, puedeAnular }: { dias: DiaVentas[];
   const [periodo, setPeriodo] = useState<Periodo>("hoy");
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [abierta, setAbierta] = useState<DetalleVenta | null>(null);
+
+  useEffect(() => {
+    void cargarHoja();
+  }, []);
 
   const delPeriodo = periodo === "hoy" ? dias.filter((d) => d.dia === hoy) : dias;
   const todas = delPeriodo.flatMap((d) => d.ventas).filter((v) => v.estado !== "anulada"); // lo anulado se ve, pero no cuenta
