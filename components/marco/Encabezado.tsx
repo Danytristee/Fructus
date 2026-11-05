@@ -13,12 +13,15 @@ export async function Encabezado({ titulo, subtitulo }: Props) {
         <h1 className="text-[32px] leading-tight font-extrabold tracking-tight">{titulo}</h1>
         {subtitulo && <p className="text-texto-suave">{subtitulo}</p>}
       </div>
-      <MenuMas
-        nombre={perfil?.nombre ?? ""}
-        rol={perfil ? nombreDelRol(perfil.rol) : ""}
-        verCierre={permisos.cierre}
-        verAjustes={permisos.ajustes}
-      />
+      {/* Sin conexión no se sabe quién entró ni qué puede abrir: sin menú, en vez de un menú recortado que parezca el real. */}
+      {permisos && (
+        <MenuMas
+          nombre={perfil?.nombre ?? ""}
+          rol={perfil ? nombreDelRol(perfil.rol) : ""}
+          verCierre={permisos.cierre}
+          verAjustes={permisos.ajustes}
+        />
+      )}
     </header>
   );
 }

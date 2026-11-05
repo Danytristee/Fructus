@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { Encabezado } from "@/components/marco/Encabezado";
+import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { AvisoInventario } from "@/components/hoy/AvisoInventario";
 import { EsqueletoResumen, EsqueletoUltimas } from "@/components/hoy/EsqueletoResumen";
 import { ResumenDia } from "@/components/hoy/ResumenDia";
@@ -13,6 +14,15 @@ import { exigirSesion } from "@/lib/sesion";
 export default async function Hoy() {
   // El contador solo lee: no ve el botón de voz (permisosDe en lib/permisos-reglas.ts).
   const { permisos } = await exigirSesion();
+  // Sin saber el rol no se decide si hay botón de voz: se dice que no hubo conexión en vez de esconderlo en silencio.
+  if (!permisos) {
+    return (
+      <>
+        <Encabezado titulo="Hoy" subtitulo={formatearFecha(new Date())} />
+        <SesionSinConexion />
+      </>
+    );
+  }
   return (
     <>
       <Encabezado titulo="Hoy" subtitulo={formatearFecha(new Date())} />
