@@ -16,7 +16,7 @@ type Filtro = "todas" | TipoAlerta;
 const tipos: Record<TipoAlerta, { etiqueta: string; Icono: typeof Clock; clase: string }> = {
   deterioro: { etiqueta: "Por malograrse", Icono: TriangleAlert, clase: "bg-deuda-fondo text-deuda" },
   reponer: { etiqueta: "Reponer", Icono: ShoppingCart, clase: "bg-acento/12 text-acento-texto" },
-  sobrestock: { etiqueta: "Sobrestock", Icono: PackageX, clase: "bg-exito-fondo text-exito" },
+  sobrestock: { etiqueta: "Te sobra", Icono: PackageX, clase: "bg-exito-fondo text-exito" },
   sin_movimiento: { etiqueta: "Sin movimiento", Icono: Clock, clase: "bg-texto/8 text-texto-suave" },
 };
 

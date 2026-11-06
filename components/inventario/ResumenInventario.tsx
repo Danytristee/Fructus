@@ -16,29 +16,50 @@ export function ResumenInventario({ resumen, estados }: Props) {
   const tiles = [
     { cuenta: resumen.frutasPorMalograrse, etiqueta: "por malograrse", Icono: TriangleAlert, clase: "bg-deuda-fondo text-deuda" },
     { cuenta: resumen.porReponer, etiqueta: "por reponer", Icono: ShoppingCart, clase: "bg-acento/12 text-acento-texto" },
-    { cuenta: sobrestock, etiqueta: "con sobrestock", Icono: PackageX, clase: "bg-exito-fondo text-exito" },
+    { cuenta: sobrestock, etiqueta: "te sobran", Icono: PackageX, clase: "bg-exito-fondo text-exito" },
   ];
 
   return (
     <div className="grid gap-2.5">
       <Tarjeta protagonista className="grid animate-subir grid-cols-[auto_1fr] items-center gap-4">
-        <figure className="relative grid size-24 place-items-center" aria-label={`${salud} % de tus frutas están bien`}>
-          <svg viewBox="0 0 36 36" className="absolute inset-0 -rotate-90" aria-hidden>
-            <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="3.2" className="text-texto/10" />
-            <circle
-              cx="18"
-              cy="18"
-              r="15.9"
-              fill="none"
-              strokeWidth="3.2"
-              strokeLinecap="round"
-              pathLength={100}
-              strokeDasharray={`${salud} 100`}
-              className={`animate-dibujar-anillo ${salud >= 70 ? "stroke-exito" : "stroke-deuda"}`}
-            />
-          </svg>
-          <span className="cifra text-2xl">{salud}%</span>
-        </figure>
+        <div className="grid justify-items-center gap-1">
+          <figure
+            className="relative grid size-24 place-items-center"
+            aria-label={conStock.length === 0 ? "No tienes cajas en el puesto" : `${sanas} de ${conStock.length} frutas sin avisos`}
+          >
+            <svg viewBox="0 0 36 36" className="absolute inset-0 -rotate-90" aria-hidden>
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="3.2" className="text-texto/10" />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.9"
+                fill="none"
+                strokeWidth="3.2"
+                strokeLinecap="round"
+                pathLength={100}
+                strokeDasharray={`${salud} 100`}
+                className={`animate-dibujar-anillo ${salud >= 70 ? "stroke-exito" : "stroke-deuda"}`}
+              />
+            </svg>
+            {/* Dice QUÉ cuenta el anillo (frutas, no avisos ni cajas) y, debajo, qué se dice de ellas: «0 de 7 frutas» / «sin avisos». */}
+            <span className="grid text-center text-[17px] leading-tight font-extrabold tabular-nums">
+              {conStock.length === 0 ? (
+                <>
+                  <span>sin</span>
+                  <span>cajas</span>
+                </>
+              ) : (
+                <>
+                  <span>
+                    {sanas} de {conStock.length}
+                  </span>
+                  <span>frutas</span>
+                </>
+              )}
+            </span>
+          </figure>
+          {conStock.length > 0 && <span className="text-[17px] font-bold">sin avisos</span>}
+        </div>
         <div className="grid">
           <span className="font-bold text-texto-suave">Tienes en el puesto</span>
           <span className="cifra text-cifra">
@@ -47,7 +68,6 @@ export function ResumenInventario({ resumen, estados }: Props) {
           <span className="text-texto-suave">
             valen unos <MontoVivo valor={resumen.valor} className="font-extrabold text-texto" />
           </span>
-          <span className="text-[15px] text-texto-suave">{sanas} de {conStock.length} frutas están bien</span>
         </div>
       </Tarjeta>
       <div className="grid grid-cols-3 gap-2">
