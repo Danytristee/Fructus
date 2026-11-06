@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { PanelCierre } from "@/components/cierre/PanelCierre";
 import { Encabezado } from "@/components/marco/Encabezado";
+import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
@@ -45,6 +46,14 @@ async function Resumen() {
 
 export default async function Cierre() {
   const { permisos } = await exigirSesion();
+  if (!permisos) {
+    return (
+      <>
+        <Encabezado titulo="Cierre del día" />
+        <SesionSinConexion />
+      </>
+    );
+  }
   if (!permisos.cierre) {
     return (
       <>

@@ -6,6 +6,7 @@ import { AbonoAMano } from "@/components/clientes/AbonoAMano";
 import { BotonCliente } from "@/components/clientes/BotonCliente";
 import { ListaClientes, type ClienteCuaderno } from "@/components/clientes/ListaClientes";
 import { Encabezado } from "@/components/marco/Encabezado";
+import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
@@ -20,6 +21,8 @@ export const metadata: Metadata = { title: "Clientes · Fructus" };
 // El cuaderno de clientes: cuánto te deben en total, quién más, y el detalle de cada uno (v_saldo_clientes).
 async function Cuaderno() {
   const { supabase, permisos } = await exigirSesion();
+  // Sin saber el rol no se decide qué botones hay: si la base no respondió, se dice que no hubo conexión (lib/sesion.ts: «sin-conexion»).
+  if (!permisos) return <SesionSinConexion />;
   const { data, error } = await supabase.from("v_saldo_clientes").select("cliente_id, nombre, alias, saldo");
   if (error) {
     console.error("clientes: no se pudo leer el cuaderno", { codigo: error.code });

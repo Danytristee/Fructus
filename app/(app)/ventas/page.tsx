@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { Encabezado } from "@/components/marco/Encabezado";
+import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { HistorialVentas, type DiaVentas } from "@/components/ventas/HistorialVentas";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
@@ -27,6 +28,8 @@ const nombreFruta = (p: { nombre: string; variedad: string | null } | null) => (
 // últimas LIMITE_LISTA; los totales salen de una lectura aparte de todas las ventas del rango, para que nunca queden bajos.
 async function Historial() {
   const { supabase, permisos } = await exigirSesion();
+  // Sin saber el rol no se decide qué botones hay: si la base no respondió, se dice que no hubo conexión (lib/sesion.ts: «sin-conexion»).
+  if (!permisos) return <SesionSinConexion />;
   const ahora = new Date();
   const desde = new Date(ahora.getTime() - 7 * DIA_MS).toISOString();
   const [lista, filasDeResumen] = await Promise.all([

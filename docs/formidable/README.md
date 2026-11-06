@@ -12,4 +12,5 @@ Una fila por pantalla u hoja. Cada informe es historial: no se sobrescribe; una 
 | Ficha del cliente y hoja de abono a mano (A8) | 2026-11-05 | 8.5 → 8.9 | 3 cambios aplicados con OK; quedan 8 cosas nuevas de la 2.ª prueba ciega (la más clara: «Falta elegir cuánto te dio») | [ficha-cliente-2026-11-05](ficha-cliente-2026-11-05.md) |
 | Hoja de alta y edición de cliente (A8) | 2026-11-05 | (rápida: solo mide) | Sin fallas medidas a 412 y 360 px; 2 cambios aplicados con OK («Ninguno»; pie pegado desde 768 px) | [cliente-hoja-2026-11-05](cliente-hoja-2026-11-05.md) |
 | Stock y Ventas, con sus hojas (A8) | 2026-11-05 | 7.7 → 8.0 | 3 cambios y el arreglo de las 300 ventas aplicados con OK; ciegos 7 → 8 (Ventas) y 7 (Stock). Quedan las cajitas de Stock («5 qué»), los filtros a 3 filas a 360 px y el 15 px de las insignias | [stock-ventas-2026-11-05](stock-ventas-2026-11-05.md) |
+| Aviso «No pudimos conectar» (sin conexión con la base) | 2026-11-05 | 8.5 → 9.1 | 3 cambios aplicados; queda avisar que el reintento sigue sin señal | [sin-conexion-2026-11-05](sin-conexion-2026-11-05.md) |
 | Login | — | — | Pendiente | — |

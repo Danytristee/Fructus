@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Apple, Users } from "lucide-react";
 
 import { Encabezado } from "@/components/marco/Encabezado";
+import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Avatar } from "@/components/ui/Avatar";
 import { BuscadorCatalogo } from "@/components/ui/BuscadorCatalogo";
@@ -15,6 +16,14 @@ export const metadata: Metadata = { title: "Ajustes · Fructus" };
 export default async function Ajustes() {
   // La guarda va en el servidor: esconder el enlace del menú no basta, alguien puede escribir /ajustes.
   const { supabase, permisos } = await exigirSesion();
+  if (!permisos) {
+    return (
+      <>
+        <Encabezado titulo="Ajustes" />
+        <SesionSinConexion />
+      </>
+    );
+  }
   if (!permisos.ajustes) {
     return (
       <>

@@ -6,6 +6,7 @@ import { MermaAMano } from "@/components/inventario/MermaAMano";
 import { ResumenInventario } from "@/components/inventario/ResumenInventario";
 import { TableroStock } from "@/components/inventario/TableroStock";
 import { Encabezado } from "@/components/marco/Encabezado";
+import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { Aviso } from "@/components/ui/Aviso";
 import { BarraFlotante } from "@/components/ui/BarraFlotante";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
@@ -19,6 +20,8 @@ export const metadata: Metadata = { title: "Stock · Fructus" };
 // El dashboard inteligente de inventario: existencias, frescura de cada lote, demanda y alertas con su recomendación.
 async function Tablero() {
   const { supabase, permisos } = await exigirSesion();
+  // Sin saber el rol no se decide qué botones hay: si la base no respondió, se dice que no hubo conexión (lib/sesion.ts: «sin-conexion»).
+  if (!permisos) return <SesionSinConexion />;
   const inventario = await leerInventario(supabase).catch((e: unknown) => {
     console.error("stock: no se pudo leer el inventario", { error: e instanceof Error ? e.message : "desconocido" });
     return null;

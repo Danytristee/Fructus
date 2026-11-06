@@ -8,6 +8,7 @@ import { DatosCliente } from "@/components/clientes/DatosCliente";
 import { HistorialCliente } from "@/components/clientes/HistorialCliente";
 import { TarjetaDeuda } from "@/components/clientes/TarjetaDeuda";
 import { Encabezado } from "@/components/marco/Encabezado";
+import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
@@ -34,6 +35,8 @@ type Cliente = {
 // Su deuda, sus datos y su historial. Todo sale de la misma verdad que el cuaderno: v_saldo_clientes, ventas y abonos.
 async function Cuenta({ cliente }: { cliente: Cliente }) {
   const { supabase, permisos } = await exigirSesion();
+  // Sin saber el rol no se decide qué botones hay: si la base no respondió, se dice que no hubo conexión (lib/sesion.ts: «sin-conexion»).
+  if (!permisos) return <SesionSinConexion />;
   const [saldo, deudas, ventas, abonos] = await Promise.all([
     supabase.from("v_saldo_clientes").select("saldo, ultima_venta_credito, ultimo_abono").eq("cliente_id", cliente.id).maybeSingle(),
     supabase.from("v_saldo_clientes").select("saldo"),
