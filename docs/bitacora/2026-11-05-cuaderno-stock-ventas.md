@@ -51,6 +51,12 @@ Lista aprobada: 1 ficha del cliente · 2 abono a mano · 3 alta y edición de cl
 - **Presupuesto de JavaScript** (compilación de producción, brotli): «Hoy» 177.5 KB (tope 180; antes 177.3), «Ventas» 177.0 KB (la hoja de detalle pasó a carga diferida: era 191.5), «Stock» 177.0 KB y «Clientes» 172.3 KB.
 - Vitest 253, tipos, lint y Knip en verde.
 
+## Cierre del PR (tras el /formidable de Stock y Ventas y el merge de `origin/main`)
+- **Merge con `sesion-sin-conexion` (#17):** `exigirSesion` ahora devuelve `permisos: null` si la base no responde. Las cuatro pantallas de A8 que decidían por el rol (cuaderno, ficha, Stock y Ventas) lo miran y dicen «No pudimos conectar»; prueba nueva en `sesion-sin-conexion.spec.ts` (falla si se quita la guarda).
+- **Verificado sobre la base rehecha desde cero (`db reset`):** pgTAP 93 de 93 en 11 archivos, las 12 invariantes en orden, 269 pruebas de Vitest, tipos, lint y Knip en verde, y la suite e2e completa a 412 y 360 px: 292 pruebas, 291 pasaron y 1 se salta a propósito.
+- **Presupuesto de JavaScript** (compilación de producción, brotli): «Hoy» 177.9 KB, «Ventas» 177.3 KB, «Stock» 177.3 KB (tope 180). «Hoy» subió 0.4 KB sobre el cierre de A8 por lo que trajo el merge.
+- **Pendiente de este PR:** `/chaos` con informe solo se hizo en el abono a mano y en el alta y edición de cliente; merma a mano, compra a mano y anular venta tienen las pruebas e2e permanentes de los mismos ataques (doble toque, respuesta perdida, sesión vencida, dos personas a la vez) pero no la pasada completa. La voz: no se tocó el intérprete (prompt, modelo, vocabulario ni casos), solo `leerMonto` y la sesión de las acciones, así que no se corrió `/voz-precision`.
+
 ## Pendiente
 - **Aplicados con OK el 5-11 (actividades 2 y 3):** editar un cliente guarda solo lo que cambió (arregla el hallazgo de `/chaos`: dos ediciones a la vez ya no se pisan); «Ninguno» en vez de «Sin documento»; el pie de la hoja pegado desde 768 px (resuelve también la pantalla girada de la actividad 2 y «Guardar» fuera de la vista en escritorio), cada uno con su prueba.
 - **pgTAP `08_gasto_por_voz` falla en una base con datos de los e2e** (cuenta los gastos «cargador» y las pruebas de voz dejan varios): no es un error del código. `npx supabase db reset` lo deja en verde; correr toda la suite pgTAP después de un reset, antes del PR.
