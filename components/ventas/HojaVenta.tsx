@@ -108,6 +108,11 @@ function Cuerpo({ venta, puedeAnular, alCerrar, alCambiarGuardando }: { venta: D
           Anular esta venta
         </Boton>
       )}
+
+      {/* La hoja se cierra tocando afuera, pero eso no se ve: un botón a la mano, para todos los roles (el ayudante y el contador no tienen otro). */}
+      <Boton variante="secundario" onClick={alCerrar}>
+        Cerrar
+      </Boton>
     </div>
   );
 }

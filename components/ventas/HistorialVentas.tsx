@@ -12,7 +12,7 @@ import { Tarjeta } from "@/components/ui/Tarjeta";
 import { Vacio } from "@/components/ui/Vacio";
 import { formatearSoles } from "@/lib/formato";
 import type { Operacion } from "@/lib/operaciones-reglas";
-import { etiquetaDelPeriodo, resumirPeriodo, type DetalleVenta, type Periodo } from "@/lib/ventas-reglas";
+import { etiquetaDelPeriodo, type DetalleVenta, type Periodo, type ResumenDeDia, type ResumenPeriodo } from "@/lib/ventas-reglas";
 
 /** La fila (`Operacion`, con su `detalle` de una línea) y, aparte, la venta completa (`completa`) para su hoja. */
 // La hoja del detalle (con el flujo de anular) llega en diferido: no pesa en la primera carga. Se pide por detrás apenas la pantalla
@@ -24,9 +24,21 @@ type VentaDelDia = Operacion & { credito: boolean; completa: DetalleVenta };
 export type DiaVentas = { dia: string; etiqueta: string; ventas: VentaDelDia[] };
 type Filtro = "todas" | "contado" | "credito";
 
+type Props = {
+  dias: DiaVentas[];
+  hoy: string;
+  puedeAnular: boolean;
+  /** Lo vendido en cada período, contando TODAS las ventas (la lista de `dias` puede estar cortada en las últimas N). */
+  resumenes: Record<Periodo, ResumenPeriodo>;
+  /** Cuántas ventas hay en cada período, anuladas incluidas: si son más que las de la lista, se dice. */
+  filas: Record<Periodo, number>;
+  /** Lo de cada día, completo, para su cabecera. */
+  deCadaDia: Record<string, ResumenDeDia>;
+};
+
 // El historial de ventas: lo de hoy o lo de los últimos 7 días, con cuánto se vendió arriba, día por día, filtrado por contado
-// o crédito. Tocar una venta abre su detalle.
-export function HistorialVentas({ dias, hoy, puedeAnular }: { dias: DiaVentas[]; hoy: string; puedeAnular: boolean }) {
+// o crédito. Tocar una venta abre su detalle. Los totales y los conteos salen de TODAS las ventas del período, no de la lista.
+export function HistorialVentas({ dias, hoy, puedeAnular, resumenes, filas, deCadaDia }: Props) {
   const [periodo, setPeriodo] = useState<Periodo>("hoy");
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [abierta, setAbierta] = useState<DetalleVenta | null>(null);
@@ -36,13 +48,10 @@ export function HistorialVentas({ dias, hoy, puedeAnular }: { dias: DiaVentas[];
   }, []);
 
   const delPeriodo = periodo === "hoy" ? dias.filter((d) => d.dia === hoy) : dias;
-  const todas = delPeriodo.flatMap((d) => d.ventas).filter((v) => v.estado !== "anulada"); // lo anulado se ve, pero no cuenta
-  const resumen = resumirPeriodo(todas.map((v) => ({ total: v.monto ?? 0, credito: v.credito })));
+  const resumen = resumenes[periodo]; // lo anulado se ve en la lista, pero no cuenta
   const pasa = (v: { credito: boolean }) => filtro === "todas" || (filtro === "credito" ? v.credito : !v.credito);
   const visibles = delPeriodo.map((d) => ({ ...d, ventas: d.ventas.filter(pasa) })).filter((d) => d.ventas.length > 0);
-  const vigentes = (d: DiaVentas) => d.ventas.filter((v) => v.estado !== "anulada");
-  const deLaSemana = dias.flatMap(vigentes).length;
-  const deHoy = dias.filter((d) => d.dia === hoy).flatMap(vigentes).length;
+  const mostradas = delPeriodo.reduce((n, d) => n + d.ventas.length, 0);
 
   return (
     <section aria-labelledby="historial">
@@ -58,7 +67,13 @@ export function HistorialVentas({ dias, hoy, puedeAnular }: { dias: DiaVentas[];
             ? periodo === "hoy"
               ? "Todavía no hay ventas hoy"
               : "No hay ventas en estos días"
-            : `${resumen.ventas} ${resumen.ventas === 1 ? "venta" : "ventas"}: ${formatearSoles(resumen.contado)} al contado y ${formatearSoles(resumen.credito)} al crédito`}
+            : (
+              <>
+                {resumen.ventas} {resumen.ventas === 1 ? "venta" : "ventas"}:{" "}
+                <strong className="cifra font-extrabold text-texto">{formatearSoles(resumen.contado)}</strong> al contado y{" "}
+                <strong className="cifra font-extrabold text-texto">{formatearSoles(resumen.credito)}</strong> al crédito
+              </>
+            )}
         </span>
       </Tarjeta>
 
@@ -67,8 +82,8 @@ export function HistorialVentas({ dias, hoy, puedeAnular }: { dias: DiaVentas[];
         valor={periodo}
         alCambiar={setPeriodo}
         opciones={[
-          { valor: "hoy", etiqueta: "Hoy", cuenta: deHoy },
-          { valor: "semana", etiqueta: "7 días", cuenta: deLaSemana },
+          { valor: "hoy", etiqueta: "Hoy", cuenta: resumenes.hoy.ventas },
+          { valor: "semana", etiqueta: "7 días", cuenta: resumenes.semana.ventas },
         ]}
       />
       <div className="mt-2">
@@ -77,23 +92,21 @@ export function HistorialVentas({ dias, hoy, puedeAnular }: { dias: DiaVentas[];
           valor={filtro}
           alCambiar={setFiltro}
           opciones={[
-            { valor: "todas", etiqueta: "Todas", cuenta: todas.length },
-            { valor: "contado", etiqueta: "Al contado", cuenta: todas.filter((v) => !v.credito).length },
-            { valor: "credito", etiqueta: "Al crédito", cuenta: todas.filter((v) => v.credito).length },
+            { valor: "todas", etiqueta: "Todas", cuenta: resumen.ventas },
+            { valor: "contado", etiqueta: "Contado", cuenta: resumen.ventasContado },
+            { valor: "credito", etiqueta: "Crédito", cuenta: resumen.ventasCredito },
           ]}
         />
       </div>
 
       {visibles.length === 0 ? (
-        <Vacio className="mt-3" icono={<Receipt />} titulo={todas.length === 0 ? "Todavía no hay ventas" : "No hay ventas así"}>
-          {todas.length === 0 ? "Cuando vendas, aparecen aquí, venta por venta." : "Cambia el filtro para ver las demás."}
+        <Vacio className="mt-3" icono={<Receipt />} titulo={resumen.ventas === 0 ? "Todavía no hay ventas" : "No hay ventas así"}>
+          {resumen.ventas === 0 ? "Cuando vendas, aparecen aquí, venta por venta." : "Cambia el filtro para ver las demás."}
         </Vacio>
       ) : (
         <div key={`${periodo}-${filtro}`} className="mt-3 grid gap-2.5">
           {visibles.map((d, i) => {
-            const vigentesDelDia = d.ventas.filter((v) => v.estado !== "anulada");
-            const anuladas = d.ventas.length - vigentesDelDia.length;
-            const total = vigentesDelDia.reduce((s, v) => s + (v.monto ?? 0), 0);
+            const { ventas: nVentas, anuladas, total } = deCadaDia[d.dia] ?? { ventas: 0, anuladas: 0, total: 0 };
             return (
               <div key={d.dia} className="vidrio animate-subir rounded-tarjeta px-4 py-1" style={{ animationDelay: `${i * 50}ms` }}>
                 <Desplegable
@@ -103,7 +116,7 @@ export function HistorialVentas({ dias, hoy, puedeAnular }: { dias: DiaVentas[];
                       <span className="grid">
                         <span className="font-extrabold capitalize">{d.etiqueta}</span>
                         <span className="text-base text-texto-suave">
-                          {vigentesDelDia.length} {vigentesDelDia.length === 1 ? "venta" : "ventas"}
+                          {nVentas} {nVentas === 1 ? "venta" : "ventas"}
                           {anuladas > 0 && ` · ${anuladas} ${anuladas === 1 ? "anulada" : "anuladas"}`}
                         </span>
                       </span>
@@ -120,10 +133,21 @@ export function HistorialVentas({ dias, hoy, puedeAnular }: { dias: DiaVentas[];
               </div>
             );
           })}
+          <ListaCortada mostradas={mostradas} total={filas[periodo]} periodo={periodo} />
         </div>
       )}
 
       <HojaVenta venta={abierta} puedeAnular={puedeAnular} alCerrar={() => setAbierta(null)} />
     </section>
+  );
+}
+
+// Si la lista no trae todas las ventas del período (se corta en las últimas N), lo dice. Los totales de arriba sí cuentan todas.
+function ListaCortada({ mostradas, total, periodo }: { mostradas: number; total: number; periodo: Periodo }) {
+  if (total <= mostradas) return null;
+  return (
+    <p role="note" className="px-2 text-center text-texto-suave">
+      Mostrando las últimas {mostradas} ventas de las {total} {periodo === "hoy" ? "de hoy" : "de estos 7 días"}. Los totales de arriba cuentan todas.
+    </p>
   );
 }

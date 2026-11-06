@@ -10,28 +10,42 @@ import { etiquetaDeDia } from "@/lib/ficha-cliente-reglas";
 import { diaDeLima } from "@/lib/formato";
 import { deVenta, type Medio } from "@/lib/operaciones-reglas";
 import { exigirSesion } from "@/lib/sesion";
+import { leerFilasDeVentas } from "@/lib/ventas";
+import { resumirVentas } from "@/lib/ventas-reglas";
 
 export const metadata: Metadata = { title: "Ventas · Fructus" };
 
 const DIA_MS = 86_400_000;
 
+// Cuántas ventas muestra la lista (para no cargar de más). Los totales de arriba NO salen de ella: cuentan todas las del período.
+const LIMITE_LISTA = 300;
+
 const nombreFruta = (p: { nombre: string; variedad: string | null } | null) => (p ? [p.nombre, p.variedad].filter(Boolean).join(" ") : "Fruta");
 
 // El historial de ventas de los últimos 7 días, agrupado por día de Lima, de la más reciente a la más antigua. Cada venta trae
-// todo su detalle (fruta, precios, quién la registró) para abrirlo al tocarla sin pedir nada más.
+// todo su detalle (fruta, precios, quién la registró) para abrirlo al tocarla sin pedir nada más. La lista muestra a lo sumo las
+// últimas LIMITE_LISTA; los totales salen de una lectura aparte de todas las ventas del rango, para que nunca queden bajos.
 async function Historial() {
   const { supabase, permisos } = await exigirSesion();
   const ahora = new Date();
-  const { data, error } = await supabase
-    .from("ventas")
-    .select(
-      "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad))",
-    )
-    .gte("fecha", new Date(ahora.getTime() - 7 * DIA_MS).toISOString())
-    .order("fecha", { ascending: false })
-    .limit(300);
-  if (error) {
-    console.error("ventas: no se pudo leer el historial", { codigo: error.code });
+  const desde = new Date(ahora.getTime() - 7 * DIA_MS).toISOString();
+  const [lista, filasDeResumen] = await Promise.all([
+    supabase
+      .from("ventas")
+      .select(
+        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad))",
+      )
+      .gte("fecha", desde)
+      .order("fecha", { ascending: false })
+      .limit(LIMITE_LISTA),
+    leerFilasDeVentas(supabase, desde).catch((e: unknown) => {
+      console.error("ventas: no se pudo leer el resumen", { error: e instanceof Error ? e.message : "desconocido" });
+      return null;
+    }),
+  ]);
+  const { data, error } = lista;
+  if (error || !filasDeResumen) {
+    console.error("ventas: no se pudo leer el historial", { codigo: error?.code });
     return (
       <Aviso titulo="No pudimos leer tus ventas" accion={<BotonReintentar />}>
         Revisa tu señal. Lo que ya guardaste está a salvo.
@@ -77,7 +91,9 @@ async function Historial() {
       },
     });
   }
-  return <HistorialVentas dias={[...porDia.values()]} hoy={diaDeLima(ahora)} puedeAnular={permisos.anular} />;
+  const hoy = diaDeLima(ahora);
+  const { resumenes, filas, porDia: deCadaDia } = resumirVentas(filasDeResumen, hoy, (fecha) => diaDeLima(new Date(fecha)));
+  return <HistorialVentas dias={[...porDia.values()]} hoy={hoy} puedeAnular={permisos.anular} resumenes={resumenes} filas={filas} deCadaDia={deCadaDia} />;
 }
 
 export default function Ventas() {

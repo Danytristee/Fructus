@@ -71,6 +71,21 @@ export async function venderAlPaso(monto: number, medio: "efectivo" | "yape" | "
   return data as number;
 }
 
+/** Muchas ventas al paso de una vez, con una sola sesión, para probar lo que pasa con volumen (el historial se corta en 300). */
+export async function venderAlPasoVarias(cuantas: number, monto: number) {
+  const duenio = await comoDuenio();
+  for (let hechas = 0; hechas < cuantas; hechas += 10) {
+    await Promise.all(
+      Array.from({ length: Math.min(10, cuantas - hechas) }, async () => {
+        const { error } = await duenio.rpc("registrar_venta", {
+          p: { condicion: "contado", medio_pago: "efectivo", items: [{ producto_id: 1, cantidad: 1, precio_unitario: monto }] },
+        });
+        if (error) throw error;
+      }),
+    );
+  }
+}
+
 /** Compra cajas de una fruta al contado, para que haya stock que mermar. */
 export async function abastecer(productoId: number, cajas: number) {
   const { error } = await (await comoDuenio()).rpc("registrar_compra", {
