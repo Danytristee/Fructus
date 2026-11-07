@@ -12,10 +12,11 @@ type Props<T extends string> = {
   className?: string;
 };
 
-// Una fila de filtros en píldora: el activo se rellena con el acento. Se desliza de lado si no entra (nunca rompe el ancho).
+// Una fila de filtros en píldora: el activo se rellena con el acento. Si no entran en una fila, pasan a la siguiente: ninguna opción
+// queda cortada ni escondida detrás de un deslizamiento (en el celular, «Al crédito» quedaba a medias y nadie sabía que había más).
 export function Filtros<T extends string>({ opciones, valor, alCambiar, etiqueta, className }: Props<T>) {
   return (
-    <div role="group" aria-label={etiqueta} className={cn("-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]", className)}>
+    <div role="group" aria-label={etiqueta} className={cn("flex flex-wrap gap-2", className)}>
       {opciones.map((o) => {
         const activo = o.valor === valor;
         return (

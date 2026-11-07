@@ -11,6 +11,10 @@ type Props = {
   guardando: boolean;
   /** Se puede confirmar: no falta nada. */
   listo: boolean;
+  /** A mano (A8): lo que falta se dice como instrucción, en texto normal, no en rojo. Los errores siguen en rojo. */
+  avisoNeutro?: boolean;
+  /** Lo que dice el segundo botón si «Descartar» no se entiende: al anular una venta, «No, dejarla». */
+  etiquetaDescartar?: string;
   /** «Confirmar venta», «Confirmar abono». */
   etiqueta: string;
   /** Lo que dice el botón mientras no está listo, si lo que falta está justo arriba («Primero: ¿pagó o lo debe?»). */
@@ -23,15 +27,15 @@ type Props = {
 // El pie de toda tarjeta de voz: qué falta o qué falló, Confirmar y Descartar. Pegado abajo de la hoja: con todo lo de
 // arriba, a 360 px Confirmar se iba debajo del borde (regla 1). El borde inferior negativo iguala al margen: sin scroll no
 // sube, y no tapa lo de arriba.
-export function PieConfirmar({ aviso, error, guardando, listo, etiqueta, etiquetaPendiente, alConfirmar, alDescartar, style }: Props) {
+export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = false, etiqueta, etiquetaPendiente, etiquetaDescartar = "Descartar", alConfirmar, alDescartar, style }: Props) {
   const router = useRouter();
   return (
     <div
-      className="sticky -bottom-[calc(16px+env(safe-area-inset-bottom))] z-10 -mx-4 mt-1 -mb-[calc(16px+env(safe-area-inset-bottom))] grid animate-pieza gap-1 bg-fondo px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-12px_16px_-12px_rgb(var(--sombra-color)/0.25)] md:static md:m-0 md:p-0 md:shadow-none"
+      className="sticky -bottom-[calc(16px+env(safe-area-inset-bottom))] z-10 -mx-4 mt-1 -mb-[calc(16px+env(safe-area-inset-bottom))] grid animate-pieza gap-2 bg-fondo px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-12px_16px_-12px_rgb(var(--sombra-color)/0.25)] md:-bottom-5 md:-mb-5"
       style={style}
     >
       {(aviso || error) && (
-        <p role={error ? "alert" : undefined} className="mx-1 mb-1 font-bold text-deuda">
+        <p role={error ? "alert" : undefined} className={`mx-1 mb-1 font-bold ${!error && avisoNeutro ? "text-texto" : "text-deuda"}`}>
           {error?.mensaje ?? aviso}
         </p>
       )}
@@ -51,7 +55,7 @@ export function PieConfirmar({ aviso, error, guardando, listo, etiqueta, etiquet
         {!listo && etiquetaPendiente ? etiquetaPendiente : etiqueta}
       </Boton>
       <Boton variante="texto" onClick={alDescartar} disabled={guardando}>
-        Descartar
+        {etiquetaDescartar}
       </Boton>
     </div>
   );

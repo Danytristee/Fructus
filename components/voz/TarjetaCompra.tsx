@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Truck } from "lucide-react";
+import { ChevronLeft, Plus, Truck } from "lucide-react";
 
 import { buscarProveedoresVoz, confirmarCompra, sugerirCosto } from "@/app/(app)/acciones-operaciones";
 import { Boton } from "@/components/ui/Boton";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Monto } from "@/components/ui/Monto";
+import { itemCompraVacio } from "@/lib/a-mano-reglas";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import {
   borradorCompra,
@@ -39,6 +40,8 @@ type Props = {
   alGuardar: () => void;
   alDescartar: (incierto: boolean) => void;
   alCambiarGuardando: (guardando: boolean) => void;
+  /** Registrada a mano (A8): empieza vacía, lo que falta se pide en vez de marcarse en rojo, y se pueden agregar más frutas. */
+  aMano?: boolean;
 };
 
 const DE_COMPRA = { pregunta: "¿La pagaste o la debes?", contado: "Pagué", credito: "La debo", conQue: "¿Con qué pagaste?" };
@@ -57,7 +60,7 @@ function IconoProveedor() {
 // La tarjeta de una compra dictada («el de Chao me trajo 50 de plátano isla a 25»): quién la trajo, qué fruta, a cuánto
 // y si se pagó o se debe. Nunca asume contado: si no se dijo, se pregunta (decisión del 31-10). Si no se dijo el costo,
 // se sugiere el último que se pagó y se marca.
-export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando }: Props) {
+export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando, aMano = false }: Props) {
   const [borrador, setBorrador] = useState<BorradorCompra>(() => borradorCompra(tarjeta));
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const { confirmar: enviar, guardando, error, guardado, incierto } = useConfirmar<{ ok: true; compraId: number }>({ alGuardar, alCambiarGuardando });
@@ -68,7 +71,7 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
 
   function confirmar() {
     if (falta.length > 0) return;
-    void enviar(() => confirmarCompra({ comandoId, borrador, corregido: fueCorregidaCompra(tarjeta, borrador), latenciaMs }));
+    void enviar(() => confirmarCompra({ comandoId, borrador, corregido: fueCorregidaCompra(tarjeta, borrador), latenciaMs, aMano }));
   }
 
   if (guardado) {
@@ -142,10 +145,11 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
       <FilaTarjeta
         style={pieza(0)}
         className="animate-pieza"
-        falta={falta.includes("proveedor")}
+        falta={!aMano && falta.includes("proveedor")}
+        pendiente={aMano && falta.includes("proveedor")}
         onClick={() => setVista({ tipo: "proveedor" })}
         icono={<IconoProveedor />}
-        grande={proveedor?.nombre ?? (dicho ? `¿${dicho}?` : "Sin proveedor")}
+        grande={proveedor?.nombre ?? (dicho ? `¿${dicho}?` : aMano ? "¿Quién te la trajo?" : "Sin proveedor")}
         chico={
           proveedor
             ? dicho && !mismoNombre(dicho, proveedor.nombre)
@@ -153,7 +157,9 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
               : undefined
             : dicho
               ? "Toca para elegir quién es"
-              : "La compraste en el mercado"
+              : aMano
+                ? "Toca para elegir. Si fue en el mercado, déjalo así"
+                : "La compraste en el mercado"
         }
       />
       {borrador.items.map((item, n) => (
@@ -161,14 +167,23 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
           key={n}
           style={pieza(n + 1)}
           className="animate-pieza"
-          falta={item.productoId === null || item.precio === null}
+          falta={!aMano && (item.productoId === null || item.precio === null)}
+          pendiente={aMano && (item.productoId === null || item.cantidad < 1 || item.precio === null)}
           onClick={() => setVista({ tipo: "item", n })}
           icono={<IconoFruta nombre={item.producto || "?"} tamano={48} />}
-          grande={item.productoId === null ? `¿${item.producto}?` : `${formatearCajas(item.cantidad)} de ${item.producto}`}
+          grande={
+            item.productoId === null
+              ? aMano
+                ? "¿Qué fruta?"
+                : `¿${item.producto}?`
+              : item.cantidad < 1
+                ? `¿Cuántas cajas de ${item.producto}?`
+                : `${formatearCajas(item.cantidad)} de ${item.producto}`
+          }
           chico={
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="cifra">
-                {item.productoId === null ? "Toca para elegir la fruta" : item.precio === null ? "Toca para poner el costo" : `${formatearSoles(item.precio)} la caja`}
+                {item.productoId === null ? "Toca para elegir la fruta" : item.cantidad < 1 ? "Toca para poner las cajas" : item.precio === null ? "Toca para poner el costo" : `${formatearSoles(item.precio)} la caja`}
               </span>
               {item.sugerido && <InsigniaSugerido />}
             </span>
@@ -176,11 +191,31 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
         />
       ))}
 
+      {aMano && (
+        <div className="grid animate-pieza gap-1" style={pieza(borrador.items.length + 1)}>
+          <Boton
+            variante="secundario"
+            onClick={() => {
+              setBorrador((b) => ({ ...b, items: [...b.items, itemCompraVacio()] }));
+              setVista({ tipo: "item", n: borrador.items.length });
+            }}
+          >
+            <Plus aria-hidden />
+            Otra fruta
+          </Boton>
+          {borrador.items.length > 1 && (
+            <Boton variante="texto" onClick={() => setBorrador((b) => ({ ...b, items: b.items.slice(0, -1) }))}>
+              Quitar la última fruta
+            </Boton>
+          )}
+        </div>
+      )}
+
       <DudasVoz dudas={tarjeta.dudas} />
 
       <div className="mx-1 mt-1 mb-1 flex animate-pieza items-baseline justify-between gap-3" style={pieza(borrador.items.length + 1)}>
         <span className="text-lg font-bold text-texto-suave">Total</span>
-        {total === null ? <span className="text-lg font-bold text-deuda">Falta el costo</span> : <Monto valor={total} tamano="total" className="origin-right animate-saltar" />}
+        {total === null ? <span className={`text-lg font-bold ${aMano ? "text-texto-suave" : "text-deuda"}`}>Falta el costo</span> : <Monto valor={total} tamano="total" className="origin-right animate-saltar" />}
       </div>
 
       <div className="animate-pieza" style={pieza(borrador.items.length + 2)}>
@@ -195,6 +230,7 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
       <PieConfirmar
         style={pieza(borrador.items.length + 3)}
         aviso={aviso}
+        avisoNeutro={aMano}
         error={error}
         guardando={guardando}
         listo={falta.length === 0}

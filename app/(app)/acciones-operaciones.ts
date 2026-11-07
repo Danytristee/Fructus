@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 
-import { leerSaldo, leerStock, marcarComando, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
+import { sinSesionAMano } from "@/lib/a-mano-reglas";
+import { CLIENTE_YA_NO_ESTA, COMPRA_YA_NO_ESTA, leerSaldo, leerStock, marcarComando, PRODUCTO_YA_NO_ESTA, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import type { Opcion } from "@/app/(app)/acciones-voz";
 import { ABONO_MAXIMO, pedidoAbono } from "@/lib/voz/confirmar-abono-reglas";
 import { pedidoCompra } from "@/lib/voz/confirmar-compra-reglas";
@@ -27,6 +28,8 @@ export type ResultadoAbono = { ok: true; saldo: number | null } | { ok: false; e
 
 const confirmacionAbono = z.object({
   ...comun,
+  /** Registrado a mano (A8): con la sesión vencida, la frase cambia porque a mano no queda nada esperando en «Hoy». */
+  aMano: z.boolean().optional(),
   borrador: z.object({
     cliente: z.object({ id: z.number().int().positive(), nombre: z.string() }).nullable(),
     monto: z.number().positive().max(ABONO_MAXIMO).nullable(),
@@ -38,12 +41,12 @@ const confirmacionAbono = z.object({
 export async function confirmarAbono(entrada: z.input<typeof confirmacionAbono>): Promise<ResultadoAbono> {
   const leido = confirmacionAbono.safeParse(entrada);
   if (!leido.success) return { ok: false, error: "Revisa el monto de la tarjeta." };
-  const { comandoId, borrador, corregido, latenciaMs } = leido.data;
+  const { comandoId, borrador, corregido, latenciaMs, aMano } = leido.data;
   const pedido = pedidoAbono(borrador, comandoId);
   if (!pedido) return { ok: false, error: "Revisa el monto de la tarjeta." };
 
   const s = await sesion();
-  if (!s) return { ok: false, error: sinSesion("el abono"), sinSesion: true };
+  if (!s) return { ok: false, error: aMano ? sinSesionAMano("el abono") : sinSesion("el abono"), sinSesion: true };
   const { supabase, permisos } = s;
   if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar abonos." };
 
@@ -51,6 +54,7 @@ export async function confirmarAbono(entrada: z.input<typeof confirmacionAbono>)
   if (error && error.code !== YA_GUARDADO) {
     console.error("voz: no se pudo registrar el abono", { comandoId, codigo: error.code });
     if (error.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar abonos." };
+    if (error.code === "23503") return { ok: false, error: CLIENTE_YA_NO_ESTA };
     return { ok: false, error: SIN_SENAL };
   }
 
@@ -62,6 +66,8 @@ export type ResultadoMerma = { ok: true; stock: number | null } | { ok: false; e
 
 const confirmacionMerma = z.object({
   ...comun,
+  /** Registrada a mano (A8): con la sesión vencida, la frase cambia porque a mano no queda nada esperando en «Hoy». */
+  aMano: z.boolean().optional(),
   borrador: z.object({
     producto: z.object({ id: z.number().int().positive(), nombre: z.string() }).nullable(),
     cantidad: z.number().positive().max(CAJAS_MAXIMO),
@@ -73,12 +79,12 @@ const confirmacionMerma = z.object({
 export async function confirmarMerma(entrada: z.input<typeof confirmacionMerma>): Promise<ResultadoMerma> {
   const leido = confirmacionMerma.safeParse(entrada);
   if (!leido.success) return { ok: false, error: "Revisa la fruta y las cajas de la tarjeta." };
-  const { comandoId, borrador, corregido, latenciaMs } = leido.data;
+  const { comandoId, borrador, corregido, latenciaMs, aMano } = leido.data;
   const pedido = pedidoMerma(borrador, comandoId);
   if (!pedido) return { ok: false, error: "Revisa la fruta y las cajas de la tarjeta." };
 
   const s = await sesion();
-  if (!s) return { ok: false, error: sinSesion("la merma"), sinSesion: true };
+  if (!s) return { ok: false, error: aMano ? sinSesionAMano("la merma") : sinSesion("la merma"), sinSesion: true };
   const { supabase, permisos } = s;
   if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar mermas." };
 
@@ -86,6 +92,7 @@ export async function confirmarMerma(entrada: z.input<typeof confirmacionMerma>)
   if (error && error.code !== YA_GUARDADO) {
     console.error("voz: no se pudo registrar la merma", { comandoId, codigo: error.code });
     if (error.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar mermas." };
+    if (error.code === "23503") return { ok: false, error: PRODUCTO_YA_NO_ESTA };
     return { ok: false, error: SIN_SENAL };
   }
 
@@ -142,6 +149,8 @@ export type ResultadoCompra = { ok: true; compraId: number } | { ok: false; erro
 
 const confirmacionCompra = z.object({
   ...comun,
+  /** Registrada a mano (A8): con la sesión vencida, la frase cambia porque a mano no queda nada esperando en «Hoy». */
+  aMano: z.boolean().optional(),
   borrador: z.object({
     proveedor: z.object({ id: z.number().int().positive(), nombre: z.string() }).nullable(),
     items: z
@@ -165,12 +174,12 @@ const confirmacionCompra = z.object({
 export async function confirmarCompra(entrada: z.input<typeof confirmacionCompra>): Promise<ResultadoCompra> {
   const leido = confirmacionCompra.safeParse(entrada);
   if (!leido.success) return { ok: false, error: "Revisa el costo y las cajas de la tarjeta." };
-  const { comandoId, borrador, corregido, latenciaMs } = leido.data;
+  const { comandoId, borrador, corregido, latenciaMs, aMano } = leido.data;
   const pedido = pedidoCompra(borrador, comandoId, corregido);
   if (!pedido) return { ok: false, error: "Revisa el costo y las cajas de la tarjeta." };
 
   const s = await sesion();
-  if (!s) return { ok: false, error: sinSesion("la compra"), sinSesion: true };
+  if (!s) return { ok: false, error: aMano ? sinSesionAMano("la compra") : sinSesion("la compra"), sinSesion: true };
   const { supabase, permisos } = s;
   if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar compras." };
 
@@ -179,6 +188,7 @@ export async function confirmarCompra(entrada: z.input<typeof confirmacionCompra
     console.error("voz: no se pudo registrar la compra", { comandoId, codigo: error?.code });
     if (error?.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar compras." };
     if (error?.code === "23514") return { ok: false, error: "Al crédito tienes que elegir a quién le debes." };
+    if (error?.code === "23503") return { ok: false, error: COMPRA_YA_NO_ESTA };
     if (error?.code === "23502") return { ok: false, error: "Falta decir si la pagaste o la debes." };
     if (error?.message.includes("dos decimales")) return { ok: false, error: "El costo y las cajas van con dos decimales como máximo." };
     return { ok: false, error: SIN_SENAL };

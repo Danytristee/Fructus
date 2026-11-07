@@ -333,17 +333,23 @@ isOneToOne: false
                   ]
                 },"ventas": {
                   Row: {
-                    "cliente_id": number | null,"comando_voz_id": number | null,"condicion": Database["public"]['Enums']["condicion_pago"],"creado_en": string,"estado": string,"fecha": string,"id": number,"medio_pago": Database["public"]['Enums']["medio_pago"] | null,"registrado_por": string,"total": number
+                    "anulada_en": string | null,"anulada_por": string | null,"cliente_id": number | null,"comando_voz_id": number | null,"condicion": Database["public"]['Enums']["condicion_pago"],"creado_en": string,"estado": string,"fecha": string,"id": number,"medio_pago": Database["public"]['Enums']["medio_pago"] | null,"motivo_anulacion": string | null,"registrado_por": string,"total": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "cliente_id"?: number | null,"comando_voz_id"?: number | null,"condicion": Database["public"]['Enums']["condicion_pago"],"creado_en"?: string,"estado"?: string,"fecha"?: string,"id"?: never,"medio_pago"?: Database["public"]['Enums']["medio_pago"] | null,"registrado_por"?: string,"total"?: number
+                    "anulada_en"?: string | null,"anulada_por"?: string | null,"cliente_id"?: number | null,"comando_voz_id"?: number | null,"condicion": Database["public"]['Enums']["condicion_pago"],"creado_en"?: string,"estado"?: string,"fecha"?: string,"id"?: never,"medio_pago"?: Database["public"]['Enums']["medio_pago"] | null,"motivo_anulacion"?: string | null,"registrado_por"?: string,"total"?: number
                   }
                   Update: {
-                    "cliente_id"?: number | null,"comando_voz_id"?: number | null,"condicion"?: Database["public"]['Enums']["condicion_pago"],"creado_en"?: string,"estado"?: string,"fecha"?: string,"id"?: never,"medio_pago"?: Database["public"]['Enums']["medio_pago"] | null,"registrado_por"?: string,"total"?: number
+                    "anulada_en"?: string | null,"anulada_por"?: string | null,"cliente_id"?: number | null,"comando_voz_id"?: number | null,"condicion"?: Database["public"]['Enums']["condicion_pago"],"creado_en"?: string,"estado"?: string,"fecha"?: string,"id"?: never,"medio_pago"?: Database["public"]['Enums']["medio_pago"] | null,"motivo_anulacion"?: string | null,"registrado_por"?: string,"total"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "ventas_anulada_por_fkey"
+      columns: ["anulada_por"]
+isOneToOne: false
+      referencedRelation: "perfiles"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "ventas_cliente_id_fkey"
       columns: ["cliente_id"]
 isOneToOne: false
@@ -392,7 +398,7 @@ isOneToOne: false
           }
           Functions: {
             "anular_venta":
-{ Args: { "p_venta_id": number }; Returns: undefined
+{ Args: { "p_motivo": string,"p_venta_id": number }; Returns: undefined
                            },
 "buscar_clientes":
 { Args: { "limite"?: number,"q": string }; Returns: {

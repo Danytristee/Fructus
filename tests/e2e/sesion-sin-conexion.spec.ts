@@ -110,3 +110,28 @@ test("con la base caída, Ajustes no dice «es solo para el dueño» a quien sí
   await page.getByRole("button", { name: "Volver a intentar" }).click();
   await expect(page.getByText("Tu catálogo y tu equipo")).toBeVisible({ timeout: 20_000 });
 });
+
+test("con la base caída, Stock, Ventas y Clientes dicen «No pudimos conectar» y no dibujan botones que dependen de un rol que no se pudo leer", async ({ page }) => {
+  await entrarComo(page, "duenio");
+  await expect(page.getByText("Cobraste")).toBeVisible();
+  const barra = page.getByRole("navigation", { name: "Principal" });
+
+  // Navegar dentro de la app no vuelve a pedir el marco: cada pantalla que decide por el rol es la que mira si se pudo leer.
+  docker("stop", API);
+  for (const destino of ["Stock", "Ventas", "Clientes"]) {
+    // El indicador de desarrollo de Next («2 Issues») se abre al registrar el error de la caída y a 360 px tapa la barra de abajo
+    // (solo existe en desarrollo): el clic va por código, que es el mismo que navega por dentro de la app.
+    await barra.getByRole("link", { name: destino }).evaluate((a) => (a as HTMLElement).click());
+    await expect(page.getByRole("heading", { level: 1, name: destino })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("alert").filter({ hasText: AVISO })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("button", { name: /^(Compra|Merma|Registrar abono)$/ })).toHaveCount(0);
+    await expect(page.getByText("Tu cuenta todavía no está activa")).toHaveCount(0);
+    await sinDesborde(page);
+  }
+
+  // Vuelve la señal: el mismo botón trae el cuaderno, sin recargar a mano.
+  await levantarApi();
+  await page.getByRole("button", { name: "Volver a intentar" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: AVISO })).toHaveCount(0, { timeout: 20_000 });
+  await expect(page.getByRole("button", { name: "Registrar abono" })).toBeVisible({ timeout: 20_000 });
+});

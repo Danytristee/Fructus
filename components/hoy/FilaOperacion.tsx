@@ -1,4 +1,4 @@
-import { PackagePlus, ReceiptText, TriangleAlert, ShoppingBasket } from "lucide-react";
+import { HandCoins, PackagePlus, ReceiptText, TriangleAlert, ShoppingBasket } from "lucide-react";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Fruta } from "@/components/ui/Fruta";
@@ -13,11 +13,13 @@ const insignias: Record<Estado, string> = {
   compra: "Compra",
   merma: "Merma",
   gasto: "Gasto",
+  anulada: "Anulada",
 };
 
 // Sin persona detrás (compra, merma, gasto, venta al paso), un icono ocupa el lugar del avatar.
 function SinPersona({ estado }: { estado: Estado }) {
-  const Icono = estado === "compra" ? PackagePlus : estado === "merma" ? TriangleAlert : estado === "gasto" ? ReceiptText : ShoppingBasket;
+  const Icono =
+    estado === "compra" ? PackagePlus : estado === "merma" ? TriangleAlert : estado === "gasto" ? ReceiptText : estado === "abono" ? HandCoins : ShoppingBasket;
   return (
     <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-full bg-acento/10 text-acento-texto">
       <Icono className="size-6" />
@@ -25,10 +27,11 @@ function SinPersona({ estado }: { estado: Estado }) {
   );
 }
 
-// Una línea de «Lo último»: quién (con su cara o un icono y la fruta), qué pasó, cuánto y su estado.
-export function FilaOperacion({ op }: { op: Operacion }) {
-  return (
-    <li className="grid min-h-[72px] grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-3">
+// Una línea de «Lo último»: quién (con su cara o un icono y la fruta), qué pasó, cuánto y su estado. Con `alTocar`, toda la
+// fila es un botón (el historial de ventas abre así el detalle de cada una).
+export function FilaOperacion({ op, alTocar }: { op: Operacion; alTocar?: () => void }) {
+  const cuerpo = (
+    <>
       <span className="relative">
         {op.persona ? <Avatar iniciales={op.persona.iniciales} tono={op.persona.tono} /> : <SinPersona estado={op.estado} />}
         {op.fruta && <Fruta fruta={op.fruta} tamano={26} className="absolute -right-2 -bottom-1.5" />}
@@ -38,9 +41,19 @@ export function FilaOperacion({ op }: { op: Operacion }) {
         <span className="text-base leading-snug text-texto-suave">{op.detalle}</span>
       </span>
       <span className="grid justify-items-end gap-1">
-        {op.monto !== null && <Monto valor={op.monto} />}
+        {/* Una venta anulada ya no cuenta: el monto se ve, pero tachado. */}
+        {op.monto !== null && (op.estado === "anulada" ? <span className="line-through opacity-60"><Monto valor={op.monto} /></span> : <Monto valor={op.monto} />)}
         <Insignia tipo={op.estado}>{insignias[op.estado]}</Insignia>
       </span>
+    </>
+  );
+  const clases = "grid min-h-[72px] grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-3";
+  if (!alTocar) return <li className={clases}>{cuerpo}</li>;
+  return (
+    <li>
+      <button type="button" onClick={alTocar} className={`${clases} w-full text-left transition-transform duration-150 active:scale-[0.99]`}>
+        {cuerpo}
+      </button>
     </li>
   );
 }

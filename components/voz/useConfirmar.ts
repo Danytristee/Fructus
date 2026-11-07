@@ -10,13 +10,16 @@ type Fallo = { ok: false; error: string; sinSesion?: true };
 
 // Toda llamada lleva tope (CLAUDE.md, «La voz»). Sin él, con la red colgada, «Guardando…» no terminaba nunca (/chaos).
 const TOPE_CONFIRMAR_MS = 15_000;
-const SIN_RESPUESTA = "La señal no respondió y no sé si se guardó. Toca Confirmar otra vez: no se va a repetir.";
+// Dice el nombre del botón que la persona ve: «Confirmar» en las tarjetas, «Guardar cliente» o «Anular la venta» en otras hojas.
+const sinRespuesta = (boton: string) => `La señal no respondió y no sé si se guardó. Toca ${boton} otra vez: no se va a repetir.`;
 
 type Opciones = {
   /** La base respondió que se guardó (la hoja muestra el sello y se cierra sola). */
   alGuardar: () => void;
   /** Mientras guarda, la hoja no se cierra ni se descarta: la pantalla no puede decir «no guardé» de algo que se guardó. */
   alCambiarGuardando: (guardando: boolean) => void;
+  /** Cómo se llama el botón que guarda, para el aviso de «la señal no respondió». Por defecto, «Confirmar». */
+  boton?: string;
 };
 
 /**
@@ -25,7 +28,8 @@ type Opciones = {
  * detrás. Nada optimista: el éxito se muestra solo cuando la base respondió. Un segundo toque no duplica porque cada
  * acción es idempotente por comando, así que tras un error se puede volver a tocar.
  */
-export function useConfirmar<R extends { ok: true }>({ alGuardar, alCambiarGuardando }: Opciones) {
+export function useConfirmar<R extends { ok: true }>({ alGuardar, alCambiarGuardando, boton = "Confirmar" }: Opciones) {
+  const SIN_RESPUESTA = sinRespuesta(boton);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<{ mensaje: string; sinSesion: boolean } | null>(null);
   const [guardado, setGuardado] = useState<R | null>(null);

@@ -1,4 +1,4 @@
-import { Check, Clock, HandCoins, PackagePlus, ReceiptText, Sparkles, TriangleAlert } from "lucide-react";
+import { Ban, Check, Clock, HandCoins, PackagePlus, ReceiptText, Sparkles, TriangleAlert } from "lucide-react";
 import { cn } from "cn";
 
 const tipos = {
@@ -10,6 +10,7 @@ const tipos = {
   compra: { clase: "bg-acento/12 text-acento-texto", Icono: PackagePlus },
   gasto: { clase: "bg-acento/12 text-acento-texto", Icono: ReceiptText },
   merma: { clase: "bg-deuda-fondo text-deuda", Icono: TriangleAlert },
+  anulada: { clase: "bg-texto/8 text-texto-suave", Icono: Ban },
 } as const;
 
 type Props = { tipo: keyof typeof tipos; children: React.ReactNode; className?: string };

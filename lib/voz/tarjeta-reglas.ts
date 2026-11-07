@@ -39,7 +39,8 @@ export type Tarjeta =
       /** Lo que falta para poder confirmar: la tarjeta lo pide antes de dejar guardar. */
       falta: ("cliente" | "precio" | "condicion" | "producto")[];
     }
-  | { tipo: "abono"; cliente: Eleccion; monto: number; medio: Medio; dudas: string[]; falta: "cliente"[] }
+  // monto null: un abono a mano (A8) arranca sin monto; el intérprete siempre trae uno.
+  | { tipo: "abono"; cliente: Eleccion; monto: number | null; medio: Medio; dudas: string[]; falta: "cliente"[] }
   | {
       tipo: "compra";
       proveedor: Eleccion;

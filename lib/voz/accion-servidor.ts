@@ -7,6 +7,15 @@ import { crearClienteServidor } from "@/lib/supabase/servidor";
 
 export const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra vez.";
 
+/** La llave foránea se rompió (23503): el cliente se borró mientras la tarjeta estaba abierta. Reintentar no sirve: hay que elegir otro. */
+export const CLIENTE_YA_NO_ESTA = "Ese cliente ya no está en tu cuaderno. Elige a otro.";
+
+/** Lo mismo con lo de una compra: la fruta o el proveedor se borraron mientras la tarjeta estaba abierta. */
+export const COMPRA_YA_NO_ESTA = "Una fruta o el proveedor de la compra ya no está. Vuelve a elegirlos.";
+
+/** Lo mismo con la fruta: se desactivó o se borró mientras la tarjeta estaba abierta. */
+export const PRODUCTO_YA_NO_ESTA = "Esa fruta ya no está en tu catálogo. Elige otra.";
+
 /** «Tu sesión terminó. Vuelve a entrar: el abono te espera en «Hoy».» */
 export const sinSesion = (que: string) => `Tu sesión terminó. Vuelve a entrar: ${que} te espera en «Hoy».`;
 
@@ -20,7 +29,7 @@ export async function sesion() {
   if (!data?.claims) return null;
   const { data: perfil, error } = await supabase.from("perfiles").select("rol").eq("id", data.claims.sub).eq("activo", true).maybeSingle();
   if (error) console.error("voz: no se pudo leer el perfil", { usuarioId: data.claims.sub, codigo: error.code });
-  return { supabase, permisos: permisosDe(perfil?.rol ?? null) };
+  return { supabase, usuarioId: data.claims.sub, permisos: permisosDe(perfil?.rol ?? null) };
 }
 
 type Cliente = NonNullable<Awaited<ReturnType<typeof sesion>>>["supabase"];

@@ -15,7 +15,8 @@ type Que = {
 };
 
 export function leerMonto(texto: string, { nombre, maximo, unidad }: Que): LecturaMonto {
-  const limpio = texto.replace(/s\/|\s/gi, "");
+  // El «S/» solo se quita al principio: «4s/0» no es 40 (/chaos 2026-11-05). Los espacios se ignoran: «1 299» es 1299.
+  const limpio = texto.trim().replace(/^s\/\s*/i, "").replace(/\s/g, "");
   if (limpio === "") return { ok: false, error: null };
   if (limpio.includes("-")) return { ok: false, error: `El ${nombre} no puede ser negativo.` };
   if (!/^\d{1,9}([.,]\d{1,2})?$/.test(limpio)) return { ok: false, error: `Escribe el ${nombre} así: 45 o 47.50.` };
