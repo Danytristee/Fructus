@@ -36,7 +36,7 @@ function SheetOverlay({
       data-slot="sheet-overlay"
       className={cn(
         // Fructus: el velo usa el token --velo, no el negro de shadcn (ADR-0005).
-        "fixed inset-0 z-50 bg-velo backdrop-blur-[2px] data-[state=open]:animate-velo-aparece data-[state=closed]:animate-velo-se-va",
+        "fixed inset-0 z-50 bg-velo data-[state=open]:animate-velo-aparece data-[state=closed]:animate-velo-se-va",
         className
       )}
       {...props}

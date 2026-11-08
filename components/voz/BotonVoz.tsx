@@ -28,6 +28,8 @@ export function BotonVoz({ estado, texto, verTexto = true, className, ...props }
         {texto}
       </span>
       <div className="relative">
+        {/* El resplandor que respira en reposo, detrás del orbe. */}
+        <span aria-hidden className="halo pointer-events-none absolute inset-0 rounded-full" />
         <span aria-hidden className="pointer-events-none absolute inset-0">
           {[0, 600, 1200].map((retraso) => (
             <i
@@ -47,8 +49,8 @@ export function BotonVoz({ estado, texto, verTexto = true, className, ...props }
           className={cn(
             // Solo el orbe recibe toques: la etiqueta y el contenedor dejan pasar el dedo a la barra de abajo.
             "orbe pointer-events-auto relative grid size-[104px] cursor-pointer touch-none place-items-center rounded-full text-sobre-orbe select-none",
-            "animate-orbe transition-transform duration-[250ms] ease-salida *:col-start-1 *:row-start-1",
-            estado === "escuchando" && "scale-110 animate-orbe-rapido",
+            "transition-transform duration-[250ms] ease-salida *:col-start-1 *:row-start-1",
+            estado === "escuchando" && "scale-110",
             estado === "entendiendo" && "scale-[0.96]",
           )}
           {...props}

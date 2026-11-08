@@ -17,27 +17,35 @@ export function GraficoDia({ horas }: { horas: HoraVentas[] }) {
 
   return (
     <figure className="mt-2.5 text-acento-texto" aria-label={`Lo vendido a lo largo del día: la hora que más vendiste fue a las ${formatearHora(pico)}`}>
-      <svg viewBox={`0 0 320 ${ALTO}`} className="block h-auto w-full overflow-visible" aria-hidden>
-        <defs>
-          <linearGradient id="area-del-dia" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="currentColor" stopOpacity="0.28" />
-            <stop offset="1" stopColor="currentColor" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={curva.area} fill="url(#area-del-dia)" className="animate-aparecer" />
-        <path
-          d={curva.linea}
-          pathLength={1}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={3.5}
-          strokeLinecap="round"
-          strokeDasharray={1}
-          className="animate-dibujar"
+      {/* El punto de «ahora» late con un círculo HTML encima del SVG: un transform sobre un elemento SVG lo repinta en cada cuadro, y sobre un
+          elemento HTML lo mueve el teléfono sin repintar. Se coloca en porcentajes de la misma caja del dibujo (viewBox). */}
+      <div className="relative">
+        <svg viewBox={`0 0 320 ${ALTO}`} className="block h-auto w-full overflow-visible" aria-hidden>
+          <defs>
+            <linearGradient id="area-del-dia" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="currentColor" stopOpacity="0.28" />
+              <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={curva.area} fill="url(#area-del-dia)" className="animate-aparecer" />
+          <path
+            d={curva.linea}
+            pathLength={1}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={3.5}
+            strokeLinecap="round"
+            strokeDasharray={1}
+            className="animate-dibujar"
+          />
+          <circle cx={curva.fin.x} cy={curva.fin.y} r={5} fill="currentColor" stroke="var(--superficie)" strokeWidth={3} className="animate-aparecer" />
+        </svg>
+        <span
+          aria-hidden
+          style={{ left: `${(100 * curva.fin.x) / 320}%`, top: `${(100 * curva.fin.y) / ALTO}%` }}
+          className="absolute size-3 -translate-x-1/2 -translate-y-1/2 animate-latir rounded-full bg-current"
         />
-        <circle cx={curva.fin.x} cy={curva.fin.y} r={6} fill="currentColor" className="origin-center animate-latir [transform-box:fill-box]" />
-        <circle cx={curva.fin.x} cy={curva.fin.y} r={5} fill="currentColor" stroke="var(--superficie)" strokeWidth={3} className="animate-aparecer" />
-      </svg>
+      </div>
       <figcaption aria-hidden className="mt-1 flex justify-between text-[15px] text-texto-suave">
         <span>{formatearHora(primera)}</span>
         {ultima - primera >= 2 && <span>{formatearHora(medio)}</span>}
