@@ -21,7 +21,7 @@ export function BotonVoz({ estado, texto, verTexto = true, className, ...props }
         id="voz-texto"
         aria-live="polite"
         className={cn(
-          "vidrio rounded-full px-3.5 py-1 font-extrabold tabular-nums transition-[opacity,translate] duration-200",
+          "vidrio-desenfocado rounded-full px-3.5 py-1 font-extrabold tabular-nums transition-[opacity,translate] duration-200",
           !verTexto && "pointer-events-none translate-y-1 opacity-0",
         )}
       >

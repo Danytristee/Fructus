@@ -8,6 +8,10 @@ const config: KnipConfig = {
     "lib/supabase/tipos-db.ts",
     // El service worker lo registra RegistroPwa con su ruta escrita como texto ("/sw.js"), no con un import.
     "public/sw.js",
+    // Se corren con `pnpm medir:*`, a través de scripts/entorno-local.mjs (ADR-0012): Knip no ve el script dentro de otro comando.
+    "scripts/medir-cpu.mjs",
+    "scripts/medir-fluidez.mjs",
+    "scripts/medir-pintura.mjs",
     // Lo usan el login y el botón de voz (A2 y A5). Se quita de aquí cuando A2 lo importe.
     "lib/supabase/navegador.ts",
   ],

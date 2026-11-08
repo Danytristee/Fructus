@@ -22,7 +22,7 @@ export function BarraInferior() {
   return (
     <nav
       aria-label="Principal"
-      className="vidrio fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-30 mx-auto max-w-xl rounded-[30px] p-1.5 shadow-[0_10px_34px_rgb(var(--sombra-color)/0.14)]"
+      className="vidrio-desenfocado fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-30 mx-auto max-w-xl rounded-[30px] p-1.5 shadow-[0_10px_34px_rgb(var(--sombra-color)/0.14)]"
     >
       {/* Cuatro destinos y, al centro, el hueco del botón de voz cuando la pantalla lo tiene (--hueco-voz en globals.css). */}
       <div className="relative grid grid-cols-[1fr_1fr_var(--hueco-voz)_1fr_1fr]">

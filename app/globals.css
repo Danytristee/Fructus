@@ -331,8 +331,18 @@
   }
 }
 
-/* Vidrio esmerilado: la superficie de Aurora. El fondo detrás está quieto, así el desenfoque no se recalcula en cada cuadro. */
+/* Vidrio: la superficie de Aurora. SIN desenfoque: las tarjetas van sobre un fondo suave y quieto, y el desenfoque (backdrop-filter) se
+   recalcula en cada cuadro del deslizamiento y por cada tarjeta. Medido deslizando «Ventas»: con desenfoque, 0.34 a 0.39 s de CPU del
+   teléfono en 3 s; sin él, 0.16 s. A la vista no cambia nada: detrás hay un degradado suave. */
 @utility vidrio {
+  background-color: color-mix(in srgb, var(--vidrio) 84%, transparent);
+  border: 1px solid color-mix(in srgb, var(--superficie) 70%, transparent);
+  box-shadow: 0 10px 34px rgb(var(--sombra-color) / 0.08);
+}
+
+/* Vidrio con desenfoque: SOLO lo que flota sobre contenido que se desliza (la barra de abajo, la etiqueta y los avisos de la voz). Sin
+   desenfoque, el texto de debajo se transparenta y se lee encima del de la barra. */
+@utility vidrio-desenfocado {
   background-color: color-mix(in srgb, var(--vidrio) 84%, transparent);
   -webkit-backdrop-filter: blur(16px) saturate(1.5);
   backdrop-filter: blur(16px) saturate(1.5);

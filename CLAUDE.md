@@ -78,7 +78,7 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 | Interpretación | **LLM en Groq** con tool calling; **Gemini Flash** de respaldo | `temperature: 0`, `tool_choice: "required"`. Ver `docs/interprete-voz.md`. |
 | Respuesta hablada | **Web Speech API** (`speechSynthesis`) | Viene en el navegador, gratis. |
 | Comprobantes | **Sandbox de Lucode** (apisunat.pe) | Plan B gratis: servicio BETA de SUNAT con credenciales MODDATOS. |
-| PWA | `app/manifest.ts` de Next + un service worker mínimo en `public/sw.js` | Se instala como app; Web Push para el resumen del día. |
+| PWA | `app/manifest.ts` de Next + íconos en `public/icons/` + un service worker mínimo en `public/sw.js` (ADR-0011) | Se instala como app, la pantalla queda fija (sin zoom), y sin señal se ve «Sin conexión». Web Push para el resumen del día es de la fase 2. |
 | Excel | **SheetJS**, instalado desde su CDN oficial (`https://cdn.sheetjs.com/`) | El paquete `xlsx` de npm está congelado en una versión vieja. |
 | Pruebas | **Vitest 4** (lógica pura), **Playwright** (de punta a punta a ancho de celular), **pgTAP** con `supabase test db` (la base) | Ver «Calidad». |
 | Calidad | **ESLint 9** (`eslint-config-next`), **Knip** (código muerto) | Igual que CAYLA Retail. |
@@ -166,7 +166,7 @@ Se prueba con Playwright y en el navegador a estos anchos, en este orden:
 8. **Tacto y sonido.** Al confirmar, `navigator.vibrate(30)` donde exista y un sonido corto. La persona sabe que se guardó sin mirar.
 9. **Presupuesto de velocidad (Android de gama media en 4G), ADR-0006:**
    - **Mandan LCP menor a 2.5 s e INP menor a 200 ms**, medidos en un Android real o con Lighthouse móvil.
-   - **180 KB brotli o menos de JavaScript** en la primera carga de «Hoy» (el piso de Next 16 ya son 147 KB). Se mide con `pnpm build && pnpm medir:js / 180`.
+   - **180 KB brotli o menos de JavaScript** en la primera carga de «Hoy»: lo que baja un teléfono, sin los polyfills `nomodule` que ningún Android actual descarga (ADR-0012; hoy son 144.9 KB). Se mide con `pnpm build && pnpm medir:js / 180`.
    - En «Hoy» el navegador no carga supabase-js: el resumen llega del servidor y la tarjeta se confirma con una server action.
    - **De soltar el botón de voz a ver la tarjeta: 2.5 s o menos** (se mide en `comandos_voz.latencia_ms`).
 10. **Sin conexión, se dice.** Si se cae la red, una franja lo dice y el botón de voz explica que no puede enviar. Lo dictado no se pierde: el audio pendiente se guarda en el dispositivo y se reintenta. La cola sin conexión completa es de la fase 2; en la demo, al menos se avisa y se conserva el último audio.
@@ -195,7 +195,9 @@ formulario del gobierno. El diseño se juzga por lo que la persona **hace**, no 
   - **Cada acción responde con movimiento:** el orbe de voz escucha (ondas) y entiende (giro), la hoja sube con un resorte corto, sus piezas entran en cascada, la píldora «Pagó / Lo debe» se desliza y Confirmar termina en un sello con vibración y sonido.
   - **Una sola coreografía al abrir una pantalla.** Nada se mueve en bucle salvo el orbe de voz en reposo y el punto «ahora» del gráfico.
   - **Las cifras solo cuentan en los resúmenes** («Hoy», cierre). **Lo que se va a confirmar se muestra exacto desde el primer cuadro:** nunca un monto intermedio en la tarjeta.
-  - **El fondo de luces está quieto,** porque el vidrio desenfoca lo de atrás y moverlo cuesta en un Android de gama media.
+  - **El fondo de luces está quieto,** porque moverlo cuesta en un Android de gama media.
+  - **Lo que se mueve en bucle solo anima `transform` y `opacity`** (ADR-0012), en un elemento HTML: con «Hoy» en reposo el navegador no debe repintar nada (`pnpm medir:pintura`). Nunca una sombra, una variable de un degradado, `left` o `width`, ni un elemento SVG.
+  - **`vidrio` no desenfoca;** `vidrio-desenfocado` solo para lo que flota sobre contenido que se desliza (la barra de abajo, la etiqueta y los avisos de la voz). El desenfoque de cada tarjeta se recalcula en cada cuadro al deslizar y gastaba más de la mitad de la CPU.
   - Los tiempos y curvas viven en `app/globals.css` (`--ease-*`, `--animate-*`). Se respeta `prefers-reduced-motion`.
 - **Un solo indicador de carga a pantalla completa** para guardados, montado una vez en el layout. Las secciones usan esqueletos con `Suspense`. Nunca un «Cargando…» suelto. **Nada optimista en dinero ni en stock:** se muestra éxito solo cuando la base respondió.
 - **Estados completos.** Cada pantalla diseña su estado vacío (qué falta y qué hacer), su error (en tres líneas y en lenguaje de puesto), su carga y su primer uso.
@@ -300,6 +302,8 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
 | Pantallas que guardan | `/chaos` | Al terminar cada pantalla u hoja que guarda. |
 | Diseño | `/formidable` | Al terminar o rediseñar cada pantalla u hoja. |
 | Código muerto | Knip | En el CI. |
+| PWA y service worker | `pnpm e2e:prod` (compila contra la base local y corre `tests/e2e-produccion/`) | Al tocar `public/sw.js`, el manifest, los íconos o un `loading.tsx`. El service worker no corre en desarrollo. |
+| Movimiento y consumo | `pnpm build:local` + `pnpm medir:pintura`, `medir:cpu`, `medir:fluidez` | Al agregar una animación en bucle o cambiar el vidrio. Se compara contra la versión anterior, alternando. |
 
 - **Pre-commit** (`.githooks/pre-commit`): revisa **solo lo que estás commiteando** (tipos, `vitest related` y ESLint), como en CAYLA Retail, porque un hook lento se termina salteando. Se activa con `pnpm install` (script `prepare`). Solo en una emergencia real: `git commit --no-verify`.
 - **CI** (`.github/workflows/ci.yml`): tipos, lint, pruebas, Knip y build. Hay un segundo trabajo que levanta Supabase con Docker y corre pgTAP y las invariantes. **Un PR en rojo no se fusiona.**

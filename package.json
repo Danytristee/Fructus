@@ -21,6 +21,10 @@
     "prepare": "git config core.hooksPath .githooks || true",
     "medir:js": "node scripts/medir-js.mjs",
     "iconos": "node scripts/generar-iconos.mjs",
+    "build:local": "node scripts/entorno-local.mjs pnpm exec next build",
+    "medir:fluidez": "node scripts/entorno-local.mjs node scripts/medir-fluidez.mjs",
+    "medir:pintura": "node scripts/entorno-local.mjs node scripts/medir-pintura.mjs",
+    "medir:cpu": "node scripts/entorno-local.mjs node scripts/medir-cpu.mjs",
     "cuentas:invitar": "node --env-file=.env.local scripts/invitar.mjs",
     "voz:precision": "vitest run --config vitest.voz.config.ts tests/interprete/precision.voz.ts",
     "voz:stt": "vitest run --config vitest.voz.config.ts tests/interprete/stt.voz.ts"

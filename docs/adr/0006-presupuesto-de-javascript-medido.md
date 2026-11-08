@@ -42,3 +42,9 @@ guía oficial de Next 16 (`node_modules/next/dist/docs/01-app/02-guides/progress
 - `CLAUDE.md` (regla 9 de «Celular primero») y `docs/PROMPT-INICIAL.md` (A11) cambian el tope a 180 KB y dicen cómo se mide.
 - Si en la fase 2 la cola completa sin conexión se vuelve central, o si LCP o INP fallan en un Android real, se reabre la alternativa de
   Vite con un ADR nuevo.
+
+## Nota del 2026-11-08 (ADR-0012)
+
+`pnpm medir:js` ahora cuenta lo que baja un teléfono: deja fuera los scripts `nomodule` (los polyfills de navegadores de hace una década, 34 KB), que el HTML
+trae pero ningún Android actual descarga, y los muestra aparte. El tope sigue en 180 KB. «Hoy» pesa 144.9 KB (179.3 KB con los polyfills, la cifra que
+se medía antes). El service worker de la decisión 4 quedó escrito a mano en `public/sw.js`, con lo mínimo (ADR-0011).

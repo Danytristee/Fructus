@@ -14,7 +14,7 @@ type Props = {
 export function AvisoVoz({ mensaje, tono, accion, cerrar }: Props) {
   const Icono = tono === "error" ? TriangleAlert : Info;
   return (
-    <div role={tono === "error" ? "alert" : "status"} className="vidrio pointer-events-auto mx-4 grid max-w-sm animate-subir gap-2 rounded-tarjeta p-3 pl-4">
+    <div role={tono === "error" ? "alert" : "status"} className="vidrio-desenfocado pointer-events-auto mx-4 grid max-w-sm animate-subir gap-2 rounded-tarjeta p-3 pl-4">
       <p className="flex items-start gap-2 font-bold">
         <Icono aria-hidden className={tono === "error" ? "mt-0.5 size-5 shrink-0 text-deuda" : "mt-0.5 size-5 shrink-0 text-acento-texto"} />
         <span className="flex-1">{mensaje}</span>
