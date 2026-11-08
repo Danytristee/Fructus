@@ -393,7 +393,26 @@
   }
   html {
     -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    /* Se desliza hacia arriba, abajo y a los lados, pero no se amplía: ni pellizco ni doble toque (la pantalla queda fija). */
+    touch-action: pan-x pan-y;
+  }
+  /* Lo que se toca no se selecciona ni abre el menú de «copiar enlace» al dejar el dedo: se siente app, no página. Los campos y el texto
+     de las fichas sí se pueden seleccionar (un RUC, un teléfono). */
+  button,
+  a,
+  [role="button"],
+  nav,
+  summary,
+  label {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  img,
+  svg {
+    -webkit-user-drag: none;
   }
   body {
     background-color: var(--fondo);

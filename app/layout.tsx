@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
+import { PantallaFija } from "@/components/marco/PantallaFija";
 import { RegistroPwa } from "@/components/marco/RegistroPwa";
 import { COLOR_DE_FONDO } from "@/lib/pwa-reglas";
 import "./globals.css";
@@ -18,9 +19,15 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false, email: false, address: false },
 };
 
+// La pantalla queda fija: sin pellizco ni doble toque para ampliar (el dueño la usa de pie, con una mano, y un roce no debe mover el
+// puesto de lugar). Android lo respeta con esto; iPhone ignora `user-scalable=no`, así que también lleva `touch-action` en globals.css
+// y PantallaFija.tsx. El texto base ya es de 17 px: nada se lee mal por no poder ampliarlo.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   themeColor: COLOR_DE_FONDO,
 };
@@ -30,6 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="es-PE" className={manrope.variable}>
       <body className="min-h-dvh text-base antialiased">
         <RegistroPwa />
+        <PantallaFija />
         {children}
       </body>
     </html>
