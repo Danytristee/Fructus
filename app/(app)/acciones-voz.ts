@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 
+import { notaDeComprobante } from "@/lib/comprobantes/comprobante-reglas";
+import { emitirComprobanteDeVenta } from "@/lib/comprobantes/emitir";
 import { leerSaldo, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import { PRECIO_MAXIMO, pedidoVenta } from "@/lib/voz/confirmar-venta-reglas";
 import { preciosSugeridos } from "@/lib/voz/resolver";
@@ -32,6 +34,7 @@ const borrador = z.object({
   descuento: z.number().min(0),
   condicion: z.enum(["contado", "credito"]).nullable(),
   medio: z.enum(["efectivo", "yape", "plin", "transferencia"]).nullable(),
+  comprobante: z.enum(["ninguno", "boleta", "factura"]).default("ninguno"),
 });
 
 const confirmacion = z.object({
@@ -41,7 +44,11 @@ const confirmacion = z.object({
   latenciaMs: z.number().int().min(0).max(120_000),
 });
 
-export type ResultadoConfirmar = { ok: true; ventaId: number; saldo: number | null } | { ok: false; error: string; sinSesion?: true };
+/** Al confirmar la voz no se hace esperar la venta: si el proveedor tarda más que esto, el comprobante queda «en proceso» y se termina desde la venta. */
+const ESPERA_COMPROBANTE_MS = 5_000;
+
+/** `comprobante`: en qué quedó lo que se pidió («… factura»), en una frase para el sello; null si no se pidió ninguno. */
+export type ResultadoConfirmar = { ok: true; ventaId: number; saldo: number | null; comprobante: string | null } | { ok: false; error: string; sinSesion?: true };
 
 /** Guarda la venta. Idempotente por comando (registrar_venta): un segundo toque devuelve la misma venta. */
 export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Promise<ResultadoConfirmar> {
@@ -71,9 +78,17 @@ export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Pro
 
   const saldo = pedido.cliente_id === null ? null : await leerSaldo(supabase, pedido.cliente_id);
 
+  // Lo que se pidió («… factura») se emite DESPUÉS de guardar la venta: si el comprobante no sale (falta el RUC, no hay señal, Lucode
+  // lo rechaza), lo dictado ya está a salvo y el sello dice qué pasó. Es idempotente: un segundo toque devuelve el mismo comprobante.
+  let comprobante: string | null = null;
+  if (b.comprobante !== "ninguno") {
+    const r = await emitirComprobanteDeVenta({ supabase, ventaId, tipo: b.comprobante, topeMs: ESPERA_COMPROBANTE_MS });
+    comprobante = notaDeComprobante(b.comprobante, r);
+  }
+
   // Sin revalidatePath: rearmar «Hoy» dentro de esta respuesta demoraba el sello 2 a 5 s. El celular refresca «Hoy» por
   // detrás (router.refresh) mientras el sello se anima.
-  return { ok: true, ventaId, saldo };
+  return { ok: true, ventaId, saldo, comprobante };
 }
 
 /** La persona cerró la tarjeta sin guardar: el comando queda como descartado (solo si seguía pendiente). */

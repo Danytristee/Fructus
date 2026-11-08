@@ -10,6 +10,7 @@ import {
   leerRespuesta,
   mensajeDeRespuesta,
   nombreDelTipo,
+  notaDeComprobante,
   ofertaDeFactura,
   numeroDeComprobante,
   type DatosDeVenta,
@@ -243,5 +244,36 @@ describe("comprobanteAMostrar (el que se ve en el detalle de la venta)", () => {
   it("un anulado o nada: no se muestra nada", () => {
     expect(comprobanteAMostrar([c(1, "anulado")])).toBeNull();
     expect(comprobanteAMostrar([])).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// A9.4 · Al dictar la venta: en qué quedó el comprobante que se pidió
+// ---------------------------------------------------------------------------------------------------------------------
+
+describe("notaDeComprobante (lo que dice el sello de la venta dictada)", () => {
+  const vista = (estado: string, extra: Record<string, unknown> = {}) => ({ id: 1, tipo: "03" as const, serie: "B001", numero: 12, estado, pdfUrl: null, ...extra });
+
+  it("aceptado: dice qué número salió", () => {
+    expect(notaDeComprobante("boleta", { ok: true, comprobante: vista("aceptado") })).toBe("Boleta B001-00000012 aceptada");
+    expect(notaDeComprobante("factura", { ok: true, comprobante: { ...vista("aceptado"), tipo: "01", serie: "F001" } })).toBe("Factura F001-00000012 aceptada");
+  });
+
+  it("en proceso o enviado: la venta ya está guardada y dice dónde terminarlo", () => {
+    expect(notaDeComprobante("boleta", { ok: true, comprobante: vista("pendiente") })).toBe("Boleta B001-00000012 en proceso: termínala desde la venta");
+    expect(notaDeComprobante("boleta", { ok: true, comprobante: vista("enviado") })).toBe("Boleta B001-00000012 enviada, esperando a SUNAT");
+  });
+
+  it("rechazada: dice por qué y que la venta quedó guardada", () => {
+    expect(notaDeComprobante("factura", { ok: false, error: "x", comprobante: { ...vista("rechazado", { motivo: "El RUC del cliente no existe" }), tipo: "01", serie: "F001" } })).toBe(
+      "La venta quedó guardada, pero Lucode rechazó la factura: El RUC del cliente no existe",
+    );
+    expect(notaDeComprobante("boleta", { ok: false, error: "x", comprobante: vista("rechazado") })).toBe("La venta quedó guardada, pero Lucode rechazó la boleta.");
+  });
+
+  it("no salió (falta el RUC, sin señal…): la venta quedó guardada y se dice qué pasó, en lenguaje de puesto", () => {
+    expect(notaDeComprobante("factura", { ok: false, error: "Una factura va a un cliente con RUC. Agrégale el RUC en su ficha." })).toBe(
+      "La venta quedó guardada, pero la factura no salió: Una factura va a un cliente con RUC. Agrégale el RUC en su ficha.",
+    );
   });
 });

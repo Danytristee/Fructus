@@ -166,14 +166,18 @@ async function guardarRespuesta(servicio: ClienteServicio, fila: Fila, respuesta
  * Manda el comprobante al proveedor y guarda lo que contestó. Si dice que ese número ya lo tiene (se lo mandamos antes y no supimos
  * cómo quedó), no se repite: se le pregunta cómo quedó y se toma esa respuesta.
  */
-async function resolverConProveedor(servicio: ClienteServicio, config: ConfiguracionLucode, fila: Fila, pedido: PedidoLucode, esperado: "pendiente" | "enviado"): Promise<ResultadoEmision> {
-  let respuesta: RespuestaDelProveedor | ConsultaDelProveedor = await enviarAlProveedor(config, pedido);
-  if (respuesta.tipo === "ya-existe") respuesta = await consultarEnProveedor(config, fila.serie, fila.numero);
+async function resolverConProveedor(servicio: ClienteServicio, config: ConfiguracionLucode, fila: Fila, pedido: PedidoLucode, esperado: "pendiente" | "enviado", topeMs?: number): Promise<ResultadoEmision> {
+  let respuesta: RespuestaDelProveedor | ConsultaDelProveedor = await enviarAlProveedor(config, pedido, topeMs);
+  if (respuesta.tipo === "ya-existe") respuesta = await consultarEnProveedor(config, fila.serie, fila.numero, topeMs);
   return guardarRespuesta(servicio, fila, respuesta, esperado);
 }
 
 /** Emite el comprobante de una venta (boleta o factura). Si la venta ya tenía uno vigente, devuelve ese. */
-export async function emitirComprobanteDeVenta(args: { supabase: ClienteUsuario; ventaId: number; tipo: "boleta" | "factura"; ruc?: string }): Promise<ResultadoEmision> {
+/**
+ * `ruc`: solo si la persona lo acaba de escribir (la hoja del detalle lo pide); sin él, una factura a un cliente sin documento no sale
+ * y se dice por qué. `topeMs`: cuánto esperar al proveedor como máximo (al confirmar una venta por voz, poco: la venta no se hace esperar).
+ */
+export async function emitirComprobanteDeVenta(args: { supabase: ClienteUsuario; ventaId: number; tipo: "boleta" | "factura"; ruc?: string; topeMs?: number }): Promise<ResultadoEmision> {
   const { supabase, ventaId, tipo } = args;
 
   // Sin proveedor configurado no se reserva ningún número: no se gasta un correlativo que no se puede enviar.
@@ -190,8 +194,8 @@ export async function emitirComprobanteDeVenta(args: { supabase: ClienteUsuario;
   // Una factura a un cliente que todavía no tiene documento lleva el RUC que se acaba de pedir. Se guarda con la sesión de la persona,
   // no con la llave de servicio: la RLS decide quién edita clientes (dueño y administrador), aunque alguien salte la pantalla.
   let cliente = venta.cliente;
-  if (tipo === "factura" && cliente && cliente.tipo_documento === null) {
-    const lectura = leerDocumento("RUC", args.ruc ?? "");
+  if (tipo === "factura" && cliente && cliente.tipo_documento === null && args.ruc !== undefined) {
+    const lectura = leerDocumento("RUC", args.ruc);
     if (!lectura.ok || lectura.numero === null) return { ok: false, error: lectura.ok ? "Escribe el RUC: son 11 números." : lectura.error };
     const { data: puesto, error: errorRuc } = await supabase
       .from("clientes")
@@ -231,7 +235,7 @@ export async function emitirComprobanteDeVenta(args: { supabase: ClienteUsuario;
 
   const fila: Fila = { id: r.id, tipo: r.tipo, serie: r.serie, numero: r.numero };
   const pedido = armarPedido({ tipo: r.tipo, serie: r.serie, numero: r.numero }, datosDeVenta(venta, cliente), config.configuracion.emisor);
-  return resolverConProveedor(servicio, config.configuracion, fila, pedido, "pendiente");
+  return resolverConProveedor(servicio, config.configuracion, fila, pedido, "pendiente", args.topeMs);
 }
 
 /**

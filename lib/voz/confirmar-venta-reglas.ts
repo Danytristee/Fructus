@@ -23,6 +23,8 @@ export type Borrador = {
   descuento: number;
   condicion: "contado" | "credito" | null;
   medio: Medio | null;
+  /** Lo que se pidió al dictar («… factura») y la persona puede cambiar. No frena la venta: si el comprobante no puede salir, la venta igual se guarda. */
+  comprobante: "ninguno" | "boleta" | "factura";
 };
 
 export type Falta = "cliente" | "producto" | "cantidad" | "precio" | "condicion";
@@ -51,6 +53,7 @@ export function borradorDe(t: Venta): Borrador {
     descuento: t.descuento,
     condicion: t.condicion,
     medio: t.condicion === "contado" ? (t.medio ?? "efectivo") : null,
+    comprobante: t.comprobante,
   };
 }
 
@@ -113,6 +116,7 @@ export function fueCorregido(t: Venta, b: Borrador): boolean {
     return true;
   // Elegir cuando se preguntó no es corregir; cambiar lo que se dijo, sí.
   if (original.condicion !== null && original.condicion !== b.condicion) return true;
+  if (original.comprobante !== b.comprobante) return true;
   return original.condicion !== null && original.medio !== b.medio;
 }
 

@@ -21,13 +21,13 @@ export function leerConfiguracion(): { ok: true; configuracion: ConfiguracionLuc
 }
 
 /** Manda el comprobante al proveedor y dice qué contestó. Nunca lanza: cualquier falla de red es «sin respuesta». */
-export async function enviarAlProveedor(configuracion: ConfiguracionLucode, pedido: PedidoLucode): Promise<RespuestaDelProveedor> {
+export async function enviarAlProveedor(configuracion: ConfiguracionLucode, pedido: PedidoLucode, topeMs = TOPE_MS): Promise<RespuestaDelProveedor> {
   try {
     const respuesta = await fetch(`${configuracion.url}/comprobantes`, {
       method: "POST",
       headers: { authorization: `Bearer ${configuracion.token}`, "content-type": "application/json" },
       body: JSON.stringify(pedido),
-      signal: AbortSignal.timeout(TOPE_MS),
+      signal: AbortSignal.timeout(Math.min(topeMs, TOPE_MS)),
       cache: "no-store",
     });
     const cuerpo: unknown = await respuesta.json().catch(() => null);
@@ -44,11 +44,11 @@ export async function enviarAlProveedor(configuracion: ConfiguracionLucode, pedi
  * Pregunta al proveedor cómo quedó un número que ya le mandamos (cuando no supimos la respuesta, o dijo «ya existe», o quedó
  * «enviado» esperando a SUNAT). Nunca lanza: cualquier falla es «sin respuesta».
  */
-export async function consultarEnProveedor(configuracion: ConfiguracionLucode, serie: string, numero: number): Promise<ConsultaDelProveedor> {
+export async function consultarEnProveedor(configuracion: ConfiguracionLucode, serie: string, numero: number, topeMs = TOPE_MS): Promise<ConsultaDelProveedor> {
   try {
     const respuesta = await fetch(`${configuracion.url}/comprobantes/${numeroDeComprobante(serie, numero)}`, {
       headers: { authorization: `Bearer ${configuracion.token}` },
-      signal: AbortSignal.timeout(TOPE_MS),
+      signal: AbortSignal.timeout(Math.min(topeMs, TOPE_MS)),
       cache: "no-store",
     });
     const cuerpo: unknown = await respuesta.json().catch(() => null);

@@ -17,6 +17,7 @@ import { DudasVoz } from "./DudasVoz";
 import { EditorItem } from "./EditorItem";
 import { FilaCliente } from "./FilaCliente";
 import { FilaTarjeta } from "./FilaTarjeta";
+import { GrupoOpciones } from "./GrupoOpciones";
 import { Guardado } from "./Guardado";
 import { InsigniaSugerido } from "./InsigniaSugerido";
 import { MedidorDeuda } from "./MedidorDeuda";
@@ -48,7 +49,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [borrador, setBorrador] = useState<Borrador>(() => borradorDe(tarjeta));
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const [saldo, setSaldo] = useState<number | null>(null);
-  const { confirmar: enviar, guardando, error, guardado: guardada, incierto } = useConfirmar<{ ok: true; saldo: number | null }>({ alGuardar, alCambiarGuardando });
+  const { confirmar: enviar, guardando, error, guardado: guardada, incierto } = useConfirmar<{ ok: true; saldo: number | null; comprobante: string | null }>({ alGuardar, alCambiarGuardando });
 
   const clienteId = borrador.cliente?.id ?? null;
   useEffect(() => {
@@ -100,6 +101,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           ) : (
             `${nombre} no te debe nada`
           ))}
+        {/* En qué quedó el comprobante que se pidió: la venta ya está guardada pase lo que pase con él. */}
+        {guardada.comprobante && <span className="mt-1 block">{guardada.comprobante}</span>}
       </Guardado>
     );
   }
@@ -200,6 +203,27 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           alCambiar={(condicion, medio) => setBorrador((b) => ({ ...b, condicion, medio }))}
         />
       </div>
+
+      {/* Solo si se pidió comprobante («… factura»): la persona ve lo que se entendió y lo cambia o lo quita de un toque. */}
+      {(tarjeta.comprobante !== "ninguno" || borrador.comprobante !== "ninguno") && (
+        <div className="mt-1 grid animate-pieza gap-1.5">
+          {/* Con su título: pegada a la fila de medios de pago (Efectivo, Yape…) se leía como la misma pregunta. */}
+          <p className="mx-1 font-bold text-texto-suave">Comprobante</p>
+          <GrupoOpciones
+            pregunta="¿Con comprobante?"
+            columnas={3}
+            elegido={borrador.comprobante}
+            alCambiar={(comprobante) => setBorrador((b) => ({ ...b, comprobante }))}
+            opciones={[
+              { valor: "ninguno", etiqueta: "Sin comprobante" },
+              { valor: "boleta", etiqueta: "Boleta" },
+              { valor: "factura", etiqueta: "Factura" },
+            ]}
+          />
+          {/* La venta se guarda igual: la factura es solo para un cliente con RUC, y esto avisa antes si ya se ve que no podrá salir. */}
+          {borrador.comprobante === "factura" && !cliente && <p className="mx-1 text-texto-suave">Una factura va a un cliente con RUC: elige a quién.</p>}
+        </div>
+      )}
 
       {cliente && saldo !== null && total !== null && borrador.condicion !== null && (
         <div className="animate-pieza">

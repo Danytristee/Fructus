@@ -233,3 +233,21 @@ export function ayudaDeComprobante(estado: string): { texto: string; boton: stri
   if (estado === "enviado") return { texto: "SUNAT todavía no contesta.", boton: "Ver cómo va" };
   return null;
 }
+
+/**
+ * Lo que dice el sello de una venta dictada «con factura» o «con boleta», según en qué quedó el comprobante. La venta ya está
+ * guardada en todos los casos: un comprobante que no sale nunca hace perder lo dictado.
+ */
+export function notaDeComprobante(
+  tipo: "boleta" | "factura",
+  r: { ok: true; comprobante: ComprobanteVista } | { ok: false; error: string; comprobante?: ComprobanteVista },
+): string {
+  if (r.ok) {
+    const { titulo, estado } = fraseDeComprobante(r.comprobante);
+    return r.comprobante.estado === "pendiente" ? `${titulo} ${estado}: termínala desde la venta` : `${titulo} ${estado}`;
+  }
+  if (r.comprobante?.estado === "rechazado") {
+    return `La venta quedó guardada, pero Lucode rechazó la ${tipo}${r.comprobante.motivo ? `: ${r.comprobante.motivo}` : "."}`;
+  }
+  return `La venta quedó guardada, pero la ${tipo} no salió: ${r.error}`;
+}
