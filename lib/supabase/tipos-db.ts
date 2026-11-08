@@ -416,6 +416,9 @@ isOneToOne: false
 "registrar_venta":
 { Args: { "p": Json }; Returns: number
                            },
+"reservar_comprobante":
+{ Args: { "p_tipo": string,"p_venta_id": number }; Returns: Json
+                           },
 "resumen_dia":
 { Args: { "p_fecha"?: string }; Returns: Json
                            },

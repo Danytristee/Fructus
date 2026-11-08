@@ -9,6 +9,9 @@ const celular = { isMobile: true, hasTouch: true, deviceScaleFactor: 3, locale: 
 const puerto = process.env.PUERTO ?? "3000";
 const inicio = `http://127.0.0.1:${puerto}`;
 
+// El proveedor de comprobantes de mentira (tests/e2e/lucode-simulado.mjs) corre 200 puertos más arriba: 3000 → 3200.
+const puertoLucode = Number(puerto) + 200;
+
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: true,
@@ -28,10 +31,29 @@ export default defineConfig({
     { name: "s25-412", use: { ...celular, viewport: { width: 412, height: 915 } } },
     { name: "gama-media-360", use: { ...celular, viewport: { width: 360, height: 800 } } },
   ],
-  webServer: {
-    command: `pnpm dev --port ${puerto}`,
-    url: inicio,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: `pnpm dev --port ${puerto}`,
+      url: inicio,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      // La app emite comprobantes contra el Lucode simulado, no contra el sandbox de verdad. Si ya hay un `pnpm dev` corriendo, no
+      // recibe esto: córrelo con `PUERTO=3100 pnpm e2e` para que Playwright levante el suyo.
+      env: {
+        LUCODE_API_URL: `http://127.0.0.1:${puertoLucode}`,
+        LUCODE_TOKEN: "token-de-prueba",
+        EMISOR_RUC: "20600000001",
+        EMISOR_RAZON_SOCIAL: "Frutas La Hermelinda SAC (prueba)",
+        // Dos segundos en vez de diez: así «el proveedor no contestó a tiempo» se prueba sin esperar.
+        LUCODE_TOPE_MS: "2000",
+      },
+    },
+    {
+      command: "node tests/e2e/lucode-simulado.mjs",
+      url: `http://127.0.0.1:${puertoLucode}/salud`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 15_000,
+      env: { PUERTO_LUCODE: String(puertoLucode) },
+    },
+  ],
 });

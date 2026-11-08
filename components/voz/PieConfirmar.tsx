@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { Boton } from "@/components/ui/Boton";
+import { PieFijo } from "@/components/ui/PieFijo";
 
 type Props = {
   /** Lo que falta para poder confirmar, en una frase; null si no falta nada. */
@@ -24,16 +25,12 @@ type Props = {
   style?: React.CSSProperties;
 };
 
-// El pie de toda tarjeta de voz: qué falta o qué falló, Confirmar y Descartar. Pegado abajo de la hoja: con todo lo de
-// arriba, a 360 px Confirmar se iba debajo del borde (regla 1). El borde inferior negativo iguala al margen: sin scroll no
-// sube, y no tapa lo de arriba.
+// El pie de toda tarjeta de voz: qué falta o qué falló, Confirmar y Descartar. Va pegado abajo de la hoja (`PieFijo`): con todo lo de
+// arriba, a 360 px Confirmar se iba debajo del borde (regla 1).
 export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = false, etiqueta, etiquetaPendiente, etiquetaDescartar = "Descartar", alConfirmar, alDescartar, style }: Props) {
   const router = useRouter();
   return (
-    <div
-      className="sticky -bottom-[calc(16px+env(safe-area-inset-bottom))] z-10 -mx-4 mt-1 -mb-[calc(16px+env(safe-area-inset-bottom))] grid animate-pieza gap-2 bg-fondo px-4 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))] shadow-[0_-12px_16px_-12px_rgb(var(--sombra-color)/0.25)] md:-bottom-5 md:-mb-5"
-      style={style}
-    >
+    <PieFijo className="animate-pieza gap-2" style={style}>
       {(aviso || error) && (
         <p role={error ? "alert" : undefined} className={`mx-1 mb-1 font-bold ${!error && avisoNeutro ? "text-texto" : "text-deuda"}`}>
           {error?.mensaje ?? aviso}
@@ -57,6 +54,6 @@ export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = fal
       <Boton variante="texto" onClick={alDescartar} disabled={guardando}>
         {etiquetaDescartar}
       </Boton>
-    </div>
+    </PieFijo>
   );
 }

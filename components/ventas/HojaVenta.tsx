@@ -6,12 +6,15 @@ import { Ban, ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import { cn } from "cn";
 
 import { anularVenta } from "@/app/(app)/acciones-ventas";
+import { ComprobanteDeVenta } from "./ComprobanteDeVenta";
+import { PedirRuc } from "./PedirRuc";
 import { Avatar } from "@/components/ui/Avatar";
 import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
 import { Hoja } from "@/components/ui/Hoja";
 import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
+import { PieFijo } from "@/components/ui/PieFijo";
 import { Guardado } from "@/components/voz/Guardado";
 import { PieConfirmar } from "@/components/voz/PieConfirmar";
 import { useConfirmar } from "@/components/voz/useConfirmar";
@@ -19,29 +22,47 @@ import { consecuenciasDeAnular, leerMotivo, MOTIVOS_RAPIDOS, type ClaveMotivo } 
 import { horaDeLima } from "@/lib/ficha-cliente-reglas";
 import { formatearHace, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
+import { comprobanteVigente, ofertaDeFactura } from "@/lib/comprobantes/comprobante-reglas";
 import { fraseDePago, lineaDeFruta, type DetalleVenta } from "@/lib/ventas-reglas";
 
 type Props = {
   venta: DetalleVenta | null;
   /** Solo el dueño y el administrador anulan (la base también lo exige). */
   puedeAnular: boolean;
+  /** Quienes registran ventas (dueño, administrador y ayudante) emiten su boleta o factura. */
+  puedeEmitir: boolean;
+  /** Quienes editan clientes (dueño y administrador) pueden pedirle el RUC al cliente para hacerle factura. */
+  puedeEditarClientes: boolean;
   alCerrar: () => void;
 };
 
 // El detalle de una venta del historial: a quién, qué fruta y a cuánto, cómo se pagó y quién la registró. Quien puede, la anula
 // desde aquí, con sus consecuencias a la vista y su motivo.
-export function HojaVenta({ venta, puedeAnular, alCerrar }: Props) {
+export function HojaVenta({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar }: Props) {
   // Mientras anula, la hoja no se cierra: deslizar o tocar el velo no puede dejar a medias lo que se está guardando.
   const guardando = useRef(false);
   return (
     <Hoja abierta={venta !== null} alCambiar={(abrir) => !abrir && !guardando.current && alCerrar()} titulo="Detalle de la venta" icono={<Receipt aria-hidden />}>
-      {venta && <Cuerpo key={venta.id} venta={venta} puedeAnular={puedeAnular} alCerrar={alCerrar} alCambiarGuardando={(g) => (guardando.current = g)} />}
+      {venta && <Cuerpo key={venta.id} venta={venta} puedeAnular={puedeAnular} puedeEmitir={puedeEmitir} puedeEditarClientes={puedeEditarClientes} alCerrar={alCerrar} alCambiarGuardando={(g) => (guardando.current = g)} />}
     </Hoja>
   );
 }
 
-function Cuerpo({ venta, puedeAnular, alCerrar, alCambiarGuardando }: { venta: DetalleVenta; puedeAnular: boolean; alCerrar: () => void; alCambiarGuardando: (g: boolean) => void }) {
-  const [vista, setVista] = useState<"detalle" | "anular">("detalle");
+function Cuerpo({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar, alCambiarGuardando }: { venta: DetalleVenta; puedeAnular: boolean; puedeEmitir: boolean; puedeEditarClientes: boolean; alCerrar: () => void; alCambiarGuardando: (g: boolean) => void }) {
+  const [vista, setVista] = useState<"detalle" | "anular" | "ruc">("detalle");
+  // El comprobante vive aquí: al emitirlo, la hoja ya lo muestra (y deja de ofrecer anular) sin esperar a que se refresque la lista.
+  const [comprobante, setComprobante] = useState(venta.comprobante);
+  const [aviso, setAviso] = useState<string | null>(null);
+  // Uno rechazado ya no cuenta: se muestra su motivo y se puede emitir otro o anular la venta.
+  const vigente = comprobanteVigente(comprobante ? [comprobante] : []);
+  const alEmitir = (c: NonNullable<typeof comprobante>, nota: string | null) => {
+    setComprobante(c);
+    setAviso(nota);
+    setVista("detalle");
+  };
+  if (vista === "ruc" && venta.cliente) {
+    return <PedirRuc ventaId={venta.id} cliente={venta.cliente.nombre} volver={() => setVista("detalle")} alEmitir={alEmitir} alCambiarGuardando={alCambiarGuardando} />;
+  }
   if (vista === "anular") return <Anular venta={venta} volver={() => setVista("detalle")} alCerrar={alCerrar} alCambiarGuardando={alCambiarGuardando} />;
 
   const fecha = new Date(venta.fecha);
@@ -62,11 +83,12 @@ function Cuerpo({ venta, puedeAnular, alCerrar, alCambiarGuardando }: { venta: D
       {venta.cliente ? (
         <Link
           href={`/clientes/${venta.cliente.id}`}
-          className="grid min-h-[72px] grid-cols-[auto_1fr_auto] items-center gap-3 rounded-[20px] bg-superficie px-3.5 py-3"
+          className="grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[20px] bg-superficie px-3.5 py-3"
         >
           <Avatar iniciales={iniciales(venta.cliente.nombre)} tono={tonoDe(venta.cliente.id)} />
           <span className="grid min-w-0">
-            <span className="text-[22px] leading-tight font-extrabold">{venta.cliente.nombre}</span>
+            {/* Un nombre largo sin espacios (un correo, un apodo con guiones) se parte en vez de empujar la hoja fuera de la pantalla. */}
+            <span className="text-[22px] leading-tight font-extrabold [overflow-wrap:anywhere]">{venta.cliente.nombre}</span>
             <span className="text-texto-suave">Ver su ficha</span>
           </span>
           <ChevronRight aria-hidden className="size-6 text-texto-suave" />
@@ -102,17 +124,42 @@ function Cuerpo({ venta, puedeAnular, alCerrar, alCambiarGuardando }: { venta: D
 
       {venta.registradaPor && <p className="mx-1 text-texto-suave">La registró {venta.registradaPor}.</p>}
 
-      {puedeAnular && !anulacion && (
+      <ComprobanteDeVenta
+        ventaId={venta.id}
+        comprobante={comprobante}
+        aviso={aviso}
+        puedeEmitir={puedeEmitir && !anulacion}
+        facturar={ofertaDeFactura(venta.cliente, puedeEditarClientes)}
+        cliente={venta.cliente ? { id: venta.cliente.id, puedeEditar: puedeEditarClientes } : null}
+        envio={{ nombre: venta.cliente?.nombre ?? null, telefono: venta.cliente?.telefono ?? null, total: venta.total }}
+        alEmitir={alEmitir}
+        alPedirRuc={() => setVista("ruc")}
+        alCambiarGuardando={alCambiarGuardando}
+      />
+
+      {/* Con comprobante no se anula (la base tampoco lo deja): corresponde una nota de crédito, o esperar a que termine. */}
+      {puedeAnular && !anulacion && vigente && (
+        <p className="mx-1 text-texto-suave">
+          {vigente.estado === "pendiente"
+            ? "El comprobante está en proceso: espera a que termine para anular."
+            : "Ya tiene comprobante: no se puede anular. Si te equivocaste, pídele a tu contador una nota de crédito."}
+        </p>
+      )}
+
+      {puedeAnular && !anulacion && !vigente && (
         <Boton variante="secundario" className="text-deuda" onClick={() => setVista("anular")}>
           <Ban aria-hidden />
           Anular esta venta
         </Boton>
       )}
 
-      {/* La hoja se cierra tocando afuera, pero eso no se ve: un botón a la mano, para todos los roles (el ayudante y el contador no tienen otro). */}
-      <Boton variante="secundario" onClick={alCerrar}>
-        Cerrar
-      </Boton>
+      {/* La hoja se cierra tocando afuera, pero eso no se ve: un botón a la mano, para todos los roles (el ayudante y el contador no tienen otro).
+          Va pegado abajo: si el contenido no cabe (un rechazo con un motivo largo, un nombre largo), la hoja se desliza y «Cerrar» no se pierde. */}
+      <PieFijo>
+        <Boton variante="secundario" onClick={alCerrar}>
+          Cerrar
+        </Boton>
+      </PieFijo>
     </div>
   );
 }

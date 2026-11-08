@@ -29,7 +29,13 @@ describe("borradorDe", () => {
       descuento: 0,
       condicion: "credito",
       medio: null,
+      comprobante: "ninguno",
     });
+  });
+
+  it("lleva el comprobante que se dijo («… factura»): la persona lo ve en la tarjeta y lo puede cambiar", () => {
+    expect(borradorDe(venta({ comprobante: "factura" })).comprobante).toBe("factura");
+    expect(borradorDe(venta({ comprobante: "boleta" })).comprobante).toBe("boleta");
   });
 
   it("al contado sin medio dicho, efectivo (a la vista, se puede cambiar)", () => {
@@ -120,6 +126,21 @@ describe("fueCorregido", () => {
     expect(fueCorregido(t, { ...b, cliente: { id: 2, nombre: "Rosa Quispe" } })).toBe(true);
     expect(fueCorregido(t, { ...b, items: [{ ...b.items[0]!, precio: 47 }] })).toBe(true);
     expect(fueCorregido(t, { ...b, condicion: "contado", medio: "yape" })).toBe(true);
+  });
+
+  it("cambiar el comprobante que se entendió también es corregir al intérprete", () => {
+    const t = venta({ comprobante: "factura" });
+    expect(fueCorregido(t, { ...borradorDe(t), comprobante: "boleta" })).toBe(true);
+    expect(fueCorregido(t, { ...borradorDe(t), comprobante: "ninguno" })).toBe(true);
+    expect(fueCorregido(t, borradorDe(t))).toBe(false);
+  });
+});
+
+describe("el comprobante no frena la venta", () => {
+  it("una factura sin cliente, o a uno sin RUC, no bloquea guardar la venta: lo dictado no se pierde (la factura se dice aparte)", () => {
+    const sinCliente: Borrador = { ...borradorDe(venta({ condicion: "contado", medio: "efectivo", cliente: { dicho: null, elegido: null, opciones: [] } })), comprobante: "factura" };
+    expect(faltaDe(sinCliente)).toEqual([]);
+    expect(pedidoVenta(sinCliente, 7, false)).not.toBeNull();
   });
 });
 

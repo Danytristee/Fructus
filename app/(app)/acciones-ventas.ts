@@ -33,7 +33,7 @@ export async function anularVenta(datos: z.input<typeof entrada>): Promise<Resul
   if (!error) return { ok: true };
 
   console.error("ventas: no se pudo anular", { ventaId, codigo: error.code });
-  if (error.message.includes("comprobante en SUNAT")) return { ok: false, error: "Esta venta ya tiene comprobante en SUNAT: corresponde una nota de crédito." };
+  if (error.message.includes("comprobante en SUNAT")) return { ok: false, error: "Esta venta ya tiene comprobante: no se puede anular. Si te equivocaste, pídele a tu contador una nota de crédito." };
   if (error.message.includes("Solo el dueño") || error.code === "42501") return { ok: false, error: SIN_PERMISO };
   if (error.code === "23514") return { ok: false, error: "Cuenta por qué la anulas, en 3 a 200 letras." };
   if (error.message.includes("ya estaba anulada")) return yaEstabaAnulada(supabase, ventaId, motivo, s.usuarioId);

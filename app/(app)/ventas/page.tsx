@@ -12,6 +12,7 @@ import { diaDeLima } from "@/lib/formato";
 import { deVenta, type Medio } from "@/lib/operaciones-reglas";
 import { exigirSesion } from "@/lib/sesion";
 import { leerFilasDeVentas } from "@/lib/ventas";
+import { comprobanteAMostrar, type CodigoTipo } from "@/lib/comprobantes/comprobante-reglas";
 import { resumirVentas } from "@/lib/ventas-reglas";
 
 export const metadata: Metadata = { title: "Ventas · Fructus" };
@@ -36,7 +37,7 @@ async function Historial() {
     supabase
       .from("ventas")
       .select(
-        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad))",
+        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre, tipo_documento, telefono), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad)), comprobantes(id, tipo, serie, numero, estado, pdf_url, motivo:respuesta->>mensaje)",
       )
       .gte("fecha", desde)
       .order("fecha", { ascending: false })
@@ -81,7 +82,7 @@ async function Historial() {
         total: Number(v.total),
         condicion: v.condicion,
         medio,
-        cliente: v.cliente,
+        cliente: v.cliente ? { id: v.cliente.id, nombre: v.cliente.nombre, tipoDocumento: v.cliente.tipo_documento === "RUC" || v.cliente.tipo_documento === "DNI" ? v.cliente.tipo_documento : null, telefono: v.cliente.telefono } : null,
         items: v.items.map((i) => ({
           producto: nombreFruta(i.producto),
           cantidad: Number(i.cantidad),
@@ -91,12 +92,15 @@ async function Historial() {
         })),
         registradaPor: v.registrador?.nombre ?? null,
         anulacion: anulada ? { cuando: v.anulada_en ?? v.fecha, por: v.anulador?.nombre ?? null, motivo: v.motivo_anulacion ?? "" } : null,
+        comprobante: comprobanteAMostrar(
+          v.comprobantes.map((c) => ({ id: c.id, tipo: c.tipo as CodigoTipo, serie: c.serie, numero: c.numero, estado: c.estado, pdfUrl: c.pdf_url, motivo: typeof c.motivo === "string" ? c.motivo : null })),
+        ),
       },
     });
   }
   const hoy = diaDeLima(ahora);
   const { resumenes, filas, porDia: deCadaDia } = resumirVentas(filasDeResumen, hoy, (fecha) => diaDeLima(new Date(fecha)));
-  return <HistorialVentas dias={[...porDia.values()]} hoy={hoy} puedeAnular={permisos.anular} resumenes={resumenes} filas={filas} deCadaDia={deCadaDia} />;
+  return <HistorialVentas dias={[...porDia.values()]} hoy={hoy} puedeAnular={permisos.anular} puedeEmitir={permisos.registrar} puedeEditarClientes={permisos.ajustes} resumenes={resumenes} filas={filas} deCadaDia={deCadaDia} />;
 }
 
 export default function Ventas() {
