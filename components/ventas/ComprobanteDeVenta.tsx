@@ -7,6 +7,7 @@ import { ChevronRight, FileText, FileX, TriangleAlert } from "lucide-react";
 import { emitirComprobante, reintentarComprobante } from "@/app/(app)/acciones-comprobantes";
 import { Boton } from "@/components/ui/Boton";
 import { BotonEnlace } from "@/components/ui/BotonEnlace";
+import { MotivoDeRechazo } from "@/components/ventas/MotivoDeRechazo";
 import { useConfirmar } from "@/components/voz/useConfirmar";
 import { ayudaDeComprobante, enlaceDeWhatsApp, FRASE_RECHAZO, fraseDeComprobante, salidaDeRechazo, type ComprobanteVista, type OfertaDeFactura } from "@/lib/comprobantes/comprobante-reglas";
 
@@ -133,7 +134,7 @@ export function ComprobanteDeVenta({ ventaId, comprobante, aviso, puedeEmitir, f
         <p className="grid min-w-0">
           <span className="leading-tight font-extrabold">{fraseDeComprobante(comprobante).titulo}</span>
           <span className="font-bold text-deuda">rechazada</span>
-          {comprobante.motivo && <span className="mt-1">{comprobante.motivo}</span>}
+          {comprobante.motivo && <MotivoDeRechazo texto={comprobante.motivo} />}
           {salida === "corregir-ficha" && cliente ? (
             // Un solo toque a la ficha, donde se corrige el dato; sin frase de más: a 360 px la hoja de un rechazo ya está al límite de la pantalla.
             <Link href={`/clientes/${cliente.id}`} className="mt-1 -ml-1 flex min-h-12 items-center gap-1 self-start rounded-full px-1 font-extrabold text-acento-texto">

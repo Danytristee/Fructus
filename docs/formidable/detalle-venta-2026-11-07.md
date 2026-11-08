@@ -185,13 +185,34 @@ enviado 688 → 712 · **rechazada 748 → 747** · aceptada 677 → 702. «Envi
 - *Los 3 momentos de más duda:* cómo volver a intentar un rechazo, «Reintentar» frente a «espera», y el botón oscuro que cambia sin decir por qué.
 
 **Notas** (antes → después): 1 Sin manual 7 → 7 · 2 Una pregunta 6 → 7 · 3 Simplicidad 8 → 8 · 4 Lenguaje de puesto 6 → 7 · 5 Contenido primero 8 → 8 · 6 Lo difícil a un toque 6 → 7 ·
-7 Perdonar 6 → 6 · 8 Quitar 7 → 7 · 9 De punta a punta 7 → 7. Reglas del celular y oficio sin cambio (C4 queda en 7 por el rechazo largo). **Total: 7.0 → 7.3.**
+7 Perdonar 6 → 6 · 8 Quitar 7 → 7 · 9 De punta a punta 7 → 7. Reglas del celular y oficio sin cambio. **Total: 7.0 → 7.3** (7.5 con el arreglo del rechazo largo, más abajo).
 
 **Queda (pide su propio OK o es opinión)**
-- **Un rechazo con un motivo largo desborda la hoja** (medido: 10 px a 412 × 915 y 142 px a 360 × 800: «Anular» y «Cerrar» quedan bajo el borde). La prueba que lo cubre
-  quedó como `test.fixme` en `tests/e2e/comprobantes.spec.ts`, con esas medidas. Arreglarlo cambia la estructura de la hoja (por ejemplo, «Cerrar» pegado abajo con el resto
-  deslizándose, o el motivo en pocas líneas con el texto completo a un toque).
 - **«Corregir datos del cliente» se lee como texto**, no como botón: pasarlo a un botón de vidrio de 48 px no cambia la altura.
 - **Tras corregir el dato, el botón de reintentar de un rechazo es «Emitir boleta / factura»** y no dice que sale con otro número; una frase corta ahí no cabe a 360 px (747 de 752).
 - **«Lo que sobra»** (el «Volver a la venta» de arriba, «SUNAT todavía no contesta.», «saldrá con otro número») no se tocó: no era parte de los 3.
 - **Sin medir:** el peso de JavaScript de «Ventas» tras A9 y la vibración y el sonido al emitir.
+
+## 8. El rechazo con un motivo largo (arreglado con el OK de quien dirige el proyecto)
+
+**El problema, medido:** con un motivo de unas 200 letras, como los de SUNAT, la hoja de un rechazo no cabía: se desbordaba 10 px a 412 × 915 y **142 px a 360 × 800**, y «Anular» y «Cerrar» quedaban debajo del borde.
+
+**El arreglo, en dos piezas:**
+1. **El motivo se pliega a tres líneas** con un «Ver todo ⌄» de 48 px (`MotivoDeRechazo.tsx`). Abierto, muestra el texto completo y dice «Ver menos». El pliegue solo aparece si de verdad hay algo
+   plegado (se mide: un motivo corto se ve tal cual). Nada se esconde: el texto completo está a un toque.
+2. **«Cerrar» queda pegado abajo** (`PieFijo.tsx`, la misma pieza que ya usaban las tarjetas de voz, ahora compartida). Si la hoja se desliza, la salida siempre se alcanza; «Anular» queda
+   a un deslizamiento. Con contenido corto no se nota: el pie queda donde estaba.
+
+**Medido después (con un nombre de cliente como los del puesto):**
+
+| 360 × 800, motivo de ~200 letras | Antes | Después |
+|---|---|---|
+| La hoja se desliza por dentro | sí, 142 px de más | sí, pero con «Emitir» y «Cerrar» a la vista |
+| «Emitir boleta» / «Emitir factura» | 734–790 (pegados al borde) | 662–718, encima del pie |
+| «Cerrar» | debajo del borde | a la vista, pegado abajo (736–792) |
+| «Anular esta venta» | debajo del borde | a un deslizamiento, encima de «Cerrar» |
+
+A 412 × 915 todo cabe sin deslizar (hoja de 826 de 860 px). Con un motivo corto casi nada cambia: la hoja pasa de 747 a 751 de 752 px a 360 (el pie fijo suma 4 px) y sigue sin deslizar; a 360 px eso deja 1 px de margen, y por eso el pie pegado importa. Capturas: `detalle-venta-rechazado-largo-despues2-{412,360,1280}.png`.
+
+**Cómo se verificó:** dos pruebas e2e a 412 y 360 px (el rechazo corto cabe sin deslizar y no muestra «Ver todo»; el largo se pliega, «Emitir» queda encima del pie, «Cerrar» a la vista, «Anular» a un deslizamiento,
+«Ver todo» abre el texto completo y «Cerrar» sigue a la vista), y el resto de la suite e2e con el pie compartido (ver la bitácora). **Notas:** 9 De punta a punta 7 → 8 y C4 Bordes 7 → 8; **total 7.3 → 7.5**.

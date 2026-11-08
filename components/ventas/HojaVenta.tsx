@@ -14,6 +14,7 @@ import { Campo } from "@/components/ui/Campo";
 import { Hoja } from "@/components/ui/Hoja";
 import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
+import { PieFijo } from "@/components/ui/PieFijo";
 import { Guardado } from "@/components/voz/Guardado";
 import { PieConfirmar } from "@/components/voz/PieConfirmar";
 import { useConfirmar } from "@/components/voz/useConfirmar";
@@ -152,10 +153,13 @@ function Cuerpo({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar
         </Boton>
       )}
 
-      {/* La hoja se cierra tocando afuera, pero eso no se ve: un botón a la mano, para todos los roles (el ayudante y el contador no tienen otro). */}
-      <Boton variante="secundario" onClick={alCerrar}>
-        Cerrar
-      </Boton>
+      {/* La hoja se cierra tocando afuera, pero eso no se ve: un botón a la mano, para todos los roles (el ayudante y el contador no tienen otro).
+          Va pegado abajo: si el contenido no cabe (un rechazo con un motivo largo, un nombre largo), la hoja se desliza y «Cerrar» no se pierde. */}
+      <PieFijo>
+        <Boton variante="secundario" onClick={alCerrar}>
+          Cerrar
+        </Boton>
+      </PieFijo>
     </div>
   );
 }

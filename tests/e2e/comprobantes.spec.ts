@@ -558,15 +558,12 @@ test("el comprobante pendiente y el rechazado caben en el celular: botón de 48 
 });
 
 /**
- * Un rechazo con un cliente de nombre corto («Don Lucho 4821»): el de las pruebas lleva su marca de escenario y ocupa cuatro líneas, y taparía
- * lo que se mide. Se mide con scrollHeight y no con el alto de la hoja: la hoja nunca pasa de 94dvh, así que su alto no puede delatar que se
- * desborda por dentro.
+ * Abre el detalle de una venta con un comprobante rechazado, con un cliente de nombre corto («Don Lucho 4821»): el de las pruebas lleva su
+ * marca de escenario y ocupa cuatro líneas, y taparía lo que se mide. Quien llama ya entró (la hoja se abre con el dueño).
  */
-async function verQueUnRechazoCabe(page: Page, motivo?: "largo") {
-  const { height } = page.viewportSize()!;
+async function abrirRechazo(page: Page, motivo?: "largo") {
   const rechazado = await ventaAlCredito(76, undefined, { modo: "rechazado", ...(motivo ? { motivo } : {}) });
-  await page.keyboard.press("Escape");
-  await page.reload();
+  await page.goto("/ventas");
   await page.getByRole("button", { name: new RegExp(sinMarca(rechazado.cliente.nombre)) }).click();
   const primera = page.getByRole("dialog", { name: "Detalle de la venta" });
   await expect(primera).toBeVisible({ timeout: 15_000 });
@@ -577,21 +574,63 @@ async function verQueUnRechazoCabe(page: Page, motivo?: "largo") {
   await page.keyboard.press("Escape");
   await page.reload();
   await page.getByRole("button", { name: new RegExp(corto) }).click();
-  const hojaRechazo = page.getByRole("dialog", { name: "Detalle de la venta" });
-  await expect(tarjeta(hojaRechazo)).toContainText("rechazada", { timeout: 15_000 });
+  const hoja = page.getByRole("dialog", { name: "Detalle de la venta" });
+  await expect(tarjeta(hoja)).toContainText("rechazada", { timeout: 15_000 });
   await page.waitForTimeout(500);
-  const medidas = await hojaRechazo.evaluate((raiz) => ({ desborde: raiz.scrollWidth - raiz.clientWidth, sobra: raiz.scrollHeight - raiz.clientHeight }));
+  return hoja;
+}
+
+/** Un rechazo corto cabe entero: la hoja no se desliza. Se mide con scrollHeight, no con el alto de la hoja (que nunca pasa de 94dvh). */
+async function verQueUnRechazoCabe(page: Page) {
+  const { height } = page.viewportSize()!;
+  const hoja = await abrirRechazo(page);
+  const medidas = await hoja.evaluate((raiz) => ({ desborde: raiz.scrollWidth - raiz.clientWidth, sobra: raiz.scrollHeight - raiz.clientHeight }));
   expect(medidas.desborde).toBeLessThanOrEqual(0);
   expect(medidas.sobra, "la hoja de un rechazo se desliza por dentro").toBeLessThanOrEqual(0);
-  const cerrar = (await hojaRechazo.getByRole("button", { name: "Cerrar" }).boundingBox())!;
+  await expect(hoja.getByRole("button", { name: /Ver todo/ }), "un motivo corto no se pliega").toHaveCount(0);
+  const cerrar = (await hoja.getByRole("button", { name: "Cerrar" }).boundingBox())!;
   expect(cerrar.y + cerrar.height, "«Cerrar» a la vista").toBeLessThanOrEqual(height);
 }
 
-// Medido en la pasada /formidable del 2026-11-07 (docs/formidable/detalle-venta-2026-11-07.md): con un motivo de unas 200 letras, como los
-// de SUNAT, la hoja se desborda por dentro: 10 px a 412 × 915 y 142 px a 360 × 800, y «Anular» y «Cerrar» quedan bajo el borde. Arreglarlo
-// cambia la estructura de la hoja (por ejemplo, «Cerrar» pegado abajo), así que espera el OK de quien dirige el proyecto.
-test.fixme("un rechazo con un motivo largo (unas 200 letras) también cabe en la hoja", async ({ page }) => {
-  await verQueUnRechazoCabe(page, "largo");
+// Con un motivo de unas 200 letras, como los de SUNAT, la hoja ya no cabe entera a 360 × 800 (medido: se desbordaba 142 px; a 412 × 915, 10 px).
+// El motivo se pliega a tres líneas con «Ver todo», y «Cerrar» queda pegado abajo: lo que se necesita (reintentar y salir) se ve sin deslizar,
+// y lo demás («Anular») está a un deslizamiento.
+test("un rechazo con un motivo largo (unas 200 letras): se pliega, «Emitir» y «Cerrar» se ven sin deslizar, y «Ver todo» lo muestra completo", async ({ page }) => {
+  const { width, height } = page.viewportSize()!;
+  await entrarComo(page, "duenio");
+  const hoja = await abrirRechazo(page, "largo");
+  const caja = async (nombre: string | RegExp) => (await hoja.getByRole("button", { name: nombre }).boundingBox())!;
+
+  // Plegado: se ve el comienzo y «Ver todo»; el texto completo sigue ahí para quien lo abra.
+  const ver = hoja.getByRole("button", { name: /Ver todo/ });
+  await expect(ver).toHaveAttribute("aria-expanded", "false");
+  await expect(ver).toContainText("El documento del cliente no es válido");
+  expect((await ver.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+
+  // Reintentar y salir, a la vista y sin que el pie pegado tape el reintento.
+  const cerrar = await caja("Cerrar");
+  for (const nombre of ["Emitir boleta", "Emitir factura"]) {
+    const c = await caja(nombre);
+    expect(c.y + c.height, `«${nombre}» a la vista`).toBeLessThanOrEqual(cerrar.y);
+    expect(c.x + c.width).toBeLessThanOrEqual(width);
+  }
+  expect(cerrar.y + cerrar.height, "«Cerrar» a la vista").toBeLessThanOrEqual(height + 1);
+
+  // «Anular» queda a un deslizamiento: al llegar al final, se ve entero y encima de «Cerrar».
+  await hoja.evaluate((raiz) => raiz.scrollTo(0, raiz.scrollHeight));
+  const anular = await caja("Anular esta venta");
+  const cerrarAlFinal = await caja("Cerrar");
+  expect(anular.y + anular.height, "«Anular» no queda debajo de «Cerrar»").toBeLessThanOrEqual(cerrarAlFinal.y);
+  expect(anular.y, "«Anular» dentro de la pantalla").toBeGreaterThanOrEqual(0);
+
+  // «Ver todo» abre el motivo completo, y «Cerrar» no se pierde aunque ahora la hoja se deslice.
+  await hoja.evaluate((raiz) => raiz.scrollTo(0, 0));
+  await ver.click();
+  await expect(hoja.getByRole("button", { name: /Ver menos/ })).toHaveAttribute("aria-expanded", "true");
+  await expect(hoja.getByText("con el documento correcto.")).toBeVisible();
+  const cerrarAbierto = await caja("Cerrar");
+  expect(cerrarAbierto.y + cerrarAbierto.height, "«Cerrar» a la vista con el motivo abierto").toBeLessThanOrEqual(height + 1);
+  expect(await hoja.evaluate((raiz) => raiz.scrollWidth - raiz.clientWidth)).toBeLessThanOrEqual(0);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
