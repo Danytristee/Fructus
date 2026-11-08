@@ -37,7 +37,7 @@ async function Historial() {
     supabase
       .from("ventas")
       .select(
-        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad)), comprobantes(id, tipo, serie, numero, estado, pdf_url)",
+        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre, tipo_documento), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad)), comprobantes(id, tipo, serie, numero, estado, pdf_url)",
       )
       .gte("fecha", desde)
       .order("fecha", { ascending: false })
@@ -82,7 +82,7 @@ async function Historial() {
         total: Number(v.total),
         condicion: v.condicion,
         medio,
-        cliente: v.cliente,
+        cliente: v.cliente ? { id: v.cliente.id, nombre: v.cliente.nombre, tipoDocumento: v.cliente.tipo_documento === "RUC" || v.cliente.tipo_documento === "DNI" ? v.cliente.tipo_documento : null } : null,
         items: v.items.map((i) => ({
           producto: nombreFruta(i.producto),
           cantidad: Number(i.cantidad),
@@ -100,7 +100,7 @@ async function Historial() {
   }
   const hoy = diaDeLima(ahora);
   const { resumenes, filas, porDia: deCadaDia } = resumirVentas(filasDeResumen, hoy, (fecha) => diaDeLima(new Date(fecha)));
-  return <HistorialVentas dias={[...porDia.values()]} hoy={hoy} puedeAnular={permisos.anular} puedeEmitir={permisos.registrar} resumenes={resumenes} filas={filas} deCadaDia={deCadaDia} />;
+  return <HistorialVentas dias={[...porDia.values()]} hoy={hoy} puedeAnular={permisos.anular} puedeEmitir={permisos.registrar} puedeEditarClientes={permisos.ajustes} resumenes={resumenes} filas={filas} deCadaDia={deCadaDia} />;
 }
 
 export default function Ventas() {

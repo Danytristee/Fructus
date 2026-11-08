@@ -12,7 +12,8 @@ export type DetalleVenta = {
   total: number;
   condicion: "contado" | "credito";
   medio: Medio | null;
-  cliente: { id: number; nombre: string } | null;
+  /** `tipoDocumento` decide si se le puede hacer factura (solo con RUC). */
+  cliente: { id: number; nombre: string; tipoDocumento: "DNI" | "RUC" | null } | null;
   items: ItemDeVenta[];
   /** Quién la registró, si se puede ver (el ayudante no lee los perfiles de los demás). */
   registradaPor: string | null;

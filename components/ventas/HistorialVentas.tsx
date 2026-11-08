@@ -30,6 +30,8 @@ type Props = {
   puedeAnular: boolean;
   /** Quienes registran ventas pueden emitir su boleta o factura. */
   puedeEmitir: boolean;
+  /** Quienes editan clientes (dueño y administrador) pueden agregarle el RUC para hacerle factura. */
+  puedeEditarClientes: boolean;
   /** Lo vendido en cada período, contando TODAS las ventas (la lista de `dias` puede estar cortada en las últimas N). */
   resumenes: Record<Periodo, ResumenPeriodo>;
   /** Cuántas ventas hay en cada período, anuladas incluidas: si son más que las de la lista, se dice. */
@@ -40,7 +42,7 @@ type Props = {
 
 // El historial de ventas: lo de hoy o lo de los últimos 7 días, con cuánto se vendió arriba, día por día, filtrado por contado
 // o crédito. Tocar una venta abre su detalle. Los totales y los conteos salen de TODAS las ventas del período, no de la lista.
-export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, resumenes, filas, deCadaDia }: Props) {
+export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, puedeEditarClientes, resumenes, filas, deCadaDia }: Props) {
   const [periodo, setPeriodo] = useState<Periodo>("hoy");
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [abierta, setAbierta] = useState<DetalleVenta | null>(null);
@@ -139,7 +141,7 @@ export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, resumenes
         </div>
       )}
 
-      <HojaVenta venta={abierta} puedeAnular={puedeAnular} puedeEmitir={puedeEmitir} alCerrar={() => setAbierta(null)} />
+      <HojaVenta venta={abierta} puedeAnular={puedeAnular} puedeEmitir={puedeEmitir} puedeEditarClientes={puedeEditarClientes} alCerrar={() => setAbierta(null)} />
     </section>
   );
 }

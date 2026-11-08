@@ -7,6 +7,7 @@ import { cn } from "cn";
 
 import { anularVenta } from "@/app/(app)/acciones-ventas";
 import { ComprobanteDeVenta } from "./ComprobanteDeVenta";
+import { PedirRuc } from "./PedirRuc";
 import { Avatar } from "@/components/ui/Avatar";
 import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
@@ -20,6 +21,7 @@ import { consecuenciasDeAnular, leerMotivo, MOTIVOS_RAPIDOS, type ClaveMotivo } 
 import { horaDeLima } from "@/lib/ficha-cliente-reglas";
 import { formatearHace, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
+import { ofertaDeFactura } from "@/lib/comprobantes/comprobante-reglas";
 import { fraseDePago, lineaDeFruta, type DetalleVenta } from "@/lib/ventas-reglas";
 
 type Props = {
@@ -28,25 +30,36 @@ type Props = {
   puedeAnular: boolean;
   /** Quienes registran ventas (dueño, administrador y ayudante) emiten su boleta o factura. */
   puedeEmitir: boolean;
+  /** Quienes editan clientes (dueño y administrador) pueden pedirle el RUC al cliente para hacerle factura. */
+  puedeEditarClientes: boolean;
   alCerrar: () => void;
 };
 
 // El detalle de una venta del historial: a quién, qué fruta y a cuánto, cómo se pagó y quién la registró. Quien puede, la anula
 // desde aquí, con sus consecuencias a la vista y su motivo.
-export function HojaVenta({ venta, puedeAnular, puedeEmitir, alCerrar }: Props) {
+export function HojaVenta({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar }: Props) {
   // Mientras anula, la hoja no se cierra: deslizar o tocar el velo no puede dejar a medias lo que se está guardando.
   const guardando = useRef(false);
   return (
     <Hoja abierta={venta !== null} alCambiar={(abrir) => !abrir && !guardando.current && alCerrar()} titulo="Detalle de la venta" icono={<Receipt aria-hidden />}>
-      {venta && <Cuerpo key={venta.id} venta={venta} puedeAnular={puedeAnular} puedeEmitir={puedeEmitir} alCerrar={alCerrar} alCambiarGuardando={(g) => (guardando.current = g)} />}
+      {venta && <Cuerpo key={venta.id} venta={venta} puedeAnular={puedeAnular} puedeEmitir={puedeEmitir} puedeEditarClientes={puedeEditarClientes} alCerrar={alCerrar} alCambiarGuardando={(g) => (guardando.current = g)} />}
     </Hoja>
   );
 }
 
-function Cuerpo({ venta, puedeAnular, puedeEmitir, alCerrar, alCambiarGuardando }: { venta: DetalleVenta; puedeAnular: boolean; puedeEmitir: boolean; alCerrar: () => void; alCambiarGuardando: (g: boolean) => void }) {
-  const [vista, setVista] = useState<"detalle" | "anular">("detalle");
+function Cuerpo({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar, alCambiarGuardando }: { venta: DetalleVenta; puedeAnular: boolean; puedeEmitir: boolean; puedeEditarClientes: boolean; alCerrar: () => void; alCambiarGuardando: (g: boolean) => void }) {
+  const [vista, setVista] = useState<"detalle" | "anular" | "ruc">("detalle");
   // El comprobante vive aquí: al emitirlo, la hoja ya lo muestra (y deja de ofrecer anular) sin esperar a que se refresque la lista.
   const [comprobante, setComprobante] = useState(venta.comprobante);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const alEmitir = (c: NonNullable<typeof comprobante>, nota: string | null) => {
+    setComprobante(c);
+    setAviso(nota);
+    setVista("detalle");
+  };
+  if (vista === "ruc" && venta.cliente) {
+    return <PedirRuc ventaId={venta.id} cliente={venta.cliente.nombre} volver={() => setVista("detalle")} alEmitir={alEmitir} alCambiarGuardando={alCambiarGuardando} />;
+  }
   if (vista === "anular") return <Anular venta={venta} volver={() => setVista("detalle")} alCerrar={alCerrar} alCambiarGuardando={alCambiarGuardando} />;
 
   const fecha = new Date(venta.fecha);
@@ -110,8 +123,11 @@ function Cuerpo({ venta, puedeAnular, puedeEmitir, alCerrar, alCambiarGuardando 
       <ComprobanteDeVenta
         ventaId={venta.id}
         comprobante={comprobante}
+        aviso={aviso}
         puedeEmitir={puedeEmitir && !anulacion}
-        alEmitir={setComprobante}
+        facturar={ofertaDeFactura(venta.cliente, puedeEditarClientes)}
+        alEmitir={alEmitir}
+        alPedirRuc={() => setVista("ruc")}
         alCambiarGuardando={alCambiarGuardando}
       />
 

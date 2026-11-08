@@ -160,3 +160,18 @@ const estados: Record<string, string> = {
 export function fraseDeComprobante(c: { tipo: CodigoTipo; serie: string; numero: number; estado: string }): { titulo: string; estado: string } {
   return { titulo: `${nombreDelTipo(c.tipo)} ${numeroDeComprobante(c.serie, c.numero)}`, estado: estados[c.estado] ?? c.estado };
 }
+
+/** Qué se le ofrece a quien mira una venta para la factura: sale directo, hay que pedir el RUC, o no se ofrece. */
+export type OfertaDeFactura = "emitir" | "pedir-ruc" | null;
+
+/**
+ * La factura es solo para clientes con RUC (INV-11). A una venta al paso no se le ofrece: no tiene a quién. A un cliente sin documento
+ * se le pide el RUC, pero solo quien puede editar clientes (el dueño y el administrador; la RLS también lo exige). A un cliente con DNI
+ * tampoco: su documento no se pisa sin avisar, se cambia en su ficha.
+ */
+export function ofertaDeFactura(cliente: { tipoDocumento: "DNI" | "RUC" | null } | null, puedeEditarClientes: boolean): OfertaDeFactura {
+  if (!cliente) return null;
+  if (cliente.tipoDocumento === "RUC") return "emitir";
+  if (cliente.tipoDocumento === null && puedeEditarClientes) return "pedir-ruc";
+  return null;
+}

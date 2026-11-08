@@ -10,7 +10,8 @@ import { sesion } from "@/lib/voz/accion-servidor";
 // contador solo lee. El número se reserva en la base y es idempotente por venta, así que tocar dos veces, o que lo toquen dos
 // personas a la vez, deja un solo comprobante.
 
-const entrada = z.object({ ventaId: z.number().int().positive(), tipo: z.enum(["boleta", "factura"]) });
+// `ruc` solo cuenta para una factura a un cliente que todavía no tiene documento: se guarda en su ficha y se emite.
+const entrada = z.object({ ventaId: z.number().int().positive(), tipo: z.enum(["boleta", "factura"]), ruc: z.string().max(40).optional() });
 
 export type ResultadoEmitir = { ok: true; comprobante: ComprobanteVista; aviso?: string } | { ok: false; error: string; sinSesion?: true };
 
@@ -23,5 +24,5 @@ export async function emitirComprobante(datos: z.input<typeof entrada>): Promise
   if (!s) return { ok: false, error: "Tu sesión terminó. Vuelve a entrar y emite el comprobante otra vez.", sinSesion: true };
   if (!s.permisos.registrar) return { ok: false, error: "Solo quien registra ventas puede emitir comprobantes." };
 
-  return emitirComprobanteDeVenta({ supabase: s.supabase, ventaId: leido.data.ventaId, tipo: leido.data.tipo });
+  return emitirComprobanteDeVenta({ supabase: s.supabase, ventaId: leido.data.ventaId, tipo: leido.data.tipo, ruc: leido.data.ruc });
 }

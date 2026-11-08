@@ -6,6 +6,7 @@ import {
   fraseDeComprobante,
   leerRespuesta,
   nombreDelTipo,
+  ofertaDeFactura,
   numeroDeComprobante,
   type DatosDeVenta,
 } from "./comprobante-reglas";
@@ -135,5 +136,26 @@ describe("fraseDeComprobante", () => {
     expect(fraseDeComprobante({ ...base, estado: "enviado" })).toEqual({ titulo: "Boleta B001-00000012", estado: "enviada, esperando a SUNAT" });
     expect(fraseDeComprobante({ ...base, estado: "pendiente" })).toEqual({ titulo: "Boleta B001-00000012", estado: "en proceso" });
     expect(fraseDeComprobante({ ...base, tipo: "01", serie: "F001", estado: "aceptado" })).toEqual({ titulo: "Factura F001-00000012", estado: "aceptada" });
+  });
+});
+
+describe("ofertaDeFactura (qué se le ofrece a quien mira la venta)", () => {
+  it("una venta al paso no recibe factura: la factura lleva el RUC de un cliente", () => {
+    expect(ofertaDeFactura(null, true)).toBeNull();
+  });
+
+  it("a un cliente con RUC la factura sale directo", () => {
+    expect(ofertaDeFactura({ tipoDocumento: "RUC" }, false)).toBe("emitir");
+    expect(ofertaDeFactura({ tipoDocumento: "RUC" }, true)).toBe("emitir");
+  });
+
+  it("a un cliente sin documento, quien puede editar clientes pide el RUC; quien no puede, no ve la factura", () => {
+    expect(ofertaDeFactura({ tipoDocumento: null }, true)).toBe("pedir-ruc");
+    expect(ofertaDeFactura({ tipoDocumento: null }, false)).toBeNull();
+  });
+
+  it("un cliente con DNI no recibe factura desde aquí: su documento es el DNI y no se pisa sin avisar (se cambia en su ficha)", () => {
+    expect(ofertaDeFactura({ tipoDocumento: "DNI" }, true)).toBeNull();
+    expect(ofertaDeFactura({ tipoDocumento: "DNI" }, false)).toBeNull();
   });
 });

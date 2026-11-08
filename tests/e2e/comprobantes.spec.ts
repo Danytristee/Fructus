@@ -2,7 +2,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { baseLocal, invariantes } from "./base";
 import { entrarComo, type Rol } from "./cuentas";
-import { fiar } from "./dictar";
+import { fiar, venderAlPaso } from "./dictar";
 import { controlarLucode, recibidosPorLucode } from "./lucode";
 
 // Emitir una boleta desde el detalle de la venta (A9). El proveedor es un Lucode simulado (tests/e2e/lucode-simulado.mjs): la
@@ -210,4 +210,125 @@ test("la hoja con el comprobante cabe en el celular: botón a la vista, controle
   const despues = await hoja.evaluate((raiz) => ({ desborde: raiz.scrollWidth - raiz.clientWidth, alto: raiz.getBoundingClientRect().height }));
   expect(despues.desborde).toBeLessThanOrEqual(0);
   expect(despues.alto).toBeLessThanOrEqual(height);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// A9.2 · La factura es solo para clientes con RUC
+// ---------------------------------------------------------------------------------------------------------------------
+
+const rucAlAzar = () => `20${String(Math.floor(Math.random() * 1_000_000_000)).padStart(9, "0")}`;
+
+test("un cliente con RUC: se le ofrece factura y boleta; la factura sale en la serie F001 con su RUC y su nombre", async ({ page }) => {
+  const ruc = rucAlAzar();
+  const { cliente, ventaId } = await ventaAlCredito(200, { tipo_documento: "RUC", numero_documento: ruc });
+  const hoja = await abrirDetalle(page, cliente.nombre);
+  await expect(hoja.getByRole("button", { name: "Emitir boleta" })).toBeVisible();
+
+  await hoja.getByRole("button", { name: "Emitir factura" }).click();
+  const tarjeta = hoja.getByRole("group", { name: "Comprobante" });
+  await expect(tarjeta).toContainText(/Factura F001-\d{8}/, { timeout: 20_000 });
+  await expect(tarjeta).toContainText("aceptada");
+
+  const [c] = await comprobantesDe(ventaId);
+  expect(c).toMatchObject({ tipo: "01", serie: "F001", estado: "aceptado" });
+  const recibidos = (await recibidosPorLucode()).filter((p) => p.cliente.nombre === cliente.nombre);
+  expect(recibidos).toHaveLength(1);
+  expect(recibidos[0]).toMatchObject({ tipo: "01", serie: "F001", cliente: { tipo_documento: "6", numero_documento: ruc }, totales: { exonerado: 200, total: 200 } });
+  expect(invariantes()).toBe("limpias"); // INV-11: una factura es de un cliente con RUC
+});
+
+test("un cliente sin documento: la factura pide el RUC, lo valida, lo guarda en su ficha y recién emite", async ({ page }) => {
+  const { cliente, ventaId } = await ventaAlCredito(150);
+  const hoja = await abrirDetalle(page, cliente.nombre);
+  await hoja.getByRole("button", { name: "Emitir factura" }).click();
+
+  // La hoja pide el RUC; con uno mal escrito dice cómo es y no deja seguir.
+  await expect(hoja.getByRole("heading", { name: /RUC/ })).toBeVisible();
+  const campo = hoja.getByLabel("RUC");
+  const guardar = hoja.getByRole("button", { name: "Guardar RUC y emitir factura" });
+  await campo.fill("123");
+  await expect(hoja.getByText("El RUC tiene 11 números y empieza con 10 o 20.")).toBeVisible();
+  await expect(guardar).toBeDisabled();
+  expect(await comprobantesDe(ventaId)).toHaveLength(0);
+
+  // «Volver a la venta» no cambia nada.
+  await hoja.getByRole("button", { name: "Volver a la venta" }).click();
+  await expect(hoja.getByRole("button", { name: "Emitir factura" })).toBeVisible();
+  expect((await base.from("clientes").select("tipo_documento").eq("id", cliente.id).single()).data!.tipo_documento).toBeNull();
+
+  // Con el RUC bien escrito: se guarda en el cliente y sale la factura.
+  await hoja.getByRole("button", { name: "Emitir factura" }).click();
+  const ruc = rucAlAzar();
+  await hoja.getByLabel("RUC").fill(ruc.replace(/(\d{2})(\d{3})(\d{3})(\d{3})/, "$1 $2 $3 $4")); // con espacios: se limpian
+  await guardar.click();
+  await expect(hoja.getByRole("group", { name: "Comprobante" })).toContainText(/Factura F001-\d{8}/, { timeout: 20_000 });
+  expect((await base.from("clientes").select("tipo_documento, numero_documento").eq("id", cliente.id).single()).data).toEqual({ tipo_documento: "RUC", numero_documento: ruc });
+  expect((await recibidosPorLucode()).filter((p) => p.cliente.nombre === cliente.nombre)[0]!.cliente).toMatchObject({ tipo_documento: "6", numero_documento: ruc });
+  expect(invariantes()).toBe("limpias");
+});
+
+test("el ayudante emite factura solo a un cliente que ya tiene RUC: no puede cambiar documentos, así que a los demás no se la ofrece", async ({ page, browser }) => {
+  const conRuc = await ventaAlCredito(90, { tipo_documento: "RUC", numero_documento: rucAlAzar() });
+  const sinDocumento = await ventaAlCredito(91);
+  const hoja = await abrirDetalle(page, conRuc.cliente.nombre, "ayudante");
+  await hoja.getByRole("button", { name: "Emitir factura" }).click();
+  await expect(hoja.getByRole("group", { name: "Comprobante" })).toContainText(/Factura F001-\d{8}/, { timeout: 20_000 });
+
+  const { contexto, pagina } = await otraPersona(browser, page);
+  const hojaSinRuc = await abrirDetalle(pagina, sinDocumento.cliente.nombre, "ayudante");
+  await expect(hojaSinRuc.getByRole("button", { name: "Emitir boleta" })).toBeVisible();
+  await expect(hojaSinRuc.getByRole("button", { name: "Emitir factura" })).toHaveCount(0);
+  await contexto.close();
+  expect(await comprobantesDe(sinDocumento.ventaId)).toHaveLength(0);
+});
+
+test("una venta al paso y un cliente con DNI solo reciben boleta", async ({ page, browser }) => {
+  const monto = 123.45;
+  await venderAlPaso(monto, "plin");
+  const hojaPaso = await (async () => {
+    await entrarComo(page, "duenio");
+    await page.goto("/ventas");
+    await page.getByRole("button", { name: /Venta al paso/ }).filter({ hasText: /123\.45/ }).first().click();
+    const h = page.getByRole("dialog", { name: "Detalle de la venta" });
+    await expect(h).toBeVisible({ timeout: 15_000 });
+    return h;
+  })();
+  await expect(hojaPaso.getByRole("button", { name: "Emitir boleta" })).toBeVisible();
+  await expect(hojaPaso.getByRole("button", { name: "Emitir factura" })).toHaveCount(0);
+
+  const dni = await ventaAlCredito(60, { tipo_documento: "DNI", numero_documento: "40123456" });
+  const { contexto, pagina } = await otraPersona(browser, page);
+  const hojaDni = await abrirDetalle(pagina, dni.cliente.nombre, "duenio");
+  await expect(hojaDni.getByRole("button", { name: "Emitir boleta" })).toBeVisible();
+  await expect(hojaDni.getByRole("button", { name: "Emitir factura" })).toHaveCount(0);
+  await contexto.close();
+});
+
+test("la factura cabe en el celular: los dos botones lado a lado a 48 px, y la hoja del RUC sin desborde", async ({ page }) => {
+  const { cliente } = await ventaAlCredito(70, { tipo_documento: "RUC", numero_documento: rucAlAzar() });
+  const hoja = await abrirDetalle(page, cliente.nombre);
+  await page.waitForTimeout(800);
+  const { width, height } = page.viewportSize()!;
+  for (const nombre of ["Emitir factura", "Emitir boleta"]) {
+    const caja = (await hoja.getByRole("button", { name: nombre }).boundingBox())!;
+    expect(caja.height, `alto de «${nombre}»`).toBeGreaterThanOrEqual(48);
+    expect(caja.x, `«${nombre}» dentro de la pantalla`).toBeGreaterThanOrEqual(0);
+    expect(caja.x + caja.width, `«${nombre}» dentro de la pantalla`).toBeLessThanOrEqual(width);
+    expect(caja.y + caja.height, `«${nombre}» a la vista`).toBeLessThanOrEqual(height);
+  }
+  const sinDocumento = await ventaAlCredito(71);
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await page.getByRole("button", { name: new RegExp(sinDocumento.cliente.nombre) }).click();
+  const hojaRuc = page.getByRole("dialog", { name: "Detalle de la venta" });
+  await expect(hojaRuc).toBeVisible({ timeout: 15_000 });
+  await hojaRuc.getByRole("button", { name: "Emitir factura" }).click();
+  await expect(hojaRuc.getByLabel("RUC")).toBeVisible();
+  await page.waitForTimeout(500);
+  const medidas = await hojaRuc.evaluate((raiz) => ({
+    desborde: raiz.scrollWidth - raiz.clientWidth,
+    chicos: [...raiz.querySelectorAll("button, a, input")].filter((e) => e.getBoundingClientRect().height < 48).map((e) => e.textContent?.trim() || e.getAttribute("id")),
+  }));
+  expect(medidas.desborde).toBeLessThanOrEqual(0);
+  expect(medidas.chicos, "controles de menos de 48 px").toEqual([]);
 });

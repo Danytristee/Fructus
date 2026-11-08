@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import { leerDocumento } from "@/lib/cliente-reglas";
 import { diaDeLima } from "@/lib/formato";
 import { crearClienteServicio } from "@/lib/supabase/servicio";
 import type { Database, Json } from "@/lib/supabase/tipos-db";
@@ -43,7 +44,7 @@ function fraseDeLaReserva(codigo: string | undefined, mensaje: string): string {
 
 type ClienteUsuario = SupabaseClient<Database>;
 
-export async function emitirComprobanteDeVenta(args: { supabase: ClienteUsuario; ventaId: number; tipo: "boleta" | "factura" }): Promise<ResultadoEmision> {
+export async function emitirComprobanteDeVenta(args: { supabase: ClienteUsuario; ventaId: number; tipo: "boleta" | "factura"; ruc?: string }): Promise<ResultadoEmision> {
   const { supabase, ventaId, tipo } = args;
 
   // Sin proveedor configurado no se reserva ningún número: no se gasta un correlativo que no se puede enviar.
@@ -57,7 +58,7 @@ export async function emitirComprobanteDeVenta(args: { supabase: ClienteUsuario;
   const { data: venta, error: errorVenta } = await supabase
     .from("ventas")
     .select(
-      "id, total, estado, cliente:clientes(nombre, tipo_documento, numero_documento), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad, afectacion_igv))",
+      "id, total, estado, cliente:clientes(id, nombre, tipo_documento, numero_documento), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad, afectacion_igv))",
     )
     .eq("id", ventaId)
     .maybeSingle();
@@ -67,6 +68,32 @@ export async function emitirComprobanteDeVenta(args: { supabase: ClienteUsuario;
   }
   if (!venta) return { ok: false, error: "No encontré esa venta: puede que ya no esté en tu historial." };
   if (venta.estado !== "registrada") return { ok: false, error: "Esa venta está anulada: no se le emite comprobante." };
+
+  // Una factura a un cliente que todavía no tiene documento lleva el RUC que se acaba de pedir. Se guarda con la sesión de la persona,
+  // no con la llave de servicio: la RLS decide quién edita clientes (dueño y administrador), aunque alguien salte la pantalla.
+  let cliente = venta.cliente;
+  if (tipo === "factura" && cliente && cliente.tipo_documento === null) {
+    const lectura = leerDocumento("RUC", args.ruc ?? "");
+    if (!lectura.ok || lectura.numero === null) return { ok: false, error: lectura.ok ? "Escribe el RUC: son 11 números." : lectura.error };
+    const { data: puesto, error: errorRuc } = await supabase
+      .from("clientes")
+      .update({ tipo_documento: "RUC", numero_documento: lectura.numero })
+      .eq("id", cliente.id)
+      .is("tipo_documento", null) // solo si sigue sin documento: otra persona pudo ponérselo mientras tanto
+      .select("id")
+      .maybeSingle();
+    if (errorRuc) {
+      console.error("comprobantes: no se pudo guardar el RUC del cliente", { clienteId: cliente.id, codigo: errorRuc.code });
+      return { ok: false, error: errorRuc.code === "23514" ? "Ese RUC no es válido." : SIN_SENAL };
+    }
+    if (puesto) cliente = { ...cliente, tipo_documento: "RUC", numero_documento: lectura.numero };
+    else {
+      // No se tocó ninguna fila: o no tiene permiso (la RLS), o alguien ya le puso un documento. Se mira cuál.
+      const { data: actual } = await supabase.from("clientes").select("tipo_documento, numero_documento").eq("id", cliente.id).maybeSingle();
+      if (actual?.tipo_documento !== "RUC") return { ok: false, error: "Solo el dueño o el administrador pueden agregar el RUC de un cliente." };
+      cliente = { ...cliente, tipo_documento: actual.tipo_documento, numero_documento: actual.numero_documento };
+    }
+  }
 
   const servicio = crearClienteServicio();
   const { data: reservado, error: errorReserva } = await servicio.rpc("reservar_comprobante", { p_venta_id: ventaId, p_tipo: CODIGO[tipo] });
@@ -88,11 +115,11 @@ export async function emitirComprobanteDeVenta(args: { supabase: ClienteUsuario;
   const datos: DatosDeVenta = {
     fecha: diaDeLima(new Date()),
     total: Number(venta.total),
-    cliente: venta.cliente
+    cliente: cliente
       ? {
-          tipoDocumento: venta.cliente.tipo_documento === "RUC" || venta.cliente.tipo_documento === "DNI" ? venta.cliente.tipo_documento : null,
-          numeroDocumento: venta.cliente.numero_documento,
-          nombre: venta.cliente.nombre,
+          tipoDocumento: cliente.tipo_documento === "RUC" || cliente.tipo_documento === "DNI" ? cliente.tipo_documento : null,
+          numeroDocumento: cliente.numero_documento,
+          nombre: cliente.nombre,
         }
       : null,
     items: venta.items.map((i) => ({
