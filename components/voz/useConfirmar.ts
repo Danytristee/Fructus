@@ -69,5 +69,17 @@ export function useConfirmar<R extends { ok: true }>({ alGuardar, alCambiarGuard
     startTransition(() => router.refresh());
   }
 
-  return { confirmar, guardando, error, guardado, incierto };
+  /**
+   * Deja el botón listo para otra operación. Tras un éxito el hook se cierra a nuevos envíos (un segundo toque no duplica lo
+   * guardado); este es solo para una pantalla cuyo éxito no termina el trabajo, como emitir un comprobante que queda «en proceso»
+   * y todavía hay que reintentar. Se llama desde adentro de `guardar`, cuando el resultado deja algo por hacer.
+   */
+  function reiniciar() {
+    enviando.current = false;
+    incierto.current = false;
+    setGuardado(null);
+    setError(null);
+  }
+
+  return { confirmar, guardando, error, guardado, incierto, reiniciar };
 }

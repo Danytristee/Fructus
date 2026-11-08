@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 import { baseLocal, invariantes } from "./base";
 import { entrarComo, type Rol } from "./cuentas";
 import { fiar, venderAlPaso } from "./dictar";
-import { controlarLucode, recibidosPorLucode } from "./lucode";
+import { conEscenario, consultasAlProveedor, recibidosPorLucode, sinMarca, sunatContesto, type Escenario } from "./lucode";
 
 // Emitir una boleta desde el detalle de la venta (A9). El proveedor es un Lucode simulado (tests/e2e/lucode-simulado.mjs): la
 // prueba mira lo que le llegó, no solo lo que dice la pantalla. Cada prueba crea su propio cliente y su propia venta.
@@ -11,15 +11,16 @@ import { controlarLucode, recibidosPorLucode } from "./lucode";
 test.setTimeout(90_000);
 const base = baseLocal();
 
-async function clienteNuevo(documento?: { tipo_documento: "DNI" | "RUC"; numero_documento: string }) {
-  const nombre = `Cliente de comprobantes ${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
+async function clienteNuevo(documento?: { tipo_documento: "DNI" | "RUC"; numero_documento: string }, escenario?: Escenario) {
+  const nombreBase = `Cliente de comprobantes ${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
+  const nombre = escenario ? conEscenario(nombreBase, escenario) : nombreBase;
   const { data, error } = await base.from("clientes").insert({ nombre, ...documento }).select("id, nombre").single();
   if (error || !data) throw new Error(`No se pudo crear el cliente: ${error?.message}`);
   return data;
 }
 
-async function ventaAlCredito(monto: number, documento?: { tipo_documento: "DNI" | "RUC"; numero_documento: string }) {
-  const cliente = await clienteNuevo(documento);
+async function ventaAlCredito(monto: number, documento?: { tipo_documento: "DNI" | "RUC"; numero_documento: string }, escenario?: Escenario) {
+  const cliente = await clienteNuevo(documento, escenario);
   await fiar(cliente.id, monto);
   const { data: v } = await base.from("ventas").select("id").eq("cliente_id", cliente.id).single();
   return { cliente, ventaId: v!.id };
@@ -32,7 +33,7 @@ const hoyEnLima = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Amer
 async function abrirDetalle(page: Page, nombre: string, rol: Rol = "duenio") {
   await entrarComo(page, rol);
   await page.goto("/ventas");
-  await page.getByRole("button", { name: new RegExp(nombre) }).click();
+  await page.getByRole("button", { name: new RegExp(sinMarca(nombre)) }).click();
   const hoja = page.getByRole("dialog", { name: "Detalle de la venta" });
   await expect(hoja).toBeVisible({ timeout: 15_000 });
   return hoja;
@@ -43,10 +44,6 @@ async function otraPersona(browser: Browser, como: Page) {
   const contexto = await browser.newContext({ baseURL: como.url().split("/").slice(0, 3).join("/"), viewport: como.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
   return { contexto, pagina: await contexto.newPage() };
 }
-
-test.beforeEach(async () => {
-  await controlarLucode({ limpiar: true, demoraMs: 0 });
-});
 
 test("emitir una boleta desde el detalle: queda aceptada con su número, se guarda lo que contestó el proveedor y se le mandó una sola vez", async ({ page }) => {
   const { cliente, ventaId } = await ventaAlCredito(100);
@@ -94,8 +91,8 @@ test("emitir una boleta desde el detalle: queda aceptada con su número, se guar
 });
 
 test("el dueño y el ayudante emiten la misma venta a la vez: un solo comprobante, el mismo número para los dos, y el proveedor lo recibe una vez", async ({ page, browser }) => {
-  await controlarLucode({ demoraMs: 1_500 }); // la respuesta tarda: la segunda persona llega con la primera en camino
-  const { cliente, ventaId } = await ventaAlCredito(80);
+  // La respuesta tarda un poco (menos que el tope): la segunda persona llega con la primera en camino.
+  const { cliente, ventaId } = await ventaAlCredito(80, undefined, { demoraMs: 1_200 });
   const hojaA = await abrirDetalle(page, cliente.nombre, "duenio");
   const { contexto: ctx, pagina: paginaB } = await otraPersona(browser, page);
   const hojaB = await abrirDetalle(paginaB, cliente.nombre, "ayudante");
@@ -331,4 +328,196 @@ test("la factura cabe en el celular: los dos botones lado a lado a 48 px, y la h
   }));
   expect(medidas.desborde).toBeLessThanOrEqual(0);
   expect(medidas.chicos, "controles de menos de 48 px").toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// A9.3 · Cuando el proveedor falla: nunca dos números, nunca un éxito inventado, y siempre se dice qué pasó
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Quita la marca de escenario del cliente: es como si el proveedor «se hubiera arreglado» para el siguiente intento. */
+async function arreglarProveedor(clienteId: number, nuevo?: Escenario) {
+  const { data } = await base.from("clientes").select("nombre").eq("id", clienteId).single();
+  const limpio = sinMarca(data!.nombre);
+  await base.from("clientes").update({ nombre: nuevo ? conEscenario(limpio, nuevo) : limpio }).eq("id", clienteId);
+  return limpio;
+}
+
+const intentosDe = async (nombreBase: string) => (await recibidosPorLucode()).filter((p) => p.cliente.nombre.startsWith(nombreBase));
+const tarjeta = (hoja: Awaited<ReturnType<typeof abrirDetalle>>) => hoja.getByRole("group", { name: "Comprobante" });
+
+test("el proveedor rechaza: se dice por qué, queda guardado el rechazo, y se puede emitir otro con otro número", async ({ page }) => {
+  const { cliente, ventaId } = await ventaAlCredito(120, undefined, { modo: "rechazado" });
+  const hoja = await abrirDetalle(page, cliente.nombre);
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+
+  // El rechazo se dice en la tarjeta, con su motivo; no se repite en una alerta aparte.
+  await expect(tarjeta(hoja)).toContainText("rechazada", { timeout: 20_000 });
+  await expect(tarjeta(hoja)).toContainText("El RUC del cliente no existe");
+  await expect(hoja.getByRole("alert")).toHaveCount(0);
+  await expect(hoja.getByRole("button", { name: "Emitir boleta" })).toBeVisible(); // se puede volver a emitir
+  await expect(hoja.getByRole("button", { name: "Anular esta venta" })).toBeVisible(); // sin comprobante vigente, anular vuelve a ser posible
+  const [rechazado] = await comprobantesDe(ventaId);
+  expect(rechazado).toMatchObject({ estado: "rechazado", tipo: "03" });
+  expect(rechazado!.respuesta).toMatchObject({ estado: "rechazado", mensaje: "El RUC del cliente no existe" });
+
+  // Se corrige y se emite de nuevo: sale con otro número, y el rechazado queda de historia.
+  await arreglarProveedor(cliente.id);
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hoja)).toContainText("aceptada", { timeout: 20_000 });
+  const todos = (await comprobantesDe(ventaId)).sort((a, b) => a.id - b.id);
+  expect(todos.map((c) => c.estado)).toEqual(["rechazado", "aceptado"]);
+  expect(todos[1]!.numero).not.toBe(todos[0]!.numero);
+  expect(invariantes()).toBe("limpias"); // INV-08: una sola vigente
+
+  await page.reload();
+  await page.getByRole("button", { name: new RegExp(sinMarca(cliente.nombre)) }).click();
+  await expect(tarjeta(page.getByRole("dialog", { name: "Detalle de la venta" }))).toContainText("aceptada", { timeout: 15_000 });
+});
+
+test("el proveedor está caído: el comprobante queda pendiente con su número, se dice qué hacer, y Reintentar manda ese mismo número", async ({ page, browser }) => {
+  const { cliente, ventaId } = await ventaAlCredito(130, undefined, { modo: "caido" });
+  const hoja = await abrirDetalle(page, cliente.nombre);
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+
+  await expect(tarjeta(hoja)).toContainText("en proceso", { timeout: 20_000 });
+  await expect(tarjeta(hoja)).toContainText("No hubo respuesta del proveedor. Reintenta: lleva el mismo número y no se repite.");
+  const [pendiente] = await comprobantesDe(ventaId);
+  expect(pendiente).toMatchObject({ estado: "pendiente", respuesta: null, pdf_url: null });
+  await expect(hoja.getByRole("button", { name: "Anular esta venta" })).toHaveCount(0); // en proceso: no se anula (podría quedar aceptado)
+  await expect(hoja.getByText("El comprobante está en proceso: espera a que termine para anular.")).toBeVisible();
+
+  // El contador ve en qué quedó, pero no puede reintentar.
+  const { contexto, pagina } = await otraPersona(browser, page);
+  const hojaContador = await abrirDetalle(pagina, cliente.nombre, "contador");
+  await expect(tarjeta(hojaContador)).toContainText("en proceso");
+  await expect(hojaContador.getByRole("button", { name: "Reintentar" })).toHaveCount(0);
+  await contexto.close();
+
+  // Se arregla el proveedor y se reintenta: el MISMO comprobante y el MISMO número; nada nuevo se reserva.
+  const nombreBase = await arreglarProveedor(cliente.id);
+  await hoja.getByRole("button", { name: "Reintentar" }).click();
+  await expect(tarjeta(hoja)).toContainText("aceptada", { timeout: 20_000 });
+  const despues = await comprobantesDe(ventaId);
+  expect(despues).toHaveLength(1);
+  expect(despues[0]).toMatchObject({ id: pendiente!.id, numero: pendiente!.numero, estado: "aceptado" });
+  const intentos = await intentosDe(nombreBase);
+  expect(intentos.map((p) => p.numero)).toEqual([pendiente!.numero, pendiente!.numero]); // dos intentos, un solo número
+  expect(invariantes()).toBe("limpias");
+});
+
+test("la respuesta se pierde (pasa el tope de espera) pero el proveedor sí lo guardó: al reintentar dice «ya existe», se le pregunta cómo quedó y no se repite", async ({ page }) => {
+  const { cliente, ventaId } = await ventaAlCredito(140, undefined, { demoraMs: 5_000 }); // más que el tope de 2 s de las pruebas
+  const hoja = await abrirDetalle(page, cliente.nombre);
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hoja)).toContainText("en proceso", { timeout: 20_000 });
+  const [pendiente] = await comprobantesDe(ventaId);
+  expect(pendiente!.estado).toBe("pendiente");
+
+  const nombreBase = await arreglarProveedor(cliente.id); // el siguiente intento contesta al toque
+  await hoja.getByRole("button", { name: "Reintentar" }).click();
+  await expect(tarjeta(hoja)).toContainText("aceptada", { timeout: 20_000 });
+  const [aceptado] = await comprobantesDe(ventaId);
+  expect(aceptado).toMatchObject({ id: pendiente!.id, numero: pendiente!.numero, estado: "aceptado" });
+  expect(aceptado!.pdf_url).toMatch(/\/pdf\/B001-\d{8}$/); // el PDF vino de la consulta
+  expect(await comprobantesDe(ventaId)).toHaveLength(1);
+  expect((await intentosDe(nombreBase)).map((p) => p.numero)).toEqual([pendiente!.numero, pendiente!.numero]);
+  expect(invariantes()).toBe("limpias");
+});
+
+test("«enviado»: SUNAT todavía no contesta; «Ver cómo va» pregunta sin repetir nada, y cuando contesta queda aceptado", async ({ page }) => {
+  const { cliente, ventaId } = await ventaAlCredito(150, undefined, { modo: "enviado" });
+  const hoja = await abrirDetalle(page, cliente.nombre);
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hoja)).toContainText("enviada, esperando a SUNAT", { timeout: 20_000 });
+  const [enviado] = await comprobantesDe(ventaId);
+  expect(enviado).toMatchObject({ estado: "enviado", pdf_url: null });
+  await expect(hoja.getByText("Con comprobante no se anula: corresponde una nota de crédito.")).toBeVisible();
+
+  // «SUNAT todavía no contesta» ya está en pantalla antes de preguntar: se espera a que la pregunta haya llegado al proveedor, y recién
+  // entonces SUNAT contesta (si no, la primera consulta podría ya encontrarla aceptada y la prueba dependería del ritmo).
+  const numero = `${enviado!.serie}-${String(enviado!.numero).padStart(8, "0")}`;
+  const consultasDe = async () => (await consultasAlProveedor()).filter((n) => n === numero).length;
+  await hoja.getByRole("button", { name: "Ver cómo va" }).click();
+  await expect.poll(consultasDe, { timeout: 20_000 }).toBe(1);
+  await expect(tarjeta(hoja)).toContainText("SUNAT todavía no contesta.");
+  expect((await comprobantesDe(ventaId))[0]!.estado).toBe("enviado");
+
+  await sunatContesto(enviado!.serie, enviado!.numero);
+  await hoja.getByRole("button", { name: "Ver cómo va" }).click(); // espera a que termine la consulta anterior: el botón vuelve cuando acaba
+  await expect.poll(consultasDe, { timeout: 20_000 }).toBe(2);
+  await expect(tarjeta(hoja)).toContainText("aceptada", { timeout: 20_000 });
+  expect((await comprobantesDe(ventaId))[0]).toMatchObject({ estado: "aceptado" });
+  expect((await comprobantesDe(ventaId))[0]!.pdf_url).toMatch(/\/pdf\/B001-\d{8}$/);
+  expect((await intentosDe(cliente.nombre)).length, "preguntar no reenvía el comprobante").toBe(1);
+});
+
+for (const escenario of [
+  { modo: "invalido" as const, que: "contesta algo que no se entiende" },
+  { modo: "token" as const, que: "no acepta la clave (401)" },
+]) {
+  test(`el proveedor ${escenario.que}: NO se toma por un rechazo ni por un éxito, queda pendiente con su número`, async ({ page }) => {
+    const { cliente, ventaId } = await ventaAlCredito(95, undefined, { modo: escenario.modo });
+    const hoja = await abrirDetalle(page, cliente.nombre);
+    await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+    await expect(tarjeta(hoja)).toContainText("en proceso", { timeout: 20_000 });
+    await expect(hoja.getByRole("button", { name: "Reintentar" })).toBeVisible();
+    const guardados = await comprobantesDe(ventaId);
+    expect(guardados).toHaveLength(1);
+    expect(guardados[0]).toMatchObject({ estado: "pendiente", respuesta: null });
+  });
+}
+
+test("dos personas reintentan a la vez el mismo comprobante pendiente: queda uno solo, aceptado, con el mismo número", async ({ page, browser }) => {
+  const { cliente, ventaId } = await ventaAlCredito(85, undefined, { modo: "caido" });
+  const hojaA = await abrirDetalle(page, cliente.nombre, "duenio");
+  await hojaA.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hojaA)).toContainText("en proceso", { timeout: 20_000 });
+  const [pendiente] = await comprobantesDe(ventaId);
+
+  const { contexto, pagina } = await otraPersona(browser, page);
+  const hojaB = await abrirDetalle(pagina, cliente.nombre, "ayudante");
+  await expect(tarjeta(hojaB)).toContainText("en proceso");
+  const nombreBase = await arreglarProveedor(cliente.id, { demoraMs: 1_000 }); // contesta, pero tarda: los dos pedidos se cruzan
+  await Promise.all([hojaA.getByRole("button", { name: "Reintentar" }).click(), hojaB.getByRole("button", { name: "Reintentar" }).click()]);
+  await expect(tarjeta(hojaA)).toContainText("aceptada", { timeout: 30_000 });
+  await expect(tarjeta(hojaB)).toContainText("aceptada", { timeout: 30_000 });
+  await contexto.close();
+
+  const despues = await comprobantesDe(ventaId);
+  expect(despues).toHaveLength(1);
+  expect(despues[0]).toMatchObject({ id: pendiente!.id, numero: pendiente!.numero, estado: "aceptado" });
+  expect(new Set((await intentosDe(nombreBase)).map((p) => p.numero)).size, "todos los intentos fueron del mismo número").toBe(1);
+  expect(invariantes()).toBe("limpias");
+});
+
+test("el comprobante pendiente y el rechazado caben en el celular: botón de 48 px a la vista y texto sin desborde", async ({ page }) => {
+  const pendiente = await ventaAlCredito(75, undefined, { modo: "caido" });
+  const hoja = await abrirDetalle(page, pendiente.cliente.nombre);
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hoja)).toContainText("en proceso", { timeout: 20_000 });
+  await page.waitForTimeout(800);
+  const { width, height } = page.viewportSize()!;
+  const boton = (await hoja.getByRole("button", { name: "Reintentar" }).boundingBox())!;
+  expect(boton.height).toBeGreaterThanOrEqual(48);
+  expect(boton.y + boton.height, "«Reintentar» a la vista").toBeLessThanOrEqual(height);
+  expect(boton.x + boton.width).toBeLessThanOrEqual(width);
+  const medidas = await hoja.evaluate((raiz) => ({
+    desborde: raiz.scrollWidth - raiz.clientWidth,
+    chicos: [...raiz.querySelectorAll("button, a")].filter((e) => e.getBoundingClientRect().height < 48).map((e) => e.textContent?.trim()),
+  }));
+  expect(medidas.desborde).toBeLessThanOrEqual(0);
+  expect(medidas.chicos, "controles de menos de 48 px").toEqual([]);
+
+  const rechazado = await ventaAlCredito(76, undefined, { modo: "rechazado" });
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await page.getByRole("button", { name: new RegExp(sinMarca(rechazado.cliente.nombre)) }).click();
+  const hojaRechazo = page.getByRole("dialog", { name: "Detalle de la venta" });
+  await expect(hojaRechazo).toBeVisible({ timeout: 15_000 });
+  await hojaRechazo.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hojaRechazo)).toContainText("rechazada", { timeout: 20_000 });
+  await page.waitForTimeout(500);
+  const despues = await hojaRechazo.evaluate((raiz) => ({ desborde: raiz.scrollWidth - raiz.clientWidth, alto: raiz.getBoundingClientRect().height }));
+  expect(despues.desborde).toBeLessThanOrEqual(0);
+  expect(despues.alto).toBeLessThanOrEqual(height);
 });

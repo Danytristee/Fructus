@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   armarPedido,
+  ayudaDeComprobante,
+  comprobanteAMostrar,
   comprobanteVigente,
   fraseDeComprobante,
+  leerConsulta,
   leerRespuesta,
+  mensajeDeRespuesta,
   nombreDelTipo,
   ofertaDeFactura,
   numeroDeComprobante,
@@ -157,5 +161,87 @@ describe("ofertaDeFactura (qué se le ofrece a quien mira la venta)", () => {
   it("un cliente con DNI no recibe factura desde aquí: su documento es el DNI y no se pisa sin avisar (se cambia en su ficha)", () => {
     expect(ofertaDeFactura({ tipoDocumento: "DNI" }, true)).toBeNull();
     expect(ofertaDeFactura({ tipoDocumento: "DNI" }, false)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// A9.3 · Cuando el proveedor falla
+// ---------------------------------------------------------------------------------------------------------------------
+
+describe("leerRespuesta cuando algo sale mal", () => {
+  it("«ya existe» (409): el proveedor ya tiene ese número; hay que preguntarle cómo quedó, no repetirlo", () => {
+    expect(leerRespuesta(409, { mensaje: "El comprobante ya existe" })).toEqual({ tipo: "ya-existe" });
+    expect(leerRespuesta(409, null)).toEqual({ tipo: "ya-existe" });
+  });
+
+  it("un pedido mal formado (400 o 422) es un rechazo, con su motivo si lo trae", () => {
+    expect(leerRespuesta(422, { mensaje: "El RUC del cliente no existe" })).toMatchObject({ tipo: "rechazado", mensaje: "El RUC del cliente no existe" });
+    expect(leerRespuesta(400, { mensaje: "Falta el cliente" })).toMatchObject({ tipo: "rechazado", mensaje: "Falta el cliente" });
+    expect(leerRespuesta(400, null)).toMatchObject({ tipo: "rechazado", mensaje: "El proveedor rechazó el comprobante" });
+  });
+
+  it("una clave mala (401, 403), una ruta que no existe (404) o una caída (5xx) NO son un rechazo del comprobante: es «sin respuesta»", () => {
+    for (const estado of [401, 403, 404, 429, 500, 502, 503]) expect(leerRespuesta(estado, { mensaje: "x" }), String(estado)).toMatchObject({ tipo: "sin-respuesta" });
+  });
+
+  it("el motivo de un rechazo se recorta: no entra un texto de 5000 letras a la pantalla", () => {
+    const r = leerRespuesta(200, { estado: "rechazado", mensaje: "x".repeat(900) });
+    expect(r.tipo).toBe("rechazado");
+    if (r.tipo === "rechazado") expect(r.mensaje.length).toBeLessThanOrEqual(300);
+  });
+});
+
+describe("leerConsulta (preguntarle al proveedor cómo quedó un número)", () => {
+  it("lo que contesta con un éxito se lee igual que al emitir", () => {
+    expect(leerConsulta(200, { estado: "aceptado", pdf_url: "https://lucode.test/pdf/B001-12" })).toMatchObject({ tipo: "aceptado", pdfUrl: "https://lucode.test/pdf/B001-12" });
+    expect(leerConsulta(200, { estado: "enviado" })).toMatchObject({ tipo: "enviado" });
+    expect(leerConsulta(200, { estado: "rechazado", mensaje: "no" })).toMatchObject({ tipo: "rechazado", mensaje: "no" });
+  });
+
+  it("un 404 dice que el proveedor no conoce ese número: no es un rechazo", () => {
+    expect(leerConsulta(404, { mensaje: "no existe" })).toEqual({ tipo: "no-existe" });
+  });
+
+  it("lo demás es «sin respuesta» (y, en una consulta, un 409 o un 400 no significan nada)", () => {
+    expect(leerConsulta(500, {})).toMatchObject({ tipo: "sin-respuesta" });
+    expect(leerConsulta(409, {})).toMatchObject({ tipo: "sin-respuesta" });
+    expect(leerConsulta(400, {})).toMatchObject({ tipo: "sin-respuesta" });
+    expect(leerConsulta(200, "raro")).toMatchObject({ tipo: "sin-respuesta" });
+  });
+});
+
+describe("mensajeDeRespuesta (el motivo guardado de un rechazo)", () => {
+  it("saca el mensaje de la respuesta cruda, o nada si no hay", () => {
+    expect(mensajeDeRespuesta({ estado: "rechazado", mensaje: "El RUC no existe" })).toBe("El RUC no existe");
+    expect(mensajeDeRespuesta({ estado: "rechazado" })).toBeNull();
+    expect(mensajeDeRespuesta(null)).toBeNull();
+    expect(mensajeDeRespuesta("texto")).toBeNull();
+    expect(mensajeDeRespuesta({ mensaje: 42 })).toBeNull();
+  });
+});
+
+describe("ayudaDeComprobante (qué hacer con uno que no terminó)", () => {
+  it("pendiente: no hubo respuesta, se reintenta con el mismo número; enviado: se pregunta cómo va; aceptado: nada", () => {
+    expect(ayudaDeComprobante("pendiente")).toEqual({ texto: "No hubo respuesta del proveedor. Reintenta: lleva el mismo número y no se repite.", boton: "Reintentar" });
+    expect(ayudaDeComprobante("enviado")).toEqual({ texto: "SUNAT todavía no contesta.", boton: "Ver cómo va" });
+    expect(ayudaDeComprobante("aceptado")).toBeNull();
+    expect(ayudaDeComprobante("rechazado")).toBeNull();
+  });
+});
+
+describe("comprobanteAMostrar (el que se ve en el detalle de la venta)", () => {
+  const c = (id: number, estado: string, motivo: string | null = null) => ({ id, tipo: "03" as const, serie: "B001", numero: id, estado, pdfUrl: null, motivo });
+
+  it("el vigente manda sobre cualquier rechazado anterior", () => {
+    expect(comprobanteAMostrar([c(1, "rechazado", "no"), c(2, "aceptado")])?.id).toBe(2);
+  });
+
+  it("sin uno vigente se muestra el último rechazado (con su motivo): quien mira entiende por qué no hay comprobante", () => {
+    expect(comprobanteAMostrar([c(1, "rechazado", "uno"), c(3, "rechazado", "tres"), c(2, "rechazado", "dos")])).toMatchObject({ id: 3, motivo: "tres" });
+  });
+
+  it("un anulado o nada: no se muestra nada", () => {
+    expect(comprobanteAMostrar([c(1, "anulado")])).toBeNull();
+    expect(comprobanteAMostrar([])).toBeNull();
   });
 });

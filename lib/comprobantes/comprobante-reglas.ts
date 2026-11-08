@@ -6,7 +6,16 @@ import { z } from "zod";
 export type CodigoTipo = "01" | "03";
 
 /** Un comprobante tal como lo ve la pantalla. `estado` es el de la base: pendiente, enviado, aceptado, rechazado o anulado. */
-export type ComprobanteVista = { id: number; tipo: CodigoTipo; serie: string; numero: number; estado: string; pdfUrl: string | null };
+export type ComprobanteVista = {
+  id: number;
+  tipo: CodigoTipo;
+  serie: string;
+  numero: number;
+  estado: string;
+  pdfUrl: string | null;
+  /** Si lo rechazó el proveedor: por qué (lo que dijo), para mostrarlo. */
+  motivo?: string | null;
+};
 
 export const nombreDelTipo = (tipo: CodigoTipo) => (tipo === "01" ? "Factura" : "Boleta");
 
@@ -103,12 +112,20 @@ export type RespuestaDelProveedor =
   | { tipo: "aceptado"; pdfUrl: string | null; xmlUrl: string | null; cruda: unknown }
   | { tipo: "rechazado"; mensaje: string; cruda: unknown }
   | { tipo: "enviado"; cruda: unknown }
+  /** El proveedor ya tiene ese número (se lo mandamos antes y no supimos cómo quedó): hay que preguntarle, no repetirlo. */
+  | { tipo: "ya-existe" }
   /** No hay respuesta que valga: la red se cayó, pasó el tope de espera, o contestó algo que no se entiende. No se asume nada. */
   | { tipo: "sin-respuesta"; motivo: string };
 
+/** Lo que dice el proveedor al preguntarle por un número: lo mismo que al emitir, salvo que puede no conocerlo. */
+export type ConsultaDelProveedor = Exclude<RespuestaDelProveedor, { tipo: "ya-existe" }> | { tipo: "no-existe" };
+
+const MAX_MENSAJE = 300;
+const recortar = (texto: string) => (texto.length > MAX_MENSAJE ? `${texto.slice(0, MAX_MENSAJE - 1)}…` : texto);
+
 const cuerpoValido = z.object({
   estado: z.enum(["aceptado", "rechazado", "enviado"]),
-  mensaje: z.string().max(500).optional(),
+  mensaje: z.string().optional(),
   pdf_url: z.string().optional(),
   xml_url: z.string().optional(),
 });
@@ -124,19 +141,43 @@ function enlaceSeguro(valor: string | undefined): string | null {
   }
 }
 
-/**
- * Lee lo que contestó el proveedor. Solo un éxito del servidor con un cuerpo que se entiende cuenta como respuesta; todo lo
- * demás es «sin respuesta» y el comprobante se queda pendiente para reintentarlo (nunca se da por aceptado ni por rechazado
- * algo que no se entendió).
- */
-export function leerRespuesta(estadoHttp: number, cuerpo: unknown): RespuestaDelProveedor {
-  if (estadoHttp < 200 || estadoHttp >= 300) return { tipo: "sin-respuesta", motivo: `El proveedor respondió ${estadoHttp}` };
+/** El motivo que dejó el proveedor en su respuesta cruda (guardada tal cual en la base), recortado; null si no hay. */
+export function mensajeDeRespuesta(cruda: unknown): string | null {
+  if (typeof cruda !== "object" || cruda === null || !("mensaje" in cruda)) return null;
+  const mensaje = (cruda as { mensaje: unknown }).mensaje;
+  return typeof mensaje === "string" && mensaje.trim() !== "" ? recortar(mensaje.trim()) : null;
+}
+
+/** El cuerpo de una respuesta de éxito del servidor (2xx). Si no se entiende, es «sin respuesta». */
+function leerExito(cuerpo: unknown): Exclude<RespuestaDelProveedor, { tipo: "ya-existe" }> {
   const leido = cuerpoValido.safeParse(cuerpo);
   if (!leido.success) return { tipo: "sin-respuesta", motivo: "La respuesta del proveedor no se entendió" };
   const r = leido.data;
   if (r.estado === "aceptado") return { tipo: "aceptado", pdfUrl: enlaceSeguro(r.pdf_url), xmlUrl: enlaceSeguro(r.xml_url), cruda: cuerpo };
-  if (r.estado === "rechazado") return { tipo: "rechazado", mensaje: r.mensaje ?? "El proveedor rechazó el comprobante", cruda: cuerpo };
+  if (r.estado === "rechazado") return { tipo: "rechazado", mensaje: recortar(r.mensaje?.trim() || "El proveedor rechazó el comprobante"), cruda: cuerpo };
   return { tipo: "enviado", cruda: cuerpo };
+}
+
+/**
+ * Lee lo que contestó el proveedor al emitir. Solo un éxito del servidor con un cuerpo que se entiende, un «ya existe» (409) o un
+ * pedido mal formado (400, 422) cuentan como respuesta; todo lo demás (una clave mala, una caída, un texto raro) es «sin
+ * respuesta» y el comprobante se queda pendiente para reintentarlo: nunca se da por aceptado ni por rechazado algo que no se
+ * entendió, y una clave mal puesta no es un rechazo del comprobante.
+ */
+export function leerRespuesta(estadoHttp: number, cuerpo: unknown): RespuestaDelProveedor {
+  if (estadoHttp === 409) return { tipo: "ya-existe" };
+  if (estadoHttp === 400 || estadoHttp === 422) {
+    return { tipo: "rechazado", mensaje: mensajeDeRespuesta(cuerpo) ?? "El proveedor rechazó el comprobante", cruda: cuerpo };
+  }
+  if (estadoHttp < 200 || estadoHttp >= 300) return { tipo: "sin-respuesta", motivo: `El proveedor respondió ${estadoHttp}` };
+  return leerExito(cuerpo);
+}
+
+/** Lee lo que contestó el proveedor al preguntarle cómo quedó un número. Un 404 es «no lo conozco», no un rechazo. */
+export function leerConsulta(estadoHttp: number, cuerpo: unknown): ConsultaDelProveedor {
+  if (estadoHttp === 404) return { tipo: "no-existe" };
+  if (estadoHttp < 200 || estadoHttp >= 300) return { tipo: "sin-respuesta", motivo: `El proveedor respondió ${estadoHttp}` };
+  return leerExito(cuerpo);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -146,6 +187,16 @@ export function leerRespuesta(estadoHttp: number, cuerpo: unknown): RespuestaDel
 /** El comprobante que vale para una venta: pendiente, enviado o aceptado. Uno rechazado o anulado ya no cuenta (INV-08). */
 export function comprobanteVigente<T extends { estado: string }>(comprobantes: T[]): T | null {
   return comprobantes.find((c) => c.estado === "pendiente" || c.estado === "enviado" || c.estado === "aceptado") ?? null;
+}
+
+/**
+ * El comprobante que se ve en el detalle de una venta: el vigente; y si no hay, el último rechazado, para que se entienda por qué no
+ * hay comprobante y se pueda volver a emitir. Uno anulado no se muestra.
+ */
+export function comprobanteAMostrar<T extends { id: number; estado: string }>(comprobantes: T[]): T | null {
+  const vigente = comprobanteVigente(comprobantes);
+  if (vigente) return vigente;
+  return comprobantes.filter((c) => c.estado === "rechazado").sort((a, b) => b.id - a.id)[0] ?? null;
 }
 
 const estados: Record<string, string> = {
@@ -173,5 +224,12 @@ export function ofertaDeFactura(cliente: { tipoDocumento: "DNI" | "RUC" | null }
   if (!cliente) return null;
   if (cliente.tipoDocumento === "RUC") return "emitir";
   if (cliente.tipoDocumento === null && puedeEditarClientes) return "pedir-ruc";
+  return null;
+}
+
+/** Qué decir y qué ofrecer con un comprobante que no terminó: pendiente se reintenta (mismo número), enviado se consulta. */
+export function ayudaDeComprobante(estado: string): { texto: string; boton: string } | null {
+  if (estado === "pendiente") return { texto: "No hubo respuesta del proveedor. Reintenta: lleva el mismo número y no se repite.", boton: "Reintentar" };
+  if (estado === "enviado") return { texto: "SUNAT todavía no contesta.", boton: "Ver cómo va" };
   return null;
 }

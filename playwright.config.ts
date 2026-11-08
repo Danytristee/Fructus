@@ -44,6 +44,8 @@ export default defineConfig({
         LUCODE_TOKEN: "token-de-prueba",
         EMISOR_RUC: "20600000001",
         EMISOR_RAZON_SOCIAL: "Frutas La Hermelinda SAC (prueba)",
+        // Dos segundos en vez de diez: así «el proveedor no contestó a tiempo» se prueba sin esperar.
+        LUCODE_TOPE_MS: "2000",
       },
     },
     {

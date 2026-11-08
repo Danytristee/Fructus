@@ -21,7 +21,7 @@ import { consecuenciasDeAnular, leerMotivo, MOTIVOS_RAPIDOS, type ClaveMotivo } 
 import { horaDeLima } from "@/lib/ficha-cliente-reglas";
 import { formatearHace, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
-import { ofertaDeFactura } from "@/lib/comprobantes/comprobante-reglas";
+import { comprobanteVigente, ofertaDeFactura } from "@/lib/comprobantes/comprobante-reglas";
 import { fraseDePago, lineaDeFruta, type DetalleVenta } from "@/lib/ventas-reglas";
 
 type Props = {
@@ -52,6 +52,8 @@ function Cuerpo({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar
   // El comprobante vive aquí: al emitirlo, la hoja ya lo muestra (y deja de ofrecer anular) sin esperar a que se refresque la lista.
   const [comprobante, setComprobante] = useState(venta.comprobante);
   const [aviso, setAviso] = useState<string | null>(null);
+  // Uno rechazado ya no cuenta: se muestra su motivo y se puede emitir otro o anular la venta.
+  const vigente = comprobanteVigente(comprobante ? [comprobante] : []);
   const alEmitir = (c: NonNullable<typeof comprobante>, nota: string | null) => {
     setComprobante(c);
     setAviso(nota);
@@ -80,11 +82,12 @@ function Cuerpo({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar
       {venta.cliente ? (
         <Link
           href={`/clientes/${venta.cliente.id}`}
-          className="grid min-h-[72px] grid-cols-[auto_1fr_auto] items-center gap-3 rounded-[20px] bg-superficie px-3.5 py-3"
+          className="grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[20px] bg-superficie px-3.5 py-3"
         >
           <Avatar iniciales={iniciales(venta.cliente.nombre)} tono={tonoDe(venta.cliente.id)} />
           <span className="grid min-w-0">
-            <span className="text-[22px] leading-tight font-extrabold">{venta.cliente.nombre}</span>
+            {/* Un nombre largo sin espacios (un correo, un apodo con guiones) se parte en vez de empujar la hoja fuera de la pantalla. */}
+            <span className="text-[22px] leading-tight font-extrabold [overflow-wrap:anywhere]">{venta.cliente.nombre}</span>
             <span className="text-texto-suave">Ver su ficha</span>
           </span>
           <ChevronRight aria-hidden className="size-6 text-texto-suave" />
@@ -132,15 +135,15 @@ function Cuerpo({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar
       />
 
       {/* Con comprobante no se anula (la base tampoco lo deja): corresponde una nota de crédito, o esperar a que termine. */}
-      {puedeAnular && !anulacion && comprobante && (
+      {puedeAnular && !anulacion && vigente && (
         <p className="mx-1 text-texto-suave">
-          {comprobante.estado === "pendiente"
+          {vigente.estado === "pendiente"
             ? "El comprobante está en proceso: espera a que termine para anular."
             : "Con comprobante no se anula: corresponde una nota de crédito."}
         </p>
       )}
 
-      {puedeAnular && !anulacion && !comprobante && (
+      {puedeAnular && !anulacion && !vigente && (
         <Boton variante="secundario" className="text-deuda" onClick={() => setVista("anular")}>
           <Ban aria-hidden />
           Anular esta venta
