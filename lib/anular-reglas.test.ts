@@ -43,7 +43,7 @@ describe("consecuenciasDeAnular", () => {
   const credito = {
     total: 450,
     condicion: "credito" as const,
-    cliente: { id: 1, nombre: "Luis Paredes", tipoDocumento: null },
+    cliente: { id: 1, nombre: "Luis Paredes", tipoDocumento: null, telefono: null },
     items: [{ producto: "Mango Kent", cantidad: 10, precio: 45, descuento: 0, subtotal: 450 }],
   };
 

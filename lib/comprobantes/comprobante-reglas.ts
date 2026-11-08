@@ -2,6 +2,8 @@
 // Lógica pura: no importa React, Supabase ni la red (lo que habla con el proveedor vive en lucode.ts).
 import { z } from "zod";
 
+import { formatearSoles } from "../formato";
+
 /** 01 es factura y 03 es boleta (catálogo 01 de SUNAT). */
 export type CodigoTipo = "01" | "03";
 
@@ -250,4 +252,34 @@ export function notaDeComprobante(
     return `La venta quedó guardada, pero Lucode rechazó la ${tipo}${r.comprobante.motivo ? `: ${r.comprobante.motivo}` : "."}`;
   }
   return `La venta quedó guardada, pero la ${tipo} no salió: ${r.error}`;
+}
+
+/**
+ * El número tal como lo pide wa.me: solo dígitos y con el 51 de Perú. Un celular peruano son 9 dígitos y empieza con 9; con el 51 delante
+ * (o un +51) también vale. Un fijo, un número cortado o raro devuelve null: no se manda a un número que no es de WhatsApp.
+ */
+export function telefonoParaWhatsApp(telefono: string | null): string | null {
+  const digitos = (telefono ?? "").replace(/\D/g, "");
+  if (/^9\d{8}$/.test(digitos)) return `51${digitos}`;
+  if (/^519\d{8}$/.test(digitos)) return digitos;
+  return null;
+}
+
+/**
+ * El enlace que abre WhatsApp con el comprobante ya escrito: al número del cliente si es un celular, o sin destinatario (WhatsApp deja
+ * elegir a quién) si no hay número. WhatsApp se abre con el mensaje listo y la persona lo manda: no se envía nada solo.
+ */
+export function enlaceDeWhatsApp(datos: {
+  telefono: string | null;
+  nombre: string | null;
+  comprobante: { tipo: CodigoTipo; serie: string; numero: number };
+  total: number;
+  pdfUrl: string;
+}): string {
+  const { comprobante: c } = datos;
+  const saludo = datos.nombre ? `Hola ${datos.nombre}` : "Hola";
+  const soles = formatearSoles(datos.total).replace(/\u00a0/g, " ");
+  const mensaje = `${saludo}, te envío tu ${nombreDelTipo(c.tipo).toLowerCase()} ${numeroDeComprobante(c.serie, c.numero)} por ${soles}: ${datos.pdfUrl}`;
+  const numero = telefonoParaWhatsApp(datos.telefono);
+  return `https://wa.me/${numero ?? ""}?text=${encodeURIComponent(mensaje)}`;
 }

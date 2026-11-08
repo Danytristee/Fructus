@@ -3,7 +3,7 @@ import { cn } from "cn";
 import { Button } from "@/components/shadcn/button";
 
 // Una función, una pieza: todo «Confirmar», «Guardar» o «Descartar» de la app sale de aquí.
-const variantes = cva(
+export const variantesDeBoton = cva(
   "h-auto rounded-full font-extrabold whitespace-normal transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-100 [&_svg:not([class*='size-'])]:size-6",
   {
     variants: {
@@ -20,7 +20,7 @@ const variantes = cva(
 );
 
 type Props = Omit<React.ComponentProps<"button">, "children"> &
-  VariantProps<typeof variantes> & {
+  VariantProps<typeof variantesDeBoton> & {
     children: React.ReactNode;
     /** Mientras la base no responde: muestra el giro y no acepta un segundo toque. */
     cargando?: boolean;
@@ -31,7 +31,7 @@ export function Boton({ variante, cargando = false, disabled, className, childre
     <Button
       // «ghost» no trae fondo propio: así el vidrio de la variante secundaria no compite con bg-primary.
       variant={variante === "principal" || variante === "flotante" || variante == null ? "default" : "ghost"}
-      className={cn(variantes({ variante }), "relative grid place-items-center", className)}
+      className={cn(variantesDeBoton({ variante }), "relative grid place-items-center", className)}
       disabled={disabled || cargando}
       aria-busy={cargando || undefined}
       {...props}

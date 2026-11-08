@@ -7,6 +7,7 @@
 //   POST /sunat               { numero }: SUNAT contestó, lo «enviado» pasa a «aceptado».
 //   GET  /recibidos           todos los pedidos que llegaron, uno por intento.
 //   GET  /consultas           los números por los que se preguntó (GET /comprobantes/{n}), uno por pregunta.
+//   GET  /pdf/{n}, /xml/{n}   el PDF (mínimo, pero abre) y el XML de un comprobante aceptado.
 //
 // CÓMO SE PORTA depende de la venta, no de un interruptor global (las pruebas de 412 y de 360 px corren a la vez): lo dice una marca
 // en el nombre del cliente, «[lucode:modo=rechazado;demora=3000]».
@@ -26,6 +27,11 @@ const recibidos = [];
 const consultas = [];
 /** @type {Map<string, { estado: string; base: string; creado: number; mensaje?: string }>} */
 const registrados = new Map();
+
+// Un PDF de una página en blanco: el más chico que un lector abre sin quejarse.
+const PDF_MINIMO = Buffer.from(
+  "%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF",
+);
 
 const leerCuerpo = (req) =>
   new Promise((resolve) => {
@@ -77,6 +83,14 @@ createServer(async (req, res) => {
   if (req.method === "GET" && pathname === "/salud") return responder(res, 200, { ok: true });
   if (req.method === "GET" && pathname === "/recibidos") return responder(res, 200, recibidos);
   if (req.method === "GET" && pathname === "/consultas") return responder(res, 200, consultas);
+  if (req.method === "GET" && pathname.startsWith("/pdf/")) {
+    res.writeHead(200, { "content-type": "application/pdf" });
+    return res.end(PDF_MINIMO);
+  }
+  if (req.method === "GET" && pathname.startsWith("/xml/")) {
+    res.writeHead(200, { "content-type": "application/xml" });
+    return res.end("<comprobante>de prueba</comprobante>");
+  }
 
   if (req.method === "POST" && pathname === "/sunat") {
     const { numero } = (await leerCuerpo(req)) ?? {};

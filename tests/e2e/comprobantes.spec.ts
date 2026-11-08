@@ -11,16 +11,16 @@ import { conEscenario, consultasAlProveedor, recibidosPorLucode, sinMarca, sunat
 test.setTimeout(90_000);
 const base = baseLocal();
 
-async function clienteNuevo(documento?: { tipo_documento: "DNI" | "RUC"; numero_documento: string }, escenario?: Escenario) {
+async function clienteNuevo(documento?: { tipo_documento: "DNI" | "RUC"; numero_documento: string }, escenario?: Escenario, telefono?: string) {
   const nombreBase = `Cliente de comprobantes ${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
   const nombre = escenario ? conEscenario(nombreBase, escenario) : nombreBase;
-  const { data, error } = await base.from("clientes").insert({ nombre, ...documento }).select("id, nombre").single();
+  const { data, error } = await base.from("clientes").insert({ nombre, ...documento, ...(telefono ? { telefono } : {}) }).select("id, nombre").single();
   if (error || !data) throw new Error(`No se pudo crear el cliente: ${error?.message}`);
   return data;
 }
 
-async function ventaAlCredito(monto: number, documento?: { tipo_documento: "DNI" | "RUC"; numero_documento: string }, escenario?: Escenario) {
-  const cliente = await clienteNuevo(documento, escenario);
+async function ventaAlCredito(monto: number, documento?: { tipo_documento: "DNI" | "RUC"; numero_documento: string }, escenario?: Escenario, telefono?: string) {
+  const cliente = await clienteNuevo(documento, escenario, telefono);
   await fiar(cliente.id, monto);
   const { data: v } = await base.from("ventas").select("id").eq("cliente_id", cliente.id).single();
   return { cliente, ventaId: v!.id };
@@ -520,4 +520,124 @@ test("el comprobante pendiente y el rechazado caben en el celular: botón de 48 
   const despues = await hojaRechazo.evaluate((raiz) => ({ desborde: raiz.scrollWidth - raiz.clientWidth, alto: raiz.getBoundingClientRect().height }));
   expect(despues.desborde).toBeLessThanOrEqual(0);
   expect(despues.alto).toBeLessThanOrEqual(height);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// A9.5 · El PDF y «Enviar por WhatsApp»
+// ---------------------------------------------------------------------------------------------------------------------
+
+const textoDe = (enlace: string) => decodeURIComponent(enlace.split("?text=")[1]!);
+
+test("la boleta aceptada ofrece «Ver PDF» (abre de verdad) y «Enviar por WhatsApp» al celular del cliente, con el mensaje escrito", async ({ page }) => {
+  const { cliente, ventaId } = await ventaAlCredito(100, undefined, undefined, "987 654 321");
+  const hoja = await abrirDetalle(page, cliente.nombre);
+  // Antes de emitir no hay nada que ver ni que mandar.
+  await expect(hoja.getByRole("link", { name: "Ver PDF" })).toHaveCount(0);
+  await expect(hoja.getByRole("link", { name: "Enviar por WhatsApp" })).toHaveCount(0);
+
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hoja)).toContainText("aceptada", { timeout: 20_000 });
+  const [c] = await comprobantesDe(ventaId);
+
+  const pdf = hoja.getByRole("link", { name: "Ver PDF" });
+  await expect(pdf).toHaveAttribute("href", c!.pdf_url!);
+  await expect(pdf).toHaveAttribute("target", "_blank");
+  await expect(pdf).toHaveAttribute("rel", /noopener/);
+  // El PDF abre de verdad: es el que guardó el proveedor, no un enlace roto.
+  const respuesta = await page.request.get(c!.pdf_url!);
+  expect(respuesta.status()).toBe(200);
+  expect(respuesta.headers()["content-type"]).toContain("application/pdf");
+  // Se abre en otra pestaña (el Chromium de las pruebas, sin pantalla, descarga los PDF en vez de mostrarlos: no se puede mirar su dirección;
+  // que el PDF existe y es un PDF ya lo dijo la petición de arriba).
+  const [nueva] = await Promise.all([page.context().waitForEvent("page"), pdf.click()]);
+  await nueva.close();
+
+  const whatsapp = hoja.getByRole("link", { name: "Enviar por WhatsApp" });
+  const enlace = (await whatsapp.getAttribute("href"))!;
+  expect(enlace.startsWith("https://wa.me/51987654321?text=")).toBe(true);
+  expect(textoDe(enlace)).toBe(`Hola ${cliente.nombre}, te envío tu boleta B001-${String(c!.numero).padStart(8, "0")} por S/ 100.00: ${c!.pdf_url}`);
+  await expect(whatsapp).toHaveAttribute("target", "_blank");
+});
+
+test("sin celular del cliente, WhatsApp se abre para elegir a quién; una venta al paso no inventa un nombre", async ({ page }) => {
+  const sinCelular = await ventaAlCredito(110);
+  const hoja = await abrirDetalle(page, sinCelular.cliente.nombre);
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hoja)).toContainText("aceptada", { timeout: 20_000 });
+  const enlace = (await hoja.getByRole("link", { name: "Enviar por WhatsApp" }).getAttribute("href"))!;
+  expect(enlace.startsWith("https://wa.me/?text=")).toBe(true);
+
+  // Un teléfono fijo no es de WhatsApp: tampoco se usa.
+  const fijo = await ventaAlCredito(111, undefined, undefined, "(044) 234567");
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await page.getByRole("button", { name: new RegExp(sinMarca(fijo.cliente.nombre)) }).click();
+  const hojaFijo = page.getByRole("dialog", { name: "Detalle de la venta" });
+  await expect(hojaFijo).toBeVisible({ timeout: 15_000 });
+  await hojaFijo.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hojaFijo)).toContainText("aceptada", { timeout: 20_000 });
+  expect((await hojaFijo.getByRole("link", { name: "Enviar por WhatsApp" }).getAttribute("href"))!.startsWith("https://wa.me/?text=")).toBe(true);
+
+  // Venta al paso (sin cliente): el saludo es «Hola,» a secas.
+  await venderAlPaso(321.54, "efectivo");
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await page.getByRole("button", { name: /Venta al paso/ }).filter({ hasText: /321\.54/ }).first().click();
+  const hojaPaso = page.getByRole("dialog", { name: "Detalle de la venta" });
+  await expect(hojaPaso).toBeVisible({ timeout: 15_000 });
+  await hojaPaso.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hojaPaso)).toContainText("aceptada", { timeout: 20_000 });
+  expect(textoDe((await hojaPaso.getByRole("link", { name: "Enviar por WhatsApp" }).getAttribute("href"))!)).toMatch(/^Hola, te envío tu boleta B001-\d{8} por S\/ 321\.54: http/);
+});
+
+test("el PDF y WhatsApp solo salen con el comprobante aceptado: en proceso, enviado o rechazado no hay nada que mandar", async ({ page }) => {
+  for (const modo of ["caido", "enviado", "rechazado"] as const) {
+    const { cliente } = await ventaAlCredito(120, undefined, { modo }, "987 654 321");
+    const hoja = await abrirDetalle(page, cliente.nombre);
+    await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+    await expect(tarjeta(hoja)).toContainText(modo === "caido" ? "en proceso" : modo === "enviado" ? "enviada" : "rechazada", { timeout: 20_000 });
+    await expect(hoja.getByRole("link", { name: "Ver PDF" })).toHaveCount(0);
+    await expect(hoja.getByRole("link", { name: "Enviar por WhatsApp" })).toHaveCount(0);
+    await page.context().clearCookies(); // otra persona entra para el siguiente caso
+  }
+});
+
+test("el contador, que solo lee, también puede ver el PDF y mandarlo por WhatsApp", async ({ page, browser }) => {
+  const { cliente } = await ventaAlCredito(130, undefined, undefined, "987 654 321");
+  const hoja = await abrirDetalle(page, cliente.nombre);
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hoja)).toContainText("aceptada", { timeout: 20_000 });
+
+  const { contexto, pagina } = await otraPersona(browser, page);
+  const hojaContador = await abrirDetalle(pagina, cliente.nombre, "contador");
+  await expect(hojaContador.getByRole("link", { name: "Ver PDF" })).toBeVisible();
+  await expect(hojaContador.getByRole("link", { name: "Enviar por WhatsApp" })).toBeVisible();
+  await expect(hojaContador.getByRole("button", { name: /Emitir|Reintentar/ })).toHaveCount(0);
+  await contexto.close();
+});
+
+test("los enlaces caben en el celular: lado a lado, de 48 px, dentro de la pantalla, y «Cerrar» sigue al alcance", async ({ page }) => {
+  const { cliente } = await ventaAlCredito(140, undefined, undefined, "987 654 321");
+  const hoja = await abrirDetalle(page, cliente.nombre);
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hoja)).toContainText("aceptada", { timeout: 20_000 });
+  await page.waitForTimeout(800);
+  const { width, height } = page.viewportSize()!;
+  for (const nombre of ["Ver PDF", "Enviar por WhatsApp"]) {
+    const caja = (await hoja.getByRole("link", { name: nombre }).boundingBox())!;
+    expect(caja.height, `alto de «${nombre}»`).toBeGreaterThanOrEqual(48);
+    expect(caja.x).toBeGreaterThanOrEqual(0);
+    expect(caja.x + caja.width, `«${nombre}» dentro de la pantalla`).toBeLessThanOrEqual(width);
+  }
+  const medidas = await hoja.evaluate((raiz) => ({
+    desborde: raiz.scrollWidth - raiz.clientWidth,
+    chicos: [...raiz.querySelectorAll("button, a")].filter((e) => e.getBoundingClientRect().height < 48).map((e) => e.textContent?.trim()),
+  }));
+  expect(medidas.desborde).toBeLessThanOrEqual(0);
+  expect(medidas.chicos, "controles de 48 px").toEqual([]);
+  // «Cerrar» se alcanza: o está a la vista o la hoja se desliza hasta él (nunca queda fuera de la hoja).
+  const cerrar = hoja.getByRole("button", { name: "Cerrar", exact: true });
+  await cerrar.scrollIntoViewIfNeeded();
+  const caja = (await cerrar.boundingBox())!;
+  expect(caja.y + caja.height).toBeLessThanOrEqual(height);
 });

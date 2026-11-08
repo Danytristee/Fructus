@@ -37,7 +37,7 @@ async function Historial() {
     supabase
       .from("ventas")
       .select(
-        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre, tipo_documento), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad)), comprobantes(id, tipo, serie, numero, estado, pdf_url, motivo:respuesta->>mensaje)",
+        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre, tipo_documento, telefono), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad)), comprobantes(id, tipo, serie, numero, estado, pdf_url, motivo:respuesta->>mensaje)",
       )
       .gte("fecha", desde)
       .order("fecha", { ascending: false })
@@ -82,7 +82,7 @@ async function Historial() {
         total: Number(v.total),
         condicion: v.condicion,
         medio,
-        cliente: v.cliente ? { id: v.cliente.id, nombre: v.cliente.nombre, tipoDocumento: v.cliente.tipo_documento === "RUC" || v.cliente.tipo_documento === "DNI" ? v.cliente.tipo_documento : null } : null,
+        cliente: v.cliente ? { id: v.cliente.id, nombre: v.cliente.nombre, tipoDocumento: v.cliente.tipo_documento === "RUC" || v.cliente.tipo_documento === "DNI" ? v.cliente.tipo_documento : null, telefono: v.cliente.telefono } : null,
         items: v.items.map((i) => ({
           producto: nombreFruta(i.producto),
           cantidad: Number(i.cantidad),

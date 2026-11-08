@@ -5,8 +5,9 @@ import { FileText, FileX, TriangleAlert } from "lucide-react";
 
 import { emitirComprobante, reintentarComprobante } from "@/app/(app)/acciones-comprobantes";
 import { Boton } from "@/components/ui/Boton";
+import { BotonEnlace } from "@/components/ui/BotonEnlace";
 import { useConfirmar } from "@/components/voz/useConfirmar";
-import { ayudaDeComprobante, fraseDeComprobante, type ComprobanteVista, type OfertaDeFactura } from "@/lib/comprobantes/comprobante-reglas";
+import { ayudaDeComprobante, enlaceDeWhatsApp, fraseDeComprobante, type ComprobanteVista, type OfertaDeFactura } from "@/lib/comprobantes/comprobante-reglas";
 
 type Props = {
   ventaId: number;
@@ -18,6 +19,8 @@ type Props = {
   puedeEmitir: boolean;
   /** Si se ofrece factura: directo (el cliente tiene RUC), pidiendo el RUC primero, o no se ofrece. */
   facturar: OfertaDeFactura;
+  /** Para escribir el mensaje de WhatsApp: a quién (si hay cliente y su celular) y cuánto fue. */
+  envio: { nombre: string | null; telefono: string | null; total: number };
   alEmitir: (comprobante: ComprobanteVista, aviso: string | null) => void;
   alPedirRuc: () => void;
   /** Mientras emite, la hoja no se cierra: no puede decir «no emití» de algo que se está emitiendo. */
@@ -28,7 +31,7 @@ type Props = {
 // Emitir es idempotente por venta en la base: tocar dos veces, o que lo toquen dos personas, deja un solo comprobante. Y si el
 // proveedor no contestó, «Reintentar» reenvía EL MISMO número: nunca se toma otro. La boleta siempre se puede; la factura solo a un
 // cliente con RUC (a quien no lo tiene se le pide, si quien mira puede editar clientes).
-export function ComprobanteDeVenta({ ventaId, comprobante, aviso, puedeEmitir, facturar, alEmitir, alPedirRuc, alCambiarGuardando }: Props) {
+export function ComprobanteDeVenta({ ventaId, comprobante, aviso, puedeEmitir, facturar, envio, alEmitir, alPedirRuc, alCambiarGuardando }: Props) {
   const { confirmar, guardando, error, reiniciar } = useConfirmar<Extract<Awaited<ReturnType<typeof emitirComprobante>>, { ok: true }>>({
     alGuardar: () => undefined,
     alCambiarGuardando,
@@ -98,6 +101,21 @@ export function ComprobanteDeVenta({ ventaId, comprobante, aviso, puedeEmitir, f
           <Boton variante="secundario" cargando={guardando} onClick={() => reintentar(comprobante)}>
             {ayuda.boton}
           </Boton>
+        )}
+        {/* Aceptado y con PDF: se ve y se manda por WhatsApp (se abre con el mensaje escrito; la persona lo envía). Lo ve quien lee, también el contador. */}
+        {comprobante.estado === "aceptado" && comprobante.pdfUrl && (
+          <div className="grid grid-cols-2 gap-2">
+            <BotonEnlace href={comprobante.pdfUrl} target="_blank" className="min-w-0 px-3">
+              Ver PDF
+            </BotonEnlace>
+            <BotonEnlace
+              href={enlaceDeWhatsApp({ telefono: envio.telefono, nombre: envio.nombre, comprobante, total: envio.total, pdfUrl: comprobante.pdfUrl })}
+              target="_blank"
+              className="min-w-0 px-3"
+            >
+              Enviar por WhatsApp
+            </BotonEnlace>
+          </div>
         )}
         {alerta}
       </div>

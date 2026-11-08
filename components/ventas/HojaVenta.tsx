@@ -129,6 +129,7 @@ function Cuerpo({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar
         aviso={aviso}
         puedeEmitir={puedeEmitir && !anulacion}
         facturar={ofertaDeFactura(venta.cliente, puedeEditarClientes)}
+        envio={{ nombre: venta.cliente?.nombre ?? null, telefono: venta.cliente?.telefono ?? null, total: venta.total }}
         alEmitir={alEmitir}
         alPedirRuc={() => setVista("ruc")}
         alCambiarGuardando={alCambiarGuardando}

@@ -5,6 +5,7 @@ import {
   ayudaDeComprobante,
   comprobanteAMostrar,
   comprobanteVigente,
+  enlaceDeWhatsApp,
   fraseDeComprobante,
   leerConsulta,
   leerRespuesta,
@@ -13,6 +14,7 @@ import {
   notaDeComprobante,
   ofertaDeFactura,
   numeroDeComprobante,
+  telefonoParaWhatsApp,
   type DatosDeVenta,
 } from "./comprobante-reglas";
 
@@ -275,5 +277,55 @@ describe("notaDeComprobante (lo que dice el sello de la venta dictada)", () => {
     expect(notaDeComprobante("factura", { ok: false, error: "Una factura va a un cliente con RUC. Agrégale el RUC en su ficha." })).toBe(
       "La venta quedó guardada, pero la factura no salió: Una factura va a un cliente con RUC. Agrégale el RUC en su ficha.",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// A9.5 · El PDF y «Enviar por WhatsApp»
+// ---------------------------------------------------------------------------------------------------------------------
+
+describe("telefonoParaWhatsApp", () => {
+  it("un celular peruano (9 dígitos que empiezan con 9) lleva el 51 de Perú, con o sin espacios, guiones o +", () => {
+    expect(telefonoParaWhatsApp("987 654 321")).toBe("51987654321");
+    expect(telefonoParaWhatsApp("987-654-321")).toBe("51987654321");
+    expect(telefonoParaWhatsApp("+51 987 654 321")).toBe("51987654321");
+    expect(telefonoParaWhatsApp("51987654321")).toBe("51987654321");
+  });
+
+  it("un fijo, un número cortado o nada: no se usa un número que no es de WhatsApp (se abre sin destinatario)", () => {
+    expect(telefonoParaWhatsApp("(044) 234567")).toBeNull();
+    expect(telefonoParaWhatsApp("98765")).toBeNull();
+    expect(telefonoParaWhatsApp("887 654 321")).toBeNull();
+    expect(telefonoParaWhatsApp("")).toBeNull();
+    expect(telefonoParaWhatsApp(null)).toBeNull();
+  });
+});
+
+describe("enlaceDeWhatsApp", () => {
+  const comprobante = { tipo: "03" as const, serie: "B001", numero: 12 };
+  const texto = (enlace: string) => decodeURIComponent(enlace.split("?text=")[1]!);
+
+  it("al número del cliente, con su nombre, qué comprobante es, cuánto fue y el enlace al PDF", () => {
+    const enlace = enlaceDeWhatsApp({ telefono: "987 654 321", nombre: "Luis Paredes", comprobante, total: 450, pdfUrl: "https://lucode.test/pdf/B001-00000012" });
+    expect(enlace.startsWith("https://wa.me/51987654321?text=")).toBe(true);
+    expect(texto(enlace)).toBe("Hola Luis Paredes, te envío tu boleta B001-00000012 por S/ 450.00: https://lucode.test/pdf/B001-00000012");
+  });
+
+  it("sin teléfono se abre WhatsApp para elegir a quién; y una factura se dice factura", () => {
+    const enlace = enlaceDeWhatsApp({ telefono: null, nombre: "Juguería El Paraíso", comprobante: { tipo: "01", serie: "F001", numero: 3 }, total: 1250.5, pdfUrl: "https://lucode.test/pdf/F001-00000003" });
+    expect(enlace.startsWith("https://wa.me/?text=")).toBe(true);
+    expect(texto(enlace)).toBe("Hola Juguería El Paraíso, te envío tu factura F001-00000003 por S/ 1,250.50: https://lucode.test/pdf/F001-00000003");
+  });
+
+  it("una venta al paso no tiene nombre: el saludo no lo inventa", () => {
+    expect(texto(enlaceDeWhatsApp({ telefono: null, nombre: null, comprobante, total: 45, pdfUrl: "https://lucode.test/pdf/B001-00000012" }))).toBe(
+      "Hola, te envío tu boleta B001-00000012 por S/ 45.00: https://lucode.test/pdf/B001-00000012",
+    );
+  });
+
+  it("el mensaje va codificado: un nombre con & o ? no rompe el enlace", () => {
+    const enlace = enlaceDeWhatsApp({ telefono: null, nombre: "Ñañez & Hijos?", comprobante, total: 10, pdfUrl: "https://lucode.test/pdf/B001-00000012" });
+    expect(enlace.split("?text=")).toHaveLength(2);
+    expect(texto(enlace)).toContain("Ñañez & Hijos?");
   });
 });
