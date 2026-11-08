@@ -6,13 +6,14 @@ import Link from "next/link";
 import { ChevronRight, ClipboardCheck, LogOut, Menu, Settings } from "lucide-react";
 
 import { salir } from "@/app/login/acciones";
+import { InstalarApp } from "./InstalarApp";
+import { filaDelMenu, iconoDelMenu } from "./menu-estilos";
 
 // La hoja (Radix Dialog) pesa unos 10 KB y casi nadie abre el menú: se descarga recién al primer toque (ADR-0006).
 const Hoja = dynamic(() => import("@/components/ui/Hoja").then((m) => m.Hoja), { ssr: false });
 
-const fila =
-  "grid min-h-16 w-full grid-cols-[auto_1fr_auto] items-center gap-3.5 rounded-control bg-superficie px-4 text-left text-lg font-extrabold transition-transform active:scale-[0.98]";
-const icono = "grid size-11 place-items-center rounded-2xl";
+const fila = filaDelMenu;
+const icono = iconoDelMenu;
 
 type Props = {
   nombre: string;
@@ -66,6 +67,7 @@ export function MenuMas({ nombre, rol, verCierre, verAjustes }: Props) {
                 <ChevronRight aria-hidden className="size-6 text-texto-suave" />
               </Link>
             )}
+            <InstalarApp alElegir={cerrar} />
             <form action={salir}>
               <button type="submit" className={fila}>
                 <span className={`${icono} bg-deuda-fondo text-deuda`}>

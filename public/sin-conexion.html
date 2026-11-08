@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#eef3f8">
+<title>Sin conexión · Fructus</title>
+<!-- La página que se ve cuando no hay señal al abrir la app (public/sw.js). No usa nada de afuera: ni el CSS de la app ni sus fuentes, porque sin
+     señal no se pueden bajar. Los colores son los de app/globals.css (--fondo, --texto, --texto-suave, --acento, --sobre-acento). -->
+<style>
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;touch-action:pan-x pan-y}
+  body{margin:0;min-height:100dvh;display:grid;align-content:center;justify-items:center;gap:20px;padding:24px 20px calc(24px + env(safe-area-inset-bottom));
+    background:radial-gradient(circle at 10% 8%,#9fe8d0,transparent 55%),radial-gradient(circle at 96% 12%,#b9d8ff,transparent 55%),
+    radial-gradient(circle at 8% 96%,#ffd3b5,transparent 55%),radial-gradient(circle at 96% 94%,#e2d4ff,transparent 55%),#eef3f8;
+    color:#0b1526;font:500 17px/1.45 Manrope,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-align:center}
+  main{display:grid;justify-items:center;gap:14px;max-width:360px}
+  .orbe{width:88px;height:88px;border-radius:50%;background:conic-gradient(from 25deg,#114b5f,#2e6fa8,#5b4fc4,#1f7a8c,#114b5f);
+    box-shadow:0 12px 34px rgba(17,75,95,.4),inset 0 2px 0 rgba(255,255,255,.25);display:grid;place-items:center}
+  .orbe svg{width:40px;height:40px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  h1{margin:6px 0 0;font-size:30px;line-height:1.15;font-weight:800;letter-spacing:-.02em}
+  p{margin:0;color:#3e4a5c}
+  p strong{color:#0b1526}
+  button{margin-top:10px;min-height:68px;width:100%;border:0;border-radius:999px;background:#114b5f;color:#fff;font:800 22px/1 Manrope,system-ui,sans-serif;
+    transition:transform .15s ease-out}
+  button:active{transform:scale(.97)}
+  .estado{font-size:15px}
+  @media (prefers-reduced-motion:reduce){button{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <div class="orbe" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
+  </div>
+  <h1>Sin conexión</h1>
+  <p>No hay señal en este momento. <strong>Lo que ya registraste está guardado.</strong></p>
+  <p>Cuando vuelva la señal, la app se abre sola. También puedes tocar el botón.</p>
+  <button type="button" id="reintentar">Reintentar</button>
+  <p class="estado" id="estado" role="status" aria-live="polite"></p>
+</main>
+<script>
+  // Reintenta al tocar el botón y solo cuando el teléfono avisa que volvió la señal.
+  var estado = document.getElementById("estado");
+  function reintentar() {
+    estado.textContent = "Buscando señal…";
+    location.reload();
+  }
+  document.getElementById("reintentar").addEventListener("click", reintentar);
+  window.addEventListener("online", reintentar);
+</script>
+</body>
+</html>

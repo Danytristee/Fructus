@@ -34,10 +34,10 @@ export function EsperaProveedor({ children }: { children: React.ReactNode }) {
           aria-live="assertive"
           // pointer-events-auto: con una hoja abierta, Radix pone pointer-events: none en el body y el velo lo heredaba;
           // los toques lo atravesaban y se podía descartar una venta mientras se guardaba (/chaos 2026-10-29).
-          className="pointer-events-auto fixed inset-0 z-[60] grid animate-velo-aparece place-items-center bg-velo backdrop-blur-[2px]"
+          className="pointer-events-auto fixed inset-0 z-[60] grid animate-velo-aparece place-items-center bg-velo"
         >
           <div className="vidrio grid animate-subir justify-items-center gap-4 rounded-protagonista px-10 py-8">
-            <span aria-hidden className="orbe relative grid size-16 place-items-center rounded-full animate-orbe">
+            <span aria-hidden className="orbe relative grid size-16 place-items-center rounded-full">
               <span className="size-8 animate-girar rounded-full border-4 border-sobre-orbe border-r-transparent" />
             </span>
             <p className="text-lg font-extrabold">{texto}</p>

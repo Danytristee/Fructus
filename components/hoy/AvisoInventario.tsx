@@ -28,7 +28,9 @@ export async function AvisoInventario() {
     >
       <span className="relative grid size-[52px] place-items-center rounded-[18px] bg-deuda-fondo text-deuda">
         <TriangleAlert aria-hidden />
-        <span aria-hidden className="absolute -top-1 -right-1 size-3.5 animate-pulso-alerta rounded-full bg-deuda ring-2 ring-superficie" />
+        {/* El anillo que se abre dos veces: un círculo que crece y se desvanece (transform y opacity), no una sombra que se agranda. */}
+        <span aria-hidden className="absolute -top-1 -right-1 size-3.5 animate-pulso-alerta rounded-full bg-deuda/45" />
+        <span aria-hidden className="absolute -top-1 -right-1 size-3.5 rounded-full bg-deuda ring-2 ring-superficie" />
       </span>
       <span className="grid min-w-0">
         <span className="font-extrabold first-letter:uppercase">{titulo}</span>

@@ -43,11 +43,16 @@ try {
     terminar(1);
   }
   const html = await respuesta.text();
-  const scripts = [...new Set([...html.matchAll(/src="\/_next\/(static\/[^"]+\.js)"/g)].map((m) => m[1]))];
-  let total = 0;
-  for (const s of scripts) total += brotliCompressSync(readFileSync(join(".next", s))).length;
-  const kb = total / 1024;
-  console.log(`${ruta}: ${scripts.length} scripts, ${kb.toFixed(1)} KB brotli (tope ${tope} KB)`);
+  // Los scripts `nomodule` son los polyfills de navegadores viejos: el HTML los trae, pero cualquier Android con Chrome 60 o más (todos los
+  // de hoy) NO los descarga. Se miden aparte para no contar en el presupuesto lo que ningún teléfono real baja.
+  const etiquetas = [...html.matchAll(/<script\b[^>]*\bsrc="\/_next\/(static\/[^"]+\.js)"[^>]*>/g)];
+  const scripts = [...new Set(etiquetas.filter((m) => !/\bnomodule\b/i.test(m[0])).map((m) => m[1]))];
+  const viejos = [...new Set(etiquetas.filter((m) => /\bnomodule\b/i.test(m[0])).map((m) => m[1]))];
+  const medir = (lista) => lista.reduce((suma, s) => suma + brotliCompressSync(readFileSync(join(".next", s))).length, 0) / 1024;
+  const kb = medir(scripts);
+  const kbViejos = medir(viejos);
+  console.log(`${ruta}: ${scripts.length} scripts, ${kb.toFixed(1)} KB brotli que baja un teléfono (tope ${tope} KB)`);
+  if (viejos.length) console.log(`  (más ${kbViejos.toFixed(1)} KB de polyfills nomodule que solo bajan navegadores de hace una década: ${(kb + kbViejos).toFixed(1)} KB con ellos)`);
   terminar(kb > tope ? 1 : 0);
 } catch (error) {
   console.error("medir-js:", error instanceof Error ? error.message : error);

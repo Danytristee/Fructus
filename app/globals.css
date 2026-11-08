@@ -154,7 +154,7 @@
   --ease-resorte: cubic-bezier(0.22, 1.12, 0.36, 1);
   --ease-entrada: cubic-bezier(0.4, 0, 1, 1);
 
-  --animate-subir: subir 0.7s var(--ease-salida) both;
+  --animate-subir: subir 0.5s var(--ease-salida) both;
   --animate-hoja-sube: hoja-sube 0.5s var(--ease-resorte) both;
   --animate-hoja-baja: hoja-baja 0.28s var(--ease-entrada) both;
   --animate-hoja-aparece: hoja-aparece 0.3s var(--ease-salida) both;
@@ -162,8 +162,9 @@
   --animate-velo-aparece: velo-aparece 0.3s ease-out both;
   --animate-velo-se-va: velo-aparece 0.25s ease-in reverse both;
   --animate-girar: girar 0.7s linear infinite;
-  --animate-orbe: orbe 8s linear infinite, respirar 3.2s ease-in-out infinite;
-  --animate-orbe-rapido: orbe 1.6s linear infinite, respirar 3.2s ease-in-out infinite;
+  /* El orbe de voz (ADR-0011): el degradado gira y el resplandor respira SOLO con transform y opacity, que el teléfono mueve sin repintar. */
+  --animate-giro-lento: girar 8s linear infinite;
+  --animate-respirar: respirar 3.2s ease-in-out infinite;
   --animate-rizo: rizo 1.8s var(--ease-salida) infinite;
   --animate-onda: onda 0.9s ease-in-out infinite;
   --animate-punto: punto 0.9s ease-in-out infinite;
@@ -250,14 +251,9 @@
       transform: rotate(360deg);
     }
   }
-  @keyframes orbe {
-    to {
-      --giro: 360deg;
-    }
-  }
   @keyframes respirar {
     50% {
-      box-shadow: 0 18px 54px rgb(17 75 95 / 0.6), inset 0 2px 0 rgb(255 255 255 / 0.25);
+      opacity: 1;
     }
   }
   @keyframes rizo {
@@ -303,11 +299,13 @@
     }
   }
   @keyframes pulso-alerta {
-    0% {
-      box-shadow: 0 0 0 0 color-mix(in srgb, var(--deuda) 45%, transparent);
+    from {
+      transform: scale(1);
+      opacity: 1;
     }
-    100% {
-      box-shadow: 0 0 0 14px transparent;
+    to {
+      transform: scale(3);
+      opacity: 0;
     }
   }
   @keyframes latir {
@@ -333,17 +331,21 @@
   }
 }
 
-@property --giro {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
-/* Vidrio esmerilado: la superficie de Aurora. El fondo detrás está quieto, así el desenfoque no se recalcula en cada cuadro. */
+/* Vidrio: la superficie de Aurora. SIN desenfoque: las tarjetas van sobre un fondo suave y quieto, y el desenfoque (backdrop-filter) se
+   recalcula en cada cuadro del deslizamiento y por cada tarjeta. Medido deslizando «Ventas»: con desenfoque, 0.34 a 0.39 s de CPU del
+   teléfono en 3 s; sin él, 0.16 s. A la vista no cambia nada: detrás hay un degradado suave. */
 @utility vidrio {
   background-color: color-mix(in srgb, var(--vidrio) 84%, transparent);
-  -webkit-backdrop-filter: blur(22px) saturate(1.5);
-  backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid color-mix(in srgb, var(--superficie) 70%, transparent);
+  box-shadow: 0 10px 34px rgb(var(--sombra-color) / 0.08);
+}
+
+/* Vidrio con desenfoque: SOLO lo que flota sobre contenido que se desliza (la barra de abajo, la etiqueta y los avisos de la voz). Sin
+   desenfoque, el texto de debajo se transparenta y se lee encima del de la barra. */
+@utility vidrio-desenfocado {
+  background-color: color-mix(in srgb, var(--vidrio) 84%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
   border: 1px solid color-mix(in srgb, var(--superficie) 70%, transparent);
   box-shadow: 0 10px 34px rgb(var(--sombra-color) / 0.08);
 }
@@ -355,28 +357,44 @@
   white-space: nowrap;
 }
 
+/* El orbe de voz. El degradado cónico vive en su propia capa (::before) y GIRA con transform: el teléfono lo mueve sin repintarlo. Antes se
+   animaba la variable --giro del degradado, y cada cuadro repintaba el orbe entero (unos 60 repintados por segundo con la pantalla en reposo).
+   El brillo y el filo de arriba (::after) quedan quietos encima, y el resplandor que respira es otro elemento (.halo). */
 @utility orbe {
-  background: conic-gradient(
-    from var(--giro),
-    var(--orbe-1),
-    var(--orbe-2),
-    var(--orbe-3),
-    var(--orbe-4),
-    var(--orbe-1)
-  );
-  box-shadow: 0 14px 40px rgb(17 75 95 / 0.45), inset 0 2px 0 rgb(255 255 255 / 0.25);
-  /* El brillo de arriba que le da volumen. */
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 14px 40px rgb(17 75 95 / 0.45);
   &::before {
     content: "";
     position: absolute;
-    top: 10px;
-    right: 18px;
-    width: 34px;
-    height: 22px;
-    border-radius: 50%;
-    background: rgb(255 255 255 / 0.35);
-    filter: blur(4px);
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: conic-gradient(from 25deg, var(--orbe-1), var(--orbe-2), var(--orbe-3), var(--orbe-4), var(--orbe-1));
+    animation: var(--animate-giro-lento);
+    will-change: transform;
   }
+  /* Escuchando, gira más rápido. */
+  &[data-estado="escuchando"]::before {
+    animation-duration: 1.6s;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(ellipse 19% 12% at 67% 20%, rgb(255 255 255 / 0.42), transparent);
+    box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.25);
+  }
+}
+
+/* El resplandor del orbe en reposo: una sombra grande ya dibujada cuyo opacity sube y baja (no se anima la sombra). Va detrás del orbe. */
+@utility halo {
+  box-shadow: 0 18px 54px rgb(17 75 95 / 0.6);
+  opacity: 0;
+  animation: var(--animate-respirar);
 }
 
 @utility sombra-fruta {
@@ -393,7 +411,26 @@
   }
   html {
     -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    /* Se desliza hacia arriba, abajo y a los lados, pero no se amplía: ni pellizco ni doble toque (la pantalla queda fija). */
+    touch-action: pan-x pan-y;
+  }
+  /* Lo que se toca no se selecciona ni abre el menú de «copiar enlace» al dejar el dedo: se siente app, no página. Los campos y el texto
+     de las fichas sí se pueden seleccionar (un RUC, un teléfono). */
+  button,
+  a,
+  [role="button"],
+  nav,
+  summary,
+  label {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  img,
+  svg {
+    -webkit-user-drag: none;
   }
   body {
     background-color: var(--fondo);

@@ -56,6 +56,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Todo menos los archivos estáticos: sin esto, el login bloquearía el CSS, el JS y la fruta.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|frutas/|.*\\.(?:svg|png|jpg|jpeg|webp|ico)$).*)"],
+  // Todo menos los archivos estáticos: sin esto, el login bloquearía el CSS, el JS y la fruta. Y lo que pide el navegador sin cookies para
+  // poder instalar la app: el manifest y el service worker (si no, el teléfono los recibe como una redirección al login y no la instala).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|frutas/|icons/|manifest.webmanifest|sw.js|sin-conexion.html|.*\\.(?:svg|png|jpg|jpeg|webp|ico)$).*)"],
 };
