@@ -6,6 +6,8 @@ const config: KnipConfig = {
     ".claude/**",
     // Generado por `supabase gen types`: exporta ayudantes que no siempre se usan.
     "lib/supabase/tipos-db.ts",
+    // El service worker lo registra RegistroPwa con su ruta escrita como texto ("/sw.js"), no con un import.
+    "public/sw.js",
     // Lo usan el login y el botón de voz (A2 y A5). Se quita de aquí cuando A2 lo importe.
     "lib/supabase/navegador.ts",
   ],

@@ -14,6 +14,7 @@
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "e2e": "playwright test",
+    "e2e:prod": "node scripts/entorno-local.mjs pnpm exec next build && playwright test -c playwright.produccion.config.ts",
     "knip": "knip",
     "db:invariantes": "supabase db query --local -f scripts/invariantes.sql && echo \"Invariantes: las 12 en orden.\"",
     "db:tipos": "supabase gen types typescript --local --schema public > lib/supabase/tipos-db.ts",

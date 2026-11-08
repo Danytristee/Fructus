@@ -75,6 +75,19 @@ test("el navegador no ve ningún error de instalación (ícono, manifest, págin
   expect(installabilityErrors.map((e) => e.errorId)).toEqual([]);
 });
 
+test("el service worker y la página «Sin conexión» se abren sin sesión (el navegador los pide sin cookies)", async ({ request }) => {
+  const sw = await request.get("/sw.js");
+  expect(sw.status(), "sin sesión no puede redirigir al login").toBe(200);
+  expect(sw.headers()["content-type"]).toContain("javascript");
+  expect(sw.headers()["cache-control"]).toContain("no-cache");
+  expect(sw.headers()["service-worker-allowed"]).toBe("/");
+
+  const pagina = await request.get("/sin-conexion.html");
+  expect(pagina.status()).toBe(200);
+  expect(pagina.headers()["content-type"]).toContain("text/html");
+  expect(await pagina.text()).toContain("Sin conexión");
+});
+
 // -----------------------------------------------------------------------------------------------------------------------------------
 // El menú «Más»: «Instalar la app»
 // -----------------------------------------------------------------------------------------------------------------------------------
