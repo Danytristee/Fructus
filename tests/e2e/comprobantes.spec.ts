@@ -81,7 +81,7 @@ test("emitir una boleta desde el detalle: queda aceptada con su número, se guar
 
   // Con comprobante ya no se ofrece anular: corresponde una nota de crédito.
   await expect(hoja.getByRole("button", { name: "Anular esta venta" })).toHaveCount(0);
-  await expect(hoja.getByText("Con comprobante no se anula: corresponde una nota de crédito.")).toBeVisible();
+  await expect(hoja.getByText("Ya tiene comprobante: no se puede anular. Si te equivocaste, pídele a tu contador una nota de crédito.")).toBeVisible();
 
   // Al volver a abrir la venta, el comprobante sigue ahí (sale de la base, no de la memoria de la pantalla).
   await page.reload();
@@ -243,8 +243,16 @@ test("un cliente sin documento: la factura pide el RUC, lo valida, lo guarda en 
   await expect(hoja.getByRole("heading", { name: /RUC/ })).toBeVisible();
   const campo = hoja.getByLabel("RUC");
   const guardar = hoja.getByRole("button", { name: "Guardar RUC y emitir factura" });
+  // Mientras se escribe no se asusta con rojo: solo una pista tranquila de cómo es un RUC.
   await campo.fill("123");
+  await expect(hoja.getByText("Escribe el RUC completo: 11 números, empieza con 10 o 20.")).toBeVisible();
+  await expect(hoja.getByText("El RUC tiene 11 números y empieza con 10 o 20.")).toHaveCount(0);
+  await expect(campo).not.toHaveAttribute("aria-invalid", "true");
+  await expect(guardar).toBeDisabled();
+  // Con 11 números que no son un RUC, recién ahí se marca el error.
+  await campo.fill("30123456789");
   await expect(hoja.getByText("El RUC tiene 11 números y empieza con 10 o 20.")).toBeVisible();
+  await expect(hoja.getByText("Corrige el RUC para emitir la factura.")).toBeVisible();
   await expect(guardar).toBeDisabled();
   expect(await comprobantesDe(ventaId)).toHaveLength(0);
 
@@ -330,6 +338,32 @@ test("la factura cabe en el celular: los dos botones lado a lado a 48 px, y la h
   expect(medidas.chicos, "controles de menos de 48 px").toEqual([]);
 });
 
+test("al emitir, un solo botón lleva el color: la factura a un cliente con RUC, la boleta a uno sin documento, y una sola opción no compite con nada", async ({ page, browser }) => {
+  const conRuc = await ventaAlCredito(72, { tipo_documento: "RUC", numero_documento: rucAlAzar() });
+  const hoja = await abrirDetalle(page, conRuc.cliente.nombre);
+  await expect(hoja.getByRole("button", { name: "Emitir factura" })).toHaveAttribute("data-variant", "default");
+  await expect(hoja.getByRole("button", { name: "Emitir boleta" })).toHaveAttribute("data-variant", "ghost");
+  // Los dos miden lo mismo: el protagonista se ve por el color, no porque el otro se achique.
+  const [a, b] = await Promise.all(["Emitir factura", "Emitir boleta"].map((n) => hoja.getByRole("button", { name: n }).boundingBox()));
+  expect(a!.height).toBe(b!.height);
+
+  const sinDocumento = await ventaAlCredito(73);
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await page.getByRole("button", { name: new RegExp(sinDocumento.cliente.nombre) }).click();
+  const hojaSin = page.getByRole("dialog", { name: "Detalle de la venta" });
+  await expect(hojaSin).toBeVisible({ timeout: 15_000 });
+  await expect(hojaSin.getByRole("button", { name: "Emitir boleta" })).toHaveAttribute("data-variant", "default");
+  await expect(hojaSin.getByRole("button", { name: "Emitir factura" })).toHaveAttribute("data-variant", "ghost");
+
+  // Sin factura que ofrecer (cliente con DNI) queda una sola opción: no hay a quién ganarle.
+  const dni = await ventaAlCredito(74, { tipo_documento: "DNI", numero_documento: "40123456" });
+  const { contexto, pagina } = await otraPersona(browser, page);
+  const hojaDni = await abrirDetalle(pagina, dni.cliente.nombre, "duenio");
+  await expect(hojaDni.getByRole("button", { name: "Emitir boleta" })).toHaveAttribute("data-variant", "ghost");
+  await contexto.close();
+});
+
 // ---------------------------------------------------------------------------------------------------------------------
 // A9.3 · Cuando el proveedor falla: nunca dos números, nunca un éxito inventado, y siempre se dice qué pasó
 // ---------------------------------------------------------------------------------------------------------------------
@@ -354,6 +388,8 @@ test("el proveedor rechaza: se dice por qué, queda guardado el rechazo, y se pu
   await expect(tarjeta(hoja)).toContainText("rechazada", { timeout: 20_000 });
   await expect(tarjeta(hoja)).toContainText("El RUC del cliente no existe");
   await expect(hoja.getByRole("alert")).toHaveCount(0);
+  // Un toque a la ficha, donde se corrige el dato, en vez de una frase que no dice dónde.
+  await expect(hoja.getByRole("link", { name: "Corregir datos del cliente" })).toHaveAttribute("href", `/clientes/${cliente.id}`);
   await expect(hoja.getByRole("button", { name: "Emitir boleta" })).toBeVisible(); // se puede volver a emitir
   await expect(hoja.getByRole("button", { name: "Anular esta venta" })).toBeVisible(); // sin comprobante vigente, anular vuelve a ser posible
   const [rechazado] = await comprobantesDe(ventaId);
@@ -374,13 +410,22 @@ test("el proveedor rechaza: se dice por qué, queda guardado el rechazo, y se pu
   await expect(tarjeta(page.getByRole("dialog", { name: "Detalle de la venta" }))).toContainText("aceptada", { timeout: 15_000 });
 });
 
+test("un rechazo ante el ayudante: no puede editar clientes, así que se le dice que avise al dueño (sin enlace a la ficha)", async ({ page }) => {
+  const { cliente } = await ventaAlCredito(121, undefined, { modo: "rechazado" });
+  const hoja = await abrirDetalle(page, cliente.nombre, "ayudante");
+  await hoja.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(hoja)).toContainText("rechazada", { timeout: 20_000 });
+  await expect(tarjeta(hoja)).toContainText("pídele al dueño que lo corrija");
+  await expect(hoja.getByRole("link", { name: "Corregir datos del cliente" })).toHaveCount(0);
+});
+
 test("el proveedor está caído: el comprobante queda pendiente con su número, se dice qué hacer, y Reintentar manda ese mismo número", async ({ page, browser }) => {
   const { cliente, ventaId } = await ventaAlCredito(130, undefined, { modo: "caido" });
   const hoja = await abrirDetalle(page, cliente.nombre);
   await hoja.getByRole("button", { name: "Emitir boleta" }).click();
 
   await expect(tarjeta(hoja)).toContainText("en proceso", { timeout: 20_000 });
-  await expect(tarjeta(hoja)).toContainText("No hubo respuesta del proveedor. Reintenta: lleva el mismo número y no se repite.");
+  await expect(tarjeta(hoja)).toContainText("No llegó respuesta. Reintenta: lleva el mismo número y no se repite.");
   const [pendiente] = await comprobantesDe(ventaId);
   expect(pendiente).toMatchObject({ estado: "pendiente", respuesta: null, pdf_url: null });
   await expect(hoja.getByRole("button", { name: "Anular esta venta" })).toHaveCount(0); // en proceso: no se anula (podría quedar aceptado)
@@ -431,7 +476,7 @@ test("«enviado»: SUNAT todavía no contesta; «Ver cómo va» pregunta sin rep
   await expect(tarjeta(hoja)).toContainText("enviada, esperando a SUNAT", { timeout: 20_000 });
   const [enviado] = await comprobantesDe(ventaId);
   expect(enviado).toMatchObject({ estado: "enviado", pdf_url: null });
-  await expect(hoja.getByText("Con comprobante no se anula: corresponde una nota de crédito.")).toBeVisible();
+  await expect(hoja.getByText("Ya tiene comprobante: no se puede anular. Si te equivocaste, pídele a tu contador una nota de crédito.")).toBeVisible();
 
   // «SUNAT todavía no contesta» ya está en pantalla antes de preguntar: se espera a que la pregunta haya llegado al proveedor, y recién
   // entonces SUNAT contesta (si no, la primera consulta podría ya encontrarla aceptada y la prueba dependería del ritmo).
@@ -508,18 +553,45 @@ test("el comprobante pendiente y el rechazado caben en el celular: botón de 48 
   expect(medidas.desborde).toBeLessThanOrEqual(0);
   expect(medidas.chicos, "controles de menos de 48 px").toEqual([]);
 
-  const rechazado = await ventaAlCredito(76, undefined, { modo: "rechazado" });
+  // Un rechazo, con un nombre de cliente como los del puesto, cabe en la hoja: «Anular» y «Cerrar» se ven sin deslizarla.
+  await verQueUnRechazoCabe(page);
+});
+
+/**
+ * Un rechazo con un cliente de nombre corto («Don Lucho 4821»): el de las pruebas lleva su marca de escenario y ocupa cuatro líneas, y taparía
+ * lo que se mide. Se mide con scrollHeight y no con el alto de la hoja: la hoja nunca pasa de 94dvh, así que su alto no puede delatar que se
+ * desborda por dentro.
+ */
+async function verQueUnRechazoCabe(page: Page, motivo?: "largo") {
+  const { height } = page.viewportSize()!;
+  const rechazado = await ventaAlCredito(76, undefined, { modo: "rechazado", ...(motivo ? { motivo } : {}) });
   await page.keyboard.press("Escape");
   await page.reload();
   await page.getByRole("button", { name: new RegExp(sinMarca(rechazado.cliente.nombre)) }).click();
+  const primera = page.getByRole("dialog", { name: "Detalle de la venta" });
+  await expect(primera).toBeVisible({ timeout: 15_000 });
+  await primera.getByRole("button", { name: "Emitir boleta" }).click();
+  await expect(tarjeta(primera)).toContainText("rechazada", { timeout: 20_000 });
+  const corto = `Don Lucho ${Math.floor(1000 + Math.random() * 9000)}`;
+  await base.from("clientes").update({ nombre: corto }).eq("id", rechazado.cliente.id);
+  await page.keyboard.press("Escape");
+  await page.reload();
+  await page.getByRole("button", { name: new RegExp(corto) }).click();
   const hojaRechazo = page.getByRole("dialog", { name: "Detalle de la venta" });
-  await expect(hojaRechazo).toBeVisible({ timeout: 15_000 });
-  await hojaRechazo.getByRole("button", { name: "Emitir boleta" }).click();
-  await expect(tarjeta(hojaRechazo)).toContainText("rechazada", { timeout: 20_000 });
+  await expect(tarjeta(hojaRechazo)).toContainText("rechazada", { timeout: 15_000 });
   await page.waitForTimeout(500);
-  const despues = await hojaRechazo.evaluate((raiz) => ({ desborde: raiz.scrollWidth - raiz.clientWidth, alto: raiz.getBoundingClientRect().height }));
-  expect(despues.desborde).toBeLessThanOrEqual(0);
-  expect(despues.alto).toBeLessThanOrEqual(height);
+  const medidas = await hojaRechazo.evaluate((raiz) => ({ desborde: raiz.scrollWidth - raiz.clientWidth, sobra: raiz.scrollHeight - raiz.clientHeight }));
+  expect(medidas.desborde).toBeLessThanOrEqual(0);
+  expect(medidas.sobra, "la hoja de un rechazo se desliza por dentro").toBeLessThanOrEqual(0);
+  const cerrar = (await hojaRechazo.getByRole("button", { name: "Cerrar" }).boundingBox())!;
+  expect(cerrar.y + cerrar.height, "«Cerrar» a la vista").toBeLessThanOrEqual(height);
+}
+
+// Medido en la pasada /formidable del 2026-11-07 (docs/formidable/detalle-venta-2026-11-07.md): con un motivo de unas 200 letras, como los
+// de SUNAT, la hoja se desborda por dentro: 10 px a 412 × 915 y 142 px a 360 × 800, y «Anular» y «Cerrar» quedan bajo el borde. Arreglarlo
+// cambia la estructura de la hoja (por ejemplo, «Cerrar» pegado abajo), así que espera el OK de quien dirige el proyecto.
+test.fixme("un rechazo con un motivo largo (unas 200 letras) también cabe en la hoja", async ({ page }) => {
+  await verQueUnRechazoCabe(page, "largo");
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -639,5 +711,5 @@ test("los enlaces caben en el celular: lado a lado, de 48 px, dentro de la panta
   const cerrar = hoja.getByRole("button", { name: "Cerrar", exact: true });
   await cerrar.scrollIntoViewIfNeeded();
   const caja = (await cerrar.boundingBox())!;
-  expect(caja.y + caja.height).toBeLessThanOrEqual(height);
+  expect(caja.y + caja.height).toBeLessThanOrEqual(height + 1); // +1: una fracción de píxel no es «fuera de la pantalla»
 });

@@ -9,6 +9,7 @@ import { crearClienteServicio } from "@/lib/supabase/servicio";
 import type { Database, Json } from "@/lib/supabase/tipos-db";
 import {
   armarPedido,
+  FRASE_RECHAZO,
   mensajeDeRespuesta,
   type CodigoTipo,
   type ComprobanteVista,
@@ -126,10 +127,10 @@ async function guardarRespuesta(servicio: ClienteServicio, fila: Fila, respuesta
 
   if (respuesta.tipo === "sin-respuesta") {
     // Emitiendo, «en proceso» ya lo dice el estado (y qué hacer, la ayuda de la pantalla). Preguntando, sí se avisa que no se pudo.
-    return vistaSinCambios(esperado === "pendiente" ? undefined : "No pude preguntarle al proveedor. Inténtalo de nuevo.");
+    return vistaSinCambios(esperado === "pendiente" ? undefined : "No pude ver cómo va. Inténtalo de nuevo.");
   }
   if (respuesta.tipo === "no-existe" || respuesta.tipo === "ya-existe") {
-    return vistaSinCambios("El proveedor no confirma ese número todavía. Inténtalo de nuevo en un momento.");
+    return vistaSinCambios("Todavía no confirman ese número. Inténtalo de nuevo en un momento.");
   }
 
   const cambios =
@@ -148,7 +149,7 @@ async function guardarRespuesta(servicio: ClienteServicio, fila: Fila, respuesta
     .maybeSingle();
   if (error) {
     console.error("comprobantes: no se pudo guardar la respuesta", { comprobanteId: fila.id, codigo: error.code });
-    return vistaSinCambios("El proveedor contestó, pero no pude guardar la respuesta. Inténtalo de nuevo.");
+    return vistaSinCambios("Contestaron, pero no pude guardar la respuesta. Inténtalo de nuevo.");
   }
 
   // Otra persona terminó este comprobante antes: se muestra cómo quedó, sin pisarlo.
@@ -157,7 +158,7 @@ async function guardarRespuesta(servicio: ClienteServicio, fila: Fila, respuesta
   const vista = vistaDe(quedo);
 
   if (vista.estado === "rechazado") {
-    return { ok: false, error: `El proveedor rechazó el comprobante${vista.motivo ? `: ${vista.motivo}` : "."}`, comprobante: vista };
+    return { ok: false, error: `${FRASE_RECHAZO}${vista.motivo ? `: ${vista.motivo}` : "."}`, comprobante: vista };
   }
   return { ok: true, comprobante: vista };
 }

@@ -129,6 +129,7 @@ function Cuerpo({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar
         aviso={aviso}
         puedeEmitir={puedeEmitir && !anulacion}
         facturar={ofertaDeFactura(venta.cliente, puedeEditarClientes)}
+        cliente={venta.cliente ? { id: venta.cliente.id, puedeEditar: puedeEditarClientes } : null}
         envio={{ nombre: venta.cliente?.nombre ?? null, telefono: venta.cliente?.telefono ?? null, total: venta.total }}
         alEmitir={alEmitir}
         alPedirRuc={() => setVista("ruc")}
@@ -140,7 +141,7 @@ function Cuerpo({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar
         <p className="mx-1 text-texto-suave">
           {vigente.estado === "pendiente"
             ? "El comprobante está en proceso: espera a que termine para anular."
-            : "Con comprobante no se anula: corresponde una nota de crédito."}
+            : "Ya tiene comprobante: no se puede anular. Si te equivocaste, pídele a tu contador una nota de crédito."}
         </p>
       )}
 

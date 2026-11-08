@@ -7,6 +7,8 @@ const URL_LUCODE = `http://127.0.0.1:${Number(process.env.PUERTO ?? "3000") + 20
 export type Escenario = {
   /** aceptado (por defecto) | rechazado | enviado | caido (503) | invalido (200 con basura) | token (401) */
   modo?: "aceptado" | "rechazado" | "enviado" | "caido" | "invalido" | "token";
+  /** «largo»: un rechazo con un motivo de unas 200 letras, como los de SUNAT. */
+  motivo?: "largo";
   /** Cuánto tarda en contestar. Si pasa el tope de la app (LUCODE_TOPE_MS), la respuesta se pierde pero el proveedor igual lo guardó. */
   demoraMs?: number;
 };
@@ -17,8 +19,8 @@ const MARCA = /\s*\[lucode:[^\]]*\]\s*$/;
 export const sinMarca = (nombre: string) => nombre.replace(MARCA, "");
 
 /** El nombre de un cliente de prueba con su marca de escenario: el simulador lee la marca del pedido, así no hay un interruptor global. */
-export function conEscenario(nombre: string, { modo, demoraMs }: Escenario): string {
-  const partes = [modo ? `modo=${modo}` : null, demoraMs ? `demora=${demoraMs}` : null].filter(Boolean);
+export function conEscenario(nombre: string, { modo, demoraMs, motivo }: Escenario): string {
+  const partes = [modo ? `modo=${modo}` : null, demoraMs ? `demora=${demoraMs}` : null, motivo ? `motivo=${motivo}` : null].filter(Boolean);
   return `${sinMarca(nombre)} [lucode:${partes.join(";")}]`;
 }
 

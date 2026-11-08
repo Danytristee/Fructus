@@ -190,7 +190,7 @@ test("una venta con comprobante enviado no ofrece anular: corresponde una nota d
   // La pantalla ya no ofrece lo que la base va a rechazar (pgTAP 12 prueba el rechazo de la base): dice qué corresponde.
   await expect(hoja.getByRole("group", { name: "Comprobante" })).toContainText("enviada, esperando a SUNAT");
   await expect(hoja.getByRole("button", { name: "Anular esta venta" })).toHaveCount(0);
-  await expect(hoja.getByText("Con comprobante no se anula: corresponde una nota de crédito.")).toBeVisible();
+  await expect(hoja.getByText("Ya tiene comprobante: no se puede anular. Si te equivocaste, pídele a tu contador una nota de crédito.")).toBeVisible();
   expect((await venta(ventaId)).estado).toBe("registrada");
   expect(await devoluciones(ventaId)).toEqual([]);
 });

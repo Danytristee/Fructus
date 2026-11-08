@@ -13,6 +13,7 @@ import {
   nombreDelTipo,
   notaDeComprobante,
   ofertaDeFactura,
+  salidaDeRechazo,
   numeroDeComprobante,
   telefonoParaWhatsApp,
   type DatosDeVenta,
@@ -139,10 +140,10 @@ describe("comprobanteVigente", () => {
 describe("fraseDeComprobante", () => {
   it("dice qué es y en qué quedó, en palabras de puesto", () => {
     const base = { id: 1, tipo: "03" as const, serie: "B001", numero: 12, pdfUrl: null };
-    expect(fraseDeComprobante({ ...base, estado: "aceptado" })).toEqual({ titulo: "Boleta B001-00000012", estado: "aceptada" });
+    expect(fraseDeComprobante({ ...base, estado: "aceptado" })).toEqual({ titulo: "Boleta B001-00000012", estado: "aceptada por SUNAT" });
     expect(fraseDeComprobante({ ...base, estado: "enviado" })).toEqual({ titulo: "Boleta B001-00000012", estado: "enviada, esperando a SUNAT" });
     expect(fraseDeComprobante({ ...base, estado: "pendiente" })).toEqual({ titulo: "Boleta B001-00000012", estado: "en proceso" });
-    expect(fraseDeComprobante({ ...base, tipo: "01", serie: "F001", estado: "aceptado" })).toEqual({ titulo: "Factura F001-00000012", estado: "aceptada" });
+    expect(fraseDeComprobante({ ...base, tipo: "01", serie: "F001", estado: "aceptado" })).toEqual({ titulo: "Factura F001-00000012", estado: "aceptada por SUNAT" });
   });
 });
 
@@ -180,7 +181,7 @@ describe("leerRespuesta cuando algo sale mal", () => {
   it("un pedido mal formado (400 o 422) es un rechazo, con su motivo si lo trae", () => {
     expect(leerRespuesta(422, { mensaje: "El RUC del cliente no existe" })).toMatchObject({ tipo: "rechazado", mensaje: "El RUC del cliente no existe" });
     expect(leerRespuesta(400, { mensaje: "Falta el cliente" })).toMatchObject({ tipo: "rechazado", mensaje: "Falta el cliente" });
-    expect(leerRespuesta(400, null)).toMatchObject({ tipo: "rechazado", mensaje: "El proveedor rechazó el comprobante" });
+    expect(leerRespuesta(400, null)).toMatchObject({ tipo: "rechazado", mensaje: "El comprobante fue rechazado" });
   });
 
   it("una clave mala (401, 403), una ruta que no existe (404) o una caída (5xx) NO son un rechazo del comprobante: es «sin respuesta»", () => {
@@ -225,7 +226,7 @@ describe("mensajeDeRespuesta (el motivo guardado de un rechazo)", () => {
 
 describe("ayudaDeComprobante (qué hacer con uno que no terminó)", () => {
   it("pendiente: no hubo respuesta, se reintenta con el mismo número; enviado: se pregunta cómo va; aceptado: nada", () => {
-    expect(ayudaDeComprobante("pendiente")).toEqual({ texto: "No hubo respuesta del proveedor. Reintenta: lleva el mismo número y no se repite.", boton: "Reintentar" });
+    expect(ayudaDeComprobante("pendiente")).toEqual({ texto: "No llegó respuesta. Reintenta: lleva el mismo número y no se repite.", boton: "Reintentar" });
     expect(ayudaDeComprobante("enviado")).toEqual({ texto: "SUNAT todavía no contesta.", boton: "Ver cómo va" });
     expect(ayudaDeComprobante("aceptado")).toBeNull();
     expect(ayudaDeComprobante("rechazado")).toBeNull();
@@ -257,8 +258,8 @@ describe("notaDeComprobante (lo que dice el sello de la venta dictada)", () => {
   const vista = (estado: string, extra: Record<string, unknown> = {}) => ({ id: 1, tipo: "03" as const, serie: "B001", numero: 12, estado, pdfUrl: null, ...extra });
 
   it("aceptado: dice qué número salió", () => {
-    expect(notaDeComprobante("boleta", { ok: true, comprobante: vista("aceptado") })).toBe("Boleta B001-00000012 aceptada");
-    expect(notaDeComprobante("factura", { ok: true, comprobante: { ...vista("aceptado"), tipo: "01", serie: "F001" } })).toBe("Factura F001-00000012 aceptada");
+    expect(notaDeComprobante("boleta", { ok: true, comprobante: vista("aceptado") })).toBe("Boleta B001-00000012 aceptada por SUNAT");
+    expect(notaDeComprobante("factura", { ok: true, comprobante: { ...vista("aceptado"), tipo: "01", serie: "F001" } })).toBe("Factura F001-00000012 aceptada por SUNAT");
   });
 
   it("en proceso o enviado: la venta ya está guardada y dice dónde terminarlo", () => {
@@ -268,9 +269,9 @@ describe("notaDeComprobante (lo que dice el sello de la venta dictada)", () => {
 
   it("rechazada: dice por qué y que la venta quedó guardada", () => {
     expect(notaDeComprobante("factura", { ok: false, error: "x", comprobante: { ...vista("rechazado", { motivo: "El RUC del cliente no existe" }), tipo: "01", serie: "F001" } })).toBe(
-      "La venta quedó guardada, pero Lucode rechazó la factura: El RUC del cliente no existe",
+      "La venta quedó guardada, pero la factura fue rechazada: El RUC del cliente no existe",
     );
-    expect(notaDeComprobante("boleta", { ok: false, error: "x", comprobante: vista("rechazado") })).toBe("La venta quedó guardada, pero Lucode rechazó la boleta.");
+    expect(notaDeComprobante("boleta", { ok: false, error: "x", comprobante: vista("rechazado") })).toBe("La venta quedó guardada, pero la boleta fue rechazada.");
   });
 
   it("no salió (falta el RUC, sin señal…): la venta quedó guardada y se dice qué pasó, en lenguaje de puesto", () => {
@@ -327,5 +328,14 @@ describe("enlaceDeWhatsApp", () => {
     const enlace = enlaceDeWhatsApp({ telefono: null, nombre: "Ñañez & Hijos?", comprobante, total: 10, pdfUrl: "https://lucode.test/pdf/B001-00000012" });
     expect(enlace.split("?text=")).toHaveLength(2);
     expect(texto(enlace)).toContain("Ñañez & Hijos?");
+  });
+});
+
+describe("salidaDeRechazo (qué hacer con un comprobante rechazado)", () => {
+  it("quien edita clientes va a la ficha; el ayudante avisa al dueño; sin cliente solo se emite otro", () => {
+    expect(salidaDeRechazo(true, true)).toBe("corregir-ficha");
+    expect(salidaDeRechazo(true, false)).toBe("pedir-al-dueno");
+    expect(salidaDeRechazo(false, true)).toBe("emitir-otro");
+    expect(salidaDeRechazo(false, false)).toBe("emitir-otro");
   });
 });

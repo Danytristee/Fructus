@@ -122,6 +122,9 @@ export type RespuestaDelProveedor =
 /** Lo que dice el proveedor al preguntarle por un número: lo mismo que al emitir, salvo que puede no conocerlo. */
 export type ConsultaDelProveedor = Exclude<RespuestaDelProveedor, { tipo: "ya-existe" }> | { tipo: "no-existe" };
 
+/** Cómo empieza todo aviso de un rechazo («El comprobante fue rechazado: …»). La pantalla lo usa para no repetir en una alerta lo que la tarjeta ya dice. */
+export const FRASE_RECHAZO = "El comprobante fue rechazado";
+
 const MAX_MENSAJE = 300;
 const recortar = (texto: string) => (texto.length > MAX_MENSAJE ? `${texto.slice(0, MAX_MENSAJE - 1)}…` : texto);
 
@@ -156,7 +159,7 @@ function leerExito(cuerpo: unknown): Exclude<RespuestaDelProveedor, { tipo: "ya-
   if (!leido.success) return { tipo: "sin-respuesta", motivo: "La respuesta del proveedor no se entendió" };
   const r = leido.data;
   if (r.estado === "aceptado") return { tipo: "aceptado", pdfUrl: enlaceSeguro(r.pdf_url), xmlUrl: enlaceSeguro(r.xml_url), cruda: cuerpo };
-  if (r.estado === "rechazado") return { tipo: "rechazado", mensaje: recortar(r.mensaje?.trim() || "El proveedor rechazó el comprobante"), cruda: cuerpo };
+  if (r.estado === "rechazado") return { tipo: "rechazado", mensaje: recortar(r.mensaje?.trim() || FRASE_RECHAZO), cruda: cuerpo };
   return { tipo: "enviado", cruda: cuerpo };
 }
 
@@ -169,7 +172,7 @@ function leerExito(cuerpo: unknown): Exclude<RespuestaDelProveedor, { tipo: "ya-
 export function leerRespuesta(estadoHttp: number, cuerpo: unknown): RespuestaDelProveedor {
   if (estadoHttp === 409) return { tipo: "ya-existe" };
   if (estadoHttp === 400 || estadoHttp === 422) {
-    return { tipo: "rechazado", mensaje: mensajeDeRespuesta(cuerpo) ?? "El proveedor rechazó el comprobante", cruda: cuerpo };
+    return { tipo: "rechazado", mensaje: mensajeDeRespuesta(cuerpo) ?? FRASE_RECHAZO, cruda: cuerpo };
   }
   if (estadoHttp < 200 || estadoHttp >= 300) return { tipo: "sin-respuesta", motivo: `El proveedor respondió ${estadoHttp}` };
   return leerExito(cuerpo);
@@ -202,7 +205,7 @@ export function comprobanteAMostrar<T extends { id: number; estado: string }>(co
 }
 
 const estados: Record<string, string> = {
-  aceptado: "aceptada",
+  aceptado: "aceptada por SUNAT",
   enviado: "enviada, esperando a SUNAT",
   pendiente: "en proceso",
   rechazado: "rechazada",
@@ -212,6 +215,17 @@ const estados: Record<string, string> = {
 /** «Boleta B001-00000012» y en qué quedó: «aceptada», «enviada, esperando a SUNAT» o «en proceso». */
 export function fraseDeComprobante(c: { tipo: CodigoTipo; serie: string; numero: number; estado: string }): { titulo: string; estado: string } {
   return { titulo: `${nombreDelTipo(c.tipo)} ${numeroDeComprobante(c.serie, c.numero)}`, estado: estados[c.estado] ?? c.estado };
+}
+
+/**
+ * Qué se le dice a quien ve un comprobante rechazado, según lo que puede hacer: quien edita clientes va a su ficha a corregir el dato;
+ * quien no (el ayudante) avisa al dueño; y una venta al paso, que no tiene a quién corregirle nada, solo emite otro.
+ */
+export type SalidaDeRechazo = "corregir-ficha" | "pedir-al-dueno" | "emitir-otro";
+
+export function salidaDeRechazo(hayCliente: boolean, puedeEditarClientes: boolean): SalidaDeRechazo {
+  if (!hayCliente) return "emitir-otro";
+  return puedeEditarClientes ? "corregir-ficha" : "pedir-al-dueno";
 }
 
 /** Qué se le ofrece a quien mira una venta para la factura: sale directo, hay que pedir el RUC, o no se ofrece. */
@@ -231,7 +245,7 @@ export function ofertaDeFactura(cliente: { tipoDocumento: "DNI" | "RUC" | null }
 
 /** Qué decir y qué ofrecer con un comprobante que no terminó: pendiente se reintenta (mismo número), enviado se consulta. */
 export function ayudaDeComprobante(estado: string): { texto: string; boton: string } | null {
-  if (estado === "pendiente") return { texto: "No hubo respuesta del proveedor. Reintenta: lleva el mismo número y no se repite.", boton: "Reintentar" };
+  if (estado === "pendiente") return { texto: "No llegó respuesta. Reintenta: lleva el mismo número y no se repite.", boton: "Reintentar" };
   if (estado === "enviado") return { texto: "SUNAT todavía no contesta.", boton: "Ver cómo va" };
   return null;
 }
@@ -249,7 +263,7 @@ export function notaDeComprobante(
     return r.comprobante.estado === "pendiente" ? `${titulo} ${estado}: termínala desde la venta` : `${titulo} ${estado}`;
   }
   if (r.comprobante?.estado === "rechazado") {
-    return `La venta quedó guardada, pero Lucode rechazó la ${tipo}${r.comprobante.motivo ? `: ${r.comprobante.motivo}` : "."}`;
+    return `La venta quedó guardada, pero la ${tipo} fue rechazada${r.comprobante.motivo ? `: ${r.comprobante.motivo}` : "."}`;
   }
   return `La venta quedó guardada, pero la ${tipo} no salió: ${r.error}`;
 }

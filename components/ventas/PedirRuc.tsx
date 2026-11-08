@@ -23,6 +23,8 @@ type Props = {
 export function PedirRuc({ ventaId, cliente, volver, alEmitir, alCambiarGuardando }: Props) {
   const [texto, setTexto] = useState("");
   const lectura = leerDocumento("RUC", texto);
+  // El rojo solo cuando ya hay un RUC completo que no sirve: mientras se escribe, una pista tranquila (se dice en el pie).
+  const rucMalo = !lectura.ok && texto.replace(/\D/g, "").length >= 11;
   const { confirmar, guardando, error } = useConfirmar<Extract<Awaited<ReturnType<typeof emitirComprobante>>, { ok: true }>>({
     alGuardar: () => undefined,
     alCambiarGuardando,
@@ -44,7 +46,7 @@ export function PedirRuc({ ventaId, cliente, volver, alEmitir, alCambiarGuardand
         etiqueta="RUC"
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
-        error={texto.trim() !== "" && !lectura.ok ? lectura.error : undefined}
+        error={rucMalo && !lectura.ok ? lectura.error : undefined}
         inputMode="numeric"
         autoComplete="off"
         maxLength={16}
@@ -52,7 +54,7 @@ export function PedirRuc({ ventaId, cliente, volver, alEmitir, alCambiarGuardand
       />
 
       <PieConfirmar
-        aviso={lectura.ok ? null : "Escribe el RUC completo para emitir."}
+        aviso={lectura.ok ? null : rucMalo ? "Corrige el RUC para emitir la factura." : "Escribe el RUC completo: 11 números, empieza con 10 o 20."}
         avisoNeutro
         error={error}
         guardando={guardando}

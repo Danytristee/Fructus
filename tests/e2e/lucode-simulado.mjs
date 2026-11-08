@@ -12,6 +12,7 @@
 // CÓMO SE PORTA depende de la venta, no de un interruptor global (las pruebas de 412 y de 360 px corren a la vez): lo dice una marca
 // en el nombre del cliente, «[lucode:modo=rechazado;demora=3000]».
 //   modo: aceptado (por defecto) | rechazado | enviado | caido (503) | invalido (200 con basura) | token (401)
+//   motivo: «largo» hace que un rechazo traiga un motivo de unas 200 letras, como los de SUNAT (la hoja tiene que seguir cabiendo).
 //   demora: milisegundos que tarda en contestar (se guarda el comprobante al llegar el pedido, como el proveedor de verdad: así se
 //           prueba la respuesta que se pierde porque la app ya no esperó).
 // La forma de la respuesta es nuestra suposición del contrato hasta probar contra el sandbox real (A9.6).
@@ -56,14 +57,18 @@ const responder = (res, estado, cuerpo) => {
 function escenarioDe(nombre = "") {
   const m = nombre.match(/\s*\[lucode:([^\]]*)\]\s*$/);
   const base = nombre.replace(/\s*\[lucode:[^\]]*\]\s*$/, "");
-  const e = { base, modo: "aceptado", demora: 0 };
+  const e = { base, modo: "aceptado", demora: 0, motivo: "" };
   for (const par of (m?.[1] ?? "").split(";")) {
     const [k, v] = par.split("=");
     if (k === "modo" && v) e.modo = v;
     if (k === "demora") e.demora = Number(v) || 0;
+    if (k === "motivo" && v) e.motivo = v;
   }
   return e;
 }
+
+const MOTIVO_LARGO =
+  "El documento del cliente no es válido: el número de RUC 20123456789 no figura como activo en el padrón de SUNAT. Verifica los datos del cliente y vuelve a emitir el comprobante con el documento correcto.";
 
 const numeroDe = (pedido) => `${pedido.serie}-${String(pedido.numero).padStart(8, "0")}`;
 const vigente = (clave) => {
@@ -121,7 +126,7 @@ createServer(async (req, res) => {
     // venta es de una corrida anterior (la base se rehízo y los números volvieron a empezar): se olvida.
     if (previo && previo.base === e.base) return responder(res, 409, { mensaje: "El comprobante ya existe" });
     const estado = e.modo === "rechazado" ? "rechazado" : e.modo === "enviado" ? "enviado" : "aceptado";
-    registrados.set(clave, { estado, base: e.base, creado: Date.now() });
+    registrados.set(clave, { estado, base: e.base, creado: Date.now(), mensaje: e.motivo === "largo" ? MOTIVO_LARGO : undefined });
     if (e.demora > 0) await new Promise((r) => setTimeout(r, e.demora));
     if (e.modo === "invalido") return responder(res, 200, { algo: "raro" });
     return responder(res, 200, cuerpoDe(clave, registrados.get(clave)));

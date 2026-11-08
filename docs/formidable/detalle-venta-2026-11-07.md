@@ -145,3 +145,53 @@ Tocan **comprobantes** (la pantalla de emitir y sus textos): por `CLAUDE.md`, no
 - **«Reintentar» frente a «Ver cómo va»** y cuánto dura «esperando a SUNAT»: opinión; sin dato real hasta A9.6.
 - **«Enviar por WhatsApp» sin decir a qué número:** refutada como falla, pero se podría leer «Enviar a Luis…» (rompe unos 8 localizadores de las pruebas).
 - **Insignias «Lo debe» y «Pagó» a 15 px**, pieza ya anotada en informes anteriores.
+
+## 7. Después (aplicado con el OK de quien dirige el proyecto)
+
+Los 3 cambios, medidos y mirados a 412, 360 y 1280 px. Capturas «después» en `docs/formidable/capturas/detalle-venta-<estado>-despues-{412,360,1280}.png`
+(9 estados: los 7 de antes más «con RUC» y «rechazada con un motivo largo»).
+
+**Lo que se hizo, y dónde me aparté de lo propuesto**
+
+1. **Un protagonista al emitir.** Con dos opciones, una lleva el color de la acción principal y la otra queda en vidrio, del mismo alto (56 px) y del mismo ancho:
+   a un cliente con RUC, la factura; a uno sin documento (al que se le pediría el RUC), la boleta. *Me aparté en dos cosas:* la otra opción queda en **vidrio**, no como
+   texto (un texto suelto no se lee como botón), y **con una sola opción** (venta al paso, cliente con DNI, ayudante que no puede editar clientes) el botón sigue en vidrio: no
+   hay a quién ganarle y una acción grande y de color en cada venta contradiría «se emiten solo cuando la persona lo pide».
+2. **Una salida desde el rechazo.** «Corregir datos del cliente ›» lleva a su ficha (dueño y administrador). *Me aparté en una cosa:* **no lleva la frase** «Si el dato es del
+   cliente, corrígelo en su ficha y vuelve a emitir.»; el enlace reemplaza a «Puedes corregirlo y emitir otro…». A 360 px la hoja de un rechazo mide 747 de 752 px: una fila de
+   48 px más una frase de dos líneas no cabía. Al ayudante se le dice «Si el dato es del cliente, pídele al dueño que lo corrija y vuelve a emitir.»; en una venta al paso, «Puedes emitir otro: saldrá con otro número.»
+3. **Palabras de puesto.** Como se propuso: «No llegó respuesta» (en vez de «No hubo respuesta del proveedor»), «La boleta fue rechazada» (sin «Lucode»), «aceptada por SUNAT»,
+   «Ya tiene comprobante: no se puede anular. Si te equivocaste, pídele a tu contador una nota de crédito.», los avisos de `emitir.ts` sin «proveedor», y el aviso del RUC: una
+   pista tranquila («Escribe el RUC completo: 11 números, empieza con 10 o 20.») y el rojo solo con 11 números o más («Corrige el RUC para emitir la factura.»).
+   El rechazo ya no se detecta por el texto «El proveedor rechazó» sino por una constante compartida (`FRASE_RECHAZO`), para que cambiar una frase no duplique la alerta.
+
+**Medido después (Medido)**
+
+| | 412 | 360 | 1280 |
+|---|---|---|---|
+| Controles menores de 48 px | 0 | 0 | 0 |
+| Desborde horizontal | 0 | 0 | 0 |
+| Contraste menor de 4.5:1 / textos clave menores de 7:1 | 0 / 0 | 0 / 0 | 0 / 0 |
+| Textos bajo 17 px | solo las insignias «Lo debe» / «Pagó» (15 px) | igual | igual |
+
+Alto de la hoja a 360 × 800 (tope 752), antes → después: sin comprobante 588 → 588 · pidiendo RUC 609–622 → 592 · al paso 568 → 568 · en proceso 737 → 737 ·
+enviado 688 → 712 · **rechazada 748 → 747** · aceptada 677 → 702. «Enviado» y «aceptada» suben unos 25 px por la frase más larga de «no se puede anular»; siguen dentro.
+
+**Segunda prueba a ciegas (Observado):** nota **7/10**, igual que la primera, pero con otras dudas.
+- *Se resolvió:* ya no hay palabras de marca («Lucode», «proveedor» en el rechazo); el aviso del RUC no alarma («me pide el RUC porque para factura hace falta; eso se entiende»);
+  en «rechazada» sabe qué tocar primero («Corregir datos del cliente») y en «aceptada» entiende por qué no se anula y a quién acudir; en A tocó la factura por ser el botón oscuro.
+- *Sigue o apareció:* «no sé por qué uno está oscuro» y que el oscuro cambie de factura a boleta sin decir por qué; «Corregir datos del cliente» parece un texto con flechita, no un botón;
+  tras corregir, no sabe cuál botón reintenta (no hay «Reintentar» en un rechazo) ni si repite el número; «Reintentar» frente a «espera a que termine»; «Ver cómo va» y «nota de crédito» siguen vagas.
+- *Los 3 momentos de más duda:* cómo volver a intentar un rechazo, «Reintentar» frente a «espera», y el botón oscuro que cambia sin decir por qué.
+
+**Notas** (antes → después): 1 Sin manual 7 → 7 · 2 Una pregunta 6 → 7 · 3 Simplicidad 8 → 8 · 4 Lenguaje de puesto 6 → 7 · 5 Contenido primero 8 → 8 · 6 Lo difícil a un toque 6 → 7 ·
+7 Perdonar 6 → 6 · 8 Quitar 7 → 7 · 9 De punta a punta 7 → 7. Reglas del celular y oficio sin cambio (C4 queda en 7 por el rechazo largo). **Total: 7.0 → 7.3.**
+
+**Queda (pide su propio OK o es opinión)**
+- **Un rechazo con un motivo largo desborda la hoja** (medido: 10 px a 412 × 915 y 142 px a 360 × 800: «Anular» y «Cerrar» quedan bajo el borde). La prueba que lo cubre
+  quedó como `test.fixme` en `tests/e2e/comprobantes.spec.ts`, con esas medidas. Arreglarlo cambia la estructura de la hoja (por ejemplo, «Cerrar» pegado abajo con el resto
+  deslizándose, o el motivo en pocas líneas con el texto completo a un toque).
+- **«Corregir datos del cliente» se lee como texto**, no como botón: pasarlo a un botón de vidrio de 48 px no cambia la altura.
+- **Tras corregir el dato, el botón de reintentar de un rechazo es «Emitir boleta / factura»** y no dice que sale con otro número; una frase corta ahí no cabe a 360 px (747 de 752).
+- **«Lo que sobra»** (el «Volver a la venta» de arriba, «SUNAT todavía no contesta.», «saldrá con otro número») no se tocó: no era parte de los 3.
+- **Sin medir:** el peso de JavaScript de «Ventas» tras A9 y la vibración y el sonido al emitir.
