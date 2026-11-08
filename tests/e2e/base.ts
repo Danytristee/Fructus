@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 import { createClient } from "@supabase/supabase-js";
@@ -24,3 +25,13 @@ export function baseLocal() {
 const soles = new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" });
 /** Igual que formatearSoles() de la app: espacio duro después de «S/». */
 export const enSoles = (monto: number) => soles.format(monto).replace(/\s/, " ");
+
+/** Corre scripts/invariantes.sql contra la base local: «limpias» o la violación. Después de todo lo que escribe, para que no quede un descuadre que nadie vea. */
+export function invariantes(): string {
+  try {
+    execSync("docker exec -i supabase_db_fructus psql -U postgres -v ON_ERROR_STOP=1 < scripts/invariantes.sql", { stdio: "pipe", shell: "/bin/bash" });
+    return "limpias";
+  } catch (e) {
+    return `VIOLACIÓN: ${String((e as { stderr?: Buffer }).stderr).slice(0, 300)}`;
+  }
+}

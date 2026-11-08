@@ -6,6 +6,7 @@ import { Ban, ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import { cn } from "cn";
 
 import { anularVenta } from "@/app/(app)/acciones-ventas";
+import { ComprobanteDeVenta } from "./ComprobanteDeVenta";
 import { Avatar } from "@/components/ui/Avatar";
 import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
@@ -25,23 +26,27 @@ type Props = {
   venta: DetalleVenta | null;
   /** Solo el dueño y el administrador anulan (la base también lo exige). */
   puedeAnular: boolean;
+  /** Quienes registran ventas (dueño, administrador y ayudante) emiten su boleta o factura. */
+  puedeEmitir: boolean;
   alCerrar: () => void;
 };
 
 // El detalle de una venta del historial: a quién, qué fruta y a cuánto, cómo se pagó y quién la registró. Quien puede, la anula
 // desde aquí, con sus consecuencias a la vista y su motivo.
-export function HojaVenta({ venta, puedeAnular, alCerrar }: Props) {
+export function HojaVenta({ venta, puedeAnular, puedeEmitir, alCerrar }: Props) {
   // Mientras anula, la hoja no se cierra: deslizar o tocar el velo no puede dejar a medias lo que se está guardando.
   const guardando = useRef(false);
   return (
     <Hoja abierta={venta !== null} alCambiar={(abrir) => !abrir && !guardando.current && alCerrar()} titulo="Detalle de la venta" icono={<Receipt aria-hidden />}>
-      {venta && <Cuerpo key={venta.id} venta={venta} puedeAnular={puedeAnular} alCerrar={alCerrar} alCambiarGuardando={(g) => (guardando.current = g)} />}
+      {venta && <Cuerpo key={venta.id} venta={venta} puedeAnular={puedeAnular} puedeEmitir={puedeEmitir} alCerrar={alCerrar} alCambiarGuardando={(g) => (guardando.current = g)} />}
     </Hoja>
   );
 }
 
-function Cuerpo({ venta, puedeAnular, alCerrar, alCambiarGuardando }: { venta: DetalleVenta; puedeAnular: boolean; alCerrar: () => void; alCambiarGuardando: (g: boolean) => void }) {
+function Cuerpo({ venta, puedeAnular, puedeEmitir, alCerrar, alCambiarGuardando }: { venta: DetalleVenta; puedeAnular: boolean; puedeEmitir: boolean; alCerrar: () => void; alCambiarGuardando: (g: boolean) => void }) {
   const [vista, setVista] = useState<"detalle" | "anular">("detalle");
+  // El comprobante vive aquí: al emitirlo, la hoja ya lo muestra (y deja de ofrecer anular) sin esperar a que se refresque la lista.
+  const [comprobante, setComprobante] = useState(venta.comprobante);
   if (vista === "anular") return <Anular venta={venta} volver={() => setVista("detalle")} alCerrar={alCerrar} alCambiarGuardando={alCambiarGuardando} />;
 
   const fecha = new Date(venta.fecha);
@@ -102,7 +107,24 @@ function Cuerpo({ venta, puedeAnular, alCerrar, alCambiarGuardando }: { venta: D
 
       {venta.registradaPor && <p className="mx-1 text-texto-suave">La registró {venta.registradaPor}.</p>}
 
-      {puedeAnular && !anulacion && (
+      <ComprobanteDeVenta
+        ventaId={venta.id}
+        comprobante={comprobante}
+        puedeEmitir={puedeEmitir && !anulacion}
+        alEmitir={setComprobante}
+        alCambiarGuardando={alCambiarGuardando}
+      />
+
+      {/* Con comprobante no se anula (la base tampoco lo deja): corresponde una nota de crédito, o esperar a que termine. */}
+      {puedeAnular && !anulacion && comprobante && (
+        <p className="mx-1 text-texto-suave">
+          {comprobante.estado === "pendiente"
+            ? "El comprobante está en proceso: espera a que termine para anular."
+            : "Con comprobante no se anula: corresponde una nota de crédito."}
+        </p>
+      )}
+
+      {puedeAnular && !anulacion && !comprobante && (
         <Boton variante="secundario" className="text-deuda" onClick={() => setVista("anular")}>
           <Ban aria-hidden />
           Anular esta venta

@@ -1,8 +1,6 @@
-import { execSync } from "node:child_process";
-
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { baseLocal, enSoles } from "./base";
+import { baseLocal, enSoles, invariantes } from "./base";
 import { entrarComo, type Rol } from "./cuentas";
 import { fiar, saldoDe } from "./dictar";
 
@@ -26,15 +24,6 @@ const venta = async (id: number) =>
   (await base.from("ventas").select("estado, motivo_anulacion, anulada_por, anulada_en").eq("id", id).single()).data!;
 const devoluciones = async (ventaId: number) =>
   (await base.from("movimientos_stock").select("cantidad").eq("venta_id", ventaId).eq("tipo", "devolucion")).data ?? [];
-
-function invariantes(): string {
-  try {
-    execSync("docker exec -i supabase_db_fructus psql -U postgres -v ON_ERROR_STOP=1 < scripts/invariantes.sql", { stdio: "pipe", shell: "/bin/bash" });
-    return "limpias";
-  } catch (e) {
-    return `VIOLACIÓN: ${String((e as { stderr?: Buffer }).stderr).slice(0, 300)}`;
-  }
-}
 
 async function abrirDetalle(page: Page, nombre: string, rol: Rol = "duenio") {
   await entrarComo(page, rol);
@@ -190,7 +179,7 @@ test("el dueño y el administrador anulan la misma venta a la vez: gana uno, el 
   expect(invariantes()).toBe("limpias");
 });
 
-test("una venta con comprobante enviado no se anula: corresponde una nota de crédito", async ({ page }) => {
+test("una venta con comprobante enviado no ofrece anular: corresponde una nota de crédito (y la base igual lo rechaza)", async ({ page }) => {
   const { cliente, ventaId } = await ventaAlCredito(110);
   // El número se pide a la serie, como lo hará el servidor: un número inventado rompería la invariante INV-10.
   const { data: numero, error: errorNumero } = await base.rpc("tomar_numero", { p_serie: "B001" });
@@ -198,10 +187,10 @@ test("una venta con comprobante enviado no se anula: corresponde una nota de cr�
   const { error } = await base.from("comprobantes").insert({ venta_id: ventaId, tipo: "03", serie: "B001", numero: numero!, estado: "enviado" });
   expect(error).toBeNull();
   const hoja = await abrirDetalle(page, cliente.nombre);
-  await irAAnular(hoja);
-  await hoja.getByRole("button", { name: "Se registró dos veces" }).click();
-  await hoja.getByRole("button", { name: "Anular la venta" }).click();
-  await expect(hoja.getByRole("alert")).toHaveText("Esta venta ya tiene comprobante en SUNAT: corresponde una nota de crédito.");
+  // La pantalla ya no ofrece lo que la base va a rechazar (pgTAP 12 prueba el rechazo de la base): dice qué corresponde.
+  await expect(hoja.getByRole("group", { name: "Comprobante" })).toContainText("enviada, esperando a SUNAT");
+  await expect(hoja.getByRole("button", { name: "Anular esta venta" })).toHaveCount(0);
+  await expect(hoja.getByText("Con comprobante no se anula: corresponde una nota de crédito.")).toBeVisible();
   expect((await venta(ventaId)).estado).toBe("registrada");
   expect(await devoluciones(ventaId)).toEqual([]);
 });

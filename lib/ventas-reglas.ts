@@ -1,5 +1,6 @@
 // El historial de ventas y el detalle de una venta (A8): cómo se cuenta el período, cómo se dice el pago y cómo se lee cada
 // fruta de la venta. Lógica pura: no importa React ni Supabase.
+import type { ComprobanteVista } from "./comprobantes/comprobante-reglas";
 import { medios, type Medio } from "./operaciones-reglas";
 
 export type ItemDeVenta = { producto: string; cantidad: number; precio: number; descuento: number; subtotal: number };
@@ -17,6 +18,8 @@ export type DetalleVenta = {
   registradaPor: string | null;
   /** Si está anulada: cuándo, quién (si se puede ver) y por qué. null mientras vale. */
   anulacion: { cuando: string; por: string | null; motivo: string } | null;
+  /** Su boleta o factura vigente (pendiente, enviada o aceptada), si ya se emitió. */
+  comprobante: ComprobanteVista | null;
 };
 
 export type Periodo = "hoy" | "semana";
