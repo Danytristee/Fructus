@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fructus · Logo e ícono</title>
+<link rel="icon" href="logo/favicon-32.png">
+<link rel="apple-touch-icon" href="logo/icono-ios-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body { margin: 0 auto; padding: 20px 16px 60px; background: var(--marfil); color: var(--texto); font: 500 17px/1.45 "Manrope", system-ui; max-width: 1100px; }
+  h1 { font-size: 30px; margin: 0 0 4px; } h2 { font-size: 22px; margin: 28px 0 8px; } p { margin: 0 0 12px; color: var(--texto-2); }
+  .caja { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 24px; padding: 18px; }
+  .fila { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin: 10px 0; }
+  .etq { font-size: 13px; font-weight: 700; color: var(--texto-2); text-align: center; margin-top: 6px; }
+  img.ic { display: block; filter: drop-shadow(0 6px 14px rgb(8 44 30 / .25)); }
+  .redondo { border-radius: 22.5%; } .circulo { border-radius: 50%; }
+  .lado { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: center; justify-items: center; }
+  .bloque { display: flex; align-items: center; gap: 14px; padding: 14px 20px 14px 14px; border-radius: 22px; }
+  .bloque.oscuro { background: var(--bosque); color: var(--marfil); }
+  .bloque.claro { background: var(--tarjeta); border: 1px solid var(--borde); color: var(--bosque); }
+  .bloque strong { font-size: 30px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+  .bloque small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .18em; margin-top: 4px; opacity: .85; }
+  .inicio { width: 300px; border-radius: 34px; padding: 22px 18px 26px; background: linear-gradient(160deg, #3b5a7a, #7a5c8a 55%, #c9876b); display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 10px; }
+  .inicio .app { display: grid; justify-items: center; gap: 5px; color: #fff; font-size: 11.5px; font-weight: 600; text-shadow: 0 1px 2px rgb(0 0 0 / .4); }
+  .inicio .falsa, .inicio img { width: 54px; height: 54px; border-radius: 22.5%; }
+  .inicio.android .falsa, .inicio.android img { border-radius: 50%; }
+  .salpicadura { width: 300px; height: 420px; border-radius: 34px; background: #07432A; display: grid; place-items: center; align-content: center; gap: 14px; color: var(--marfil); }
+  .salpicadura img { width: 128px; border-radius: 22.5%; }
+  .salpicadura strong { font-size: 30px; font-weight: 800; letter-spacing: -.03em; }
+  .pestana { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 12px 12px 0 0; background: #fff; border: 1px solid var(--borde); font-size: 14px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 16px; overflow: hidden; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--borde); } th { background: var(--marfil-calido); font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-2); }
+  code { font-size: 14px; background: var(--marfil-calido); padding: 1px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<h1>Logo e ícono de Fructus</h1>
+<p>Los íconos salen directo de tu imagen, recortados con precisión: el mismo dibujo, las mismas luces y sombras. Nada se volvió a dibujar a mano.
+Para el teléfono hacen falta tres formas del mismo ícono, porque cada sistema lo recorta distinto.</p>
+
+<section class="caja">
+  <div class="lado">
+    <div><img src="logo/referencia-logo.webp" alt="Tu imagen" style="width:300px;border-radius:20px"><div class="etq">Tu imagen</div></div>
+    <div><img class="ic" src="logo/icono-512.png" alt="El ícono recortado" width="260"><div class="etq">El ícono, recortado (esquinas transparentes)</div></div>
+  </div>
+</section>
+
+<h2>Las tres formas</h2>
+<div class="fila">
+  <div><img class="ic" src="logo/icono-512.png" alt="" width="180"><div class="etq">Redondeado · escritorio y pestañas</div></div>
+  <div><img class="ic redondo" src="logo/icono-ios-1024.png" alt="" width="180"><div class="etq">A sangre · iPhone redondea solo</div></div>
+  <div><img class="ic circulo" src="logo/icono-maskable-512.png" alt="" width="180"><div class="etq">Maskable · Android lo recorta en círculo</div></div>
+</div>
+
+<h2>Tamaños</h2>
+<div class="fila">
+  <div><img class="ic" src="logo/icono-512.png" alt="" width="120"><div class="etq">120 px</div></div>
+  <div><img class="ic" src="logo/icono-192.png" alt="" width="96"><div class="etq">96 px</div></div>
+  <div><img class="ic" src="logo/icono-192.png" alt="" width="60"><div class="etq">60 px</div></div>
+  <div><img class="ic" src="logo/icono-96.png" alt="" width="48"><div class="etq">48 px</div></div>
+  <div><img class="ic" src="logo/favicon-32.png" alt="" width="32" style="border-radius:7px"><div class="etq">32 px</div></div>
+  <div><img src="logo/favicon-16.png" alt="" width="16" style="border-radius:4px"><div class="etq">16 px</div></div>
+</div>
+
+<h2>Con el nombre</h2>
+<div class="fila">
+  <div class="bloque oscuro"><img src="logo/icono-192.png" alt="" width="52" style="border-radius:13px;box-shadow:0 0 0 1px rgb(247 245 238 / .14)"><div><strong>Fructus</strong><small>VENTA MAYORISTA DE FRUTAS</small></div></div>
+  <div class="bloque claro"><img src="logo/icono-192.png" alt="" width="52"><div><strong>Fructus</strong></div></div>
+  <div><span class="pestana"><img src="logo/favicon-32.png" alt="" width="18" style="border-radius:4px">Hoy · Fructus</span><div class="etq">Pestaña del navegador</div></div>
+</div>
+
+<h2>Instalado en el teléfono</h2>
+<div class="fila" id="inicios"></div>
+
+<h2>Al abrir la app instalada</h2>
+<p>La pantalla de carga la arma el teléfono con el color de fondo del manifest (el verde del ícono) y el ícono.</p>
+<div class="salpicadura"><img src="logo/icono-ios-1024.png" alt=""><strong>Fructus</strong></div>
+
+<h2>Archivos para la app</h2>
+<table>
+<tr><th>Archivo</th><th>Para qué</th><th>Va a</th></tr>
+<tr><td><code>icono-512.png</code>, <code>icono-192.png</code></td><td>Manifest, <code>purpose: any</code> (escritorio, accesos directos)</td><td><code>public/icons/icon-512.png</code>, <code>icon-192.png</code></td></tr>
+<tr><td><code>icono-maskable-512.png</code>, <code>-192.png</code></td><td>Manifest, <code>purpose: maskable</code> (Android)</td><td><code>public/icons/icon-maskable-*.png</code></td></tr>
+<tr><td><code>icono-ios-180.png</code></td><td>Ícono del iPhone al «Agregar a inicio»</td><td><code>app/apple-icon.png</code></td></tr>
+<tr><td><code>favicon-32.png</code>, <code>favicon-16.png</code></td><td>Pestaña del navegador</td><td><code>app/icon.png</code>, <code>app/favicon.ico</code></td></tr>
+<tr><td><code>icono-1024.png</code>, <code>icono-ios-1024.png</code></td><td>Originales grandes, por si se necesitan otros tamaños</td><td><code>public/logo/</code></td></tr>
+</table>
+
+<script>
+  const falsas = ["#2f7cf6", "#25d366", "#ff9500", "#8e8e93", "#ef4444", "#7c3aed", "#0ea5e9"];
+  const nombres = ["Correo", "WhatsApp", "Fotos", "Ajustes", "Yape", "Notas", "Clima"];
+  const inicio = (so) => `<div class="inicio ${so}">${falsas.slice(0, 3).map((c, i) => `<div class="app"><span class="falsa" style="background:${c}"></span>${nombres[i]}</div>`).join("")}
+    <div class="app"><img src="logo/${so === "android" ? "icono-maskable-192.png" : "icono-ios-180.png"}" alt="">Fructus</div>${falsas.slice(3).map((c, i) => `<div class="app"><span class="falsa" style="background:${c}"></span>${nombres[i + 3]}</div>`).join("")}</div>`;
+  document.getElementById("inicios").innerHTML = `<div>${inicio("ios")}<div class="etq">iPhone</div></div><div>${inicio("android")}<div class="etq">Android</div></div>`;
+</script>
+</body>
+</html>

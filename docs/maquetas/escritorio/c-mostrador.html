@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fructus · Escritorio C · Mostrador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  /* C · Mostrador: tres zonas. Un riel de iconos a la izquierda, la pantalla al centro y, a la derecha, el mostrador fijo: lo que va
+     pasando hoy y el orbe de voz grande abajo. La tarjeta de lo entendido sale EN el mostrador, sin tapar la pantalla. */
+  .marco { display: grid; grid-template-columns: 96px 1fr 380px; height: 100vh; }
+  .riel { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0; }
+  .riel img { width: 34px; height: 34px; margin-bottom: 14px; }
+  .riel a { display: grid; justify-items: center; gap: 2px; width: 76px; min-height: 64px; padding: 8px 0; border-radius: 20px; font-size: 13px; font-weight: 800; color: var(--texto-suave); }
+  .riel a:hover { background: color-mix(in srgb, var(--acento) 6%, transparent); color: var(--texto); }
+  .riel a[aria-current="page"] { background: color-mix(in srgb, var(--acento) 13%, transparent); color: var(--acento-texto); }
+  .riel a svg { width: 26px; height: 26px; }
+  .riel .abajo { margin-top: auto; }
+
+  .centro { overflow: auto; padding: 26px 28px 60px; }
+  .cabecera { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+  .cabecera h1 { font-size: 34px; line-height: 1.1; font-weight: 800; letter-spacing: -.02em; }
+  .tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+  .mini { display: grid; gap: 2px; padding: 16px 18px; border-radius: var(--r-tarjeta); }
+  .mini .cifra { font-size: 26px; }
+  .mini small { font-size: 14px; color: var(--texto-suave); }
+  .frutas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 10px; }
+  .fr { display: grid; justify-items: center; gap: 2px; padding: 14px 8px; border-radius: 22px; text-align: center; }
+  .fr img { width: 48px; height: 48px; }
+  .fr .cifra { font-size: 24px; }
+  .fr small { font-size: 13px; font-weight: 700; color: var(--texto-suave); line-height: 1.2; }
+  .titulo-seccion { display: flex; justify-content: space-between; align-items: center; margin: 22px 0 0; }
+  .titulo-seccion h2 { font-size: 20px; font-weight: 800; }
+
+  /* Clientes dentro del centro: lista estrecha y ficha. */
+  .maestro { display: grid; grid-template-columns: 330px 1fr; gap: 14px; align-items: start; }
+  .cli { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 6px 10px; border: 0; border-radius: 16px; background: transparent; text-align: left; }
+  .cli:hover { background: color-mix(in srgb, var(--acento) 5%, transparent); }
+  .cli[aria-selected="true"] { background: color-mix(in srgb, var(--acento) 12%, transparent); }
+  .cli .cuerpo { flex: 1; display: grid; min-width: 0; }
+  .cli .cuerpo span { font-size: 14px; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .mostrador { display: flex; flex-direction: column; margin: 12px 12px 12px 0; border-radius: 28px; overflow: hidden; }
+  .mostrador .cab { padding: 18px 20px 8px; display: flex; justify-content: space-between; align-items: center; }
+  .mostrador .cab h2 { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .punto { width: 10px; height: 10px; border-radius: 50%; background: var(--exito); box-shadow: 0 0 0 4px var(--exito-fondo); }
+  .feed { flex: 1; overflow: auto; padding: 0 12px; }
+  .op { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-bottom: 1px solid var(--linea); }
+  .op:last-child { border-bottom: 0; }
+  .op .cuerpo { flex: 1; display: grid; min-width: 0; }
+  .op .cuerpo span { font-size: 14px; color: var(--texto-suave); }
+  .op .der { display: grid; justify-items: end; gap: 3px; }
+  .op .der small { font-size: 13px; color: var(--texto-suave); font-weight: 700; }
+  .op.nueva { animation: hoja .5s var(--ease-resorte) both; background: color-mix(in srgb, var(--exito) 8%, transparent); border-radius: 16px; }
+  .zona-voz { display: grid; justify-items: center; gap: 8px; padding: 18px 20px 20px; border-top: 1px solid var(--linea); background: color-mix(in srgb, var(--superficie) 55%, transparent); }
+  .zona-voz .orbe { width: 104px; height: 104px; }
+  .zona-voz .orbe svg { width: 40px; height: 40px; }
+  .zona-voz p { font-weight: 800; white-space: nowrap; }
+  .zona-voz .otras { display: flex; gap: 8px; }
+  .zona-tarjeta { padding: 6px 16px 18px; overflow: auto; flex: 1; }
+</style>
+</head>
+<body>
+<div class="fondo"><span></span><span></span><span></span><span></span></div>
+<div class="marco">
+  <nav class="riel" aria-label="Principal" id="nav"></nav>
+  <main class="centro" id="pantalla"></main>
+  <aside class="mostrador vidrio" aria-label="Mostrador">
+    <div class="cab"><h2><span class="punto"></span>Hoy en el puesto</h2><span class="suave" style="font-size:14px" id="cuenta-feed"></span></div>
+    <div class="feed" id="feed"></div>
+    <div class="zona-tarjeta" id="zona-tarjeta" hidden></div>
+    <div class="zona-voz" id="zona-voz">
+      <button type="button" class="orbe" data-orbe aria-label="Mantén para hablar" id="orbe"></button>
+      <p id="estado-voz">Mantén para hablar · o <kbd>Espacio</kbd></p>
+      <div class="otras"><button class="boton claro" type="button" style="min-height:44px;font-size:15px">Venta a mano</button><button class="boton claro" type="button" style="min-height:44px;font-size:15px">Abono</button><button class="boton claro" type="button" style="min-height:44px;font-size:15px">Merma</button></div>
+    </div>
+  </aside>
+</div>
+<p class="guia-maqueta" style="left:calc((100% - 380px) / 2)">Maqueta C · mantén el orbe de la derecha o Espacio · <a href="index.html">ver las 3</a></p>
+
+<script src="datos.js"></script>
+<script>
+  document.getElementById("orbe").innerHTML = icono("micro");
+  
+  const destinos = [["hoy", "Hoy", "casa"], ["clientes", "Clientes", "clientes"], ["stock", "Stock", "stock"], ["ventas", "Ventas", "ventas"], ["cierre", "Cierre", "cierre"]];
+  let pantalla = location.hash.slice(1) || "hoy";
+  let elegido = CLIENTES[0];
+  const feed = [...ULTIMAS];
+
+  function pintarNav() {
+    document.getElementById("nav").innerHTML = `<img src="../../../public/frutas/mango.svg" alt="Fructus">` +
+      destinos.map(([k, t, i]) => `<a href="#${k}" ${k === pantalla ? 'aria-current="page"' : ""}>${icono(i)}${t}</a>`).join("") +
+      `<a href="#ajustes" class="abajo" ${pantalla === "ajustes" ? 'aria-current="page"' : ""}>${icono("ajustes")}Ajustes</a><span class="avatar" style="margin-top:8px">DP</span>`;
+  }
+  function pintarFeed(nueva) {
+    document.getElementById("cuenta-feed").textContent = `${feed.length} movimientos`;
+    document.getElementById("feed").innerHTML = feed.map((o, i) => `<div class="op ${i === 0 && nueva ? "nueva" : ""}">${iconoOp(o)}
+      <span class="cuerpo"><strong>${o.quien}</strong><span>${o.que}</span></span>
+      <span class="der"><span class="cifra">${S(o.monto)}</span>${insigniaOp(o)}</span></div>`).join("");
+  }
+
+  function hoy() {
+    return `
+    <header class="cabecera subir"><div><h1>Hoy</h1><p class="suave">${HOY.fecha}</p></div><a class="boton claro" href="#cierre">${icono("cierre")}Cerrar el día</a></header>
+    <section class="protagonista vidrio subir" style="display:grid;grid-template-columns:1fr 1.25fr;gap:24px;align-items:end">
+      <div><span class="etiqueta">Vendiste hoy</span><div class="cifra total">${S(HOY.vendido)}</div>
+        <p class="suave"><strong class="cifra" style="color:var(--texto)">${S(HOY.contado)}</strong> al contado y <strong class="cifra" style="color:var(--texto)">${S(HOY.credito)}</strong> al crédito</p>
+        <p class="suave">${HOY.ventas} ventas · ${HOY.cajas} cajas</p></div>
+      <div>${graficoHoras(150)}</div>
+    </section>
+    <div class="tres">
+      <div class="mini vidrio subir" style="animation-delay:70ms"><span class="etiqueta">Cobraste</span><span class="cifra exito">${S(HOY.cobrado)}</span><small>con ${S(HOY.abonos)} de abonos</small></div>
+      <a href="#clientes" class="mini vidrio subir" style="animation-delay:140ms"><span class="etiqueta">Te deben</span><span class="cifra deuda">${S(TE_DEBEN)}</span><small>${DEUDORES.length} clientes · ver quién</small></a>
+      <div class="mini vidrio subir" style="animation-delay:210ms"><span class="etiqueta">En tu caja</span><span class="cifra">${S(HOY.caja)}</span><small>menos ${S(HOY.gastos)} de gastos</small></div>
+    </div>
+    <div class="titulo-seccion subir" style="animation-delay:240ms"><h2>Tus cajas</h2><span class="suave">${CAJAS_TOTAL} cajas · valen unos ${S(VALOR_STOCK)}</span></div>
+    <div class="frutas subir" style="animation-delay:280ms">${STOCK.map((f) => `<div class="fr vidrio">${fruta(f.nombre).replace('class="fruta"', "")}
+      <span class="cifra ${f.estado === "se-acabo" ? "deuda" : ""}">${f.cajas}</span><small>${nombreFruta(f)}</small>
+      ${["se-acabo", "reponer", "sobra"].includes(f.estado) ? `<span class="insignia ${ESTADO_STOCK[f.estado][0]}" style="font-size:12px">${ESTADO_STOCK[f.estado][1]}</span>` : ""}</div>`).join("")}</div>`;
+  }
+
+  function clientes() {
+    const c = elegido;
+    return `
+    <header class="cabecera subir"><div><h1>Clientes</h1><p class="suave">Te deben <strong class="cifra deuda">${S(TE_DEBEN)}</strong> entre ${DEUDORES.length}</p></div><button class="boton claro" type="button">${icono("mas")}Nuevo cliente</button></header>
+    <div class="maestro">
+      <section class="tarjeta vidrio subir" style="padding:12px">
+        <label class="buscador">${icono("buscar")}<input placeholder="Nombre o apodo" aria-label="Buscar cliente"></label>
+        <div style="margin-top:8px;max-height:calc(100vh - 230px);overflow:auto">${CLIENTES.map((x, i) => `<button class="cli" data-cli="${i}" aria-selected="${x === c}"><span class="avatar ${"abcd"[i % 4]}" style="width:38px;height:38px;font-size:13px">${iniciales(x.nombre)}</span>
+          <span class="cuerpo"><strong>${x.nombre}</strong><span>${x.apodo ? `«${x.apodo}»` : x.ultimo}</span></span>${x.saldo ? `<span class="cifra deuda" style="font-size:15px">${S(x.saldo)}</span>` : '<span class="insignia exito">Al día</span>'}</button>`).join("")}</div>
+      </section>
+      <section class="subir" style="display:grid;gap:14px;animation-delay:80ms">
+        <div class="protagonista vidrio"><h2 style="font-size:24px">${c.nombre}</h2><p class="suave">${c.apodo ? `«${c.apodo}» · ` : ""}${c.ultimo}</p>
+          ${c.saldo ? `<div style="margin-top:14px"><span class="etiqueta">Te debe</span><div class="cifra total deuda">${S(c.saldo)}</div><p class="suave">Lo más antiguo, de hace ${c.dias} días</p></div>` : `<p style="margin-top:14px"><span class="insignia exito" style="font-size:18px;padding:8px 16px">Al día</span></p>`}
+          <div style="display:flex;gap:8px;margin-top:14px"><button class="boton claro" type="button">Enviar por WhatsApp</button>${c.saldo ? `<button class="boton" type="button">Registrar abono</button>` : ""}</div></div>
+        <div class="tarjeta vidrio" style="padding-bottom:6px"><h2 style="font-size:18px;margin-bottom:4px">Historial</h2><table class="tabla"><tbody>${historialDe(c).map((r) => `<tr><td><strong>${r.dia}</strong><br><span class="suave" style="font-size:14px">${r.que}</span></td><td class="num cifra ${r.monto < 0 ? "exito" : ""}">${r.monto < 0 ? "−" + S(-r.monto) : S(r.monto)}</td></tr>`).join("")}</tbody></table></div>
+      </section>
+    </div>`;
+  }
+
+  function pintar() {
+    pintarNav();
+    const p = document.getElementById("pantalla");
+    p.innerHTML = pantalla === "hoy" ? hoy() : pantalla === "clientes" ? clientes()
+      : `<div class="no-maqueta vidrio tarjeta subir"><h1 style="font-size:28px">${(destinos.find((d) => d[0] === pantalla) ?? [0, "Ajustes"])[1]}</h1><p class="suave">Esta maqueta solo dibuja «Hoy» y «Clientes».<br>El mostrador de la derecha sigue en todas.</p><a class="boton" href="#hoy">Volver a Hoy</a></div>`;
+    p.querySelectorAll("[data-cli]").forEach((b) => (b.onclick = () => { elegido = CLIENTES[+b.dataset.cli]; pintar(); }));
+  }
+  addEventListener("hashchange", () => { pantalla = location.hash.slice(1) || "hoy"; pintar(); });
+  pintar();
+  pintarFeed(false);
+
+  // La tarjeta sale en el mostrador: el feed se esconde, la pantalla del centro queda a la vista.
+  const zonaT = document.getElementById("zona-tarjeta"), feedEl = document.getElementById("feed"), zonaV = document.getElementById("zona-voz");
+  const volver = (nueva) => { zonaT.hidden = true; feedEl.hidden = false; zonaV.hidden = false; pintarFeed(nueva); };
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && !zonaT.hidden) volver(false); });
+  conectarVoz({
+    orbes: () => document.querySelectorAll("#orbe"),
+    alEstado: (e) => (document.getElementById("estado-voz").innerHTML = e === "escuchando" ? "Te escucho…" : e === "entendiendo" ? "Entendiendo…" : "Mantén para hablar · o <kbd>Espacio</kbd>"),
+    alTarjeta: () => {
+      feedEl.hidden = true; zonaV.hidden = true; zonaT.hidden = false;
+      zonaT.innerHTML = tarjetaEntendida();
+      conectarTarjeta(zonaT, (debe) => {
+        zonaT.innerHTML = sello(debe);
+        feed.unshift({ hora: "12:44", tipo: "venta", quien: DICTADO.cliente, que: "12 cajas de piña golden", fruta: "Piña", monto: 480, estado: debe ? "debe" : "pago", medio: debe ? undefined : "Efectivo" });
+        setTimeout(() => volver(true), 1300);
+      });
+    },
+  });
+</script>
+</body>
+</html>

@@ -4,6 +4,8 @@ const config: KnipConfig = {
   ignore: [
     // Skills de Claude (propias y de terceros, ADR-0004): traen ejemplos que no son código de la app.
     ".claude/**",
+    // Maquetas tocables (HTML, CSS y JS sueltos para mirar un diseño): no son código de la app.
+    "docs/maquetas/**",
     // Generado por `supabase gen types`: exporta ayudantes que no siempre se usan.
     "lib/supabase/tipos-db.ts",
     // El service worker lo registra RegistroPwa con su ruta escrita como texto ("/sw.js"), no con un import.

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fructus · Rediseño Bosque · Propuesta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body { margin: 0 auto; max-width: 980px; padding: 24px 16px 80px; font: 500 17px/1.55 "Manrope", system-ui; color: var(--texto); background: var(--marfil); }
+  h1 { font-size: 32px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.02em; }
+  h2 { font-size: 24px; margin: 40px 0 10px; padding-top: 16px; border-top: 2px solid var(--borde); }
+  h3 { font-size: 19px; margin: 22px 0 6px; }
+  p, li { color: var(--texto); } .t2 { color: var(--texto-2); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; background: var(--tarjeta); border-radius: 16px; overflow: hidden; border: 1px solid var(--borde); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+  th { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-2); background: var(--marfil-calido); }
+  code { font-size: 14px; background: var(--marfil-calido); padding: 1px 6px; border-radius: 6px; }
+  .muestra { display: inline-block; width: 18px; height: 18px; border-radius: 6px; vertical-align: -3px; margin-right: 6px; border: 1px solid var(--borde); }
+  .caja { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 18px; padding: 14px 18px; margin: 12px 0; }
+  .caja.lima { background: var(--lima-suave); border-color: #cfe58a; }
+  .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+  .galeria img { width: 100%; border-radius: 14px; border: 1px solid var(--borde); display: block; }
+  .galeria figcaption { font-size: 13px; color: var(--texto-2); text-align: center; margin-top: 4px; font-weight: 700; }
+  figure { margin: 0; }
+  a.boton { display: inline-flex; align-items: center; min-height: 48px; padding: 0 18px; border-radius: 999px; background: var(--bosque); color: var(--sobre-bosque); text-decoration: none; font-weight: 800; margin: 4px 6px 4px 0; }
+  a.boton.lima { background: var(--lima); color: var(--bosque); }
+</style>
+</head>
+<body>
+<h1>Fructus «Bosque»: auditoría, sistema, maqueta y plan</h1>
+<p class="t2">9 de noviembre de 2026. La app real no se tocó: todo vive en <code>docs/maquetas/bosque/</code> con datos de demostración.</p>
+<p><a class="boton lima" href="index.html">Abrir la maqueta</a><a class="boton" href="logo.html">Logo e ícono</a></p>
+
+<h2>1 · Auditoría</h2>
+<h3>Rutas y pantallas reales</h3>
+<table>
+<tr><th>Ruta</th><th>Qué hace</th><th>Hojas y estados que tiene</th></tr>
+<tr><td><code>/login</code>, <code>/auth/confirmar</code></td><td>Entrar; aceptar una invitación y elegir clave</td><td>Error de clave, enlace vencido</td></tr>
+<tr><td><code>/</code> «Hoy»</td><td>Lo vendido, cobrado y lo que te deben; avisos de stock; «Lo último»; el botón de voz</td><td>Esqueleto, vacío, error, sin conexión. La voz: escuchando, entendiendo, tarjeta (venta, abono, compra, merma, gasto, consulta), dudas, sin permiso, «no te entendí»</td></tr>
+<tr><td><code>/clientes</code>, <code>/clientes/[id]</code></td><td>El cuaderno: quién debe y cuánto; la ficha con el historial</td><td>Alta y edición de cliente, abono a mano, 404 «No encontré a ese cliente»</td></tr>
+<tr><td><code>/stock</code></td><td>Cajas por fruta y qué conviene hacer</td><td>Compra a mano, merma a mano</td></tr>
+<tr><td><code>/ventas</code></td><td>Hoy y 7 días, contado y crédito</td><td>Detalle, anular con motivo, boleta o factura (pedir RUC, rechazo)</td></tr>
+<tr><td><code>/cierre</code></td><td>La caja del día y el mes en Excel</td><td>Enviar por WhatsApp, exportar</td></tr>
+<tr><td><code>/ajustes</code></td><td>Catálogo y equipo</td><td>Aviso para quien no es dueño ni administrador</td></tr>
+<tr><td>Menú «Más»</td><td>Cierre, Ajustes, aviso del día, instalar, salir</td><td>—</td></tr>
+</table>
+<p class="t2">No hay una sección «Cobranzas»: cobrar vive en Clientes (el cuaderno) y en los abonos. La maqueta la deja ahí y «Te deben» lleva a ella.</p>
+
+<h3>Problemas actuales</h3>
+<ul>
+<li><b>El ícono instalado no dice Fructus</b> (ya está elegido el nuevo: la F que brota de la caja). Es el orbe de voz sobre luces pastel: en la pantalla de inicio se confunde con cualquier asistente de voz.</li>
+<li><b>La voz solo existe en «Hoy».</b> En Clientes, Stock y Ventas la barra de abajo no tiene el botón del centro; para dictar hay que volver a Hoy.</li>
+<li><b>Acciones flotantes que compiten con la barra:</b> «Registrar abono» y «Compra / Merma» flotan sobre el contenido y tapan filas.</li>
+<li><b>Los filtros se parten en dos filas</b> a 412 px (Clientes y Stock).</li>
+<li><b>El cierre puede decir «−S/ 1.00 en tu caja»</b> cuando el gasto supera lo cobrado: necesita una frase.</li>
+<li><b>Aurora pide desenfoque y luces de fondo</b>, que en un Android de gama media ya obligaron a quitar el desenfoque de las tarjetas (ADR-0012). Bosque usa superficies sólidas: cuesta menos.</li>
+</ul>
+
+<h3>Lo que se conserva sí o sí</h3>
+<ul>
+<li>La voz propone y la persona confirma: Confirmar no se activa sin «Pagó / Lo debe»; el precio no dicho sale «sugerido».</li>
+<li>Roles: el contador no ve la voz ni los botones de escribir; el ayudante no anula.</li>
+<li>Nada se borra: anular pide motivo y devuelve el stock.</li>
+<li>Nada optimista en dinero: el sello sale cuando la base respondió.</li>
+<li>Sin conexión: franja, audio conservado, sesión sin conexión.</li>
+<li>PWA, aviso del día, exportar el mes, enviar por WhatsApp, comprobantes en sandbox.</li>
+</ul>
+
+<h3>Riesgos técnicos</h3>
+<ul>
+<li><b>Presupuesto de JavaScript</b> (180 KB, hoy 144.9 KB): la cabecera usa una ilustración SVG de 3 KB, no una foto. No entra ninguna dependencia.</li>
+<li><b>Llevar la voz a todas las pantallas</b> mueve <code>VozHoy</code> al marco: toca a todos los módulos (CLAUDE.md pide confirmarlo). Hay que medir que «Hoy» no crezca en JS.</li>
+<li><b>Identidad:</b> reemplaza ADR-0007 y cambia el manifest (<code>COLOR_DE_FONDO</code> de <code>#eef3f8</code> a verde bosque). Los teléfonos que ya instalaron la app ven el ícono nuevo recién cuando el navegador actualiza el manifest (días).</li>
+<li><b>El modo oscuro</b> tiene que nacer con los tokens nuevos (regla de CLAUDE.md), aunque siga apagado.</li>
+</ul>
+
+<h2>2 · Sistema de diseño</h2>
+<h3>Paleta: la del prompt, con cuatro ajustes medidos</h3>
+<p class="t2">CLAUDE.md pide 7:1 en cifras clave y 4.5:1 en lo demás, porque se usa al sol.</p>
+<table>
+<tr><th>Token</th><th>Color</th><th>Uso</th><th>Contraste</th></tr>
+<tr><td>bosque</td><td><span class="muestra" style="background:#103D29"></span>#103D29</td><td>Identidad, cabecera, botón principal, lo vendido</td><td>11.2:1 sobre marfil</td></tr>
+<tr><td>profundo</td><td><span class="muestra" style="background:#082C1E"></span>#082C1E</td><td>Fondo del degradado de la cabecera</td><td>13.9:1 con marfil encima</td></tr>
+<tr><td>marfil / marfil cálido</td><td><span class="muestra" style="background:#F7F5EE"></span>#F7F5EE · <span class="muestra" style="background:#EEECE2"></span>#EEECE2</td><td>Fondo y rellenos suaves</td><td>—</td></tr>
+<tr><td>tarjeta</td><td><span class="muestra" style="background:#FFFEFA"></span>#FFFEFA</td><td>Superficies, con borde <code>#E4E1D4</code></td><td>—</td></tr>
+<tr><td>lima</td><td><span class="muestra" style="background:#D5F45A"></span>#D5F45A</td><td>UNA acción por pantalla (Ver stock, Entrar, WhatsApp), el orbe, «Nuevo»</td><td><b>Nunca texto</b>: 1.1:1 sobre marfil. Con texto bosque encima, 9.8:1</td></tr>
+<tr><td>positivo (texto)</td><td><span class="muestra" style="background:#185A31"></span>#185A31</td><td>Cobraste, Pagó, abonos</td><td>7.6:1 (el <code>#348B50</code> del prompt daba 3.9:1: queda solo para rellenos)</td></tr>
+<tr><td>deuda</td><td><span class="muestra" style="background:#8E1F2A"></span>#8E1F2A</td><td>Te deben, Lo debe</td><td>8.1:1 (el <code>#A52B35</code> del prompt daba 6.4:1)</td></tr>
+<tr><td>aviso</td><td><span class="muestra" style="background:#8A4A0C"></span>#8A4A0C</td><td>Reponer, merma, sugerido</td><td>6.3:1</td></tr>
+<tr><td>texto / texto-2</td><td><span class="muestra" style="background:#17251D"></span>#17251D · <span class="muestra" style="background:#56625A"></span>#56625A</td><td>Texto principal y secundario</td><td>14.6:1 · 5.9:1 (el <code>#667269</code> daba 4.25:1 sobre marfil cálido)</td></tr>
+</table>
+
+<h3>Tipografía (Manrope, como hoy)</h3>
+<table>
+<tr><th>Qué</th><th>Tamaño</th><th>Nota</th></tr>
+<tr><td>Título de pantalla</td><td>34 px, 800</td><td>Con la barra lima a la izquierda</td></tr>
+<tr><td>Lo vendido, total de la tarjeta, saldo de la ficha</td><td>36–40 px, 800, tabular</td><td>Baja a 32 px solo si no entra a 360 px</td></tr>
+<tr><td>Cifras clave (cobraste, te deben, stock)</td><td>28–30 px</td><td>CLAUDE.md: 28 px o más</td></tr>
+<tr><td>Texto base</td><td>17 px</td><td>El prompt pedía 12–14 px en descripciones; se queda en 15–17 por el sol</td></tr>
+<tr><td>Barra de abajo</td><td>13 px, 800</td><td>12.5 px bajo 380 px de ancho</td></tr>
+</table>
+
+<h3>Piezas</h3>
+<ul>
+<li><b>Boton:</b> primario (bosque), lima (una por pantalla), contorno y peligro. 52 px de alto, 60 px el de Confirmar.</li>
+<li><b>Tarjeta:</b> normal (22 px de radio) y grande (28 px), con borde fino y sombra corta. Sin desenfoque.</li>
+<li><b>Cabecera:</b> la grande, con marca y mango, solo en «Hoy». Las demás pantallas usan la compacta, con título, subtítulo y «volver». El contenido sube 44 px sobre ella.</li>
+<li><b>Insignia:</b> positivo, deuda, aviso, neutra y lima. Siempre lleva texto: el color nunca va solo.</li>
+<li><b>Filtros:</b> siempre en una fila que se desliza de lado. El activo es bosque y su número va en lima.</li>
+<li><b>Orbe:</b> 96 px en el centro de la barra, con aro lima. En reposo respira (transform y opacity, ADR-0012); escuchando, ondas; entendiendo, un arco que gira.</li>
+<li><b>Hoja:</b> sube con resorte y sus piezas entran en cascada. Cada dato de la tarjeta de voz se toca para corregirlo.</li>
+</ul>
+
+<h3>Decisiones donde me aparté de la referencia</h3>
+<div class="caja">
+<ul>
+<li><b>«Cobraste» y «Te deben» van en una tarjeta, una fila cada uno, no en dos mosaicos.</b> A 360–412 px, dos mosaicos obligan a cifras de 20–22 px, y CLAUDE.md pide 28 px o más. Siguen juntos y relacionados.</li>
+<li><b>Sin «66.5 % del total» ni «33.5 % del total».</b> Lo cobrado incluye abonos de deudas viejas y lo que te deben acumula semanas: no comparten base con lo vendido hoy, y el porcentaje engaña.</li>
+<li><b>«+12.6 % vs ayer» se vuelve «+9 % que el lunes pasado a esta hora».</b> Comparar con ayer (domingo) o con el día completo engaña a media mañana. Necesita una lectura nueva: la del mismo día de la semana pasada, hasta la misma hora.</li>
+<li><b>«Clientes activos 68, +3 hoy» no existe en el sistema.</b> Se reemplaza por «12 te deben · 3 al día». «Pedidos» se dice «ventas», como en el resto de la app.</li>
+<li><b>La tarjeta «Venta por voz» se mantiene apretada,</b> igual que el botón de abajo: los dos hacen exactamente lo mismo. La flecha de la referencia hacía pensar en «abrir otra pantalla», así que se cambió por «A mano», la alternativa manual. El visor permite verla con o sin la tarjeta.</li>
+<li><b>La foto del mango se volvió una ilustración SVG</b> de 3 KB: no pesa en 4G y no compite con el texto.</li>
+<li><b>«Registrar abono», «Compra» y «Merma» entran en la tarjeta resumen</b> de su pantalla, en vez de flotar sobre la barra.</li>
+</ul></div>
+
+<h2>3 · La maqueta</h2>
+<div class="caja lima"><b>Para abrirla:</b> en la Mac, desde la raíz del repo, levanta un servidor (en la app de escritorio ya está como vista previa «maquetas»):
+<pre style="white-space:pre-wrap;margin:8px 0">python3 -m http.server 4321</pre>
+y abre <code>http://localhost:4321/docs/maquetas/bosque/</code>. <b>En tu celular:</b> conéctalo al mismo wifi, corre el servidor con <code>--bind 0.0.0.0</code> y abre <code>http://&lt;IP de la Mac&gt;:4321/docs/maquetas/bosque/app.html</code>.</div>
+<p>Qué se puede hacer:</p>
+<ul>
+<li>Moverte entre Hoy, Clientes, la ficha, Stock, Ventas, Cierre, Ajustes y Entrar.</li>
+<li>Mantener el micrófono para dictar una venta, corregir cliente, fruta y cajas, elegir «Pagó / Lo debe» y confirmar. La venta entra a «Lo último» y los totales suben.</li>
+<li>Registrar un abono (con «Todo» y «le quedará»), una merma o una compra.</li>
+<li>Anular una venta con su motivo y abrir la boleta o factura.</li>
+<li>Buscar clientes y usar los filtros.</li>
+<li>Desde el visor: cambiar el ancho (360–430 px), el estado de Hoy (vacío, cargando, error), la señal y lo que entiende la voz.</li>
+</ul>
+<p class="t2">Verificado con Playwright a 360, 375, 390, 412 y 430 px en las 8 pantallas: sin errores de JavaScript, sin scroll horizontal, sin cifras cortadas y sin controles de menos de 44 px. El flujo de voz se probó de punta a punta, con «no te entendí», sin permiso y sin señal.</p>
+
+<h3>Junto a la referencia</h3>
+<div class="galeria">
+<figure><img src="capturas/referencia.webp" alt="Imagen de referencia"><figcaption>Referencia</figcaption></figure>
+<figure><img src="capturas/hoy-412.png" alt="Hoy a 412 px"><figcaption>Hoy · 412 px</figcaption></figure>
+<figure><img src="capturas/hoy-412-abajo.png" alt="Hoy, abajo"><figcaption>Hoy, abajo · 412 px</figcaption></figure>
+<figure><img src="capturas/hoy-360.png" alt="Hoy a 360 px"><figcaption>Hoy · 360 px</figcaption></figure>
+</div>
+<h3>Pantallas y estados</h3>
+<div class="galeria">
+<figure><img src="capturas/clientes-412.png" alt=""><figcaption>Clientes</figcaption></figure>
+<figure><img src="capturas/cliente-0-412.png" alt=""><figcaption>Ficha del cliente</figcaption></figure>
+<figure><img src="capturas/stock-412.png" alt=""><figcaption>Stock</figcaption></figure>
+<figure><img src="capturas/ventas-412.png" alt=""><figcaption>Ventas</figcaption></figure>
+<figure><img src="capturas/cierre-412.png" alt=""><figcaption>Cierre del día</figcaption></figure>
+<figure><img src="capturas/login-412.png" alt=""><figcaption>Entrar</figcaption></figure>
+<figure><img src="capturas/voz-1-escuchando.png" alt=""><figcaption>Voz · escuchando</figcaption></figure>
+<figure><img src="capturas/voz-3-tarjeta.png" alt=""><figcaption>Voz · lo entendido</figcaption></figure>
+<figure><img src="capturas/voz-4-lo-debe.png" alt=""><figcaption>Voz · lo debe</figcaption></figure>
+<figure><img src="capturas/voz-5-guardado.png" alt=""><figcaption>Voz · guardado</figcaption></figure>
+<figure><img src="capturas/voz-error.png" alt=""><figcaption>Voz · no te entendí</figcaption></figure>
+<figure><img src="capturas/voz-sin-senal.png" alt=""><figcaption>Sin señal</figcaption></figure>
+</div>
+
+<h2>4 · Plan de implementación (con <code>/construir</code>, una actividad por commit)</h2>
+<table>
+<tr><th>#</th><th>Actividad</th><th>Archivos</th><th>Cómo se demuestra</th></tr>
+<tr><td>1</td><td>Tokens Bosque claro y oscuro, variables de shadcn, fondo marfil sólido (sale <code>FondoAurora</code>). ADR-0014 reemplaza ADR-0007</td><td><code>app/globals.css</code>, <code>components/ui/FondoAurora.tsx</code>, <code>app/(app)/layout.tsx</code>, <code>docs/adr/0014-…</code></td><td>Contraste medido, <code>medir:pintura</code>, capturas a 412 y 360 px</td></tr>
+<tr><td>2</td><td>Logo elegido (la F que brota de la caja): los PNG de <code>docs/maquetas/bosque/logo/</code> (recortados de la imagen aprobada), favicon, apple-icon y color del manifest</td><td><code>public/logo/</code>, <code>scripts/generar-iconos.mjs</code>, <code>public/icons/*</code>, <code>app/icon.png</code>, <code>app/apple-icon.png</code>, <code>app/favicon.ico</code>, <code>lib/pwa-reglas.ts</code></td><td><code>pnpm e2e:prod</code> (pwa), instalada en el S25</td></tr>
+<tr><td>3</td><td>Marco: cabecera bosque (grande y compacta), barra nueva y voz en todas las pantallas (rol contador sin orbe)</td><td><code>components/marco/Encabezado.tsx</code>, <code>BarraInferior.tsx</code>, <code>components/voz/VozHoy.tsx</code> → marco, <code>app/(app)/layout.tsx</code></td><td>e2e de marco y roles, <code>medir:js</code> ≤ 180 KB</td></tr>
+<tr><td>4</td><td>Piezas: Boton (variantes), Tarjeta, Insignia, Monto, Filtros, Hoja, Vacio, Aviso, Esqueleto</td><td><code>components/ui/*</code></td><td><code>/piezas</code> en claro y oscuro</td></tr>
+<tr><td>5</td><td>Hoy: nueva composición y comparación con el lunes pasado a la misma hora</td><td><code>components/hoy/*</code>, <code>lib/comparacion-reglas.ts</code> (+ prueba)</td><td>Vitest, e2e de Hoy, <code>/formidable</code></td></tr>
+<tr><td>6</td><td>Voz: orbe, tarjetas (venta, abono, compra, merma, gasto, consulta) y estados</td><td><code>components/voz/*</code></td><td>e2e de dictar, <code>/chaos</code>, <code>/voz-precision</code> (sin cambios en el prompt)</td></tr>
+<tr><td>7</td><td>Clientes y ficha; «¿Desde cuándo te debe?» solo con tu OK (regla de dinero nueva)</td><td><code>components/clientes/*</code>, <code>lib/antiguedad-reglas.ts</code> (+ prueba)</td><td>e2e de clientes, <code>/formidable</code>, <code>/chaos</code></td></tr>
+<tr><td>8</td><td>Stock, Ventas, Cierre (frase para la caja negativa), Ajustes, Entrar e invitación</td><td><code>components/inventario/*</code>, <code>components/ventas/*</code>, <code>components/cierre/*</code>, <code>app/login/*</code></td><td>e2e de cada pantalla, <code>/formidable</code>, <code>/chaos</code></td></tr>
+</table>
+<p class="t2">Después de esto vuelve el diseño de escritorio (<code>docs/maquetas/escritorio/</code>): habrá que redibujar esas maquetas con Bosque.</p>
+</body>
+</html>

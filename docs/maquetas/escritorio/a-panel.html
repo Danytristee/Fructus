@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fructus · Escritorio A · Panel lateral</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  /* A · Panel lateral: la barra de abajo del celular se vuelve un panel a la izquierda, con la voz arriba de todo.
+     El contenido se ordena en una grilla de 12 columnas; un protagonista por pantalla, igual que en el celular. */
+  .marco { display: grid; grid-template-columns: 264px 1fr; min-height: 100vh; }
+  .lateral {
+    position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 6px; padding: 22px 16px;
+    border-radius: 0 28px 28px 0; border-left: 0;
+  }
+  .marca { display: flex; align-items: center; gap: 8px; padding: 0 10px 14px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+  .marca img { width: 28px; height: 28px; margin-right: -12px; }
+  .dictar {
+    display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px; padding: 12px; margin-bottom: 10px;
+    border-radius: 24px; background: var(--superficie); box-shadow: inset 0 0 0 1px var(--linea);
+  }
+  .dictar .orbe { width: 64px; height: 64px; }
+  .dictar .orbe svg { width: 28px; height: 28px; }
+  .dictar strong { display: block; line-height: 1.2; }
+  .dictar span { font-size: 14px; color: var(--texto-suave); }
+  .nav { display: grid; gap: 4px; }
+  .nav a {
+    display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border-radius: 16px; font-weight: 800; color: var(--texto-suave);
+    transition: background .15s;
+  }
+  .nav a:hover { background: color-mix(in srgb, var(--acento) 6%, transparent); color: var(--texto); }
+  .nav a[aria-current="page"] { background: color-mix(in srgb, var(--acento) 13%, transparent); color: var(--acento-texto); }
+  .nav a .cuenta { margin-left: auto; font-size: 13px; }
+  .separador { height: 1px; background: var(--linea); margin: 10px 8px; }
+  .quien { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 18px; }
+  .quien small { display: block; color: var(--texto-suave); font-size: 14px; }
+  .quien button { margin-left: auto; border: 0; background: transparent; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: var(--texto-suave); }
+  .quien button:hover { background: color-mix(in srgb, var(--deuda) 8%, transparent); color: var(--deuda); }
+
+  .contenido { padding: 28px 36px 60px; max-width: 1240px; width: 100%; }
+  .cabecera { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+  .cabecera h1 { font-size: 36px; line-height: 1.1; font-weight: 800; letter-spacing: -.02em; }
+  .acciones { display: flex; gap: 10px; }
+  .grilla { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+  .c7 { grid-column: span 7; } .c5 { grid-column: span 5; } .c12 { grid-column: span 12; }
+  .pila { display: grid; gap: 16px; align-content: start; }
+  .mosaico { display: flex; align-items: center; gap: 14px; }
+  .mosaico .cuerpo { display: grid; flex: 1; }
+  .mosaico .ver { font-weight: 800; color: var(--acento-texto); font-size: 15px; }
+  a.tarjeta { transition: transform .15s var(--ease-salida), box-shadow .15s; }
+  a.tarjeta:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgb(var(--sombra-color) / .12); }
+  .titulo-seccion { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .titulo-seccion h2 { font-size: 20px; font-weight: 800; }
+  .titulo-seccion a { font-weight: 800; color: var(--acento-texto); font-size: 15px; }
+  .alerta { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--linea); }
+  .alerta:last-child { border-bottom: 0; }
+  .alerta .cuerpo { flex: 1; display: grid; }
+  .alerta small { color: var(--texto-suave); font-size: 15px; }
+
+  /* Clientes: lista a la izquierda, ficha a la derecha (maestro y detalle). */
+  .maestro { display: grid; grid-template-columns: 400px 1fr; gap: 16px; align-items: start; }
+  .lista { padding: 14px; border-radius: var(--r-tarjeta); position: sticky; top: 20px; }
+  .lista .filas { max-height: calc(100vh - 330px); overflow: auto; margin: 10px -6px 0; padding: 0 6px; }
+  .cli { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 8px 10px; border: 0; border-radius: 16px; background: transparent; text-align: left; }
+  .cli:hover { background: color-mix(in srgb, var(--acento) 5%, transparent); }
+  .cli[aria-selected="true"] { background: color-mix(in srgb, var(--acento) 12%, transparent); }
+  .cli .cuerpo { flex: 1; display: grid; min-width: 0; }
+  .cli .cuerpo span:last-child { font-size: 14px; color: var(--texto-suave); }
+  .cli .monto { display: grid; text-align: right; }
+  .cli .monto small { font-size: 13px; font-weight: 800; }
+  .ficha .veredicto { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 999px; background: var(--superficie); box-shadow: inset 0 0 0 1px var(--linea); font-weight: 700; font-size: 15px; }
+  .chip svg { width: 16px; height: 16px; }
+  .edad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px; }
+  .edad div { padding: 10px 12px; border-radius: 16px; background: var(--superficie); box-shadow: inset 0 0 0 1px var(--linea); }
+  .edad div small { display: block; font-size: 13px; font-weight: 800; color: var(--texto-suave); }
+
+  @media (max-width: 1100px) { .marco { grid-template-columns: 88px 1fr; } .lateral .texto, .dictar div, .marca span, .quien div, .nav .cuenta { display: none; } .dictar { grid-template-columns: 1fr; justify-items: center; padding: 6px; } .nav a { justify-content: center; padding: 0; } .c7, .c5 { grid-column: span 12; } }
+</style>
+</head>
+<body>
+<div class="fondo"><span></span><span></span><span></span><span></span></div>
+<div class="marco">
+  <aside class="lateral vidrio" aria-label="Fructus">
+    <div class="marca"><img src="../../../public/frutas/mango.svg" alt=""><img src="../../../public/frutas/platano.svg" alt=""><img src="../../../public/frutas/pina.svg" alt=""><span style="margin-left:16px">Fructus</span></div>
+    <div class="dictar">
+      <button type="button" class="orbe" data-orbe aria-label="Mantén para hablar">${micro}</button>
+      <div><strong id="estado-voz">Mantén para hablar</strong><span>o deja apretada <kbd>Espacio</kbd></span></div>
+    </div>
+    <nav class="nav" aria-label="Principal" id="nav"></nav>
+    <div class="quien">
+      <span class="avatar">DP</span>
+      <div><strong>Dueño de prueba</strong><small>Dueño</small></div>
+      <button type="button" aria-label="Salir" id="salir"></button>
+    </div>
+  </aside>
+  <main class="contenido" id="pantalla"></main>
+</div>
+<div class="velo" id="velo"><div class="dialogo" role="dialog" aria-modal="true" aria-label="Confirmar venta" id="dialogo"></div></div>
+<p class="guia-maqueta">Maqueta A · toca el orbe o deja apretada Espacio · <a href="index.html">ver las 3</a></p>
+
+<script src="datos.js"></script>
+<script>
+  document.querySelector("[data-orbe]").innerHTML = icono("micro");
+  document.getElementById("salir").innerHTML = icono("salir");
+
+  const destinos = [
+    ["hoy", "Hoy", "casa"], ["clientes", "Clientes", "clientes", DEUDORES.length], ["stock", "Stock", "stock", STOCK.filter((f) => f.estado === "se-acabo" || f.estado === "reponer").length], ["ventas", "Ventas", "ventas"],
+    null, ["cierre", "Cierre del día", "cierre"], ["ajustes", "Ajustes", "ajustes"],
+  ];
+  let pantalla = location.hash.slice(1) || "hoy";
+  let elegido = CLIENTES[0];
+  let filtro = "deben";
+
+  function pintarNav() {
+    document.getElementById("nav").innerHTML = destinos.map((d) => d === null ? '<div class="separador"></div>' :
+      `<a href="#${d[0]}" ${d[0] === pantalla ? 'aria-current="page"' : ""}>${icono(d[2])}<span class="texto">${d[1]}</span>${d[3] ? `<span class="insignia ${d[0] === "stock" ? "sol" : "neutra"} cuenta">${d[3]}</span>` : ""}</a>`).join("");
+  }
+
+  function hoy() {
+    const alertas = STOCK.filter((f) => f.estado === "se-acabo" || f.estado === "reponer" );
+    return `
+    <header class="cabecera subir"><div><h1>Hoy</h1><p class="suave">${HOY.fecha} · ${HOY.ventas} ventas, ${HOY.cajas} cajas</p></div>
+      <div class="acciones"><a class="boton claro" href="#ventas">${icono("recibo")}Ver ventas</a><button class="boton" type="button">${icono("mas")}Registrar a mano</button></div></header>
+    <div class="grilla">
+      <section class="c7 protagonista vidrio subir" aria-label="Lo vendido hoy">
+        <span class="etiqueta">Vendiste hoy</span>
+        <div class="cifra total" style="margin:2px 0">${S(HOY.vendido)}</div>
+        <p class="suave"><strong class="cifra" style="color:var(--texto)">${S(HOY.contado)}</strong> al contado y <strong class="cifra" style="color:var(--texto)">${S(HOY.credito)}</strong> al crédito</p>
+        <div style="margin-top:18px">${graficoHoras(170)}</div>
+      </section>
+      <div class="c5 pila">
+        <div class="tarjeta vidrio mosaico subir" style="animation-delay:70ms"><span class="caja-icono exito exito">${icono("billetera")}</span>
+          <span class="cuerpo"><span class="etiqueta">Cobraste</span><span class="cifra grande exito">${S(HOY.cobrado)}</span>
+          <span class="suave" style="font-size:15px"><b class="cifra">${S(HOY.contado)}</b> al contado y <b class="cifra">${S(HOY.abonos)}</b> de abonos</span></span></div>
+        <a href="#clientes" class="tarjeta vidrio mosaico subir" style="animation-delay:140ms"><span class="caja-icono deuda deuda">${icono("mano")}</span>
+          <span class="cuerpo"><span class="etiqueta">Te deben</span><span class="cifra grande deuda">${S(TE_DEBEN)}</span>
+          <span class="suave" style="font-size:15px">${DEUDORES.length} clientes · el que más, Luis Paredes</span></span>${icono("flecha")}</a>
+        <a href="#cierre" class="tarjeta vidrio mosaico subir" style="animation-delay:210ms"><span class="caja-icono acento">${icono("cierre")}</span>
+          <span class="cuerpo"><span class="etiqueta">Debería haber en tu caja</span><span class="cifra grande">${S(HOY.caja)}</span>
+          <span class="suave" style="font-size:15px">Lo cobrado menos <b class="cifra">${S(HOY.gastos)}</b> de gastos</span></span>${icono("flecha")}</a>
+      </div>
+      <section class="c7 tarjeta vidrio subir" style="animation-delay:120ms;padding-bottom:6px">
+        <div class="titulo-seccion"><h2>Lo último</h2><a href="#ventas">Ver todo</a></div>
+        <table class="tabla"><thead><tr><th>Hora</th><th>Qué pasó</th><th></th><th class="num">Monto</th></tr></thead><tbody>
+        ${ULTIMAS.slice(0, 6).map((o) => `<tr class="tocable"><td class="cifra suave" style="font-weight:700">${o.hora}</td>
+          <td><div style="display:flex;align-items:center;gap:10px">${iconoOp(o)}<div style="display:grid"><strong>${o.quien}</strong><span class="suave" style="font-size:14px">${o.que}</span></div></div></td>
+          <td>${insigniaOp(o)}</td><td class="num cifra">${o.tipo === "gasto" || o.tipo === "merma" ? "−" : ""}${S(o.monto)}</td></tr>`).join("")}
+        </tbody></table>
+      </section>
+      <div class="c5 pila">
+        <section class="tarjeta vidrio subir" style="animation-delay:190ms">
+          <div class="titulo-seccion"><h2>Qué reponer</h2><a href="#stock">Ver stock</a></div>
+          ${alertas.map((f) => `<div class="alerta">${fruta(f.nombre)}<span class="cuerpo"><strong>${f.cajas === 0 ? "Se acabó" : `Quedan ${f.cajas} cajas de`} ${f.nombre.toLowerCase()} ${f.variedad}</strong>
+            <small>Vendes unas ${f.diarias} al día${f.cajas ? `: te alcanza ${f.dias < 1 ? "menos de un día" : "para un día"}` : ""}</small></span><span class="insignia ${ESTADO_STOCK[f.estado][0]}">${ESTADO_STOCK[f.estado][1]}</span></div>`).join("")}
+        </section>
+        <section class="tarjeta vidrio subir" style="animation-delay:260ms">
+          <div class="titulo-seccion"><h2>Esta semana</h2><span class="insignia exito">${icono("tendencia")}+9 % que el lunes pasado</span></div>
+          ${graficoSemana(120)}
+        </section>
+      </div>
+    </div>`;
+  }
+
+  function clientes() {
+    const lista = CLIENTES.filter((c) => filtro === "todos" || (filtro === "deben" ? c.saldo > 0 : c.saldo === 0));
+    const c = elegido;
+    const h = historialDe(c);
+    const tramos = c.saldo ? [[0, 7], [8, 15], [16, 30], [31, 999]].map(([a, b], i) => {
+      const v = c.dias >= a && c.dias <= b ? Math.round(c.saldo * 0.45) : i === 0 ? c.saldo - Math.round(c.saldo * 0.45) : 0;
+      return { t: i === 3 ? "Más de 30 días" : `${a} a ${b} días`, v };
+    }) : [];
+    return `
+    <header class="cabecera subir"><div><h1>Clientes</h1><p class="suave">Te deben <strong class="cifra deuda">${S(TE_DEBEN)}</strong> entre ${DEUDORES.length} clientes</p></div>
+      <div class="acciones"><button class="boton claro" type="button">${icono("mas")}Nuevo cliente</button><button class="boton" type="button">${icono("mano")}Registrar abono</button></div></header>
+    <div class="maestro">
+      <section class="lista vidrio subir" aria-label="Cuaderno">
+        <label class="buscador">${icono("buscar")}<input placeholder="Busca por nombre o apodo" aria-label="Buscar cliente"></label>
+        <div class="filtros" style="margin-top:10px">
+          ${[["deben", "Te deben", DEUDORES.length], ["dia", "Al día", CLIENTES.length - DEUDORES.length], ["todos", "Todos", CLIENTES.length]].map(([k, t, n]) =>
+            `<button class="filtro" data-filtro="${k}" aria-pressed="${filtro === k}">${t}<b>${n}</b></button>`).join("")}
+        </div>
+        <div class="filas" role="listbox" aria-label="Clientes">
+          ${lista.map((x, i) => `<button class="cli" role="option" data-cli="${CLIENTES.indexOf(x)}" aria-selected="${x === c}"><span class="avatar ${"abcd"[i % 4]}">${iniciales(x.nombre)}</span>
+            <span class="cuerpo"><strong>${x.nombre}</strong><span>${x.apodo ? `«${x.apodo}»` : x.ultimo}</span></span>
+            <span class="monto">${x.saldo ? `<span class="cifra deuda">${S(x.saldo)}</span><small class="deuda">debe</small>` : `<small class="exito">al día</small>`}</span></button>`).join("")}
+        </div>
+      </section>
+      <section class="ficha pila subir" style="animation-delay:80ms" aria-label="Ficha de ${c.nombre}">
+        <div class="protagonista vidrio">
+          <div class="veredicto"><div style="display:flex;gap:14px;align-items:center"><span class="avatar" style="width:60px;height:60px;font-size:20px">${iniciales(c.nombre)}</span>
+            <div><h2 style="font-size:26px;font-weight:800">${c.nombre}</h2><p class="suave">${c.apodo ? `«${c.apodo}» · ` : ""}${c.ultimo}</p></div></div>
+            <div class="acciones"><button class="boton claro" type="button">Enviar por WhatsApp</button>${c.saldo ? `<button class="boton" type="button">${icono("mano")}Registrar abono</button>` : ""}</div></div>
+          <div style="margin-top:18px">${c.saldo ? `<span class="etiqueta">Te debe</span><div class="cifra total deuda">${S(c.saldo)}</div>` : `<span class="insignia exito" style="font-size:18px;padding:8px 16px">${icono("check")}Al día</span>`}</div>
+          <div class="chips">${c.doc ? `<span class="chip">${c.doc}</span>` : ""}${c.tel ? `<span class="chip">${icono("telefono")}${c.tel}</span>` : ""}</div>
+        </div>
+        ${c.saldo ? `<div class="tarjeta vidrio"><div class="titulo-seccion"><h2>¿Desde cuándo te debe?</h2><span class="insignia ${c.dias > 30 ? "deuda" : "neutra"}">Lo más antiguo: hace ${c.dias} días</span></div>
+          <div class="edad">${tramos.map((t) => `<div><small>${t.t}</small><span class="cifra ${t.v ? (t.t.startsWith("Más") ? "deuda" : "") : "suave"}" style="font-size:20px">${S(t.v)}</span></div>`).join("")}</div></div>` : ""}
+        <div class="tarjeta vidrio" style="padding-bottom:6px"><div class="titulo-seccion"><h2>Historial</h2><span class="suave" style="font-size:15px">Ventas y abonos</span></div>
+          <table class="tabla"><thead><tr><th>Día</th><th>Qué pasó</th><th class="num">Monto</th><th class="num">Le queda</th></tr></thead><tbody>
+          ${(() => { let resta = c.saldo; return h.map((r) => { const fila = `<tr><td><strong>${r.dia}</strong><br><span class="suave cifra" style="font-size:14px;font-weight:600">${r.hora}</span></td>
+            <td>${r.tipo === "abono" ? '<span class="insignia exito">Abono</span> ' : '<span class="insignia deuda">Lo debe</span> '}${r.que}</td>
+            <td class="num cifra ${r.monto < 0 ? "exito" : ""}">${r.monto < 0 ? "−" + S(-r.monto) : S(r.monto)}</td><td class="num cifra suave">${S(Math.max(resta, 0))}</td></tr>`; resta -= r.monto; return fila; }).join(""); })()}
+          </tbody></table></div>
+      </section>
+    </div>`;
+  }
+
+  function pintar() {
+    pintarNav();
+    const p = document.getElementById("pantalla");
+    p.innerHTML = pantalla === "hoy" ? hoy() : pantalla === "clientes" ? clientes()
+      : `<div class="no-maqueta vidrio tarjeta subir"><h1 style="font-size:28px">${destinos.find((d) => d && d[0] === pantalla)[1]}</h1><p class="suave">Esta maqueta solo dibuja «Hoy» y «Clientes».<br>El resto sigue el mismo marco.</p><a class="boton" href="#hoy">Volver a Hoy</a></div>`;
+    p.querySelectorAll("[data-filtro]").forEach((b) => b.onclick = () => { filtro = b.dataset.filtro; pintar(); });
+    p.querySelectorAll("[data-cli]").forEach((b) => b.onclick = () => { elegido = CLIENTES[+b.dataset.cli]; pintar(); });
+  }
+  addEventListener("hashchange", () => { pantalla = location.hash.slice(1) || "hoy"; pintar(); });
+  pintar();
+
+  // La voz: la tarjeta sale como hoja centrada (Hoja.tsx en md:).
+  const velo = document.getElementById("velo"), dialogo = document.getElementById("dialogo");
+  const cerrar = () => velo.classList.remove("abierto");
+  velo.addEventListener("click", (e) => { if (e.target === velo) cerrar(); });
+  addEventListener("keydown", (e) => { if (e.key === "Escape") cerrar(); });
+  conectarVoz({
+    orbes: () => document.querySelectorAll("[data-orbe]"),
+    alEstado: (e) => (document.getElementById("estado-voz").textContent = e === "escuchando" ? "Te escucho…" : e === "entendiendo" ? "Entendiendo…" : "Mantén para hablar"),
+    alTarjeta: () => {
+      dialogo.innerHTML = tarjetaEntendida();
+      velo.classList.add("abierto");
+      conectarTarjeta(dialogo, (debe) => { dialogo.innerHTML = sello(debe); setTimeout(cerrar, 1400); });
+    },
+  });
+</script>
+</body>
+</html>

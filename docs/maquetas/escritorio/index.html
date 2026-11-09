@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fructus · Escritorio · 3 direcciones</title>
+<!-- Comparativa del diseño de escritorio. La identidad es Aurora (ADR-0007) en las tres: solo cambia el acomodo a 1280 px. -->
+<style>
+  body { margin: 0; padding: 24px; font: 17px/1.45 system-ui, sans-serif; background: #f4f4f4; color: #111; max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  p { margin: 0 0 16px; color: #333; }
+  .dir { background: #fff; border-radius: 18px; padding: 18px; margin-bottom: 18px; }
+  .dir h2 { font-size: 22px; margin: 0 0 6px; }
+  .tripleta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+  img { width: 100%; border-radius: 10px; border: 1px solid #ddd; display: block; }
+  .gp { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .gp div { background: #f6f6f6; border-radius: 12px; padding: 10px 14px; }
+  .gp b { display: block; margin-bottom: 4px; }
+  ul { margin: 4px 0; padding-left: 20px; }
+  a.boton { display: inline-flex; align-items: center; min-height: 48px; padding: 0 18px; background: #111; color: #fff; border-radius: 999px; text-decoration: none; font-weight: 700; margin-top: 12px; }
+  .reco { border: 2px solid #114b5f; }
+  @media (max-width: 800px) { .tripleta, .gp { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<h1>Fructus en escritorio: 3 direcciones</h1>
+<p>Las tres usan la misma identidad Aurora del celular (colores, Manrope, vidrio, orbe). Cambia solo cómo se acomoda en una pantalla de 1280 px.
+Cada una dibuja «Hoy» y «Clientes»; el orbe se mantiene apretado con el mouse o con la barra espaciadora y abre la misma tarjeta del celular.</p>
+
+<section class="dir reco">
+  <h2>A · Panel lateral <small style="font-weight:600;color:#114b5f">(recomendada, con las tablas de B)</small></h2>
+  <p>La barra de abajo se vuelve un panel a la izquierda, con la voz arriba de todo y Cierre y Ajustes a la vista. «Hoy» es una grilla con
+  un protagonista (lo vendido y su gráfico) y tres cifras al lado. Clientes es lista a la izquierda y ficha a la derecha, con un bloque
+  nuevo: <b>¿desde cuándo te debe?</b></p>
+  <div class="tripleta"><img src="capturas/a-hoy.png" alt="A, Hoy"><img src="capturas/a-clientes.png" alt="A, Clientes"><img src="capturas/a-voz.png" alt="A, la voz"></div>
+  <div class="gp"><div><b>Ganas</b>Es el celular «abierto»: quien ya usa la app no aprende nada nuevo. Sirve igual al dueño y al administrador.</div>
+  <div><b>Pagas</b>Para el contador, la lista de clientes no ordena por columnas: para eso conviene la tabla de B.</div></div>
+  <a class="boton" href="a-panel.html">Probar A</a>
+</section>
+
+<section class="dir">
+  <h2>B · Libro</h2>
+  <p>Barra arriba, una franja de cuatro cifras y todo lo demás en tablas que se ordenan, se filtran y van a Excel. La ficha del cliente
+  entra desde la derecha sin perder la tabla. Clientes muestra hace cuántos días te debe cada uno.</p>
+  <div class="tripleta"><img src="capturas/b-hoy.png" alt="B, Hoy"><img src="capturas/b-clientes.png" alt="B, Clientes"><img src="capturas/b-voz.png" alt="B, la voz"></div>
+  <div class="gp"><div><b>Ganas</b>La más útil para revisar: el contador ordena por «te debe» o por antigüedad y exporta lo que ve.</div>
+  <div><b>Pagas</b>Se siente otra app que la del celular: más «sistema», menos Fructus. La voz queda chica, arriba a la derecha.</div></div>
+  <a class="boton" href="b-libro.html">Probar B</a>
+</section>
+
+<section class="dir">
+  <h2>C · Mostrador</h2>
+  <p>Tres zonas: un riel de iconos, la pantalla al centro y un mostrador fijo a la derecha con lo que va pasando hoy y el orbe grande.
+  La tarjeta de lo dictado sale en el mostrador, sin tapar nada, y la venta entra a la lista al confirmar.</p>
+  <div class="tripleta"><img src="capturas/c-hoy.png" alt="C, Hoy"><img src="capturas/c-clientes.png" alt="C, Clientes"><img src="capturas/c-voz.png" alt="C, la voz"></div>
+  <div class="gp"><div><b>Ganas</b>La mejor si el dueño vende desde una laptop en el puesto: dicta y ve el día a la vez.</div>
+  <div><b>Pagas</b>Le quita 380 px a todas las pantallas, también a quien solo revisa. CLAUDE.md dice que el escritorio es para revisar.</div></div>
+  <a class="boton" href="c-mostrador.html">Probar C</a>
+</section>
+</body>
+</html>
