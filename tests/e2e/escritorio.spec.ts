@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { baseLocal } from "./base";
 import { entrarComo } from "./cuentas";
 import { quieto } from "./medir";
 
@@ -69,4 +70,26 @@ test("«Hoy» en grilla: lo vendido a la izquierda y lo cobrado al lado; «Lo ú
   expect(Math.abs(c.y - v.y), "en la misma fila").toBeLessThan(2);
   const ultimo = (await page.getByRole("heading", { name: "Lo último" }).boundingBox())!;
   expect(ultimo.y, "«Lo último» debajo").toBeGreaterThan(v.y + v.height);
+});
+
+test("Clientes en tabla: ordena por deuda o por nombre, coincide con la base y una fila abre la ficha", async ({ page }) => {
+  const { data } = await baseLocal().from("v_saldo_clientes").select("cliente_id, nombre, saldo").gt("saldo", 0).order("saldo", { ascending: false }).limit(1);
+  const mayor = data![0]!;
+  await entrarComo(page, "duenio");
+  await page.goto("/clientes");
+  const tabla = page.getByRole("table", { name: /Cuaderno de clientes/ });
+  await expect(tabla).toBeVisible({ timeout: 15_000 });
+  // Por defecto, de quien más debe a quien menos: el primero es el que dice la base.
+  const primera = tabla.locator("tbody tr").first();
+  await expect(primera).toContainText(mayor.nombre!);
+  await expect(tabla.getByRole("columnheader", { name: /Te debe/ })).toHaveAttribute("aria-sort", "descending");
+  // Por nombre, de la A a la Z.
+  await tabla.getByRole("button", { name: "Cliente" }).click();
+  await expect(tabla.getByRole("columnheader", { name: /Cliente/ })).toHaveAttribute("aria-sort", "ascending");
+  const nombres = await tabla.locator("tbody tr a").allTextContents();
+  expect(nombres).toEqual([...nombres].sort((a, b) => a.localeCompare(b, "es")));
+  // Toda la fila abre la ficha.
+  await tabla.getByRole("link", { name: mayor.nombre! }).click();
+  await expect(page).toHaveURL(`/clientes/${mayor.cliente_id}`);
+  await expect(page.getByRole("heading", { level: 1, name: mayor.nombre! })).toBeVisible();
 });

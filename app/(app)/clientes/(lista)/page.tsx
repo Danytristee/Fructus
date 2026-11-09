@@ -23,7 +23,13 @@ async function Cuaderno() {
   const { supabase, permisos } = await exigirSesion();
   // Sin saber el rol no se decide qué botones hay: si la base no respondió, se dice que no hubo conexión (lib/sesion.ts: «sin-conexion»).
   if (!permisos) return <SesionSinConexion />;
-  const { data, error } = await supabase.from("v_saldo_clientes").select("cliente_id, nombre, alias, saldo");
+  const [{ data, error }, datos] = await Promise.all([
+    supabase.from("v_saldo_clientes").select("cliente_id, nombre, alias, saldo"),
+    // Documento y teléfono, para la tabla de escritorio. Si no responde, la tabla sale sin esas columnas llenas: no se cae el cuaderno.
+    supabase.from("clientes").select("id, tipo_documento, numero_documento, telefono"),
+  ]);
+  if (datos.error) console.error("clientes: no se pudieron leer documentos y teléfonos", { codigo: datos.error.code });
+  const porId = new Map((datos.data ?? []).map((c) => [c.id, c]));
   if (error) {
     console.error("clientes: no se pudo leer el cuaderno", { codigo: error.code });
     return (
@@ -40,6 +46,8 @@ async function Cuaderno() {
       iniciales: iniciales(c.nombre ?? "?"),
       tono: tonoDe(c.cliente_id ?? 0),
       saldo: Number(c.saldo ?? 0),
+      documento: ((d) => (d?.numero_documento ? [d.tipo_documento, d.numero_documento].filter(Boolean).join(" ") : null))(porId.get(c.cliente_id ?? 0)),
+      telefono: porId.get(c.cliente_id ?? 0)?.telefono ?? null,
     }))
     .sort((a, b) => b.saldo - a.saldo);
   const total = clientes.reduce((s, c) => s + Math.max(0, c.saldo), 0);

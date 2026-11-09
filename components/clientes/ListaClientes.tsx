@@ -9,6 +9,7 @@ import { Filtros } from "@/components/ui/Filtros";
 import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
 import { Vacio } from "@/components/ui/Vacio";
+import { TablaClientes } from "./TablaClientes";
 
 export type ClienteCuaderno = {
   id: number;
@@ -17,6 +18,9 @@ export type ClienteCuaderno = {
   iniciales: string;
   tono: number;
   saldo: number;
+  /** «DNI 40123456» o «RUC 20601234567»; solo se muestra en la tabla de escritorio. */
+  documento?: string | null;
+  telefono?: string | null;
 };
 
 type Filtro = "deben" | "al_dia" | "todos";
@@ -37,7 +41,9 @@ export function ListaClientes({ clientes, nuevo }: { clientes: ClienteCuaderno[]
       <h2 id="cuaderno" className="sr-only">
         Cuaderno de clientes
       </h2>
-      <div className="mb-3 flex items-center gap-2">
+      {/* En escritorio, la búsqueda y los filtros van en una sola fila sobre la tabla. */}
+      <div className="lg:flex lg:items-center lg:gap-3">
+      <div className="mb-3 flex items-center gap-2 lg:mb-0 lg:max-w-md lg:flex-1">
         <label className="vidrio flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-full px-4">
           <Search aria-hidden className="size-5 text-texto-suave" />
           <span className="sr-only">Buscar cliente</span>
@@ -61,12 +67,15 @@ export function ListaClientes({ clientes, nuevo }: { clientes: ClienteCuaderno[]
           { valor: "todos", etiqueta: "Todos", cuenta: clientes.length },
         ]}
       />
+      </div>
       {visibles.length === 0 ? (
         <Vacio className="mt-3" icono={<Users />} titulo="No hay nadie así">
           Prueba con otro nombre o cambia el filtro.
         </Vacio>
       ) : (
-        <ul key={filtro} className="vidrio mt-3 divide-y divide-border overflow-hidden rounded-tarjeta">
+        <>
+        <TablaClientes clientes={visibles} className="mt-4 hidden lg:block" />
+        <ul key={filtro} className="vidrio mt-3 divide-y divide-border overflow-hidden rounded-tarjeta lg:hidden">
           {visibles.map((c, i) => (
             <li key={c.id} className="animate-subir px-4 py-1" style={{ animationDelay: `${i * 40}ms` }}>
               <Link
@@ -94,6 +103,7 @@ export function ListaClientes({ clientes, nuevo }: { clientes: ClienteCuaderno[]
             </li>
           ))}
         </ul>
+        </>
       )}
     </section>
   );
