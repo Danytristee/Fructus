@@ -105,7 +105,7 @@ export const cajas = (n: number) => (n > 0 && n < 1 ? "menos de una caja" : `${M
 const dias = (n: number) => (n > 0 && n < 1 ? "menos de un día" : `${Math.round(n)} ${Math.round(n) === 1 ? "día" : "días"}`);
 
 /** Lo que pide hacer algo HOY: un aviso grave, el mismo que en la lista de Stock lleva la etiqueta roja «Hoy». */
-export const esUrgente = (a: Pick<Alerta, "gravedad">) => a.gravedad === "alta";
+const esUrgente = (a: Pick<Alerta, "gravedad">) => a.gravedad === "alta";
 
 /**
  * El veredicto del anillo de Stock: de las frutas que lleva el puesto, cuántas piden algo hoy: las que tienen la etiqueta roja «Hoy» en la

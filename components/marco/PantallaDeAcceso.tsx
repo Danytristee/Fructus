@@ -24,13 +24,13 @@ export function PantallaDeAcceso({ titulo, subtitulo, aviso, children, pie }: Pr
             width={104}
             height={104}
             priority
-            className="rounded-[24px] shadow-[0_0_0_1px_color-mix(in_srgb,var(--sobre-acento)_14%,transparent),0_18px_40px_rgb(0_0_0/0.35)]"
+            className="rounded-[24px] shadow-[0_0_0_1px_color-mix(in_srgb,var(--sobre-acento)_14%,transparent),0_18px_40px_rgb(var(--sombra-color)/0.5)]"
           />
           <h1 className="text-[36px] leading-tight font-extrabold tracking-tight">{titulo}</h1>
           <p className="text-sobre-acento/80">{subtitulo}</p>
         </header>
         {aviso}
-        <div className="animate-subir rounded-protagonista bg-vidrio p-[18px] text-texto shadow-[0_18px_40px_rgb(0_0_0/0.3)] [animation-delay:80ms]">
+        <div className="animate-subir rounded-protagonista bg-vidrio p-[18px] text-texto shadow-[0_18px_40px_rgb(var(--sombra-color)/0.45)] [animation-delay:80ms]">
           {children}
         </div>
         {pie && <p className="animate-subir text-center text-sobre-acento/80 [animation-delay:160ms]">{pie}</p>}

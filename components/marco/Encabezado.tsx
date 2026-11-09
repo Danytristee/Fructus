@@ -57,7 +57,7 @@ export async function Encabezado({ titulo, subtitulo, volver, marca = false, sob
                 width={46}
                 height={46}
                 priority
-                className="rounded-xl shadow-[0_0_0_1px_color-mix(in_srgb,var(--sobre-acento)_14%,transparent),0_6px_16px_rgb(0_0_0/0.3)]"
+                className="rounded-xl shadow-[0_0_0_1px_color-mix(in_srgb,var(--sobre-acento)_14%,transparent),0_6px_16px_rgb(var(--sombra-color)/0.45)]"
               />
               {/* Sin bajada «venta mayorista de frutas»: a 11 px no se leía al sol, y el ícono y el nombre ya dicen qué es (/formidable 2026-11-09). */}
               <p className="text-[26px] leading-none font-extrabold tracking-tight">Fructus</p>
