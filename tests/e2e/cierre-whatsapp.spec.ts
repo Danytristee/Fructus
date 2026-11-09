@@ -80,3 +80,21 @@ for (const rol of ["ayudante", "contador"] as const) {
     await abrirCierre(page, rol);
   });
 }
+
+test("regresión /chaos 2026-11-09: el botón flota sin tapar el final; la última fila del Excel se ve y se toca entera", async ({ page }) => {
+  await entrarComo(page, "duenio");
+  await page.goto("/cierre");
+  const boton = page.getByRole("link", { name: /Enviar por WhatsApp/ });
+  await expect(boton).toBeVisible({ timeout: 15_000 });
+  await quieto(page);
+  // Antes, el espacio de la píldora quedaba entre el resumen y el Excel, y al final la píldora tapaba la mitad del último mes.
+  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(() => {
+    const filas = [...document.querySelectorAll("button, a")].filter((b) => /Mes completo|Hasta hoy/.test(b.textContent ?? ""));
+    const ultima = filas.at(-1)!.getBoundingClientRect();
+    const pildora = [...document.querySelectorAll("a")].find((a) => a.textContent?.includes("Enviar por WhatsApp"))!.getBoundingClientRect();
+    return { filaAbajo: ultima.bottom, pildoraArriba: pildora.top };
+  });
+  expect(r.filaAbajo, "la última fila termina antes de la píldora").toBeLessThanOrEqual(r.pildoraArriba);
+});
