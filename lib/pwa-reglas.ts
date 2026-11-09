@@ -4,9 +4,10 @@
 // (`beforeinstallprompt`). Safari en iPhone no: solo se instala desde su botón Compartir, y la app puede decir cómo, pero no hacerlo.
 // Mal hecho: un botón «Instalar» que en iPhone no hace nada.
 
-// El color de fondo de la app, para lo que vive fuera del CSS: la barra del navegador (theme-color) y la pantalla de arranque del manifest.
-// Es el mismo valor de --fondo en app/globals.css: lib/pwa-reglas.test.ts falla si se separan.
-export const COLOR_DE_FONDO = "#eef3f8";
+// El color de la app para lo que vive fuera del CSS: la barra del teléfono (theme-color) y la pantalla de arranque del manifest. Es el verde
+// bosque (--acento en app/globals.css, ADR-0014): el mismo del ícono y de la cabecera, así que al abrir la app instalada no hay un destello
+// de otro color. lib/pwa-reglas.test.ts falla si se separa del token.
+export const COLOR_DEL_TEMA = "#103d29";
 
 export type Sistema = "ios" | "android" | "otro";
 

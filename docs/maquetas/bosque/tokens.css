@@ -1,0 +1,39 @@
+/* Fructus · identidad «Bosque» (propuesta, 2026-11-09). Reemplazaría a Aurora (ADR-0007) si se aprueba.
+   La paleta es la del prompt de rediseño, con tres ajustes medidos para el sol (CLAUDE.md: 7:1 en cifras clave, 4.5:1 en lo demás):
+     · positivo #348B50 daba 3.9:1 sobre marfil → texto-positivo #185A31 (7.6:1). #348B50 queda solo para barras y rellenos.
+     · texto secundario #667269 daba 4.25:1 sobre marfil cálido → #56625A (5.9:1 y 5.4:1).
+     · deuda #A52B35 daba 6.4:1 sobre marfil → #8E1F2A (8.1:1 marfil, 8.8:1 blanco).
+     · lima #D5F45A sobre marfil da 1.1:1: NUNCA es texto. Es relleno, con texto bosque encima (9.8:1), o acento sobre bosque (9.8:1). */
+:root {
+  --bosque: #103D29;
+  --profundo: #082C1E;
+  --bosque-2: #246B45;
+  --marfil: #F7F5EE;
+  --marfil-calido: #EEECE2;
+  --tarjeta: #FFFEFA;
+  --borde: #E4E1D4;
+  --lima: #D5F45A;
+  --lima-suave: #EEF8C8;
+  --positivo: #185A31;
+  --positivo-relleno: #348B50;
+  --positivo-fondo: #E6F0DC;
+  --deuda: #8E1F2A;
+  --deuda-relleno: #B8434C;
+  --deuda-fondo: #F8E3E3;
+  --aviso: #8A4A0C;
+  --aviso-fondo: #FBEBD5;
+  --texto: #17251D;
+  --texto-2: #56625A;
+  --sobre-bosque: #F7F5EE;
+  --sobre-bosque-2: #C9D3CB;
+  --sombra: 16 40 26;
+
+  --r-control: 16px;
+  --r-tarjeta: 22px;
+  --r-grande: 28px;
+  --ease-salida: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-resorte: cubic-bezier(0.22, 1.12, 0.36, 1);
+  /* Lo mismo que hoy en «Aurora» para el teléfono: el acento de los gráficos. */
+  --acento: var(--bosque);
+  --texto-suave: var(--texto-2);
+}

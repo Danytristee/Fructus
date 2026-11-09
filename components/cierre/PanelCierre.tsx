@@ -49,17 +49,24 @@ export function PanelCierre({ c }: { c: Cierre }) {
               className="animate-dibujar-anillo stroke-exito"
             />
           </svg>
-          <span className="cifra text-xl">{Math.round(pctContado)}%</span>
+          <span className="grid justify-items-center leading-tight">
+            <span className="cifra text-xl">{Math.round(pctContado)}%</span>
+            <span className="text-center text-[13px] leading-none font-bold text-texto-suave">
+              al
+              <br />
+              contado
+            </span>
+          </span>
         </figure>
-        <div className="grid gap-1.5">
-          <span className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2 font-bold">
+        <div className="grid min-w-0 gap-1.5">
+          <span className="grid">
+            <span className="flex items-center gap-2 font-bold whitespace-nowrap">
               <span aria-hidden className="size-3 rounded-full bg-exito" /> Al contado
             </span>
             <Monto valor={c.contado} />
           </span>
-          <span className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2 font-bold">
+          <span className="grid">
+            <span className="flex items-center gap-2 font-bold whitespace-nowrap">
               <span aria-hidden className="size-3 rounded-full bg-deuda/80" /> Al crédito
             </span>
             <Monto valor={c.credito} tono="deuda" />
@@ -74,7 +81,7 @@ export function PanelCierre({ c }: { c: Cierre }) {
         <ul className="grid gap-3">
           {c.porMedio.map((m, i) => (
             <li key={m.medio} className="grid gap-1">
-              <span className="flex justify-between font-bold">
+              <span className="flex flex-wrap justify-between gap-x-2 font-bold">
                 {medios[m.medio]}
                 <span className="cifra">{formatearSoles(m.entra - m.sale)}</span>
               </span>

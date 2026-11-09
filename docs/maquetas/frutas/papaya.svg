@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<!-- Fructus · papaya (la criolla de la selva): cortada a lo largo, para que se vea la pulpa naranja y la cavidad con semillas negras. -->
+<defs>
+<linearGradient id="piel" x1="20" y1="6" x2="44" y2="58" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8CC04A"/><stop offset=".5" stop-color="#6FA63A"/><stop offset="1" stop-color="#4A7F2A"/></linearGradient>
+<radialGradient id="pulpa" cx="30" cy="34" r="26" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFB46A"/><stop offset=".55" stop-color="#F68D3E"/><stop offset="1" stop-color="#E2652C"/></radialGradient>
+<radialGradient id="cavidad" cx="32" cy="34" r="12" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E9743A"/><stop offset="1" stop-color="#F2894A"/></radialGradient>
+<radialGradient id="semilla" cx=".38" cy=".32" r=".7"><stop offset="0" stop-color="#5A524C"/><stop offset=".45" stop-color="#231E1B"/><stop offset="1" stop-color="#0E0B0A"/></radialGradient>
+<path id="forma" d="M32 6C39 6 44 12 45.5 22 47.5 34 47 52 32 58 17 52 16.5 34 18.5 22 20 12 25 6 32 6Z"/>
+<clipPath id="cav"><ellipse cx="32" cy="37" rx="7.2" ry="13"/></clipPath>
+</defs>
+<g transform="rotate(-16 32 32)">
+<use href="#forma" fill="url(#piel)"/>
+<use href="#forma" transform="translate(32 33) scale(.86) translate(-32 -33)" fill="#FBD08A"/>
+<use href="#forma" transform="translate(32 33.5) scale(.82) translate(-32 -33.5)" fill="url(#pulpa)"/>
+<ellipse cx="32" cy="37" rx="7.2" ry="13" fill="url(#cavidad)"/>
+<g clip-path="url(#cav)" fill="url(#semilla)">
+<circle cx="29.5" cy="27" r="1.9"/><circle cx="34" cy="26.5" r="1.8"/><circle cx="27.5" cy="31" r="2"/><circle cx="32" cy="30.6" r="2"/><circle cx="36.4" cy="31" r="1.9"/>
+<circle cx="29.4" cy="35.2" r="2"/><circle cx="34" cy="35" r="2.1"/><circle cx="26.8" cy="39" r="1.8"/><circle cx="31.5" cy="39.4" r="2.1"/><circle cx="36.6" cy="39" r="1.9"/>
+<circle cx="29" cy="43.4" r="2"/><circle cx="34" cy="43.4" r="2"/><circle cx="31.5" cy="47.4" r="1.9"/><circle cx="36" cy="47" r="1.6"/><circle cx="27.6" cy="47" r="1.6"/>
+</g>
+<g clip-path="url(#cav)" fill="#FFFFFF" opacity=".55"><circle cx="28.9" cy="26.4" r=".5"/><circle cx="31.4" cy="30" r=".5"/><circle cx="33.4" cy="34.4" r=".5"/><circle cx="30.9" cy="38.8" r=".5"/><circle cx="33.4" cy="42.8" r=".5"/><circle cx="26.9" cy="30.4" r=".45"/><circle cx="35.8" cy="30.4" r=".45"/></g>
+<use href="#forma" fill="none" stroke="#2E5A1C" stroke-opacity=".22"/>
+<path d="M32 6.4C32 4.6 32.6 3.2 33.6 2.2" fill="none" stroke="#5C7A2A" stroke-width="2.4" stroke-linecap="round"/>
+</g>
+</svg>

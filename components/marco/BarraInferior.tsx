@@ -35,7 +35,7 @@ export function BarraInferior() {
               transform: `translateX(calc(${actual} * 100% + ${actual >= 2 ? 1 : 0} * var(--hueco-voz)))`,
               width: "calc((100% - var(--hueco-voz)) / 4)",
             }}
-            className="absolute inset-y-0 left-0 rounded-3xl bg-acento/13 transition-transform duration-[380ms] ease-resorte"
+            className="absolute inset-y-0 left-0 rounded-3xl bg-acento transition-transform duration-[380ms] ease-resorte"
           />
         )}
         {destinos.map(({ href, nombre, Icono }, i) => (
@@ -46,7 +46,7 @@ export function BarraInferior() {
             className={cn(
               "relative grid min-h-[60px] place-content-center justify-items-center gap-0.5 text-[13px] font-extrabold transition-[color,transform] duration-150 active:scale-95",
               i === 2 && "col-start-4", // Stock salta el hueco del centro; Ventas lo sigue
-              i === actual ? "text-acento-texto" : "text-texto-suave",
+              i === actual ? "text-sobre-acento" : "text-texto-suave",
             )}
           >
             <Icono aria-hidden className={cn("size-[26px] transition-transform duration-300 ease-salida", i === actual && "scale-110")} />

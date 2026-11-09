@@ -11,12 +11,17 @@ export function PantallaEsqueleto() {
   return (
     <div role="status" aria-busy="true">
       <span className="sr-only">Cargando</span>
-      <header aria-hidden className="mb-4 flex items-center justify-between gap-3">
-        <div className="grid gap-2">
-          <Esqueleto className="h-9 w-40 rounded-xl" />
-          <Esqueleto className="h-5 w-60 max-w-full rounded-xl" />
+      {/* La misma cabecera verde que Encabezado, con su forma: al tocar una pantalla no se ve un destello de otro color. */}
+      <header
+        aria-hidden
+        className="relative -mx-4 -mt-[max(16px,env(safe-area-inset-top))] mb-4 flex items-start justify-between gap-3 px-4 pt-[max(14px,env(safe-area-inset-top))]"
+      >
+        <div className="absolute inset-x-0 top-0 -bottom-[60px] -z-10 rounded-b-[30px] bg-acento" />
+        <div className="grid gap-2 border-l-4 border-lima pl-3.5">
+          <div className="h-9 w-40 animate-pulse rounded-xl bg-sobre-acento/15" />
+          <div className="h-5 w-56 max-w-full animate-pulse rounded-xl bg-sobre-acento/10" />
         </div>
-        <Esqueleto className="size-[52px] shrink-0 rounded-full" />
+        <div className="size-[52px] shrink-0 rounded-full bg-sobre-acento/10" />
       </header>
       <div className="grid gap-3">
         <Esqueleto className="h-[150px] rounded-protagonista" />

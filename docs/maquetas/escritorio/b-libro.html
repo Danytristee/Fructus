@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fructus · Escritorio B · Libro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
+<style>
+  /* B · Libro: pensado para quien revisa (administrador, contador). Barra arriba, cifras en una franja y todo lo demás en tablas que se
+     ordenan, se filtran y se exportan. La ficha de un cliente se abre en un panel a la derecha sin perder la tabla. */
+  .barra {
+    position: sticky; top: 12px; z-index: 20; display: flex; align-items: center; gap: 8px; margin: 12px 24px 0; padding: 8px 8px 8px 18px;
+    border-radius: 999px;
+    -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5);
+  }
+  .marca { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 800; margin-right: 18px; }
+  .marca img { width: 26px; height: 26px; }
+  .pestanas { display: flex; gap: 2px; }
+  .pestanas a { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 16px; border-radius: 999px; font-weight: 800; color: var(--texto-suave); }
+  .pestanas a:hover { color: var(--texto); background: color-mix(in srgb, var(--acento) 6%, transparent); }
+  .pestanas a[aria-current="page"] { background: color-mix(in srgb, var(--acento) 13%, transparent); color: var(--acento-texto); }
+  .derecha { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .dictar { padding: 0 18px 0 6px; gap: 10px; }
+  .dictar .orbe { width: 38px; height: 38px; box-shadow: none; }
+  .dictar .orbe svg { width: 18px; height: 18px; }
+
+  .contenido { max-width: 1280px; margin: 0 auto; padding: 26px 24px 70px; }
+  .cabecera { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+  .cabecera h1 { font-size: 34px; line-height: 1.1; font-weight: 800; letter-spacing: -.02em; }
+  .acciones { display: flex; gap: 10px; align-items: center; }
+  .franja { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .kpi { display: grid; gap: 2px; padding: 18px 20px; border-radius: var(--r-tarjeta); }
+  .kpi .cifra { font-size: 30px; line-height: 1.15; }
+  .kpi small { font-size: 15px; color: var(--texto-suave); }
+  .dos { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin-top: 14px; }
+  .bloque { border-radius: var(--r-tarjeta); padding: 18px 20px; }
+  .bloque.tabla-bloque { padding: 0; overflow: hidden; margin-top: 14px; }
+  .bloque-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; flex-wrap: wrap; }
+  .bloque-cab h2 { font-size: 20px; font-weight: 800; }
+  .tabla td:first-child, .tabla th:first-child { padding-left: 20px; }
+  .tabla td:last-child, .tabla th:last-child { padding-right: 20px; }
+  .barrita { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--texto) 8%, transparent); overflow: hidden; width: 120px; }
+  .barrita span { display: block; height: 100%; border-radius: 99px; }
+  .pie-tabla { display: flex; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--linea); font-weight: 800; }
+
+  /* Panel de la ficha: entra desde la derecha. En escritorio no tapa toda la pantalla. */
+  .panel {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 30; width: 520px; padding: 24px; overflow: auto; background: var(--vidrio);
+    box-shadow: -30px 0 80px rgb(var(--sombra-color) / .22); border-radius: 28px 0 0 28px; transform: translateX(105%);
+    transition: transform .45s var(--ease-resorte);
+  }
+  .panel.abierto { transform: none; }
+  .panel .cerrar { position: absolute; top: 16px; right: 16px; width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--superficie); box-shadow: inset 0 0 0 1px var(--linea); font-size: 22px; font-weight: 800; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: 999px; background: var(--superficie); box-shadow: inset 0 0 0 1px var(--linea); font-weight: 700; font-size: 15px; }
+  .chip svg { width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+<div class="fondo"><span></span><span></span><span></span><span></span></div>
+<header class="barra vidrio">
+  <div class="marca"><img src="../../../public/frutas/mango.svg" alt="">Fructus</div>
+  <nav class="pestanas" aria-label="Principal" id="nav"></nav>
+  <div class="derecha">
+    <button type="button" class="boton dictar" data-orbe><span class="orbe" data-orbe-visual id="orbe"></span><span id="estado-voz">Dictar</span><kbd>Espacio</kbd></button>
+    <span class="avatar" title="Dueño de prueba · Dueño">DP</span>
+  </div>
+</header>
+<main class="contenido" id="pantalla"></main>
+<aside class="panel" id="panel" aria-label="Ficha del cliente"></aside>
+<div class="velo" id="velo"><div class="dialogo" role="dialog" aria-modal="true" aria-label="Confirmar venta" id="dialogo"></div></div>
+<p class="guia-maqueta">Maqueta B · toca «Dictar» o deja apretada Espacio · en Clientes toca una fila · <a href="index.html">ver las 3</a></p>
+
+<script src="datos.js"></script>
+<script>
+  document.getElementById("orbe").innerHTML = icono("micro");
+  const destinos = [["hoy", "Hoy", "casa"], ["clientes", "Clientes", "clientes"], ["stock", "Stock", "stock"], ["ventas", "Ventas", "ventas"], ["cierre", "Cierre", "cierre"], ["ajustes", "Ajustes", "ajustes"]];
+  let pantalla = location.hash.slice(1) || "hoy";
+  let filtro = "deben";
+  let orden = "saldo";
+  let filtroHoy = "todo";
+
+  const pintarNav = () => (document.getElementById("nav").innerHTML = destinos.map(([k, t, i]) =>
+    `<a href="#${k}" ${k === pantalla ? 'aria-current="page"' : ""}>${icono(i)}${t}</a>`).join(""));
+
+  function hoy() {
+    const tipos = { todo: "Todo", venta: "Ventas", abono: "Abonos", otro: "Mermas y gastos" };
+    const filas = ULTIMAS.filter((o) => filtroHoy === "todo" || (filtroHoy === "otro" ? ["merma", "gasto"].includes(o.tipo) : o.tipo === filtroHoy));
+    return `
+    <header class="cabecera subir"><div><h1>Hoy</h1><p class="suave">${HOY.fecha}</p></div>
+      <div class="acciones"><button class="boton claro" type="button">${icono("mas")}Registrar a mano</button></div></header>
+    <div class="franja">
+      <div class="kpi vidrio subir"><span class="etiqueta">Vendiste</span><span class="cifra">${S(HOY.vendido)}</span><small>${HOY.ventas} ventas · ${HOY.cajas} cajas</small></div>
+      <div class="kpi vidrio subir" style="animation-delay:60ms"><span class="etiqueta">Cobraste</span><span class="cifra exito">${S(HOY.cobrado)}</span><small>contado y ${S(HOY.abonos)} de abonos</small></div>
+      <a href="#clientes" class="kpi vidrio subir" style="animation-delay:120ms"><span class="etiqueta">Te deben</span><span class="cifra deuda">${S(TE_DEBEN)}</span><small>${DEUDORES.length} clientes · ${S(HOY.credito)} de hoy</small></a>
+      <a href="#cierre" class="kpi vidrio subir" style="animation-delay:180ms"><span class="etiqueta">En tu caja</span><span class="cifra">${S(HOY.caja)}</span><small>menos ${S(HOY.gastos)} de gastos</small></a>
+    </div>
+    <div class="dos">
+      <section class="bloque vidrio subir" style="animation-delay:120ms"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><h2 style="font-size:20px">Por hora</h2><span class="suave">Lo más fuerte: 7 a. m.</span></div>${graficoHoras(160)}</section>
+      <section class="bloque vidrio subir" style="animation-delay:180ms"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><h2 style="font-size:20px">Últimos 7 días</h2><span class="insignia exito">+9 %</span></div>${graficoSemana(160)}</section>
+    </div>
+    <section class="bloque vidrio tabla-bloque subir" style="animation-delay:240ms">
+      <div class="bloque-cab"><h2>Movimientos de hoy</h2>
+        <div class="acciones"><div class="filtros">${Object.entries(tipos).map(([k, t]) => `<button class="filtro" data-tipo="${k}" aria-pressed="${k === filtroHoy}">${t}</button>`).join("")}</div>
+        <button class="boton claro" type="button">${icono("bajar")}Excel</button></div></div>
+      <table class="tabla"><thead><tr><th>Hora</th><th>Tipo</th><th>Cliente o motivo</th><th>Detalle</th><th>Estado</th><th class="num">Monto</th></tr></thead><tbody>
+      ${filas.map((o) => `<tr class="tocable"><td class="cifra">${o.hora}</td><td style="text-transform:capitalize;font-weight:700">${o.tipo}</td>
+        <td><strong>${o.quien}</strong></td><td class="suave">${o.que}</td><td>${insigniaOp(o)}</td>
+        <td class="num cifra">${["gasto", "merma"].includes(o.tipo) ? "−" : ""}${S(o.monto)}</td></tr>`).join("")}
+      </tbody></table>
+      <div class="pie-tabla"><span class="suave">Se muestran ${filas.length} de ${HOY.ventas + 3} movimientos</span><a href="#ventas" style="color:var(--acento-texto)">Ver todas las ventas</a></div>
+    </section>`;
+  }
+
+  function clientes() {
+    let lista = CLIENTES.filter((c) => filtro === "todos" || (filtro === "deben" ? c.saldo > 0 : c.saldo === 0));
+    lista = [...lista].sort((a, b) => orden === "saldo" ? b.saldo - a.saldo : orden === "dias" ? b.dias - a.dias : a.nombre.localeCompare(b.nombre));
+    const flecha = (k) => (orden === k ? " ↓" : "");
+    return `
+    <header class="cabecera subir"><div><h1>Clientes</h1><p class="suave">Te deben <strong class="cifra deuda">${S(TE_DEBEN)}</strong> entre ${DEUDORES.length} clientes · <strong class="cifra">${S(DEUDORES.filter((c) => c.dias > 30).reduce((s, c) => s + c.saldo, 0))}</strong> llevan más de 30 días</p></div>
+      <div class="acciones"><button class="boton claro" type="button">${icono("bajar")}Excel</button><button class="boton claro" type="button">${icono("mas")}Nuevo cliente</button><button class="boton" type="button">${icono("mano")}Registrar abono</button></div></header>
+    <section class="bloque vidrio tabla-bloque subir">
+      <div class="bloque-cab"><label class="buscador" style="flex:1;max-width:420px">${icono("buscar")}<input placeholder="Busca por nombre, apodo, DNI o RUC" aria-label="Buscar cliente"></label>
+        <div class="filtros">${[["deben", "Te deben", DEUDORES.length], ["dia", "Al día", CLIENTES.length - DEUDORES.length], ["todos", "Todos", CLIENTES.length]].map(([k, t, n]) =>
+          `<button class="filtro" data-filtro="${k}" aria-pressed="${filtro === k}">${t}<b>${n}</b></button>`).join("")}</div></div>
+      <table class="tabla"><thead><tr><th><button data-orden="nombre">Cliente${flecha("nombre")}</button></th><th>Documento</th><th>Teléfono</th><th>Lo último</th>
+        <th><button data-orden="dias">Desde hace${flecha("dias")}</button></th><th class="num"><button data-orden="saldo">Te debe${flecha("saldo")}</button></th></tr></thead><tbody>
+      ${lista.map((c, i) => `<tr class="tocable" data-cli="${CLIENTES.indexOf(c)}"><td><div style="display:flex;align-items:center;gap:10px"><span class="avatar ${"abcd"[i % 4]}" style="width:36px;height:36px;font-size:13px">${iniciales(c.nombre)}</span>
+          <div style="display:grid"><strong>${c.nombre}</strong>${c.apodo ? `<span class="suave" style="font-size:14px">«${c.apodo}»</span>` : ""}</div></div></td>
+        <td class="suave cifra" style="font-weight:600">${c.doc}</td><td class="suave cifra" style="font-weight:600">${c.tel}</td><td class="suave" style="font-size:15px">${c.ultimo}</td>
+        <td>${c.saldo ? `<div style="display:flex;align-items:center;gap:10px"><div class="barrita"><span style="width:${Math.min(c.dias / 60, 1) * 100}%;background:${c.dias > 30 ? "var(--deuda)" : c.dias > 15 ? "var(--sol)" : "var(--acento)"}"></span></div><span class="cifra" style="font-size:15px">${c.dias} días</span></div>` : ""}</td>
+        <td class="num">${c.saldo ? `<span class="cifra deuda">${S(c.saldo)}</span>` : '<span class="insignia exito">Al día</span>'}</td></tr>`).join("")}
+      </tbody></table>
+      <div class="pie-tabla"><span>${lista.length} clientes</span><span class="cifra deuda">${S(lista.reduce((s, c) => s + c.saldo, 0))}</span></div>
+    </section>`;
+  }
+
+  function ficha(c) {
+    const h = historialDe(c);
+    return `<button class="cerrar" type="button" aria-label="Cerrar" data-cerrar>×</button>
+      <div style="display:flex;gap:14px;align-items:center;margin:4px 56px 18px 0"><span class="avatar" style="width:60px;height:60px;font-size:20px">${iniciales(c.nombre)}</span>
+        <div><h2 style="font-size:24px;font-weight:800;line-height:1.15">${c.nombre}</h2><p class="suave">${c.apodo ? `«${c.apodo}»` : ""}</p></div></div>
+      <div class="protagonista vidrio">${c.saldo ? `<span class="etiqueta">Te debe</span><div class="cifra total deuda">${S(c.saldo)}</div><p class="suave">Lo más antiguo sin pagar es de hace ${c.dias} días</p>` : `<span class="insignia exito" style="font-size:18px;padding:8px 16px">${icono("check")}Al día</span>`}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${c.doc ? `<span class="chip">${c.doc}</span>` : ""}${c.tel ? `<span class="chip">${icono("telefono")}${c.tel}</span>` : ""}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px"><button class="boton claro" type="button">Enviar por WhatsApp</button>${c.saldo ? `<button class="boton" type="button">Registrar abono</button>` : ""}</div></div>
+      <h3 style="font-size:18px;margin:20px 0 6px">Historial</h3>
+      <table class="tabla"><tbody>${h.map((r) => `<tr><td><strong>${r.dia}</strong><br><span class="suave" style="font-size:14px">${r.que}</span></td>
+        <td class="num cifra ${r.monto < 0 ? "exito" : ""}">${r.monto < 0 ? "−" + S(-r.monto) : S(r.monto)}</td></tr>`).join("")}</tbody></table>`;
+  }
+
+  const panel = document.getElementById("panel");
+  function pintar() {
+    pintarNav();
+    const p = document.getElementById("pantalla");
+    p.innerHTML = pantalla === "hoy" ? hoy() : pantalla === "clientes" ? clientes()
+      : `<div class="no-maqueta vidrio bloque subir"><h1 style="font-size:28px">${destinos.find((d) => d[0] === pantalla)[1]}</h1><p class="suave">Esta maqueta solo dibuja «Hoy» y «Clientes».<br>El resto sigue el mismo marco: franja de cifras y una tabla.</p><a class="boton" href="#hoy">Volver a Hoy</a></div>`;
+    p.querySelectorAll("[data-filtro]").forEach((b) => (b.onclick = () => { filtro = b.dataset.filtro; pintar(); }));
+    p.querySelectorAll("[data-tipo]").forEach((b) => (b.onclick = () => { filtroHoy = b.dataset.tipo; pintar(); }));
+    p.querySelectorAll("[data-orden]").forEach((b) => (b.onclick = () => { orden = b.dataset.orden; pintar(); }));
+    p.querySelectorAll("[data-cli]").forEach((tr) => (tr.onclick = () => {
+      p.querySelectorAll("[data-cli]").forEach((x) => x.removeAttribute("aria-selected"));
+      tr.setAttribute("aria-selected", "true");
+      panel.innerHTML = ficha(CLIENTES[+tr.dataset.cli]);
+      panel.classList.add("abierto");
+      panel.querySelector("[data-cerrar]").onclick = () => panel.classList.remove("abierto");
+    }));
+  }
+  addEventListener("hashchange", () => { pantalla = location.hash.slice(1) || "hoy"; panel.classList.remove("abierto"); pintar(); });
+  pintar();
+  if (location.search.includes("ficha")) { pantalla = "clientes"; pintar(); document.querySelector("[data-cli]").click(); }
+
+  const velo = document.getElementById("velo"), dialogo = document.getElementById("dialogo");
+  const cerrar = () => velo.classList.remove("abierto");
+  velo.addEventListener("click", (e) => { if (e.target === velo) cerrar(); });
+  addEventListener("keydown", (e) => { if (e.key === "Escape") { cerrar(); panel.classList.remove("abierto"); } });
+  conectarVoz({
+    orbes: () => document.querySelectorAll("#orbe"),
+    alEstado: (e) => (document.getElementById("estado-voz").textContent = e === "escuchando" ? "Te escucho…" : e === "entendiendo" ? "Entendiendo…" : "Dictar"),
+    alTarjeta: () => {
+      dialogo.innerHTML = tarjetaEntendida();
+      velo.classList.add("abierto");
+      conectarTarjeta(dialogo, (debe) => { dialogo.innerHTML = sello(debe); setTimeout(cerrar, 1400); });
+    },
+  });
+</script>
+</body>
+</html>

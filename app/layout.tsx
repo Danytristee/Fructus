@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import { PantallaFija } from "@/components/marco/PantallaFija";
 import { RegistroPwa } from "@/components/marco/RegistroPwa";
-import { COLOR_DE_FONDO } from "@/lib/pwa-reglas";
+import { COLOR_DEL_TEMA } from "@/lib/pwa-reglas";
 import "./globals.css";
 
 // Una sola familia (ADR-0007). Manrope trae cifras tabulares para los montos.
@@ -29,7 +29,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: COLOR_DE_FONDO,
+  themeColor: COLOR_DEL_TEMA,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

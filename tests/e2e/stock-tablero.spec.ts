@@ -8,19 +8,27 @@ import { filtrosSinCortes, medir } from "./medir";
 
 test.setTimeout(60_000);
 
-test("el anillo dice «X de Y frutas» y debajo «sin avisos», sin un porcentaje suelto", async ({ page }) => {
+test("el anillo dice cuántas frutas piden algo hoy («X de Y frutas» / «urgente»), sin un porcentaje suelto, y cuenta lo mismo que las etiquetas «Hoy» de la lista", async ({ page }) => {
   await entrarComo(page, "duenio");
   await page.goto("/stock");
   await expect(page.getByRole("heading", { name: "Tu stock" })).toBeVisible({ timeout: 30_000 });
 
-  const anillo = page.getByRole("figure", { name: /frutas sin avisos/ });
+  // El veredicto al derecho. Antes contaba las frutas SIN aviso y decía «0 de 7 frutas · sin avisos» justo cuando las siete tenían uno: en
+  // la prueba a ciegas se leyó como «no hay avisos» al lado de «Se acabó Mango Kent» (/formidable 2026-11-09).
+  const anillo = page.getByRole("figure", { name: /frutas urgentes hoy|es urgente hoy/ });
   await expect(anillo).toBeVisible();
-  await expect(anillo).toHaveAttribute("aria-label", /^\d+ de \d+ frutas sin avisos$/);
-  // Dice QUÉ se cuenta (frutas, no avisos ni cajas) y qué se dice de ellas. «Sin avisos» es exacto: «bien» sonaba a otra cosa y
-  // chocaba con «0 por malograrse» (una fruta con aviso de reponer o de sobra tampoco está «bien»).
-  await expect(anillo).toContainText(/^\d+ de \d+\s*frutas$/);
+  await expect(anillo).toHaveAttribute("aria-label", /^(\d+ de \d+ frutas urgentes hoy|Ninguna de tus \d+ frutas es urgente hoy)$/);
+  await expect(anillo).toContainText(/^(\d+ de )?\d+\s*frutas$/);
   await expect(anillo).not.toContainText("%");
-  await expect(page.getByText("sin avisos", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^(urgentes?|nada urgente)$/)).toBeVisible();
+  // El anillo cuenta lo mismo que la lista: las frutas con la etiqueta roja «Hoy».
+  const urgentes = Number((await anillo.getAttribute("aria-label"))!.match(/^(\d+) de/)?.[1] ?? 0);
+  await page.getByRole("button", { name: /^Todas/ }).click();
+  const conHoy = await page.locator("li").filter({ has: page.getByText("Hoy", { exact: true }) }).evaluateAll((filas) =>
+    new Set(filas.map((f) => f.querySelector("img")?.getAttribute("src") ?? f.textContent)).size,
+  );
+  expect(urgentes).toBe(conHoy);
+  await expect(page.getByText("sin avisos", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/están bien/)).toHaveCount(0);
 });
 

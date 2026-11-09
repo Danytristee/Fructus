@@ -22,6 +22,8 @@ const eslintConfig = defineConfig([
     ".claude/**",
     // Generado por `supabase gen types`; no se edita a mano.
     "lib/supabase/tipos-db.ts",
+    // Maquetas tocables (HTML, CSS y JS sueltos para mirar un diseño): no son código de la app.
+    "docs/maquetas/**",
   ]),
 ]);
 

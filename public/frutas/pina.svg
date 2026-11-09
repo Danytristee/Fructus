@@ -1,8 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-<!-- Fructus, ilustración propia (ADR-0007). -->
-<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD25A"/><stop offset="1" stop-color="#E08E00"/></linearGradient><linearGradient id="h" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6EDC86"/><stop offset="1" stop-color="#1E8F45"/></linearGradient><clipPath id="c"><ellipse cx="24" cy="31" rx="11" ry="13"/></clipPath></defs>
-<path d="M24 19c-2.2-5.4-6.2-8.4-10.6-9.4 3.2 3 4.4 6 5.4 9.4Zm0 0c2.2-5.4 6.2-8.4 10.6-9.4-3.2 3-4.4 6-5.4 9.4Zm0 0c-1.4-6.2-.4-10.6.2-15 1.6 4.4 2 8.8-.2 15Z" fill="url(#h)"/>
-<ellipse cx="24" cy="31" rx="11" ry="13" fill="url(#g)"/>
-<g clip-path="url(#c)" stroke="#A86400" stroke-width="1.3" opacity=".5"><line x1="-17" y1="18" x2="9" y2="44"/><line x1="65" y1="18" x2="39" y2="44"/><line x1="-11" y1="18" x2="15" y2="44"/><line x1="59" y1="18" x2="33" y2="44"/><line x1="-5" y1="18" x2="21" y2="44"/><line x1="53" y1="18" x2="27" y2="44"/><line x1="1" y1="18" x2="27" y2="44"/><line x1="47" y1="18" x2="21" y2="44"/><line x1="7" y1="18" x2="33" y2="44"/><line x1="41" y1="18" x2="15" y2="44"/><line x1="13" y1="18" x2="39" y2="44"/><line x1="35" y1="18" x2="9" y2="44"/><line x1="19" y1="18" x2="45" y2="44"/><line x1="29" y1="18" x2="3" y2="44"/><line x1="25" y1="18" x2="51" y2="44"/><line x1="23" y1="18" x2="-3" y2="44"/><line x1="31" y1="18" x2="57" y2="44"/><line x1="17" y1="18" x2="-9" y2="44"/><line x1="37" y1="18" x2="63" y2="44"/><line x1="11" y1="18" x2="-15" y2="44"/><line x1="43" y1="18" x2="69" y2="44"/><line x1="5" y1="18" x2="-21" y2="44"/></g>
-<ellipse cx="19.5" cy="26" rx="2.6" ry="5" fill="#fff" opacity=".3"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<!-- Fructus · piña golden (MD-2): cuerpo de hombros cuadrados, dorado con su retícula de rombos, y la corona en abanico. -->
+<defs>
+<linearGradient id="cuerpo" x1="18" y1="0" x2="46" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#F8CC62"/><stop offset=".45" stop-color="#ECA83C"/><stop offset="1" stop-color="#B9761E"/></linearGradient>
+<linearGradient id="hoja" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6FAE5E"/><stop offset="1" stop-color="#2F6338"/></linearGradient>
+<linearGradient id="hoja-atras" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4E8A4A"/><stop offset="1" stop-color="#244E2C"/></linearGradient>
+<radialGradient id="brillo" cx="25" cy="36" r="10" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".45"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+<path id="hoja-forma" d="M0 0C-3.4-7-3-15.4 0-22.5 3-15.4 3.4-7 0 0Z"/>
+<path id="forma" d="M21 31C21 27.4 25 25.5 32 25.5S43 27.4 43 31L44.6 49C45.2 55.6 40.4 59.4 32 59.4S18.8 55.6 19.4 49Z"/>
+<clipPath id="c"><use href="#forma"/></clipPath>
+</defs>
+<g transform="translate(32 28)">
+<use href="#hoja-forma" fill="url(#hoja-atras)" transform="rotate(-52) scale(.8)"/>
+<use href="#hoja-forma" fill="url(#hoja-atras)" transform="rotate(52) scale(.8)"/>
+<use href="#hoja-forma" fill="url(#hoja-atras)" transform="rotate(-30) scale(.95)"/>
+<use href="#hoja-forma" fill="url(#hoja-atras)" transform="rotate(30) scale(.95)"/>
+<use href="#hoja-forma" fill="url(#hoja)" transform="rotate(-13) scale(1.05)"/>
+<use href="#hoja-forma" fill="url(#hoja)" transform="rotate(13) scale(1.05)"/>
+<use href="#hoja-forma" fill="url(#hoja)" transform="scale(1.12)"/>
+</g>
+<use href="#forma" fill="url(#cuerpo)"/>
+<g clip-path="url(#c)">
+<g stroke="#9A5E14" stroke-opacity=".55" stroke-width="1.1"><path d="M4 22 44 62M10 22 50 62M16 22 56 62M22 22 62 62M28 22 64 58M34 22 64 52M40 22 64 46M-2 22 38 62M-8 22 32 62M-14 22 26 62"/><path d="M60 22 20 62M54 22 14 62M48 22 8 62M42 22 2 62M36 22 0 58M30 22 0 52M24 22 0 46M66 22 26 62M72 22 32 62M78 22 38 62"/></g>
+<g fill="#FFE59A" opacity=".85"><circle cx="32" cy="30" r=".9"/><circle cx="26" cy="36" r=".9"/><circle cx="38" cy="36" r=".9"/><circle cx="32" cy="42" r=".9"/><circle cx="20" cy="42" r=".8"/><circle cx="44" cy="42" r=".8"/><circle cx="26" cy="48" r=".9"/><circle cx="38" cy="48" r=".9"/><circle cx="32" cy="54" r=".9"/><circle cx="20" cy="30" r=".7"/><circle cx="44" cy="30" r=".7"/></g>
+<rect width="64" height="64" fill="url(#brillo)"/>
+</g>
+<use href="#forma" fill="none" stroke="#7A4A10" stroke-opacity=".3"/>
 </svg>

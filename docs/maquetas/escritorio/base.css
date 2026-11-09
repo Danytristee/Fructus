@@ -1,0 +1,218 @@
+/* Fructus · maquetas de escritorio. Los tokens son los de Aurora (app/globals.css, ADR-0007): aquí no nace ningún color.
+   Solo cambia el ACOMODO para una pantalla ancha; la identidad es la misma del celular. */
+:root {
+  --fondo: #eef3f8;
+  --vidrio: #f3f7fb;
+  --superficie: #ffffff;
+  --texto: #0b1526;
+  --texto-suave: #3e4a5c;
+  --acento: #114b5f;
+  --sobre-acento: #ffffff;
+  --acento-texto: #114b5f;
+  --exito: #0d5a33;
+  --exito-fondo: #e3f6ea;
+  --deuda: #95111f;
+  --deuda-fondo: #fde8ec;
+  --borde: #8794a6;
+  --velo: rgb(8 12 24 / 0.45);
+  --sol: #b45309;
+  --luz-1: #9fe8d0;
+  --luz-2: #b9d8ff;
+  --luz-3: #ffd3b5;
+  --luz-4: #e2d4ff;
+  --orbe-1: #114b5f;
+  --orbe-2: #2e6fa8;
+  --orbe-3: #5b4fc4;
+  --orbe-4: #1f7a8c;
+  --sombra-color: 20 40 70;
+  --linea: color-mix(in srgb, var(--texto) 10%, transparent);
+  --r-control: 20px;
+  --r-tarjeta: 24px;
+  --r-protagonista: 28px;
+  --ease-salida: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-resorte: cubic-bezier(0.22, 1.12, 0.36, 1);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font: 500 17px/1.45 "Manrope", system-ui, sans-serif;
+  color: var(--texto);
+  background: var(--fondo);
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3, p { margin: 0; }
+
+/* Fondo de luces, quieto (ADR-0007). */
+.fondo { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--fondo); pointer-events: none; }
+.fondo span { position: absolute; width: 90vmax; height: 90vmax; border-radius: 50%; opacity: .9; }
+.fondo span:nth-child(1) { top: -40vmax; left: -35vmax; background: radial-gradient(closest-side, var(--luz-1), transparent); }
+.fondo span:nth-child(2) { top: -10vmax; right: -50vmax; background: radial-gradient(closest-side, var(--luz-2), transparent); }
+.fondo span:nth-child(3) { bottom: -45vmax; left: -30vmax; background: radial-gradient(closest-side, var(--luz-3), transparent); }
+.fondo span:nth-child(4) { bottom: -30vmax; right: -45vmax; background: radial-gradient(closest-side, var(--luz-4), transparent); }
+
+.vidrio {
+  background: color-mix(in srgb, var(--vidrio) 84%, transparent);
+  border: 1px solid color-mix(in srgb, var(--superficie) 70%, transparent);
+  box-shadow: 0 10px 34px rgb(var(--sombra-color) / 0.08);
+}
+.tarjeta { border-radius: var(--r-tarjeta); padding: 20px 22px; }
+.protagonista { border-radius: var(--r-protagonista); padding: 24px 26px; }
+.cifra { font-variant-numeric: tabular-nums lining-nums; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; }
+.suave { color: var(--texto-suave); }
+.etiqueta { font-weight: 700; color: var(--texto-suave); }
+.total { font-size: 46px; line-height: 1.1; }
+.grande { font-size: 30px; line-height: 1.15; }
+.exito { color: var(--exito); }
+.deuda { color: var(--deuda); }
+.sol { color: var(--sol); }
+
+/* Iconos en cajita, como en el celular. */
+.caja-icono { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 18px; flex-shrink: 0; }
+.caja-icono svg { width: 24px; height: 24px; }
+.caja-icono.exito { background: var(--exito-fondo); }
+.caja-icono.deuda { background: var(--deuda-fondo); }
+.caja-icono.acento { background: color-mix(in srgb, var(--acento) 12%, transparent); color: var(--acento-texto); }
+.caja-icono.sol { background: #fdf0e1; }
+svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+/* Botones: píldora, 48 px como mínimo también en escritorio (una sola pieza para los dos). */
+.boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; padding: 0 22px; border-radius: 999px; border: 0;
+  font-weight: 800; background: var(--acento); color: var(--sobre-acento);
+  transition: transform .15s var(--ease-salida), filter .15s;
+}
+.boton:hover { filter: brightness(1.12); }
+.boton:active { transform: scale(.97); }
+.boton.claro { background: var(--superficie); color: var(--texto); box-shadow: inset 0 0 0 1px var(--linea); }
+.boton.claro:hover { filter: none; background: color-mix(in srgb, var(--acento) 7%, var(--superficie)); }
+.boton.exito { background: var(--exito); }
+kbd {
+  font: 800 13px/1 "Manrope", system-ui; padding: 4px 7px; border-radius: 7px;
+  background: color-mix(in srgb, var(--superficie) 80%, transparent); color: var(--texto-suave);
+  box-shadow: inset 0 -1px 0 var(--linea), inset 0 0 0 1px var(--linea);
+}
+.boton kbd { background: rgb(255 255 255 / .16); color: var(--sobre-acento); box-shadow: none; }
+
+.insignia {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px;
+  font-size: 14px; font-weight: 800; white-space: nowrap;
+}
+.insignia.exito { background: var(--exito-fondo); color: var(--exito); }
+.insignia.deuda { background: var(--deuda-fondo); color: var(--deuda); }
+.insignia.acento { background: color-mix(in srgb, var(--acento) 12%, transparent); color: var(--acento-texto); }
+.insignia.sol { background: #fdf0e1; color: var(--sol); }
+.insignia.neutra { background: color-mix(in srgb, var(--texto) 7%, transparent); color: var(--texto-suave); }
+
+/* Filtros en píldora con su número. */
+.filtros { display: flex; gap: 8px; flex-wrap: wrap; }
+.filtro {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 0;
+  font-weight: 800; background: color-mix(in srgb, var(--superficie) 80%, transparent); box-shadow: inset 0 0 0 1px var(--linea);
+}
+.filtro b { font-size: 13px; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--texto) 8%, transparent); }
+.filtro[aria-pressed="true"] { background: var(--acento); color: var(--sobre-acento); box-shadow: none; }
+.filtro[aria-pressed="true"] b { background: rgb(255 255 255 / .18); }
+
+.buscador {
+  display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; border-radius: 999px;
+  background: var(--superficie); box-shadow: inset 0 0 0 1px var(--linea);
+}
+.buscador input { border: 0; outline: 0; background: transparent; font: inherit; width: 100%; color: var(--texto); }
+.buscador:focus-within { box-shadow: inset 0 0 0 2px var(--acento); }
+
+.avatar {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  font-weight: 800; font-size: 15px; background: color-mix(in srgb, var(--luz-1) 60%, white); color: var(--acento-texto);
+}
+.avatar.b { background: color-mix(in srgb, var(--luz-2) 60%, white); }
+.avatar.c { background: color-mix(in srgb, var(--luz-3) 70%, white); }
+.avatar.d { background: color-mix(in srgb, var(--luz-4) 70%, white); }
+
+/* Tablas para quien revisa: cifras alineadas a la derecha, filas de 56 px, cabecera fija. */
+.tabla { width: 100%; border-collapse: collapse; font-size: 16px; }
+.tabla th {
+  position: sticky; top: 0; z-index: 1; text-align: left; font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--texto-suave); padding: 12px 14px; background: color-mix(in srgb, var(--vidrio) 96%, transparent); border-bottom: 1px solid var(--linea);
+}
+.tabla td { padding: 0 14px; height: 56px; border-bottom: 1px solid var(--linea); }
+.tabla tr:last-child td { border-bottom: 0; }
+.tabla .num { text-align: right; }
+.tabla tbody tr { transition: background .12s; }
+.tabla tbody tr.tocable { cursor: pointer; }
+.tabla tbody tr.tocable:hover { background: color-mix(in srgb, var(--acento) 5%, transparent); }
+.tabla tbody tr[aria-selected="true"] { background: color-mix(in srgb, var(--acento) 10%, transparent); }
+.tabla th button { all: unset; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+
+.fruta { width: 36px; height: 36px; flex-shrink: 0; }
+
+/* Orbe de voz: el mismo del celular. Solo gira la capa del degradado (transform), nunca una sombra. */
+.orbe {
+  position: relative; isolation: isolate; display: grid; place-items: center; border-radius: 50%; border: 0;
+  color: #fff; box-shadow: 0 14px 40px rgb(17 75 95 / 0.40); overflow: hidden;
+}
+.orbe::before {
+  content: ""; position: absolute; inset: -20%; z-index: -1;
+  background: conic-gradient(from 25deg, var(--orbe-1), var(--orbe-2), var(--orbe-3), var(--orbe-4), var(--orbe-1));
+  animation: giro 9s linear infinite;
+}
+.orbe::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: radial-gradient(circle at 32% 24%, rgb(255 255 255 / .38), transparent 46%);
+}
+.orbe[data-estado="escuchando"]::before { animation-duration: 2.4s; }
+.orbe[data-estado="entendiendo"]::before { animation-duration: .9s; }
+@keyframes giro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .orbe::before { animation: none; } }
+
+/* Entrada: una sola coreografía al abrir una pantalla. */
+.subir { animation: subir .5s var(--ease-salida) both; }
+@keyframes subir { from { opacity: 0; transform: translateY(12px); } }
+
+/* Diálogo de confirmación: en escritorio la hoja se ve centrada (Hoja.tsx, md:). */
+.velo { position: fixed; inset: 0; z-index: 50; background: var(--velo); display: none; place-items: center; padding: 24px; }
+.velo.abierto { display: grid; animation: aparece .2s ease-out both; }
+@keyframes aparece { from { opacity: 0; } }
+.dialogo {
+  width: min(480px, 100%); border-radius: var(--r-protagonista); padding: 24px; background: var(--vidrio);
+  box-shadow: 0 30px 80px rgb(var(--sombra-color) / .35); animation: hoja .45s var(--ease-resorte) both;
+}
+@keyframes hoja { from { opacity: 0; transform: translateY(18px) scale(.98); } }
+
+/* La tarjeta de lo entendido (la misma del celular). */
+.entendido { display: grid; gap: 4px; }
+.entendido .fila {
+  display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 12px; border-radius: 18px;
+  background: var(--superficie); box-shadow: inset 0 0 0 1px var(--linea);
+}
+.entendido .fila .que { font-size: 14px; font-weight: 700; color: var(--texto-suave); }
+.entendido .fila .valor { font-weight: 800; }
+.pildora { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; border-radius: 999px; background: color-mix(in srgb, var(--texto) 6%, transparent); }
+.pildora button { min-height: 48px; border: 0; border-radius: 999px; background: transparent; font-weight: 800; }
+.pildora button[aria-pressed="true"].pago { background: var(--exito); color: #fff; }
+.pildora button[aria-pressed="true"].debe { background: var(--deuda); color: #fff; }
+.sello {
+  display: grid; place-items: center; gap: 8px; padding: 26px 0 10px; text-align: center; animation: hoja .45s var(--ease-resorte) both;
+}
+.sello .circulo { display: grid; place-items: center; width: 76px; height: 76px; border-radius: 50%; background: var(--exito); color: #fff; }
+.sello .circulo svg { width: 40px; height: 40px; }
+
+/* Lo que aún no existe en la maqueta. */
+.no-maqueta { display: grid; place-items: center; text-align: center; gap: 8px; padding: 80px 24px; }
+
+/* Aviso de la maqueta: dice qué se puede tocar. */
+.guia-maqueta {
+  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 40; font-size: 14px; font-weight: 700;
+  padding: 8px 14px; border-radius: 999px; background: var(--texto); color: #fff; opacity: .88; white-space: nowrap;
+}
+.guia-maqueta a { text-decoration: underline; }
+.boton:disabled { opacity: .45; cursor: not-allowed; filter: none; transform: none; }
+:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+.sin-animar *, .sin-animar *::before { animation: none !important; transition: none !important; }
+.sin-animar .guia-maqueta { display: none; }
+[hidden] { display: none !important; }
+/* Los filtros van en UNA fila: si no caben, se deslizan de lado (en el celular hoy se parten en dos). */
+.filtros { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.filtro { flex-shrink: 0; padding: 0 14px; }

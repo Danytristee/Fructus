@@ -18,14 +18,14 @@ export default async function Hoy() {
   if (!permisos) {
     return (
       <>
-        <Encabezado titulo="Hoy" subtitulo={formatearFecha(new Date())} />
+        <Encabezado titulo="Hoy" subtitulo={formatearFecha(new Date())} marca />
         <SesionSinConexion />
       </>
     );
   }
   return (
     <>
-      <Encabezado titulo="Hoy" subtitulo={formatearFecha(new Date())} />
+      <Encabezado titulo="Hoy" subtitulo={formatearFecha(new Date())} marca sobreTarjeta />
       <Suspense fallback={<EsqueletoResumen />}>
         <ResumenDia />
       </Suspense>

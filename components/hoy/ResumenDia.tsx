@@ -57,12 +57,16 @@ export async function ResumenDia() {
         </Tarjeta>
       )}
 
-      <Tarjeta className="grid animate-subir grid-cols-[auto_1fr] items-center gap-3.5 [animation-delay:70ms]">
-        <span className="grid size-[52px] place-items-center rounded-[18px] bg-exito-fondo text-exito">
-          <Wallet aria-hidden />
-        </span>
-        <span className="grid">
-          <span className="font-bold text-texto-suave">Cobraste</span>
+      {/* Lo que entró y lo que falta entrar, juntos en una tarjeta: se leen como un par. El ícono va chico junto a la etiqueta para que la
+          cifra use todo el ancho: a 360 px, un monto de cinco cifras al lado de un ícono grande no entraba (ADR-0014). */}
+      <Tarjeta className="grid animate-subir overflow-hidden p-0 [animation-delay:70ms]" aria-label="Lo que cobraste y lo que te deben">
+        <div className="grid gap-0.5 p-4">
+          <span className="flex items-center gap-2 font-bold text-texto-suave">
+            <span className="grid size-8 place-items-center rounded-[11px] bg-exito-fondo text-exito">
+              <Wallet aria-hidden className="size-[18px]" />
+            </span>
+            Cobraste
+          </span>
           <span data-testid="monto-cobrado">
             <MontoVivo valor={dia.cobrado} tamano="cifra" tono="exito" />
           </span>
@@ -76,20 +80,20 @@ export async function ResumenDia() {
               </>
             )}
           </span>
-        </span>
-      </Tarjeta>
-
-      {/* Lo difícil, a un toque: quién te debe y cuánto vive en Clientes (/formidable 2026-10-28). */}
-      <Link
-        href="/clientes"
-        className="block animate-subir rounded-tarjeta transition-transform duration-150 ease-out [animation-delay:140ms] active:scale-[0.98]"
-      >
-        <Tarjeta className="grid grid-cols-[auto_1fr_auto] items-center gap-3.5">
-          <span className="grid size-[52px] place-items-center rounded-[18px] bg-deuda-fondo text-deuda">
-            <HandCoins aria-hidden />
-          </span>
-          <span className="grid">
-            <span className="font-bold text-texto-suave">Te deben</span>
+        </div>
+        <hr className="mx-4 border-border" />
+        {/* Lo difícil, a un toque: quién te debe y cuánto vive en Clientes (/formidable 2026-10-28). */}
+        <Link
+          href="/clientes"
+          className="grid grid-cols-[1fr_auto] items-center gap-3 p-4 transition-colors duration-150 ease-out active:bg-acento/6"
+        >
+          <span className="grid gap-0.5">
+            <span className="flex items-center gap-2 font-bold text-texto-suave">
+              <span className="grid size-8 place-items-center rounded-[11px] bg-deuda-fondo text-deuda">
+                <HandCoins aria-hidden className="size-[18px]" />
+              </span>
+              Te deben
+            </span>
             <span data-testid="monto-deben">
               <MontoVivo valor={dia.porCobrar} tamano="cifra" tono={dia.porCobrar > 0 ? "deuda" : "normal"} />
             </span>
@@ -101,8 +105,8 @@ export async function ResumenDia() {
             <span className="mt-1 font-extrabold text-acento-texto">Ver quién te debe</span>
           </span>
           <ChevronRight aria-hidden className="size-6 text-texto-suave" />
-        </Tarjeta>
-      </Link>
+        </Link>
+      </Tarjeta>
     </div>
   );
 }

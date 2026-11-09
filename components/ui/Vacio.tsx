@@ -15,7 +15,7 @@ type Props = {
 export function Vacio({ icono, titulo, children, accion, className }: Props) {
   return (
     <div className={cn("vidrio grid justify-items-center gap-2 rounded-tarjeta px-5 py-8 text-center", className)}>
-      <span aria-hidden className="mb-1 grid size-16 place-items-center rounded-full bg-acento/10 text-acento-texto [&_svg]:size-8">
+      <span aria-hidden className="mb-1 grid size-16 place-items-center rounded-full bg-lima-suave text-acento-texto [&_svg]:size-8">
         {icono}
       </span>
       <p className="text-xl font-extrabold">{titulo}</p>

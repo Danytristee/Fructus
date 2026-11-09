@@ -4,7 +4,8 @@ import { cn } from "cn";
 const tipos = {
   pago: { clase: "bg-exito-fondo text-exito", Icono: Check },
   debe: { clase: "bg-deuda-fondo text-deuda", Icono: Clock },
-  sugerido: { clase: "bg-acento/12 text-acento-texto", Icono: Sparkles },
+  // «Sugerido» es un precio que nadie dijo: se marca en tono de aviso para que se revise (principio 2).
+  sugerido: { clase: "bg-sol/12 text-sol", Icono: Sparkles },
   aviso: { clase: "text-deuda px-0", Icono: TriangleAlert },
   abono: { clase: "bg-exito-fondo text-exito", Icono: HandCoins },
   compra: { clase: "bg-acento/12 text-acento-texto", Icono: PackagePlus },

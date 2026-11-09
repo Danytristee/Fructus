@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<!-- Fructus · mango Edward: más largo y esbelto que el Kent, dorado con rubor rosado donde le da el sol. -->
+<defs>
+<linearGradient id="piel" x1="18" y1="8" x2="46" y2="60" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFD84E"/><stop offset=".55" stop-color="#F2BE2E"/><stop offset="1" stop-color="#C98F1C"/></linearGradient>
+<radialGradient id="rubor" cx="44" cy="14" r="26" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E05A6E"/><stop offset=".5" stop-color="#EC7A70" stop-opacity=".65"/><stop offset="1" stop-color="#EC7A70" stop-opacity="0"/></radialGradient>
+<radialGradient id="sombra" cx="42" cy="56" r="28" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5A3A08" stop-opacity=".32"/><stop offset="1" stop-color="#5A3A08" stop-opacity="0"/></radialGradient>
+<radialGradient id="brillo" cx="25" cy="21" r="10" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+<clipPath id="c"><path d="M34 7C43.5 8 48.5 18.5 47.5 32 46.5 46 41 58.5 30 58.5 20.5 58.5 16.5 49 17.5 37 18.5 22.5 23.5 6 34 7Z"/></clipPath>
+</defs>
+<g transform="rotate(14 32 33)">
+<path d="M34 7C43.5 8 48.5 18.5 47.5 32 46.5 46 41 58.5 30 58.5 20.5 58.5 16.5 49 17.5 37 18.5 22.5 23.5 6 34 7Z" fill="url(#piel)"/>
+<g clip-path="url(#c)">
+<rect width="64" height="64" fill="url(#rubor)"/>
+<rect width="64" height="64" fill="url(#sombra)"/>
+<ellipse cx="25.5" cy="22" rx="9" ry="6" transform="rotate(-62 25.5 22)" fill="url(#brillo)"/>
+<g fill="#FFF6D6" opacity=".7"><circle cx="24" cy="40" r=".8"/><circle cx="30" cy="48" r=".8"/><circle cx="36" cy="36" r=".8"/><circle cx="39" cy="46" r=".7"/><circle cx="27" cy="31" r=".7"/></g>
+</g>
+<path d="M34 7C43.5 8 48.5 18.5 47.5 32 46.5 46 41 58.5 30 58.5 20.5 58.5 16.5 49 17.5 37 18.5 22.5 23.5 6 34 7Z" fill="none" stroke="#5A3A08" stroke-opacity=".14"/>
+<path d="M34 7.8C34.3 5.2 35.4 3.4 37.2 2.2" fill="none" stroke="#6B4A22" stroke-width="2.4" stroke-linecap="round"/>
+</g>
+</svg>

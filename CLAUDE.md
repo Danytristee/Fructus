@@ -193,11 +193,11 @@ formulario del gobierno. El diseño se juzga por lo que la persona **hace**, no 
 - **Tipografía:** una familia, **Manrope** (cargada con `next/font`). Cifras con `tabular-nums` (utilidad `cifra`).
 - **Dinero siempre con `Monto`:** `S/ 1,250.00`, con `Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" })`. Las deudas tienen un color propio y además un texto («debe»).
 - **Modo claro por defecto,** porque se usa al sol. Los tokens nacen con su variante oscura, así que activarla después no cuesta nada.
-- **Movimiento en cada acción, con propósito** (ADR-0007, identidad «Aurora»):
+- **Movimiento en cada acción, con propósito** (ADR-0007; la identidad visual es «Bosque», ADR-0014):
   - **Cada acción responde con movimiento:** el orbe de voz escucha (ondas) y entiende (giro), la hoja sube con un resorte corto, sus piezas entran en cascada, la píldora «Pagó / Lo debe» se desliza y Confirmar termina en un sello con vibración y sonido.
   - **Una sola coreografía al abrir una pantalla.** Nada se mueve en bucle salvo el orbe de voz en reposo y el punto «ahora» del gráfico.
   - **Las cifras solo cuentan en los resúmenes** («Hoy», cierre). **Lo que se va a confirmar se muestra exacto desde el primer cuadro:** nunca un monto intermedio en la tarjeta.
-  - **El fondo de luces está quieto,** porque moverlo cuesta en un Android de gama media.
+  - **El fondo es liso y quieto** (Bosque quitó las luces de Aurora): moverlo cuesta en un Android de gama media.
   - **Lo que se mueve en bucle solo anima `transform` y `opacity`** (ADR-0012), en un elemento HTML: con «Hoy» en reposo el navegador no debe repintar nada (`pnpm medir:pintura`). Nunca una sombra, una variable de un degradado, `left` o `width`, ni un elemento SVG.
   - **`vidrio` no desenfoca;** `vidrio-desenfocado` solo para lo que flota sobre contenido que se desliza (la barra de abajo, la etiqueta y los avisos de la voz). El desenfoque de cada tarjeta se recalcula en cada cuadro al deslizar y gastaba más de la mitad de la CPU.
   - Los tiempos y curvas viven en `app/globals.css` (`--ease-*`, `--animate-*`). Se respeta `prefers-reduced-motion`.

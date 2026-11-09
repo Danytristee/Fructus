@@ -1,6 +1,6 @@
 # ADR-0007 — Identidad visual «Aurora»
 
-**Fecha:** 2026-10-28 · **Estado:** aceptado
+**Fecha:** 2026-10-28 · **Estado:** reemplazado por ADR-0014 («Bosque») en colores, fondo e ícono; el movimiento sigue vigente
 
 ## Contexto
 

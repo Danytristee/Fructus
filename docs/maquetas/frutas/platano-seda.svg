@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<!-- Fructus · plátano de seda (Cavendish): una mano de tres dedos largos y curvos, amarillo limpio, cuello verde y punta café. -->
+<defs>
+<linearGradient id="dedo" x1=".5" y1="0" x2=".5" y2="1"><stop offset="0" stop-color="#FFE57A"/><stop offset=".55" stop-color="#F6D23A"/><stop offset="1" stop-color="#D9A91A"/></linearGradient>
+<linearGradient id="dedo-atras" x1=".5" y1="0" x2=".5" y2="1"><stop offset="0" stop-color="#F3D45A"/><stop offset=".6" stop-color="#E4BB2C"/><stop offset="1" stop-color="#C08E14"/></linearGradient>
+<linearGradient id="cuello" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6F8F2A"/><stop offset="1" stop-color="#9DB43A" stop-opacity="0"/></linearGradient>
+<path id="forma" d="M0 0C10-2.2 26 5 36.4 19.4 38.6 22.6 40.2 26.4 41.2 30.2L38.4 31.6C33.6 24.4 23.6 15 11.6 11 7.2 9.5 3.2 8.8 0 8.2Z"/>
+<clipPath id="c"><use href="#forma"/></clipPath>
+</defs>
+<g transform="translate(3 4)">
+<path d="M6 6.5 13.5 13.5" stroke="#6E6A2A" stroke-width="5.5" stroke-linecap="round"/>
+<path d="M5 5.6 7.4 7.8" stroke="#4A3A1C" stroke-width="5.5" stroke-linecap="round"/>
+<g transform="translate(12 13) rotate(-8)">
+<use href="#forma" fill="url(#dedo-atras)"/>
+<g clip-path="url(#c)"><rect x="0" y="-4" width="12" height="16" fill="url(#cuello)"/></g>
+<use href="#forma" fill="none" stroke="#A97A12" stroke-opacity=".55" stroke-width=".9"/>
+<circle cx="40" cy="30.7" r="1.7" fill="#5A3E1B"/>
+</g>
+<g transform="translate(12 13) rotate(3)">
+<use href="#forma" fill="url(#dedo)"/>
+<g clip-path="url(#c)"><rect x="0" y="-4" width="12" height="16" fill="url(#cuello)"/><path d="M5 2.4C15 2.4 26 9 33.5 20" fill="none" stroke="#FFF4B8" stroke-opacity=".75" stroke-width="1.1" stroke-linecap="round"/></g>
+<use href="#forma" fill="none" stroke="#A97A12" stroke-opacity=".55" stroke-width=".9"/>
+<circle cx="40" cy="30.7" r="1.7" fill="#5A3E1B"/>
+</g>
+<g transform="translate(12 13) rotate(14)">
+<use href="#forma" fill="url(#dedo)"/>
+<g clip-path="url(#c)"><rect x="0" y="-4" width="12" height="16" fill="url(#cuello)"/><path d="M5 2.4C15 2.4 26 9 33.5 20" fill="none" stroke="#FFF4B8" stroke-opacity=".75" stroke-width="1.1" stroke-linecap="round"/></g>
+<use href="#forma" fill="none" stroke="#A97A12" stroke-opacity=".55" stroke-width=".9"/>
+<circle cx="40" cy="30.7" r="1.7" fill="#5A3E1B"/>
+</g>
+</g>
+</svg>

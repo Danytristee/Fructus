@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { edadLoteMasViejo, evaluarProducto, priorizarAlertas, resumirInventario, vidaUtilDias, type ProductoInventario } from "./inventario-reglas";
+import { cajas, edadLoteMasViejo, evaluarProducto, priorizarAlertas, resumirInventario, veredictoDelStock, vidaUtilDias, type ProductoInventario } from "./inventario-reglas";
 
 const hoy = new Date("2026-10-28T15:00:00Z");
 const haceDias = (n: number) => new Date(hoy.getTime() - n * 86_400_000).toISOString();
@@ -69,6 +69,28 @@ describe("evaluarProducto", () => {
 
   it("con stock y sin ventas en 7 días: no se está vendiendo", () => {
     expect(evaluarProducto(producto({ vendido7: 0 }), hoy).alertas[0]?.tipo).toBe("sin_movimiento");
+  });
+});
+
+describe("cajas y días enteros, como se dice en el puesto", () => {
+  it("«unas 136 cajas», no «136.3»; lo que no llega a una, en palabras", () => {
+    expect(cajas(136.3)).toBe("136 cajas");
+    expect(cajas(1)).toBe("1 caja");
+    expect(cajas(0.7)).toBe("menos de una caja");
+  });
+});
+
+describe("veredictoDelStock", () => {
+  type E = Parameters<typeof veredictoDelStock>[0][number];
+  const con = (stock: number, ...gravedades: string[]) => ({ stock, alertas: gravedades.map((gravedad) => ({ tipo: "reponer", gravedad })) }) as unknown as E;
+  it("cuenta las frutas con un aviso grave (la etiqueta «Hoy» de la lista); lo que puede esperar no", () => {
+    expect(veredictoDelStock([con(0, "alta"), con(80, "alta"), con(20, "media"), con(12)])).toEqual({ urgentes: 2, total: 4 });
+  });
+  it("una fruta con dos avisos graves se cuenta una vez", () => {
+    expect(veredictoDelStock([con(3, "alta", "alta")])).toEqual({ urgentes: 1, total: 1 });
+  });
+  it("una fruta sin stock y sin aviso no se cuenta: no se lleva", () => {
+    expect(veredictoDelStock([con(10), con(0)])).toEqual({ urgentes: 0, total: 1 });
   });
 });
 

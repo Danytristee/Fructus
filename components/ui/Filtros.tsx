@@ -35,7 +35,7 @@ export function Filtros<T extends string>({ opciones, valor, alCambiar, etiqueta
           >
             {o.etiqueta}
             {o.cuenta !== undefined && (
-              <span className={cn("rounded-full px-2 py-0.5 text-sm tabular-nums", activo ? "bg-sobre-acento/20" : "bg-acento/10 text-acento-texto")}>
+              <span className={cn("rounded-full px-2 py-0.5 text-sm tabular-nums", activo ? "bg-lima text-sobre-lima" : "bg-acento/10 text-acento-texto")}>
                 {o.cuenta}
               </span>
             )}

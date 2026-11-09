@@ -54,8 +54,10 @@ async function Resumen() {
   return (
     <div className="grid grid-cols-1 gap-2.5">
       <PanelCierre c={cierre} />
-      <EnviarCierre c={cierre} />
       {excel}
+      {/* Al final: la píldora flota abajo y deja su espacio donde se dibuja. Antes del Excel, ese espacio quedaba a mitad de pantalla y la
+          píldora tapaba el último mes (/chaos 2026-11-09). */}
+      <EnviarCierre c={cierre} />
     </div>
   );
 }
@@ -80,7 +82,7 @@ export default async function Cierre() {
   }
   return (
     <>
-      <Encabezado titulo="Cierre del día" subtitulo={formatearFecha(new Date())} />
+      <Encabezado titulo="Cierre del día" subtitulo={formatearFecha(new Date())} sobreTarjeta />
       <Suspense
         fallback={
           <div className="grid gap-2.5" role="status" aria-label="Cargando el cierre">
