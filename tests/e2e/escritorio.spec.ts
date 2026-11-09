@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { baseLocal, enSoles } from "./base";
 import { entrarComo } from "./cuentas";
+import { fiar } from "./dictar";
 import { quieto } from "./medir";
 
 // El escritorio (ADR-0015): desde 1024 px, un panel lateral verde reemplaza a la barra de abajo y al menú de tres rayas. Quien lo usa es quien
@@ -111,4 +112,46 @@ test("Ventas en tabla: hora, cliente, qué llevó, cómo quedó y monto; toda la
   const caja = (await fila.locator("td").last().boundingBox())!;
   await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
   await expect(page.getByRole("dialog", { name: "Detalle de la venta" })).toBeVisible({ timeout: 15_000 });
+});
+
+test("regresión /chaos 2026-11-09: un nombre de 120 letras sin espacios no ensancha la tabla de Clientes", async ({ page }) => {
+  const { data } = await baseLocal().from("clientes").insert({ nombre: `Raro${Date.now()}${"X".repeat(120)}` }).select("id").single();
+  await fiar(data!.id, 5000);
+  await entrarComo(page, "duenio");
+  await page.goto("/clientes");
+  await expect(page.getByRole("table", { name: /Cuaderno de clientes/ })).toBeVisible({ timeout: 15_000 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+});
+
+test("regresión /chaos 2026-11-09: con el teclado, al cerrar el detalle de una venta el foco vuelve a su fila", async ({ page }) => {
+  await entrarComo(page, "duenio");
+  await page.goto("/ventas");
+  const boton = page.getByRole("table").first().locator("tbody tr button").first();
+  await boton.waitFor();
+  await boton.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Detalle de la venta" })).toBeVisible({ timeout: 15_000 });
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(boton).toBeFocused();
+});
+
+test("/formidable 2026-11-09: las acciones de la pantalla van arriba, junto al título, y no tapan ninguna fila", async ({ page }) => {
+  await entrarComo(page, "duenio");
+  for (const [ruta, accion] of [["/clientes", "Registrar abono"], ["/stock", "Compra"], ["/cierre", "Enviar por WhatsApp"]] as const) {
+    await page.goto(ruta);
+    const boton = page.getByRole(ruta === "/cierre" ? "link" : "button", { name: accion, exact: ruta === "/stock" }).filter({ visible: true }).first();
+    await expect(boton).toBeVisible({ timeout: 15_000 });
+    await quieto(page);
+    const m = await page.evaluate((accion) => {
+      const b = [...document.querySelectorAll("a, button")].find((e) => e.textContent?.includes(accion) && e.getBoundingClientRect().width > 0)!.getBoundingClientRect();
+      const h1 = document.querySelector("h1")!.getBoundingClientRect();
+      const tapa = [...document.querySelectorAll("main tr, main li, main section")].some((e) => {
+        const r = e.getBoundingClientRect();
+        return r.width > 0 && r.top < b.bottom && r.bottom > b.top && r.left < b.right && r.right > b.left;
+      });
+      return { alturaDelTitulo: Math.abs(b.top - h1.top) < 40, aLaDerecha: b.left > h1.right, tapa };
+    }, accion);
+    expect(m, ruta).toEqual({ alturaDelTitulo: true, aLaDerecha: true, tapa: false });
+  }
 });

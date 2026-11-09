@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { cn } from "cn";
 
 import { Avatar } from "@/components/ui/Avatar";
@@ -33,7 +33,9 @@ export function TablaClientes({ clientes, className }: { clientes: ClienteCuader
           className={cn("inline-flex min-h-12 items-center gap-1 font-extrabold tracking-wide uppercase", activa ? "text-texto" : "text-texto-suave")}
         >
           {texto}
-          {activa && <Flecha aria-hidden className="size-4" />}
+          {/* Las columnas que se pueden ordenar lo muestran aunque no estén activas: en la prueba a ciegas, sin el ícono nadie sabía que «Cliente»
+              se podía tocar (/formidable 2026-11-09). */}
+          {activa ? <Flecha aria-hidden className="size-4" /> : <ArrowUpDown aria-hidden className="size-4 opacity-60" />}
         </button>
       </th>
     );
@@ -41,8 +43,16 @@ export function TablaClientes({ clientes, className }: { clientes: ClienteCuader
 
   return (
     <div className={cn("vidrio overflow-hidden rounded-tarjeta", className)}>
-      <table className="w-full border-collapse text-left">
+      {/* Columnas de ancho fijo: con el ancho automático, un nombre largo sin espacios estiraba su columna y aparecía scroll horizontal
+          (/chaos 2026-11-09). */}
+      <table className="w-full table-fixed border-collapse text-left">
         <caption className="sr-only">Cuaderno de clientes. Toca la cabecera de una columna para ordenar.</caption>
+        <colgroup>
+          <col className="w-[42%]" />
+          <col className="w-[20%]" />
+          <col className="w-[16%]" />
+          <col className="w-[22%]" />
+        </colgroup>
         <thead className="border-b border-border text-sm">
           <tr>
             {cabecera("nombre", "Cliente")}

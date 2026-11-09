@@ -37,7 +37,7 @@ export default async function MarcoApp({ children }: { children: React.ReactNode
           clavePush={sesion.permisos.cierre ? clavePublicaParaElNavegador() : null}
         />
       )}
-      <main className="mx-auto max-w-xl px-4 pt-[max(16px,env(safe-area-inset-top))] pb-[calc(112px+env(safe-area-inset-bottom))] lg:mr-auto lg:ml-[264px] lg:max-w-[1240px] lg:px-10 lg:pt-8 lg:pb-16">
+      <main className="mx-auto max-w-xl px-4 pt-[max(16px,env(safe-area-inset-top))] pb-[calc(112px+env(safe-area-inset-bottom))] lg:relative lg:mr-auto lg:ml-[264px] lg:max-w-[1240px] lg:px-10 lg:pt-8 lg:pb-16">
         {children}
       </main>
       <BarraInferior />

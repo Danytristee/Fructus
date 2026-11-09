@@ -63,7 +63,8 @@ async function Cuaderno() {
           Te deben en total
         </span>
         <MontoVivo valor={total} tamano="total" tono={total > 0 ? "deuda" : "normal"} />
-        <span className="text-texto-suave">
+        {/* wrap-anywhere: un nombre largo sin espacios se parte en vez de ensanchar la pantalla (/chaos 2026-11-09). */}
+        <span className="text-texto-suave wrap-anywhere">
           {deben.length === 0 ? "Nadie te debe" : `entre ${deben.length} ${deben.length === 1 ? "cliente" : "clientes"}; más que nadie, ${deben[0]!.nombre}`}
         </span>
       </Tarjeta>

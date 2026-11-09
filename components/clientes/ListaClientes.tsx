@@ -43,30 +43,30 @@ export function ListaClientes({ clientes, nuevo }: { clientes: ClienteCuaderno[]
       </h2>
       {/* En escritorio, la búsqueda y los filtros van en una sola fila sobre la tabla. */}
       <div className="lg:flex lg:items-center lg:gap-3">
-      <div className="mb-3 flex items-center gap-2 lg:mb-0 lg:max-w-md lg:flex-1">
-        <label className="vidrio flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-full px-4">
-          <Search aria-hidden className="size-5 text-texto-suave" />
-          <span className="sr-only">Buscar cliente</span>
-          <input
-            type="search"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Busca por nombre o apodo"
-            className="min-h-12 w-full bg-transparent text-lg outline-none placeholder:text-texto-suave"
-          />
-        </label>
-        {nuevo}
-      </div>
-      <Filtros
-        etiqueta="Filtrar clientes"
-        valor={filtro}
-        alCambiar={setFiltro}
-        opciones={[
-          { valor: "deben", etiqueta: "Te deben", cuenta: clientes.filter((c) => c.saldo > 0).length },
-          { valor: "al_dia", etiqueta: "Al día", cuenta: clientes.filter((c) => c.saldo <= 0).length },
-          { valor: "todos", etiqueta: "Todos", cuenta: clientes.length },
-        ]}
-      />
+        <div className="mb-3 flex items-center gap-2 lg:mb-0 lg:max-w-md lg:flex-1">
+          <label className="vidrio flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-full px-4">
+            <Search aria-hidden className="size-5 text-texto-suave" />
+            <span className="sr-only">Buscar cliente</span>
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Busca por nombre o apodo"
+              className="min-h-12 w-full bg-transparent text-lg outline-none placeholder:text-texto-suave"
+            />
+          </label>
+          {nuevo}
+        </div>
+        <Filtros
+          etiqueta="Filtrar clientes"
+          valor={filtro}
+          alCambiar={setFiltro}
+          opciones={[
+            { valor: "deben", etiqueta: "Te deben", cuenta: clientes.filter((c) => c.saldo > 0).length },
+            { valor: "al_dia", etiqueta: "Al día", cuenta: clientes.filter((c) => c.saldo <= 0).length },
+            { valor: "todos", etiqueta: "Todos", cuenta: clientes.length },
+          ]}
+        />
       </div>
       {visibles.length === 0 ? (
         <Vacio className="mt-3" icono={<Users />} titulo="No hay nadie así">
@@ -74,35 +74,35 @@ export function ListaClientes({ clientes, nuevo }: { clientes: ClienteCuaderno[]
         </Vacio>
       ) : (
         <>
-        <TablaClientes clientes={visibles} className="mt-4 hidden lg:block" />
-        <ul key={filtro} className="vidrio mt-3 divide-y divide-border overflow-hidden rounded-tarjeta lg:hidden">
-          {visibles.map((c, i) => (
-            <li key={c.id} className="animate-subir px-4 py-1" style={{ animationDelay: `${i * 40}ms` }}>
-              <Link
-                href={`/clientes/${c.id}`}
-                className="grid min-h-[72px] grid-cols-[auto_1fr_auto_auto] items-center gap-3 py-2 transition-transform duration-150 active:scale-[0.99]"
-              >
-                <Avatar iniciales={c.iniciales} tono={c.tono} />
-                <span className="grid min-w-0">
-                  <span className="leading-tight font-extrabold wrap-anywhere">{c.nombre}</span>
-                  {c.apodo && <span className="truncate text-base text-texto-suave">«{c.apodo}»</span>}
-                </span>
-                <span className="grid justify-items-end">
-                  {c.saldo > 0 ? (
-                    <>
-                      <Monto valor={c.saldo} tono="deuda" />
-                      {/* La palabra acompaña al color: el rojo nunca es la única señal. */}
-                      <span className="text-[15px] font-extrabold text-deuda">debe</span>
-                    </>
-                  ) : (
-                    <Insignia tipo="pago">Al día</Insignia>
-                  )}
-                </span>
-                <ChevronRight aria-hidden className="size-6 text-texto-suave" />
-              </Link>
-            </li>
-          ))}
-        </ul>
+          <TablaClientes clientes={visibles} className="mt-4 hidden lg:block" />
+          <ul key={filtro} className="vidrio mt-3 divide-y divide-border overflow-hidden rounded-tarjeta lg:hidden">
+            {visibles.map((c, i) => (
+              <li key={c.id} className="animate-subir px-4 py-1" style={{ animationDelay: `${i * 40}ms` }}>
+                <Link
+                  href={`/clientes/${c.id}`}
+                  className="grid min-h-[72px] grid-cols-[auto_1fr_auto_auto] items-center gap-3 py-2 transition-transform duration-150 active:scale-[0.99]"
+                >
+                  <Avatar iniciales={c.iniciales} tono={c.tono} />
+                  <span className="grid min-w-0">
+                    <span className="leading-tight font-extrabold wrap-anywhere">{c.nombre}</span>
+                    {c.apodo && <span className="truncate text-base text-texto-suave">«{c.apodo}»</span>}
+                  </span>
+                  <span className="grid justify-items-end">
+                    {c.saldo > 0 ? (
+                      <>
+                        <Monto valor={c.saldo} tono="deuda" />
+                        {/* La palabra acompaña al color: el rojo nunca es la única señal. */}
+                        <span className="text-[15px] font-extrabold text-deuda">debe</span>
+                      </>
+                    ) : (
+                      <Insignia tipo="pago">Al día</Insignia>
+                    )}
+                  </span>
+                  <ChevronRight aria-hidden className="size-6 text-texto-suave" />
+                </Link>
+              </li>
+            ))}
+          </ul>
         </>
       )}
     </section>

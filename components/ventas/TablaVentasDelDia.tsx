@@ -15,7 +15,15 @@ type Props<V extends Operacion> = { ventas: V[]; alAbrir: (v: V) => void; classN
 // que se leen de un vistazo. Toda la fila abre el detalle (anular, boleta o factura), igual que en el celular.
 export function TablaVentasDelDia<V extends Operacion>({ ventas, alAbrir, className }: Props<V>) {
   return (
-    <table className={cn("w-full border-collapse border-t border-border text-left", className)}>
+    // Columnas de ancho fijo: un nombre o un detalle largo sin espacios no estira la tabla (/chaos 2026-11-09).
+    <table className={cn("w-full table-fixed border-collapse border-t border-border text-left", className)}>
+      <colgroup>
+        <col className="w-[13%]" />
+        <col className="w-[27%]" />
+        <col className="w-[30%]" />
+        <col className="w-[15%]" />
+        <col className="w-[15%]" />
+      </colgroup>
       <thead className="text-sm">
         <tr className="border-b border-border">
           {["Hora", "Cliente", "Qué llevó", "Cómo quedó"].map((t) => (

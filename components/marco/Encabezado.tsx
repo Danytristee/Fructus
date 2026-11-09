@@ -44,7 +44,7 @@ export async function Encabezado({ titulo, subtitulo, volver, marca = false, sob
     // y el menú viven en el panel.
     <header
       className={
-        "relative -mx-4 -mt-[max(16px,env(safe-area-inset-top))] px-4 pt-[max(14px,env(safe-area-inset-top))] text-sobre-acento lg:mx-0 lg:mt-0 lg:mb-7 lg:px-0 lg:pt-0 lg:text-texto " +
+        "relative -mx-4 -mt-[max(16px,env(safe-area-inset-top))] px-4 pt-[max(14px,env(safe-area-inset-top))] text-sobre-acento lg:mx-0 lg:mt-0 lg:mb-7 lg:px-0 lg:pt-0 lg:pr-[420px] lg:text-texto " +
         (sobreTarjeta ? "mb-4" : "mb-9")
       }
     >

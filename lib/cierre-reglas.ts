@@ -91,3 +91,13 @@ export function mensajeDelCierre(c: Cierre, fecha: Date): string {
 export function enlaceWhatsAppDelCierre(c: Cierre, fecha: Date): string {
   return `https://wa.me/?text=${encodeURIComponent(mensajeDelCierre(c, fecha))}`;
 }
+
+/**
+ * Qué decir debajo de «Debería haber en tu caja». Con la caja en negativo («−S/ 122.92») no hay nada que contar: salió más efectivo del que
+ * entró, casi siempre por gastos o compras pagados en efectivo. Sin explicarlo, en la prueba a ciegas se leyó como un error (/formidable
+ * 2026-11-09). No cambia la cuenta: solo cómo se dice.
+ */
+export function fraseDeLaCaja(efectivoEsperado: number): string {
+  if (efectivoEsperado < 0) return "Hoy salió más efectivo del que entró: revisa los gastos y las compras que pagaste en efectivo.";
+  return "en efectivo. Cuenta tu caja y compara: si no cuadra, revisa los gastos del día.";
+}
