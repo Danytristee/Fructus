@@ -299,6 +299,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"suscripciones_push": {
+                  Row: {
+                    "activa": boolean,"clave_auth": string,"clave_p256dh": string,"creada_en": string,"desactivada_en": string | null,"endpoint": string,"id": number,"ultimo_aviso_en": string | null,"ultimo_error": string | null,"usuario_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activa"?: boolean,"clave_auth": string,"clave_p256dh": string,"creada_en"?: string,"desactivada_en"?: string | null,"endpoint": string,"id"?: never,"ultimo_aviso_en"?: string | null,"ultimo_error"?: string | null,"usuario_id": string
+                  }
+                  Update: {
+                    "activa"?: boolean,"clave_auth"?: string,"clave_p256dh"?: string,"creada_en"?: string,"desactivada_en"?: string | null,"endpoint"?: string,"id"?: never,"ultimo_aviso_en"?: string | null,"ultimo_error"?: string | null,"usuario_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "suscripciones_push_usuario_id_fkey"
+      columns: ["usuario_id"]
+isOneToOne: false
+      referencedRelation: "perfiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"venta_items": {
                   Row: {
                     "cantidad": number,"descuento": number,"id": number,"precio_unitario": number,"producto_id": number,"subtotal": number | null,"venta_id": number
