@@ -211,6 +211,54 @@ test("si el servidor no acepta la dirección, no queda una suscripción en el te
   expect(await recibidosPor(t)).toEqual([]);
 });
 
+test("si se cae la señal justo al guardar, se dice, no queda una suscripción a medias en el teléfono y se puede reintentar", async ({ page }, info) => {
+  const t = telefonoPropio(info);
+  await simularNavegador(page, { permiso: "default", alPedirPermiso: "granted", suscripcion: t.suscripcion });
+  const hoja = await abrirMenu(page);
+
+  // La acción del servidor no llega (la red del mercado se cayó): se corta el pedido, como hace el navegador sin señal.
+  let cortar = true;
+  await page.route("**/*", (ruta) => (cortar && ruta.request().method() === "POST" && ruta.request().headers()["next-action"] ? ruta.abort("internetdisconnected") : ruta.continue()));
+  await filaDe(hoja).click();
+  await expect(hoja.getByRole("alert").filter({ hasText: "No pudimos activar el aviso" })).toBeVisible({ timeout: 15_000 });
+  await expect(filaDe(hoja)).toHaveAttribute("aria-checked", "false");
+  expect(await lo(page)).toMatchObject({ subscribe: 1, unsubscribe: 1, haySuscripcion: false }); // se deshizo: no queda un «Activado» que no avisa
+  expect(await filaEnLaBase(t)).toBeNull();
+
+  // Vuelve la señal: el mismo toque funciona.
+  cortar = false;
+  await filaDe(hoja).click();
+  await expect(filaDe(hoja)).toHaveAttribute("aria-checked", "true", { timeout: 15_000 });
+  expect(await filaEnLaBase(t)).toMatchObject({ activa: true });
+});
+
+test("si se cae la señal al apagarlo, se dice y el aviso sigue activado (el servidor todavía lo tiene activo): nada a medias", async ({ page }, info) => {
+  const t = telefonoPropio(info);
+  await simularNavegador(page, { permiso: "default", alPedirPermiso: "granted", suscripcion: t.suscripcion });
+  const hoja = await abrirMenu(page);
+  await filaDe(hoja).click();
+  await expect(filaDe(hoja)).toHaveAttribute("aria-checked", "true", { timeout: 15_000 });
+
+  await page.route("**/*", (ruta) => (ruta.request().method() === "POST" && ruta.request().headers()["next-action"] ? ruta.abort("internetdisconnected") : ruta.continue()));
+  await filaDe(hoja).click();
+  await expect(hoja.getByRole("alert").filter({ hasText: "No pudimos apagar el aviso" })).toBeVisible({ timeout: 15_000 });
+  await expect(filaDe(hoja)).toHaveAttribute("aria-checked", "true");
+  expect(await lo(page)).toMatchObject({ unsubscribe: 0, haySuscripcion: true });
+  expect(await filaEnLaBase(t)).toMatchObject({ activa: true });
+});
+
+test("si la sesión venció, lo dice con lo que hacer y no deja nada a medias", async ({ page, context }, info) => {
+  const t = telefonoPropio(info);
+  await simularNavegador(page, { permiso: "default", alPedirPermiso: "granted", suscripcion: t.suscripcion });
+  const hoja = await abrirMenu(page);
+  await context.clearCookies(); // la sesión terminó mientras el menú estaba abierto
+  await filaDe(hoja).click();
+  await expect(hoja.getByRole("alert").filter({ hasText: "No pudimos activar el aviso" })).toContainText("Tu sesión terminó", { timeout: 15_000 });
+  await expect(filaDe(hoja)).toHaveAttribute("aria-checked", "false");
+  expect(await lo(page)).toMatchObject({ haySuscripcion: false });
+  expect(await filaEnLaBase(t)).toBeNull();
+});
+
 test.describe("iPhone con la app sin instalar", () => {
   test.use({ userAgent: IPHONE });
 

@@ -99,6 +99,12 @@ export function AvisoDelDia({ clavePublica }: { clavePublica: string }) {
     setMensaje(null);
     try {
       await (estado === "activo" ? apagar() : activar());
+    } catch (error) {
+      // Se cortó la señal al hablar con el servidor (la acción lanza en vez de contestar): se dice y no queda nada a medias. Al activar, la
+      // suscripción que ya se hizo en el teléfono se deshace; al apagar, el aviso sigue activado, que es lo que el servidor todavía cree.
+      console.error("avisos: no se pudo hablar con el servidor", { error: error instanceof Error ? error.name : "desconocido" });
+      if (estado !== "activo") await quitarSuscripcionDeEsteTelefono();
+      setMensaje({ tipo: "error", titulo: estado === "activo" ? "No pudimos apagar el aviso" : "No pudimos activar el aviso", texto: "Revisa tu señal e inténtalo otra vez." });
     } finally {
       setOcupado(false);
     }
