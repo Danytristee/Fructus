@@ -6,6 +6,7 @@ import { Receipt } from "lucide-react";
 
 import { FilaOperacion } from "@/components/hoy/FilaOperacion";
 import { Desplegable } from "@/components/ui/Desplegable";
+import { Segmento } from "@/components/ui/Segmento";
 import { Filtros } from "@/components/ui/Filtros";
 import { Monto } from "@/components/ui/Monto";
 import { Tarjeta } from "@/components/ui/Tarjeta";
@@ -81,7 +82,7 @@ export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, puedeEdit
         </span>
       </Tarjeta>
 
-      <Filtros
+      <Segmento
         etiqueta="Período"
         valor={periodo}
         alCambiar={setPeriodo}
@@ -90,7 +91,7 @@ export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, puedeEdit
           { valor: "semana", etiqueta: "7 días", cuenta: resumenes.semana.ventas },
         ]}
       />
-      <div className="mt-2">
+      <div className="mt-3">
         <Filtros
           etiqueta="Filtrar ventas"
           valor={filtro}
@@ -133,7 +134,7 @@ export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, puedeEdit
                 >
                   <ul className="divide-y divide-border border-t border-border">
                     {d.ventas.map((v) => (
-                      <FilaOperacion key={v.clave} op={v} alTocar={() => setAbierta(v.completa)} />
+                      <FilaOperacion key={v.clave} op={v} conHora alTocar={() => setAbierta(v.completa)} />
                     ))}
                   </ul>
                 </Desplegable>

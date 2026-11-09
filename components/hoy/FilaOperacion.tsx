@@ -2,6 +2,7 @@ import { HandCoins, PackagePlus, ReceiptText, TriangleAlert, ShoppingBasket } fr
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Fruta } from "@/components/ui/Fruta";
+import { horaDeLima } from "@/lib/ficha-cliente-reglas";
 import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
 import type { Estado, Operacion } from "@/lib/operaciones-reglas";
@@ -29,7 +30,9 @@ function SinPersona({ estado }: { estado: Estado }) {
 
 // Una línea de «Lo último»: quién (con su cara o un icono y la fruta), qué pasó, cuánto y su estado. Con `alTocar`, toda la
 // fila es un botón (el historial de ventas abre así el detalle de cada una).
-export function FilaOperacion({ op, alTocar }: { op: Operacion; alTocar?: () => void }) {
+// `conHora`: el historial de Ventas pone la hora delante del detalle («11:56 a. m. · 1 de mango kent»): sin ella, en la prueba a ciegas no se
+// sabía cuál era la última venta (/formidable 2026-11-09).
+export function FilaOperacion({ op, alTocar, conHora = false }: { op: Operacion; alTocar?: () => void; conHora?: boolean }) {
   const cuerpo = (
     <>
       <span className="relative">
@@ -38,7 +41,7 @@ export function FilaOperacion({ op, alTocar }: { op: Operacion; alTocar?: () => 
       </span>
       <span className="grid min-w-0">
         <span className="leading-tight font-extrabold wrap-anywhere">{op.titulo}</span>
-        <span className="text-base leading-snug text-texto-suave wrap-anywhere">{op.detalle}</span>
+        <span className="text-base leading-snug text-texto-suave wrap-anywhere">{conHora ? `${horaDeLima(new Date(op.fecha))} · ${op.detalle}` : op.detalle}</span>
       </span>
       <span className="grid justify-items-end gap-1">
         {/* Una venta anulada ya no cuenta: el monto se ve, pero tachado. */}

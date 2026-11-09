@@ -1,5 +1,6 @@
 import { PackageX, ShoppingCart, TriangleAlert } from "lucide-react";
 
+import { veredictoDelStock } from "@/lib/inventario-reglas";
 import { MontoVivo } from "@/components/ui/MontoVivo";
 import { Tarjeta } from "@/components/ui/Tarjeta";
 import type { EstadoProducto, ResumenInventario as Resumen } from "@/lib/inventario-reglas";
@@ -8,9 +9,9 @@ type Props = { resumen: Resumen; estados: EstadoProducto[] };
 
 // La cabeza del dashboard: qué tan sano está el inventario (anillo), cuántas cajas hay y cuánto valen, y los tres avisos.
 export function ResumenInventario({ resumen, estados }: Props) {
-  const conStock = estados.filter((e) => e.stock > 0);
-  const sanas = conStock.filter((e) => e.alertas.length === 0).length;
-  const salud = conStock.length === 0 ? 100 : Math.round((100 * sanas) / conStock.length);
+  const { conAviso, total } = veredictoDelStock(estados);
+  // El anillo se llena con lo mismo que dice el texto: las frutas CON aviso, en rojo. En orden, queda lleno en verde.
+  const lleno = total === 0 || conAviso === 0 ? 100 : Math.round((100 * conAviso) / total);
   const sobrestock = estados.filter((e) => e.alertas.some((a) => a.tipo === "sobrestock")).length;
 
   const tiles = [
@@ -25,7 +26,7 @@ export function ResumenInventario({ resumen, estados }: Props) {
         <div className="grid justify-items-center gap-1">
           <figure
             className="relative grid size-24 place-items-center"
-            aria-label={conStock.length === 0 ? "No tienes cajas en el puesto" : `${sanas} de ${conStock.length} frutas sin avisos`}
+            aria-label={total === 0 ? "No tienes cajas en el puesto" : conAviso === 0 ? `Tus ${total} frutas están en orden` : `${conAviso} de ${total} frutas con aviso`}
           >
             <svg viewBox="0 0 36 36" className="absolute inset-0 -rotate-90" aria-hidden>
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="3.2" className="text-texto/10" />
@@ -37,28 +38,29 @@ export function ResumenInventario({ resumen, estados }: Props) {
                 strokeWidth="3.2"
                 strokeLinecap="round"
                 pathLength={100}
-                strokeDasharray={`${salud} 100`}
-                className={`animate-dibujar-anillo ${salud >= 70 ? "stroke-exito" : "stroke-deuda"}`}
+                strokeDasharray={`${lleno} 100`}
+                className={`animate-dibujar-anillo ${conAviso === 0 ? "stroke-exito" : "stroke-deuda"}`}
               />
             </svg>
-            {/* Dice QUÉ cuenta el anillo (frutas, no avisos ni cajas) y, debajo, qué se dice de ellas: «0 de 7 frutas» / «sin avisos». */}
+            {/* El veredicto al derecho: cuántas frutas tienen aviso («2 de 8 frutas» / «con aviso»), contando las que se acabaron. Antes decía
+                «0 de 7 frutas» / «sin avisos» y se leía «no hay avisos» justo cuando las siete tenían uno (/formidable 2026-11-09). */}
             <span className="grid text-center text-[17px] leading-tight font-extrabold tabular-nums">
-              {conStock.length === 0 ? (
+              {total === 0 ? (
                 <>
                   <span>sin</span>
                   <span>cajas</span>
                 </>
               ) : (
                 <>
-                  <span>
-                    {sanas} de {conStock.length}
-                  </span>
+                  <span>{conAviso === 0 ? total : `${conAviso} de ${total}`}</span>
                   <span>frutas</span>
                 </>
               )}
             </span>
           </figure>
-          {conStock.length > 0 && <span className="text-[17px] font-bold">sin avisos</span>}
+          {total > 0 && (
+            <span className={`text-[17px] font-bold ${conAviso === 0 ? "text-exito" : "text-deuda"}`}>{conAviso === 0 ? "en orden" : "con aviso"}</span>
+          )}
         </div>
         <div className="grid">
           <span className="font-bold text-texto-suave">Tienes en el puesto</span>

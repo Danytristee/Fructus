@@ -99,8 +99,20 @@ export type EstadoProducto = {
 };
 
 const nombreCompleto = (p: { nombre: string; variedad: string | null }) => [p.nombre, p.variedad].filter(Boolean).join(" ");
-const cajas = (n: number) => `${Math.round(n * 10) / 10} ${Math.round(n * 10) / 10 === 1 ? "caja" : "cajas"}`;
-const dias = (n: number) => `${Math.round(n * 10) / 10} ${Math.round(n * 10) / 10 === 1 ? "día" : "días"}`;
+// Cajas y días enteros, como se dice en el puesto: «unas 136 cajas», no «136.3» («no vendo media caja», prueba a ciegas de /formidable
+// 2026-11-09). Lo que no llega a uno se dice en palabras.
+export const cajas = (n: number) => (n > 0 && n < 1 ? "menos de una caja" : `${Math.round(n)} ${Math.round(n) === 1 ? "caja" : "cajas"}`);
+const dias = (n: number) => (n > 0 && n < 1 ? "menos de un día" : `${Math.round(n)} ${Math.round(n) === 1 ? "día" : "días"}`);
+
+/**
+ * El veredicto del anillo de Stock: cuántas frutas tienen un aviso (también las que se acabaron) de todas las que lleva el puesto. Antes
+ * contaba las que NO tenían aviso y decía «0 de 7 frutas · sin avisos» justo cuando las siete tenían uno: se leía al revés.
+ */
+export function veredictoDelStock(estados: Pick<EstadoProducto, "stock" | "alertas">[]): { conAviso: number; total: number; sanas: number } {
+  const seguidas = estados.filter((e) => e.stock > 0 || e.alertas.length > 0);
+  const conAviso = seguidas.filter((e) => e.alertas.length > 0).length;
+  return { conAviso, total: seguidas.length, sanas: seguidas.length - conAviso };
+}
 
 /** Las reglas de negocio de una fruta: deterioro, reposición, sobrestock y fruta que no se mueve. */
 export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProducto {

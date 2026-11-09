@@ -59,10 +59,8 @@ export async function Encabezado({ titulo, subtitulo, volver, marca = false, sob
                 priority
                 className="rounded-xl shadow-[0_0_0_1px_color-mix(in_srgb,var(--sobre-acento)_14%,transparent),0_6px_16px_rgb(0_0_0/0.3)]"
               />
-              <div>
-                <p className="text-[26px] leading-none font-extrabold tracking-tight">Fructus</p>
-                <p className="mt-1 text-[11px] font-extrabold tracking-[0.16em] text-sobre-acento/80">VENTA MAYORISTA DE FRUTAS</p>
-              </div>
+              {/* Sin bajada «venta mayorista de frutas»: a 11 px no se leía al sol, y el ícono y el nombre ya dicen qué es (/formidable 2026-11-09). */}
+              <p className="text-[26px] leading-none font-extrabold tracking-tight">Fructus</p>
             </div>
           ) : (
             volver && (

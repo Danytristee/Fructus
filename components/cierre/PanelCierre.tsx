@@ -49,16 +49,23 @@ export function PanelCierre({ c }: { c: Cierre }) {
               className="animate-dibujar-anillo stroke-exito"
             />
           </svg>
-          <span className="cifra text-xl">{Math.round(pctContado)}%</span>
+          <span className="grid justify-items-center leading-tight">
+            <span className="cifra text-xl">{Math.round(pctContado)}%</span>
+            <span className="text-center text-[13px] leading-none font-bold text-texto-suave">
+              al
+              <br />
+              contado
+            </span>
+          </span>
         </figure>
         <div className="grid min-w-0 gap-1.5">
-          <span className="flex flex-wrap items-center justify-between gap-x-2">
+          <span className="grid">
             <span className="flex items-center gap-2 font-bold whitespace-nowrap">
               <span aria-hidden className="size-3 rounded-full bg-exito" /> Al contado
             </span>
             <Monto valor={c.contado} />
           </span>
-          <span className="flex flex-wrap items-center justify-between gap-x-2">
+          <span className="grid">
             <span className="flex items-center gap-2 font-bold whitespace-nowrap">
               <span aria-hidden className="size-3 rounded-full bg-deuda/80" /> Al crédito
             </span>
