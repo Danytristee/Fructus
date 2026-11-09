@@ -93,3 +93,19 @@ test("Clientes en tabla: ordena por deuda o por nombre, coincide con la base y u
   await expect(page).toHaveURL(`/clientes/${mayor.cliente_id}`);
   await expect(page.getByRole("heading", { level: 1, name: mayor.nombre! })).toBeVisible();
 });
+
+test("Ventas en tabla: hora, cliente, qué llevó, cómo quedó y monto; toda la fila abre el detalle", async ({ page }) => {
+  await entrarComo(page, "duenio");
+  await page.goto("/ventas");
+  const tabla = page.getByRole("table").first();
+  await expect(tabla).toBeVisible({ timeout: 15_000 });
+  await expect(tabla.getByRole("columnheader")).toHaveText(["Hora", "Cliente", "Qué llevó", "Cómo quedó", "Monto"]);
+  // La lista del celular no se ve: no se duplican las ventas.
+  await expect(page.locator("li").filter({ visible: true }).getByRole("button", { name: /mango|plátano|piña/i })).toHaveCount(0);
+  const fila = tabla.locator("tbody tr").first();
+  await expect(fila.locator("td").first()).toHaveText(/\d{1,2}:\d{2}\s?[ap]\. m\./);
+  // Se toca en la celda del monto (no en el nombre): igual abre el detalle.
+  const caja = (await fila.locator("td").last().boundingBox())!;
+  await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
+  await expect(page.getByRole("dialog", { name: "Detalle de la venta" })).toBeVisible({ timeout: 15_000 });
+});
