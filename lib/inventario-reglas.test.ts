@@ -81,14 +81,16 @@ describe("cajas y días enteros, como se dice en el puesto", () => {
 });
 
 describe("veredictoDelStock", () => {
-  const sana = { stock: 10, alertas: [] };
-  const conAviso = { stock: 10, alertas: [{ tipo: "sobrestock" }] } as unknown as Parameters<typeof veredictoDelStock>[0][number];
-  const agotada = { stock: 0, alertas: [{ tipo: "reponer" }] } as unknown as Parameters<typeof veredictoDelStock>[0][number];
-  it("cuenta las frutas CON aviso, también las que se acabaron", () => {
-    expect(veredictoDelStock([sana, conAviso, agotada])).toEqual({ conAviso: 2, total: 3, sanas: 1 });
+  type E = Parameters<typeof veredictoDelStock>[0][number];
+  const con = (stock: number, ...gravedades: string[]) => ({ stock, alertas: gravedades.map((gravedad) => ({ tipo: "reponer", gravedad })) }) as unknown as E;
+  it("cuenta las frutas con un aviso grave (la etiqueta «Hoy» de la lista); lo que puede esperar no", () => {
+    expect(veredictoDelStock([con(0, "alta"), con(80, "alta"), con(20, "media"), con(12)])).toEqual({ urgentes: 2, total: 4 });
+  });
+  it("una fruta con dos avisos graves se cuenta una vez", () => {
+    expect(veredictoDelStock([con(3, "alta", "alta")])).toEqual({ urgentes: 1, total: 1 });
   });
   it("una fruta sin stock y sin aviso no se cuenta: no se lleva", () => {
-    expect(veredictoDelStock([sana, { stock: 0, alertas: [] }])).toEqual({ conAviso: 0, total: 1, sanas: 1 });
+    expect(veredictoDelStock([con(10), con(0)])).toEqual({ urgentes: 0, total: 1 });
   });
 });
 

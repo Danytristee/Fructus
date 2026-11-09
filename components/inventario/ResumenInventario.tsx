@@ -9,9 +9,9 @@ type Props = { resumen: Resumen; estados: EstadoProducto[] };
 
 // La cabeza del dashboard: qué tan sano está el inventario (anillo), cuántas cajas hay y cuánto valen, y los tres avisos.
 export function ResumenInventario({ resumen, estados }: Props) {
-  const { conAviso, total } = veredictoDelStock(estados);
-  // El anillo se llena con lo mismo que dice el texto: las frutas CON aviso, en rojo. En orden, queda lleno en verde.
-  const lleno = total === 0 || conAviso === 0 ? 100 : Math.round((100 * conAviso) / total);
+  const { urgentes, total } = veredictoDelStock(estados);
+  // El anillo se llena con lo mismo que dice el texto: las frutas que piden algo hoy, en rojo. Sin nada urgente, queda lleno en verde.
+  const lleno = total === 0 || urgentes === 0 ? 100 : Math.round((100 * urgentes) / total);
   const sobrestock = estados.filter((e) => e.alertas.some((a) => a.tipo === "sobrestock")).length;
 
   const tiles = [
@@ -26,7 +26,7 @@ export function ResumenInventario({ resumen, estados }: Props) {
         <div className="grid justify-items-center gap-1">
           <figure
             className="relative grid size-24 place-items-center"
-            aria-label={total === 0 ? "No tienes cajas en el puesto" : conAviso === 0 ? `Tus ${total} frutas están en orden` : `${conAviso} de ${total} frutas con aviso`}
+            aria-label={total === 0 ? "No tienes cajas en el puesto" : urgentes === 0 ? `Ninguna de tus ${total} frutas es urgente hoy` : `${urgentes} de ${total} frutas urgentes hoy`}
           >
             <svg viewBox="0 0 36 36" className="absolute inset-0 -rotate-90" aria-hidden>
               <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="3.2" className="text-texto/10" />
@@ -39,11 +39,11 @@ export function ResumenInventario({ resumen, estados }: Props) {
                 strokeLinecap="round"
                 pathLength={100}
                 strokeDasharray={`${lleno} 100`}
-                className={`animate-dibujar-anillo ${conAviso === 0 ? "stroke-exito" : "stroke-deuda"}`}
+                className={`animate-dibujar-anillo ${urgentes === 0 ? "stroke-exito" : "stroke-deuda"}`}
               />
             </svg>
-            {/* El veredicto al derecho: cuántas frutas tienen aviso («2 de 8 frutas» / «con aviso»), contando las que se acabaron. Antes decía
-                «0 de 7 frutas» / «sin avisos» y se leía «no hay avisos» justo cuando las siete tenían uno (/formidable 2026-11-09). */}
+            {/* El veredicto: cuántas frutas piden algo hoy («2 de 8 frutas» / «urgentes»): las mismas que llevan la etiqueta roja «Hoy» en la
+                lista de abajo. Lo que puede esperar no asusta aquí (/formidable 2026-11-09). */}
             <span className="grid text-center text-[17px] leading-tight font-extrabold tabular-nums">
               {total === 0 ? (
                 <>
@@ -52,14 +52,14 @@ export function ResumenInventario({ resumen, estados }: Props) {
                 </>
               ) : (
                 <>
-                  <span>{conAviso === 0 ? total : `${conAviso} de ${total}`}</span>
+                  <span>{urgentes === 0 ? total : `${urgentes} de ${total}`}</span>
                   <span>frutas</span>
                 </>
               )}
             </span>
           </figure>
           {total > 0 && (
-            <span className={`text-[17px] font-bold ${conAviso === 0 ? "text-exito" : "text-deuda"}`}>{conAviso === 0 ? "en orden" : "con aviso"}</span>
+            <span className={`text-[17px] font-bold ${urgentes === 0 ? "text-exito" : "text-deuda"}`}>{urgentes === 0 ? "nada urgente" : urgentes === 1 ? "urgente" : "urgentes"}</span>
           )}
         </div>
         <div className="grid">

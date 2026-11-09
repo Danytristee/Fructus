@@ -104,14 +104,17 @@ const nombreCompleto = (p: { nombre: string; variedad: string | null }) => [p.no
 export const cajas = (n: number) => (n > 0 && n < 1 ? "menos de una caja" : `${Math.round(n)} ${Math.round(n) === 1 ? "caja" : "cajas"}`);
 const dias = (n: number) => (n > 0 && n < 1 ? "menos de un día" : `${Math.round(n)} ${Math.round(n) === 1 ? "día" : "días"}`);
 
+/** Lo que pide hacer algo HOY: un aviso grave, el mismo que en la lista de Stock lleva la etiqueta roja «Hoy». */
+export const esUrgente = (a: Pick<Alerta, "gravedad">) => a.gravedad === "alta";
+
 /**
- * El veredicto del anillo de Stock: cuántas frutas tienen un aviso (también las que se acabaron) de todas las que lleva el puesto. Antes
- * contaba las que NO tenían aviso y decía «0 de 7 frutas · sin avisos» justo cuando las siete tenían uno: se leía al revés.
+ * El veredicto del anillo de Stock: de las frutas que lleva el puesto, cuántas piden algo hoy: las que tienen la etiqueta roja «Hoy» en la
+ * lista de abajo (se acabó, por malograrse, o te sobra tanta que se malogra antes de venderse). Lo que puede esperar («Pronto») no cuenta. La primera versión contaba todos los avisos y decía «8 de 8 frutas con
+ * aviso»: asustaba y no cuadraba con las cajitas (2.ª prueba a ciegas de /formidable 2026-11-09).
  */
-export function veredictoDelStock(estados: Pick<EstadoProducto, "stock" | "alertas">[]): { conAviso: number; total: number; sanas: number } {
+export function veredictoDelStock(estados: Pick<EstadoProducto, "stock" | "alertas">[]): { urgentes: number; total: number } {
   const seguidas = estados.filter((e) => e.stock > 0 || e.alertas.length > 0);
-  const conAviso = seguidas.filter((e) => e.alertas.length > 0).length;
-  return { conAviso, total: seguidas.length, sanas: seguidas.length - conAviso };
+  return { urgentes: seguidas.filter((e) => e.alertas.some(esUrgente)).length, total: seguidas.length };
 }
 
 /** Las reglas de negocio de una fruta: deterioro, reposición, sobrestock y fruta que no se mueve. */
