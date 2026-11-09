@@ -1,5 +1,6 @@
 // El cierre del día: cuánto entró y salió, separado por medio de pago, y cuánto efectivo debería haber en la caja.
 // Lógica pura: no importa React ni Supabase.
+import { formatearFecha, formatearSoles } from "./formato";
 
 export type Medio = "efectivo" | "yape" | "plin" | "transferencia" | "otro";
 type Movimiento = { monto: number; medio: Medio | null };
@@ -55,4 +56,38 @@ export function calcularCierre(d: DatosCierre): Cierre {
     efectivoEsperado: suma([efectivo?.entra ?? 0, -(efectivo?.sale ?? 0)]),
     porMedio,
   };
+}
+
+/** ¿Hubo algo que cerrar? Un día en cero no se manda a nadie: sería un mensaje vacío. */
+export function hayMovimientoEnElCierre(c: Cierre): boolean {
+  return c.vendido > 0 || c.abonos > 0 || c.gastos > 0 || c.compras > 0;
+}
+
+const soles = (monto: number) => formatearSoles(monto).replace(/\u00a0/g, " ");
+
+/**
+ * El cierre del día como se lee en WhatsApp: un título en negrita y una línea por cifra, con la misma cuenta de la pantalla.
+ * Son etiquetas («Vendido», «Abonos»), no verbos: lo manda el dueño, pero también un ayudante al dueño o al contador.
+ */
+export function mensajeDelCierre(c: Cierre, fecha: Date): string {
+  const lineas = [
+    `*Cierre del día · ${formatearFecha(fecha)}*`,
+    `Vendido: ${soles(c.vendido)}`,
+    `• Al contado: ${soles(c.contado)}`,
+    `• Al crédito: ${soles(c.credito)}`,
+    `Abonos cobrados: ${soles(c.abonos)}`,
+    `Gastos: ${soles(c.gastos)}`,
+    `Compras al contado: ${soles(c.compras)}`,
+    `Efectivo que debe haber en la caja: ${soles(c.efectivoEsperado)}`,
+  ];
+  if (c.digital > 0) lineas.push(`Por Yape, Plin o transferencia: ${soles(c.digital)}`);
+  return lineas.join("\n");
+}
+
+/**
+ * El enlace que abre WhatsApp con el cierre ya escrito y deja elegir a quién mandarlo. La persona lo manda: no se envía nada solo
+ * (la API de WhatsApp cobra y queda fuera de la demo, CLAUDE.md).
+ */
+export function enlaceWhatsAppDelCierre(c: Cierre, fecha: Date): string {
+  return `https://wa.me/?text=${encodeURIComponent(mensajeDelCierre(c, fecha))}`;
 }

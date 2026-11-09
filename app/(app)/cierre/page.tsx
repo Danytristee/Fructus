@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { EnviarCierre } from "@/components/cierre/EnviarCierre";
 import { PanelCierre } from "@/components/cierre/PanelCierre";
 import { Encabezado } from "@/components/marco/Encabezado";
 import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
@@ -41,7 +42,14 @@ async function Resumen() {
     gastos: (gastos.data ?? []).map((g) => ({ monto: Number(g.monto), medio: medio(g.medio_pago) })),
     compras: (compras.data ?? []).map((c) => ({ monto: Number(c.total), medio: medio(c.medio_pago) })),
   });
-  return <PanelCierre c={cierre} />;
+  // Una columna propia (grid-cols-1): con cifras de cinco dígitos el panel de arriba se ensancha más que la pantalla a 360 px (pendiente
+  // aparte, ver la bitácora) y el botón no debe heredar ese ancho.
+  return (
+    <div className="grid grid-cols-1 gap-2.5">
+      <PanelCierre c={cierre} />
+      <EnviarCierre c={cierre} />
+    </div>
+  );
 }
 
 export default async function Cierre() {
