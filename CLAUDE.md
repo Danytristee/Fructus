@@ -110,6 +110,7 @@ app/
   api/
     voz/route.ts        audio → transcripción → interpretación (solo servidor)
     comprobantes/       emitir y reintentar en sandbox (solo servidor)
+    exportar/route.ts   el mes en un .xlsx para el contador (solo lectura, con la sesión de quien lo pide; lee por páginas porque Supabase corta en 1000 filas)
     salud/route.ts      consulta real a la base, para el ping y para diagnosticar
   manifest.ts  layout.tsx  globals.css
 components/
