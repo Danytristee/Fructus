@@ -78,7 +78,7 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 | Interpretación | **LLM en Groq** con tool calling; **Gemini Flash** de respaldo | `temperature: 0`, `tool_choice: "required"`. Ver `docs/interprete-voz.md`. |
 | Respuesta hablada | **Web Speech API** (`speechSynthesis`) | Viene en el navegador, gratis. |
 | Comprobantes | **Sandbox de Lucode** (apisunat.pe) | Plan B gratis: servicio BETA de SUNAT con credenciales MODDATOS. |
-| PWA | `app/manifest.ts` de Next + íconos en `public/icons/` + un service worker mínimo en `public/sw.js` (ADR-0011) | Se instala como app, la pantalla queda fija (sin zoom), y sin señal se ve «Sin conexión». Web Push para el resumen del día es de la fase 2. |
+| PWA | `app/manifest.ts` de Next + íconos en `public/icons/` + un service worker mínimo en `public/sw.js` (ADR-0011) | Se instala como app, la pantalla queda fija (sin zoom), y sin señal se ve «Sin conexión». El resumen del día llega como aviso (Web Push con `web-push`, cron de Vercel y VAPID; ADR-0013). |
 | Excel | **SheetJS**, instalado desde su CDN oficial (`https://cdn.sheetjs.com/`) | El paquete `xlsx` de npm está congelado en una versión vieja. |
 | Pruebas | **Vitest 4** (lógica pura), **Playwright** (de punta a punta a ancho de celular), **pgTAP** con `supabase test db` (la base) | Ver «Calidad». |
 | Calidad | **ESLint 9** (`eslint-config-next`), **Knip** (código muerto) | Igual que CAYLA Retail. |
@@ -112,6 +112,7 @@ app/
     comprobantes/       emitir y reintentar en sandbox (solo servidor)
     exportar/route.ts   el mes en un .xlsx para el contador (solo lectura, con la sesión de quien lo pide; lee por páginas porque Supabase corta en 1000 filas)
     salud/route.ts      consulta real a la base, para el ping y para diagnosticar
+    cron/resumen-diario/route.ts   el aviso del día (Web Push), una vez al día; solo responde con el secreto de Vercel (ADR-0013)
   manifest.ts  layout.tsx  globals.css
 components/
   ui/                   UNA pieza por función: Boton, Hoja, Tarjeta, Campo, Monto, Insignia, Aviso, Vacio, Espera

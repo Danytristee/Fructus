@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { EnviarCierre } from "@/components/cierre/EnviarCierre";
 import { ExportarMes } from "@/components/cierre/ExportarMes";
 import { PanelCierre } from "@/components/cierre/PanelCierre";
 import { Encabezado } from "@/components/marco/Encabezado";
@@ -48,11 +49,12 @@ async function Resumen() {
     gastos: (gastos.data ?? []).map((g) => ({ monto: Number(g.monto), medio: medio(g.medio_pago) })),
     compras: (compras.data ?? []).map((c) => ({ monto: Number(c.total), medio: medio(c.medio_pago) })),
   });
-  // grid-cols-1 es una columna de ancho fijo (minmax(0, 1fr)): la tarjeta del Excel mide lo que mide la pantalla aunque el resumen de arriba,
-  // con importes de cinco cifras, se ensanche (ver «Pendiente» en docs/bitacora/2026-11-08-exportar-excel.md).
+  // grid-cols-1 es una columna de ancho fijo (minmax(0, 1fr)): el botón de WhatsApp y la tarjeta del Excel miden lo que mide la pantalla aunque el
+  // resumen de arriba, con importes de cinco cifras, se ensanche (ver «Pendiente» en docs/bitacora/2026-11-08-exportar-excel.md).
   return (
     <div className="grid grid-cols-1 gap-2.5">
       <PanelCierre c={cierre} />
+      <EnviarCierre c={cierre} />
       {excel}
     </div>
   );

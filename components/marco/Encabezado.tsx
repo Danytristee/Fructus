@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
 import { nombreDelRol } from "@/lib/permisos-reglas";
+import { clavePublicaParaElNavegador } from "@/lib/push/servidor";
 import { exigirSesion } from "@/lib/sesion";
 import { MenuMas } from "./MenuMas";
 
@@ -34,6 +35,7 @@ export async function Encabezado({ titulo, subtitulo, volver }: Props) {
           rol={perfil ? nombreDelRol(perfil.rol) : ""}
           verCierre={permisos.cierre}
           verAjustes={permisos.ajustes}
+          clavePush={permisos.cierre ? clavePublicaParaElNavegador() : null}
         />
       )}
     </header>

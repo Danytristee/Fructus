@@ -11,6 +11,8 @@ const inicio = `http://127.0.0.1:${puerto}`;
 
 // El proveedor de comprobantes de mentira (tests/e2e/lucode-simulado.mjs) corre 200 puertos más arriba: 3000 → 3200.
 const puertoLucode = Number(puerto) + 200;
+// Y el servicio de avisos de mentira (tests/e2e/push-simulado.mjs), 300 más arriba: 3000 → 3300.
+const puertoPush = Number(puerto) + 300;
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -46,6 +48,8 @@ export default defineConfig({
         EMISOR_RAZON_SOCIAL: "Frutas La Hermelinda SAC (prueba)",
         // Dos segundos en vez de diez: así «el proveedor no contestó a tiempo» se prueba sin esperar.
         LUCODE_TOPE_MS: "2000",
+        // El aviso del día sale hacia el servicio de avisos de mentira, no hacia Google, Apple ni Mozilla.
+        PUSH_SIMULADOR_URL: `http://127.0.0.1:${puertoPush}`,
       },
     },
     {
@@ -54,6 +58,13 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 15_000,
       env: { PUERTO_LUCODE: String(puertoLucode) },
+    },
+    {
+      command: "node tests/e2e/push-simulado.mjs",
+      url: `http://127.0.0.1:${puertoPush}/salud`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 15_000,
+      env: { PUERTO_PUSH: String(puertoPush) },
     },
   ],
 });
