@@ -52,7 +52,8 @@ test("el menú abre Cierre y Ajustes, y la barra no marca ninguno", async ({ pag
   await expect(page).toHaveURL("/cierre");
   await expect(page.getByRole("heading", { level: 1, name: "Cierre del día" })).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.locator('nav[aria-label="Principal"] [aria-current]')).toHaveCount(0);
+  // Solo lo que se ve: en celular el panel lateral del escritorio (ADR-0015) está en el HTML pero escondido, y él sí marca Cierre.
+  await expect(page.locator('nav[aria-label="Principal"] [aria-current]').filter({ visible: true })).toHaveCount(0);
 
   await page.getByRole("button", { name: /^Menú/ }).click();
   await page.getByRole("dialog", { name: "Más" }).getByRole("link", { name: "Ajustes" }).click();

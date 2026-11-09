@@ -5,7 +5,7 @@ export function BarraFlotante({ children }: { children: React.ReactNode }) {
   return (
     <>
       <div aria-hidden className="h-16" />
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(96px+env(safe-area-inset-bottom))] z-20 mx-auto flex max-w-xl flex-wrap justify-center gap-2 px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(96px+env(safe-area-inset-bottom))] z-20 mx-auto flex max-w-xl lg:bottom-8 lg:left-[264px] flex-wrap justify-center gap-2 px-4">
         {children}
       </div>
     </>

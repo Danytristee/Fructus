@@ -162,7 +162,7 @@ Se prueba con Playwright y en el navegador a estos anchos, en este orden:
    - Contraste de **7:1** para textos y cifras importantes (WCAG AAA) y de 4.5:1 para el resto.
    - El color nunca es la única señal: siempre acompaña un texto o un icono.
 4. **Hojas, no ventanas.** En celular, todo diálogo sube desde abajo (hoja) con un solo `<Hoja>` (`components/ui/Hoja.tsx`). En escritorio, el mismo componente se ve centrado.
-5. **Navegación de abajo** con 4 destinos como máximo: Hoy · Clientes · Stock · Ventas. Ajustes y Cierre viven en un menú.
+5. **Navegación de abajo** con 4 destinos como máximo: Hoy · Clientes · Stock · Ventas. Ajustes y Cierre viven en un menú. **Desde 1024 px** (escritorio, ADR-0015) la reemplaza un panel lateral verde con los mismos destinos, más Cierre y Ajustes a la vista.
 6. **Teclado solo cuando no hay otra.** Si hay que escribir un número: `inputmode="decimal"`, campo grande, el teclado no tapa el botón de guardar.
 7. **Seguro en bordes.** Se usan `100dvh` y `env(safe-area-inset-*)`. Nunca hay scroll horizontal.
 8. **Tacto y sonido.** Al confirmar, `navigator.vibrate(30)` donde exista y un sonido corto. La persona sabe que se guardó sin mirar.

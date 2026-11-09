@@ -225,7 +225,7 @@ export function VozHoy() {
     // Encajado en el centro de la barra de abajo: el orbe asoma por encima y la barra le abre su hueco (data-voz-fijo).
     <div
       data-voz-fijo
-      className="pointer-events-none fixed inset-x-0 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 flex flex-col items-center gap-3"
+      className="pointer-events-none fixed inset-x-0 bottom-[calc(16px+env(safe-area-inset-bottom))] z-40 flex flex-col items-center gap-3 lg:bottom-8 lg:left-[264px]"
     >
       {aviso?.tipo === "error" && (
         <AvisoVoz

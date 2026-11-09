@@ -1,10 +1,14 @@
 import { BarraInferior } from "@/components/marco/BarraInferior";
+import { PanelLateral } from "@/components/marco/PanelLateral";
 import { CuentaInactiva } from "@/components/marco/CuentaInactiva";
 import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { EsperaProveedor } from "@/components/ui/Espera";
+import { nombreDelRol } from "@/lib/permisos-reglas";
+import { clavePublicaParaElNavegador } from "@/lib/push/servidor";
 import { exigirSesion } from "@/lib/sesion";
 
-// El marco de todas las pantallas con sesión: fondo, indicador de guardado y barra de abajo.
+// El marco de todas las pantallas con sesión: indicador de guardado y navegación. En celular, la barra de abajo; desde 1024 px, el panel lateral
+// verde (ADR-0015) y el contenido más ancho.
 export default async function MarcoApp({ children }: { children: React.ReactNode }) {
   const sesion = await exigirSesion();
   if (sesion.estado !== "activo") {
@@ -24,7 +28,16 @@ export default async function MarcoApp({ children }: { children: React.ReactNode
   }
   return (
     <EsperaProveedor>
-      <main className="mx-auto max-w-xl px-4 pt-[max(16px,env(safe-area-inset-top))] pb-[calc(112px+env(safe-area-inset-bottom))]">
+      {sesion.permisos && (
+        <PanelLateral
+          nombre={sesion.perfil?.nombre ?? ""}
+          rol={sesion.perfil ? nombreDelRol(sesion.perfil.rol) : ""}
+          verCierre={sesion.permisos.cierre}
+          verAjustes={sesion.permisos.ajustes}
+          clavePush={sesion.permisos.cierre ? clavePublicaParaElNavegador() : null}
+        />
+      )}
+      <main className="mx-auto max-w-xl px-4 pt-[max(16px,env(safe-area-inset-top))] pb-[calc(112px+env(safe-area-inset-bottom))] lg:mr-auto lg:ml-[264px] lg:max-w-[1240px] lg:px-10 lg:pt-8 lg:pb-16">
         {children}
       </main>
       <BarraInferior />

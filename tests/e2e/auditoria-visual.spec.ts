@@ -167,7 +167,7 @@ const sinRepetir = (h: Hallazgo[]) => [...new Map(h.map((x) => [`${x.que} ${x.te
 
 test.use({ reducedMotion: "reduce" });
 
-test("todas las pantallas del dueño se leen y nada se corta", async ({ page }) => {
+async function pantallasDelDuenio(page: Page) {
   test.setTimeout(180_000);
   const hallazgos: Hallazgo[] = [];
   await entrarComo(page, "duenio");
@@ -177,16 +177,17 @@ test("todas las pantallas del dueño se leen y nada se corta", async ({ page }) 
     await auditar(page, ruta, hallazgos);
   }
   expect(sinRepetir(hallazgos)).toEqual([]);
-});
+}
+test("todas las pantallas del dueño se leen y nada se corta", ({ page }) => pantallasDelDuenio(page));
 
-test("las hojas del dueño se leen y nada se corta", async ({ page }) => {
+async function hojasDelDuenio(page: Page) {
   test.setTimeout(180_000);
   const hallazgos: Hallazgo[] = [];
   await entrarComo(page, "duenio");
   const hoja = page.getByRole("dialog");
   const abrir = async (ruta: string, nombre: string | RegExp, donde: string) => {
     await page.goto(ruta);
-    await page.getByRole("button", { name: nombre }).first().click();
+    await page.getByRole("button", { name: nombre }).filter({ visible: true }).first().click();
     await expect(hoja).toBeVisible();
     await auditar(page, donde, hallazgos);
     await page.keyboard.press("Escape");
@@ -202,7 +203,8 @@ test("las hojas del dueño se leen y nada se corta", async ({ page }) => {
   await expect(hoja).toBeVisible();
   await auditar(page, "detalle de una venta", hallazgos);
   expect(sinRepetir(hallazgos)).toEqual([]);
-});
+}
+test("las hojas del dueño se leen y nada se corta", ({ page }) => hojasDelDuenio(page));
 
 test("el contador (solo lee) y la pantalla de entrar se leen y nada se corta", async ({ page, context }) => {
   test.setTimeout(120_000);
@@ -213,4 +215,12 @@ test("el contador (solo lee) y la pantalla de entrar se leen y nada se corta", a
   await auditar(page, "/ como contador", hallazgos);
   await context.clearCookies();
   expect(sinRepetir(hallazgos)).toEqual([]);
+});
+
+// El escritorio (ADR-0015): las mismas pantallas y hojas a 1280 × 800, con el panel lateral. Corre una sola vez.
+test.describe("escritorio, 1280 px", () => {
+  test.use({ viewport: { width: 1280, height: 800 }, isMobile: false, hasTouch: false });
+  test.beforeEach(({}, info) => test.skip(info.project.name !== "s25-412", "es el escritorio: corre una vez"));
+  test("las pantallas del dueño se leen y nada se corta", ({ page }) => pantallasDelDuenio(page));
+  test("las hojas del dueño se leen y nada se corta", ({ page }) => hojasDelDuenio(page));
 });
