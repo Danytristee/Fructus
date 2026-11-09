@@ -38,6 +38,9 @@ y un logo nuevo que se vea bien instalado en el teléfono. Antes de tocar la app
   hoy, y el porcentaje engaña.
 - **«Clientes activos +3 hoy» no existe** en el sistema; «Pedidos» se dice «ventas», como en el resto de la app.
 - **Texto base de 17 px, controles de 48 px y orbe de 96 px:** el prompt pedía 12–14 px y 44 px; mandan las reglas del sol de CLAUDE.md.
+- **Las acciones flotantes se quedan abajo** («Registrar abono», «Compra», «Merma»): la maqueta las subía a la tarjeta resumen, pero CLAUDE.md
+  pide la acción principal en el tercio de abajo, al alcance del pulgar.
+- **Los filtros siguen en varias filas,** no en una fila que se desliza: un /formidable anterior vio que deslizarlos escondía opciones.
 - **Pendiente de un OK aparte:** la comparación «que el lunes pasado a esta hora» (lectura nueva), la tarjeta «Venta por voz» en «Hoy», la
   voz en todas las pantallas (toca todos los módulos) y «¿Desde cuándo te debe?» (regla de dinero nueva).
 

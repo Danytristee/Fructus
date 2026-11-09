@@ -1,0 +1,22 @@
+# 2026-11-09 · Identidad «Bosque», ícono nuevo y frutas del puesto
+
+- **Qué cambió:**
+  - La app pasó de Aurora a Bosque (ADR-0014), con verde bosque, marfil y lima, tarjetas sólidas y cabecera verde.
+  - El ícono instalable sale recortado del logo aprobado, en tres formas: redondeada, para iPhone y maskable para Android.
+  - Las diez frutas del catálogo tienen su dibujo y la app las elige por variedad (Kent ≠ Edward, seda ≠ isla).
+  - «Cobraste» y «Te deben» van en una tarjeta.
+  - Entrar, elegir la clave y la invitación van en verde con el ícono.
+- **Cómo se verificó:**
+  - `lib/contraste-reglas.test.ts` mide el contraste de cada token, en claro y en oscuro.
+  - `tests/e2e/auditoria-visual.spec.ts` mide en la captura el contraste real de cada texto y busca cortes, en todas las pantallas y hojas a 412 y 360 px. Atrapó «Tus frutas» ilegible, el cero cortado en Ventas y el desborde de Cierre a 360 px: los tres quedaron arreglados.
+  - La tanda e2e completa da 425 de 480. Las 38 que fallaron se explicaron: 30 por las claves locales del aviso que faltaban en `.env.local` (`pnpm push:claves --archivo .env.local`) y 8 por pruebas en paralelo; de a una pasan. `pnpm e2e:prod` pasa.
+- **Decisiones:**
+  - Las acciones flotantes («Registrar abono», «Compra», «Merma») se quedan abajo y no suben a la tarjeta resumen como en la maqueta: CLAUDE.md pide la acción principal en la zona del pulgar.
+  - Los filtros siguen en varias filas: deslizarlos escondía opciones (/formidable anterior).
+- **Pendiente:**
+  - `/formidable` y `/chaos` de las pantallas rediseñadas.
+  - `pnpm medir:js` (necesita `MEDIR_COOKIE`) y `pnpm medir:pintura` con el orbe nuevo.
+  - Esperan un OK aparte: la voz en todas las pantallas, la tarjeta «Venta por voz», «¿Desde cuándo te debe?» y la comparación con el lunes pasado.
+  - Una frase para la caja negativa del cierre (`components/cierre/PanelCierre.tsx:28`, «-S/ 145.00»).
+  - Rehacer las maquetas de escritorio con Bosque.
+  - Para correr las e2e hay que detener el `pnpm dev` de la vista previa: si no, las pruebas lo reutilizan sin el Lucode simulado.
