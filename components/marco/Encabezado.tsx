@@ -82,7 +82,8 @@ export async function Encabezado({ titulo, subtitulo, volver, marca = false, sob
       )}
       <div className={"relative flex items-start justify-between gap-3 lg:mt-0 " + (marca ? "mt-4" : volver ? "mt-1" : "")}>
         <div className="min-w-0 animate-subir border-l-4 border-lima pl-3.5">
-          <h1 className="text-[34px] leading-[1.08] font-extrabold tracking-tight">{titulo}</h1>
+          {/* wrap-anywhere: el título de la ficha es el nombre del cliente, y uno largo sin espacios se salía de la pantalla. */}
+          <h1 className="text-[34px] leading-[1.08] font-extrabold tracking-tight wrap-anywhere">{titulo}</h1>
           {subtitulo && <p className="mt-0.5 text-sobre-acento/80 lg:text-texto-suave">{subtitulo}</p>}
         </div>
         {!marca && !volver && <span className="lg:hidden">{menu}</span>}

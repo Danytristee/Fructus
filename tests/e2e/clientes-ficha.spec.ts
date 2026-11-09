@@ -126,3 +126,13 @@ test("el contador abre la ficha y la lee", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: deudor!.nombre! })).toBeVisible();
   await expect(page.getByTestId("deuda-cliente")).toBeVisible();
 });
+
+test("regresión 2026-11-09: un nombre de 120 letras sin espacios se parte en el título de la ficha y no se sale de la pantalla", async ({ page }) => {
+  const base = baseLocal();
+  const { data } = await base.from("clientes").insert({ nombre: `Largo${Date.now()}${"X".repeat(120)}` }).select("id").single();
+  await entrarComo(page, "duenio");
+  await page.goto(`/clientes/${data!.id}`);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 15_000 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  await base.from("clientes").delete().eq("id", data!.id);
+});
