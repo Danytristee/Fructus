@@ -151,7 +151,9 @@
   --text-base--line-height: 1.45;
   --text-cifra: 1.875rem;
   --text-cifra--line-height: 1.15;
-  --text-total: 2.875rem;
+  /* La cifra grande (lo vendido, la caja, un saldo) escala con el ancho: a 360 px «S/ 14,577.95» no entraba en 46 px y empujaba la tarjeta
+     fuera de la pantalla (auditoría visual, 2026-11-09). Nunca baja de 30 px: CLAUDE.md pide 28 o más en cifras clave. */
+  --text-total: clamp(1.875rem, 9.4vw, 2.875rem);
   --text-total--line-height: 1.1;
 
   --radius-control: 1.25rem;
@@ -374,7 +376,11 @@
 @utility orbe {
   position: relative;
   isolation: isolate;
-  box-shadow: 0 14px 34px -4px rgb(var(--sombra-color) / 0.55);
+  /* El aro lima de Bosque, separado del orbe por un filo del color de la barra de abajo, y la sombra que lo despega. */
+  box-shadow:
+    0 0 0 5px var(--vidrio),
+    0 0 0 7px color-mix(in srgb, var(--lima) 60%, transparent),
+    0 16px 30px -6px rgb(var(--sombra-color) / 0.6);
   &::before {
     content: "";
     position: absolute;

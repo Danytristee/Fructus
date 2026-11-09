@@ -68,7 +68,7 @@ async function Cuaderno() {
 export default function Clientes() {
   return (
     <>
-      <Encabezado titulo="Clientes" subtitulo="Tu cuaderno: quién te debe y cuánto" />
+      <Encabezado titulo="Clientes" subtitulo="Tu cuaderno: quién te debe y cuánto" sobreTarjeta />
       <Suspense
         fallback={
           <div className="grid gap-2.5" role="status" aria-label="Cargando tu cuaderno">

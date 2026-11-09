@@ -106,7 +106,7 @@ async function Historial() {
 export default function Ventas() {
   return (
     <>
-      <Encabezado titulo="Ventas" subtitulo="Lo que vendiste, venta por venta" />
+      <Encabezado titulo="Ventas" subtitulo="Lo que vendiste, venta por venta" sobreTarjeta />
       <Suspense
         fallback={
           <div className="grid gap-2.5" role="status" aria-label="Cargando tus ventas">

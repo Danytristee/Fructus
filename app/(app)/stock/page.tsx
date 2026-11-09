@@ -53,7 +53,7 @@ async function Tablero() {
 export default function Stock() {
   return (
     <>
-      <Encabezado titulo="Stock" subtitulo="Tus cajas y lo que conviene hacer hoy" />
+      <Encabezado titulo="Stock" subtitulo="Tus cajas y lo que conviene hacer hoy" sobreTarjeta />
       <Suspense
         fallback={
           <div className="grid gap-2.5" role="status" aria-label="Cargando tu stock">

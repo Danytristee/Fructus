@@ -127,7 +127,7 @@ export default async function FichaCliente({ params }: { params: Promise<{ id: s
   const apodos = cliente.alias.slice(0, 2).map((a) => `«${a}»`).join(" ");
   return (
     <>
-      <Encabezado titulo={cliente.nombre} subtitulo={apodos || undefined} volver={VOLVER} />
+      <Encabezado titulo={cliente.nombre} subtitulo={apodos || undefined} volver={VOLVER} sobreTarjeta />
       <Suspense
         fallback={
           <div className="grid gap-2.5" role="status" aria-label="Cargando su cuenta">

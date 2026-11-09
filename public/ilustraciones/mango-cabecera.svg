@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200">
+<!-- Fructus, ilustración propia (ADR-0014): el mango de la cabecera de «Hoy». -->
+<defs>
+<radialGradient id="p" cx="32%" cy="30%" r="80%"><stop offset="0" stop-color="#ffd25a"/><stop offset=".42" stop-color="#f59a3b"/><stop offset=".78" stop-color="#d6453a"/><stop offset="1" stop-color="#9e2a30"/></radialGradient>
+<radialGradient id="v" cx="80%" cy="20%" r="50%"><stop offset="0" stop-color="#9cc74a" stop-opacity=".9"/><stop offset="1" stop-color="#9cc74a" stop-opacity="0"/></radialGradient>
+<linearGradient id="h" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4e9b5e"/><stop offset="1" stop-color="#1f5e3a"/></linearGradient>
+</defs>
+<path d="M30 70C55 18 120 2 182 20 140 34 90 60 30 70Z" fill="url(#h)"/>
+<path d="M30 70C80 50 128 32 182 20" stroke="#174d2f" stroke-width="2" fill="none"/>
+<path d="M96 40C126 6 176 0 214 16 182 34 140 48 96 40Z" fill="#2e7448" opacity=".95"/>
+<path d="M62 92C90 44 176 46 200 104 220 154 178 196 120 194 72 192 40 140 62 92Z" fill="url(#p)"/>
+<path d="M62 92C90 44 176 46 200 104 220 154 178 196 120 194 72 192 40 140 62 92Z" fill="url(#v)"/>
+<ellipse cx="102" cy="96" rx="22" ry="12" fill="#fff" opacity=".28" transform="rotate(-30 102 96)"/>
+<circle cx="132" cy="120" r="3.2" fill="#fff" opacity=".7"/><circle cx="150" cy="96" r="2.2" fill="#fff" opacity=".65"/><circle cx="88" cy="132" r="2.6" fill="#fff" opacity=".6"/>
+</svg>

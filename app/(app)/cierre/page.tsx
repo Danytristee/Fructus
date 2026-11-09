@@ -80,7 +80,7 @@ export default async function Cierre() {
   }
   return (
     <>
-      <Encabezado titulo="Cierre del día" subtitulo={formatearFecha(new Date())} />
+      <Encabezado titulo="Cierre del día" subtitulo={formatearFecha(new Date())} sobreTarjeta />
       <Suspense
         fallback={
           <div className="grid gap-2.5" role="status" aria-label="Cargando el cierre">

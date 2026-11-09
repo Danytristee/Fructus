@@ -42,7 +42,7 @@ export function MenuMas({ nombre, rol, verCierre, verAjustes, clavePush }: Props
           setAbierto(true);
         }}
         aria-label="Menú: cierre del día, ajustes y salir"
-        className="vidrio grid size-[52px] shrink-0 place-items-center rounded-full transition-transform duration-200 ease-salida active:scale-90"
+        className="grid size-[52px] shrink-0 place-items-center rounded-full border border-sobre-acento/20 bg-sobre-acento/10 text-sobre-acento transition-transform duration-200 ease-salida active:scale-90"
       >
         {/* Tres líneas, no una tuerca: la tuerca se lee «configuración» y escondía el cierre del día (/formidable 2026-10-28). */}
         <Menu aria-hidden className="size-6" />
