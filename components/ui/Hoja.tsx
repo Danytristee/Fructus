@@ -31,7 +31,7 @@ export function Hoja({ abierta, alCambiar, titulo, icono, children, className }:
       >
         <div aria-hidden className="mx-auto mb-3 h-[5px] w-11 shrink-0 rounded-full bg-borde/60 md:hidden" />
         <div className="mb-3 flex items-center gap-2.5">
-          {icono && <span className="grid size-10 place-items-center rounded-xl bg-acento/12 text-acento-texto">{icono}</span>}
+          {icono && <span className="grid size-10 place-items-center rounded-xl bg-lima-suave text-acento-texto">{icono}</span>}
           <SheetTitle className="text-[23px] font-extrabold text-texto">{titulo}</SheetTitle>
         </div>
         {children}

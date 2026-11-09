@@ -71,6 +71,7 @@ export default async function Piezas({ searchParams }: { searchParams: Promise<{
           <Boton>Confirmar venta</Boton>
           <Boton cargando>Confirmar venta</Boton>
           <Boton variante="secundario">Registrar abono</Boton>
+          <Boton variante="destacado">Ver stock</Boton>
           <Boton variante="texto">Descartar</Boton>
         </div>
 
