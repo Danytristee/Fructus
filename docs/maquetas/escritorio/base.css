@@ -1,33 +1,30 @@
 /* Fructus · maquetas de escritorio. Los tokens son los de Aurora (app/globals.css, ADR-0007): aquí no nace ningún color.
    Solo cambia el ACOMODO para una pantalla ancha; la identidad es la misma del celular. */
 :root {
-  --fondo: #eef3f8;
-  --vidrio: #f3f7fb;
+  /* Identidad «Bosque» (ADR-0014): los mismos tokens de app/globals.css. */
+  --fondo: #f7f5ee;
+  --vidrio: #fffefa;
   --superficie: #ffffff;
-  --texto: #0b1526;
-  --texto-suave: #3e4a5c;
-  --acento: #114b5f;
-  --sobre-acento: #ffffff;
-  --acento-texto: #114b5f;
-  --exito: #0d5a33;
-  --exito-fondo: #e3f6ea;
-  --deuda: #95111f;
-  --deuda-fondo: #fde8ec;
-  --borde: #8794a6;
-  --velo: rgb(8 12 24 / 0.45);
-  --sol: #b45309;
-  --luz-1: #9fe8d0;
-  --luz-2: #b9d8ff;
-  --luz-3: #ffd3b5;
-  --luz-4: #e2d4ff;
-  --orbe-1: #114b5f;
-  --orbe-2: #2e6fa8;
-  --orbe-3: #5b4fc4;
-  --orbe-4: #1f7a8c;
-  --sombra-color: 20 40 70;
-  --linea: color-mix(in srgb, var(--texto) 10%, transparent);
+  --texto: #17251d;
+  --texto-suave: #4a554e;
+  --acento: #103d29;
+  --sobre-acento: #f7f5ee;
+  --acento-texto: #103d29;
+  --profundo: #082c1e;
+  --bosque-2: #246b45;
+  --lima: #d5f45a;
+  --lima-suave: #eef8c8;
+  --exito: #185a31;
+  --exito-fondo: #e6f0dc;
+  --deuda: #8e1f2a;
+  --deuda-fondo: #f8e3e3;
+  --borde: #7f8a82;
+  --linea: #e4e1d4;
+  --velo: rgb(8 28 18 / 0.5);
+  --sol: #8a4a0c;
+  --sombra-color: 16 40 26;
   --r-control: 20px;
-  --r-tarjeta: 24px;
+  --r-tarjeta: 22px;
   --r-protagonista: 28px;
   --ease-salida: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-resorte: cubic-bezier(0.22, 1.12, 0.36, 1);
@@ -44,18 +41,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 a { color: inherit; text-decoration: none; }
 h1, h2, h3, p { margin: 0; }
 
-/* Fondo de luces, quieto (ADR-0007). */
-.fondo { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--fondo); pointer-events: none; }
-.fondo span { position: absolute; width: 90vmax; height: 90vmax; border-radius: 50%; opacity: .9; }
-.fondo span:nth-child(1) { top: -40vmax; left: -35vmax; background: radial-gradient(closest-side, var(--luz-1), transparent); }
-.fondo span:nth-child(2) { top: -10vmax; right: -50vmax; background: radial-gradient(closest-side, var(--luz-2), transparent); }
-.fondo span:nth-child(3) { bottom: -45vmax; left: -30vmax; background: radial-gradient(closest-side, var(--luz-3), transparent); }
-.fondo span:nth-child(4) { bottom: -30vmax; right: -45vmax; background: radial-gradient(closest-side, var(--luz-4), transparent); }
+/* Fondo liso y quieto (Bosque quitó las luces de Aurora). */
+.fondo { display: none; }
 
 .vidrio {
-  background: color-mix(in srgb, var(--vidrio) 84%, transparent);
-  border: 1px solid color-mix(in srgb, var(--superficie) 70%, transparent);
-  box-shadow: 0 10px 34px rgb(var(--sombra-color) / 0.08);
+  background: var(--vidrio);
+  border: 1px solid var(--linea);
+  box-shadow: 0 1px 2px rgb(var(--sombra-color) / 0.05), 0 10px 28px -12px rgb(var(--sombra-color) / 0.22);
 }
 .tarjeta { border-radius: var(--r-tarjeta); padding: 20px 22px; }
 .protagonista { border-radius: var(--r-protagonista); padding: 24px 26px; }
@@ -74,7 +66,7 @@ h1, h2, h3, p { margin: 0; }
 .caja-icono.exito { background: var(--exito-fondo); }
 .caja-icono.deuda { background: var(--deuda-fondo); }
 .caja-icono.acento { background: color-mix(in srgb, var(--acento) 12%, transparent); color: var(--acento-texto); }
-.caja-icono.sol { background: #fdf0e1; }
+.caja-icono.sol { background: #fbebd5; }
 svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
 /* Botones: píldora, 48 px como mínimo también en escritorio (una sola pieza para los dos). */
@@ -87,7 +79,8 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
 .boton:hover { filter: brightness(1.12); }
 .boton:active { transform: scale(.97); }
 .boton.claro { background: var(--superficie); color: var(--texto); box-shadow: inset 0 0 0 1px var(--linea); }
-.boton.claro:hover { filter: none; background: color-mix(in srgb, var(--acento) 7%, var(--superficie)); }
+.boton.claro:hover { filter: none; background: var(--lima-suave); }
+.boton.lima { background: var(--lima); color: var(--acento); }
 .boton.exito { background: var(--exito); }
 kbd {
   font: 800 13px/1 "Manrope", system-ui; padding: 4px 7px; border-radius: 7px;
@@ -103,7 +96,7 @@ kbd {
 .insignia.exito { background: var(--exito-fondo); color: var(--exito); }
 .insignia.deuda { background: var(--deuda-fondo); color: var(--deuda); }
 .insignia.acento { background: color-mix(in srgb, var(--acento) 12%, transparent); color: var(--acento-texto); }
-.insignia.sol { background: #fdf0e1; color: var(--sol); }
+.insignia.sol { background: #fbebd5; color: var(--sol); }
 .insignia.neutra { background: color-mix(in srgb, var(--texto) 7%, transparent); color: var(--texto-suave); }
 
 /* Filtros en píldora con su número. */
@@ -114,7 +107,7 @@ kbd {
 }
 .filtro b { font-size: 13px; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--texto) 8%, transparent); }
 .filtro[aria-pressed="true"] { background: var(--acento); color: var(--sobre-acento); box-shadow: none; }
-.filtro[aria-pressed="true"] b { background: rgb(255 255 255 / .18); }
+.filtro[aria-pressed="true"] b { background: var(--lima); color: var(--acento); }
 
 .buscador {
   display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; border-radius: 999px;
@@ -125,11 +118,11 @@ kbd {
 
 .avatar {
   display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
-  font-weight: 800; font-size: 15px; background: color-mix(in srgb, var(--luz-1) 60%, white); color: var(--acento-texto);
+  font-weight: 800; font-size: 15px; background: var(--lima-suave); color: var(--acento-texto);
 }
-.avatar.b { background: color-mix(in srgb, var(--luz-2) 60%, white); }
-.avatar.c { background: color-mix(in srgb, var(--luz-3) 70%, white); }
-.avatar.d { background: color-mix(in srgb, var(--luz-4) 70%, white); }
+.avatar.b { background: #e3ede6; }
+.avatar.c { background: #f5e9d8; }
+.avatar.d { background: #e8e6f2; }
 
 /* Tablas para quien revisa: cifras alineadas a la derecha, filas de 56 px, cabecera fija. */
 .tabla { width: 100%; border-collapse: collapse; font-size: 16px; }
@@ -151,17 +144,16 @@ kbd {
 /* Orbe de voz: el mismo del celular. Solo gira la capa del degradado (transform), nunca una sombra. */
 .orbe {
   position: relative; isolation: isolate; display: grid; place-items: center; border-radius: 50%; border: 0;
-  color: #fff; box-shadow: 0 14px 40px rgb(17 75 95 / 0.40); overflow: hidden;
+  color: var(--lima); overflow: hidden;
+  background: radial-gradient(circle at 34% 28%, #2c7a50, var(--acento) 58%, var(--profundo));
+  box-shadow: 0 0 0 3px var(--vidrio), 0 0 0 5px color-mix(in srgb, var(--lima) 60%, transparent), 0 12px 26px -6px rgb(var(--sombra-color) / .55);
 }
 .orbe::before {
-  content: ""; position: absolute; inset: -20%; z-index: -1;
-  background: conic-gradient(from 25deg, var(--orbe-1), var(--orbe-2), var(--orbe-3), var(--orbe-4), var(--orbe-1));
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 70%, rgb(213 244 90 / .35) 85%, transparent);
   animation: giro 9s linear infinite;
 }
-.orbe::after {
-  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
-  background: radial-gradient(circle at 32% 24%, rgb(255 255 255 / .38), transparent 46%);
-}
+.orbe::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: radial-gradient(circle at 32% 24%, rgb(255 255 255 / .22), transparent 46%); }
 .orbe[data-estado="escuchando"]::before { animation-duration: 2.4s; }
 .orbe[data-estado="entendiendo"]::before { animation-duration: .9s; }
 @keyframes giro { to { transform: rotate(360deg); } }
@@ -216,3 +208,14 @@ kbd {
 /* Los filtros van en UNA fila: si no caben, se deslizan de lado (en el celular hoy se parten en dos). */
 .filtros { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
 .filtro { flex-shrink: 0; padding: 0 14px; }
+
+/* Bosque: la marca es el ícono de la app; la navegación va en verde bosque, como la cabecera del celular. */
+.icono-app { width: 40px; height: 40px; border-radius: 11px; box-shadow: 0 0 0 1px rgb(247 245 238 / .14), 0 6px 14px rgb(var(--sombra-color) / .4); }
+.verde {
+  background: radial-gradient(120% 70% at 20% 0%, var(--bosque-2), var(--acento) 45%, var(--profundo));
+  color: var(--sobre-acento); border: 0;
+}
+.titulo-bosque { border-left: 4px solid var(--lima); padding-left: 14px; }
+.insignia.lima { background: var(--lima); color: var(--acento); }
+.insignia.claro-sobre-verde { background: rgb(247 245 238 / .14); color: var(--sobre-acento); }
+.boton.lima kbd { background: rgb(16 61 41 / .12); color: var(--acento); }
