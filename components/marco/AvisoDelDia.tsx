@@ -16,7 +16,7 @@ type Mensaje = { tipo: "exito" | "info" | "error"; titulo: string; texto?: strin
 
 const SUBTITULOS: Record<Estado, string> = {
   revisando: "Revisando…",
-  apagado: `Lo vendido y lo que te deben, ${HORA_DEL_AVISO_TEXTO}`,
+  apagado: `Lo que vendiste, ${HORA_DEL_AVISO_TEXTO}`,
   activo: `Activado, ${HORA_DEL_AVISO_TEXTO}`,
   bloqueado: "Bloqueado en tu teléfono",
   "instalar-primero": "Primero instala la app",
@@ -125,11 +125,11 @@ export function AvisoDelDia({ clavePublica }: { clavePublica: string }) {
   return (
     <div className="grid gap-2">
       {interactivo ? (
-        <button type="button" role="switch" aria-checked={activo} aria-busy={ocupado || undefined} disabled={ocupado} onClick={alTocar} className={cn(filaDelMenu, "disabled:opacity-100")}>
+        <button type="button" role="switch" aria-checked={activo} aria-busy={ocupado || undefined} disabled={ocupado} onClick={alTocar} className={cn(filaDelMenu, "py-3 disabled:opacity-100")}>
           {contenido}
         </button>
       ) : (
-        <div className={cn(filaDelMenu, "active:scale-100")}>{contenido}</div>
+        <div className={cn(filaDelMenu, "py-3 active:scale-100")}>{contenido}</div>
       )}
       {estado === "bloqueado" && (
         <Aviso tipo="info" titulo="Los avisos están bloqueados">
@@ -138,7 +138,7 @@ export function AvisoDelDia({ clavePublica }: { clavePublica: string }) {
       )}
       {estado === "instalar-primero" && (
         <Aviso tipo="info" titulo="En iPhone, los avisos llegan solo a la app instalada">
-          Usa «Instalar la app» aquí abajo y vuelve a abrir este menú desde el ícono de Fructus.
+          Toca «Instalar la app» aquí abajo.
         </Aviso>
       )}
       {mensaje && (

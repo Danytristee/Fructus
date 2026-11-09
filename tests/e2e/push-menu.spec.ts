@@ -105,7 +105,7 @@ test("se activa con un toque: pide el permiso, suscribe el teléfono, lo guarda 
   const fila = filaDe(hoja);
   await expect(fila).toBeVisible();
   await expect(fila).toHaveAttribute("aria-checked", "false");
-  await expect(fila).toContainText("Lo vendido y lo que te deben, como a las 7 p. m.");
+  await expect(fila).toContainText("Lo que vendiste, como a las 7 p. m.");
 
   await fila.click();
   await expect(fila).toHaveAttribute("aria-checked", "true", { timeout: 15_000 });
