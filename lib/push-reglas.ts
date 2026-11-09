@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { formatearHora, formatearSoles } from "./formato";
 import { textoVentas, type ResumenHoy } from "./hoy-reglas";
+import type { Sistema } from "./pwa-reglas";
 
 /**
  * La hora de Lima a la que sale el aviso (las 7 p. m.: el puesto ya cerró y la gente que vende de mañana ya descansa).
@@ -25,7 +26,9 @@ export const HORA_DEL_AVISO_TEXTO = `como a las ${formatearHora(HORA_DEL_AVISO_L
 
 // Cada navegador manda los avisos por el servicio de su fabricante: Chrome, Edge, Samsung y Opera por el de Google; Firefox por el de
 // Mozilla; Safari (iPhone y Mac) por el de Apple; el Edge viejo por el de Windows. Cualquier otra dirección no es un servicio de avisos.
-const SERVICIOS_DE_AVISOS = [/^fcm\.googleapis\.com$/, /(^|\.)push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /(^|\.)notify\.windows\.com$/];
+// Chrome de escritorio puede dar una dirección de `jmt17.google.com` en vez de `fcm.googleapis.com` (se vio al probar con un Chrome de
+// verdad): sin ella, a esas personas se les diría «no pudimos activar» sin causa.
+const SERVICIOS_DE_AVISOS = [/^fcm\.googleapis\.com$/, /^jmt\d+\.google\.com$/, /(^|\.)push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /(^|\.)notify\.windows\.com$/];
 
 /**
  * ¿La dirección es de un servicio de avisos conocido? Es la regla que impide que el servidor mande un POST a donde diga una persona
@@ -119,4 +122,38 @@ export function clasificarRespuesta(estadoHttp: number): ResultadoEnvio {
   if (estadoHttp >= 200 && estadoHttp < 300) return { estado: "enviado" };
   if (estadoHttp === 404 || estadoHttp === 410) return { estado: "caducada" };
   return { estado: "fallo", codigo: `http-${estadoHttp}` };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Qué se le ofrece a quien abre el menú
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+export type EstadoDelAviso = "no-disponible" | "instalar-primero" | "bloqueado" | "apagado" | "activo";
+
+/**
+ * Qué muestra la fila «Aviso del día» del menú, según lo que el teléfono deja hacer:
+ *   - iPhone con la app sin instalar: Safari solo manda avisos a una app instalada. Se dice, en vez de un interruptor que no hace nada.
+ *   - sin soporte (un navegador viejo, o sin service worker, como en desarrollo): la fila no aparece.
+ *   - bloqueado: la persona dijo «No permitir» una vez; el navegador no vuelve a preguntar y solo ella puede cambiarlo en los ajustes.
+ *   - activo: tiene el permiso Y una suscripción en ese teléfono (un permiso sin suscripción no avisa nada).
+ */
+export function estadoDelAviso(e: {
+  sistema: Sistema;
+  instalada: boolean;
+  soportado: boolean;
+  registroDisponible: boolean;
+  permiso: "default" | "granted" | "denied";
+  suscrita: boolean;
+}): EstadoDelAviso {
+  if (e.sistema === "ios" && !e.instalada) return "instalar-primero";
+  if (!e.soportado || !e.registroDisponible) return "no-disponible";
+  if (e.permiso === "denied") return "bloqueado";
+  return e.permiso === "granted" && e.suscrita ? "activo" : "apagado";
+}
+
+/** La clave pública del servidor (base64url) como la pide `pushManager.subscribe`: en bytes, que lo aceptan todos los navegadores. */
+export function claveParaElNavegador(base64url: string): Uint8Array<ArrayBuffer> {
+  const relleno = "=".repeat((4 - (base64url.length % 4)) % 4);
+  const binario = atob((base64url + relleno).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(binario, (c) => c.charCodeAt(0));
 }

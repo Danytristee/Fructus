@@ -6,8 +6,10 @@ import {
   avisoDeActivacion,
   avisoDelDia,
   clasificarRespuesta,
+  claveParaElNavegador,
   direccionDeAvisoValida,
   esquemaSuscripcion,
+  estadoDelAviso,
   HORA_DEL_AVISO_LIMA,
   HORA_DEL_AVISO_TEXTO,
 } from "./push-reglas";
@@ -48,6 +50,7 @@ describe("la hora del aviso", () => {
 describe("direccionDeAvisoValida", () => {
   it.each([
     "https://fcm.googleapis.com/fcm/send/dXNlcjpwcnVlYmE",
+    "https://jmt17.google.com/fcm/send/dXNlcjpwcnVlYmE", // el que dio un Chrome de verdad
     "https://updates.push.services.mozilla.com/wpush/v2/gAAAA",
     "https://web.push.apple.com/QGv2-sDnXjOq",
     "https://wns2-pn1p.notify.windows.com/w/?token=BQYAAAB",
@@ -63,6 +66,8 @@ describe("direccionDeAvisoValida", () => {
     ["un dominio que solo contiene el nombre", "https://fcm.googleapis.com.malo.example/fcm/send/abc"],
     ["un dominio que termina parecido", "https://malofcm.googleapis.com/fcm/send/abc"],
     ["un dominio de Apple pegado a otro texto", "https://mala-push.apple.com/abc"],
+    ["otro servicio de Google que no es de avisos", "https://docs.google.com/fcm/send/abc"],
+    ["el de Google con algo más pegado", "https://jmt17.google.com.malo.example/fcm/send/abc"],
     ["credenciales en la dirección", "https://usuario:clave@fcm.googleapis.com/fcm/send/abc"],
     ["un puerto", "https://fcm.googleapis.com:8443/fcm/send/abc"],
     ["texto que no es una dirección", "no-es-una-direccion"],
@@ -156,5 +161,53 @@ describe("clasificarRespuesta", () => {
 
   it("lo demás falla esta vez y se anota el código, sin desactivar (una clave mal puesta no debe apagar los avisos de todos)", () => {
     for (const estado of [400, 401, 403, 413, 429, 500, 503]) expect(clasificarRespuesta(estado)).toEqual({ estado: "fallo", codigo: `http-${estado}` });
+  });
+});
+
+describe("estadoDelAviso", () => {
+  const todo = { sistema: "android", instalada: false, soportado: true, registroDisponible: true, permiso: "default", suscrita: false } as const;
+
+  it("Android con permiso por pedir: apagado, con el interruptor para activarlo", () => {
+    expect(estadoDelAviso(todo)).toBe("apagado");
+  });
+
+  it("con el permiso dado y una suscripción en ese teléfono: activo", () => {
+    expect(estadoDelAviso({ ...todo, permiso: "granted", suscrita: true })).toBe("activo");
+  });
+
+  it("un permiso sin suscripción no avisa nada: sigue apagado (y al tocarlo se suscribe)", () => {
+    expect(estadoDelAviso({ ...todo, permiso: "granted", suscrita: false })).toBe("apagado");
+    // y una suscripción de antes sin el permiso (la persona lo quitó en los ajustes) tampoco cuenta como activo
+    expect(estadoDelAviso({ ...todo, permiso: "default", suscrita: true })).toBe("apagado");
+  });
+
+  it("si la persona dijo «No permitir», queda bloqueado: el navegador no vuelve a preguntar", () => {
+    expect(estadoDelAviso({ ...todo, permiso: "denied" })).toBe("bloqueado");
+  });
+
+  it("iPhone con la app sin instalar: se dice que primero hay que instalarla (Safari no manda avisos a una pestaña)", () => {
+    expect(estadoDelAviso({ ...todo, sistema: "ios", soportado: false, registroDisponible: false })).toBe("instalar-primero");
+  });
+
+  it("iPhone con la app instalada: como cualquier otro teléfono", () => {
+    expect(estadoDelAviso({ ...todo, sistema: "ios", instalada: true })).toBe("apagado");
+    expect(estadoDelAviso({ ...todo, sistema: "ios", instalada: true, permiso: "granted", suscrita: true })).toBe("activo");
+  });
+
+  it("sin soporte, o sin service worker (desarrollo): no se ofrece", () => {
+    expect(estadoDelAviso({ ...todo, soportado: false })).toBe("no-disponible");
+    expect(estadoDelAviso({ ...todo, registroDisponible: false })).toBe("no-disponible");
+    expect(estadoDelAviso({ ...todo, sistema: "ios", instalada: true, soportado: false })).toBe("no-disponible"); // un iPhone viejo
+  });
+});
+
+describe("claveParaElNavegador", () => {
+  it("pasa la clave pública de base64url a los 65 bytes de un punto de la curva P-256", () => {
+    const clave = "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM";
+    const bytes = claveParaElNavegador(clave);
+    expect(bytes).toBeInstanceOf(Uint8Array);
+    expect(bytes).toHaveLength(65);
+    expect(bytes[0]).toBe(4); // punto sin comprimir
+    expect(Buffer.from(bytes).toString("base64url")).toBe(clave);
   });
 });

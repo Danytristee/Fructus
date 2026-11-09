@@ -11,6 +11,8 @@ import { filaDelMenu, iconoDelMenu } from "./menu-estilos";
 
 // La hoja (Radix Dialog) pesa unos 10 KB y casi nadie abre el menú: se descarga recién al primer toque (ADR-0006).
 const Hoja = dynamic(() => import("@/components/ui/Hoja").then((m) => m.Hoja), { ssr: false });
+// Lo mismo con el aviso del día: su código se baja solo cuando se abre el menú, no con «Hoy».
+const AvisoDelDia = dynamic(() => import("./AvisoDelDia").then((m) => m.AvisoDelDia), { ssr: false });
 
 const fila = filaDelMenu;
 const icono = iconoDelMenu;
@@ -21,10 +23,12 @@ type Props = {
   /** Lo decide el servidor con permisosDe(): aquí solo se obedece. */
   verCierre: boolean;
   verAjustes: boolean;
+  /** La clave pública del servidor para suscribir el teléfono al aviso del día; null si no está listo (no se ofrece). */
+  clavePush: string | null;
 };
 
 // El menú de arriba a la derecha: lo que no cabe en la barra de abajo, y quién entró.
-export function MenuMas({ nombre, rol, verCierre, verAjustes }: Props) {
+export function MenuMas({ nombre, rol, verCierre, verAjustes, clavePush }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [usado, setUsado] = useState(false);
   const cerrar = () => setAbierto(false);
@@ -67,6 +71,7 @@ export function MenuMas({ nombre, rol, verCierre, verAjustes }: Props) {
                 <ChevronRight aria-hidden className="size-6 text-texto-suave" />
               </Link>
             )}
+            {verCierre && clavePush && <AvisoDelDia clavePublica={clavePush} />}
             <InstalarApp alElegir={cerrar} />
             <form action={salir}>
               <button type="submit" className={fila}>
