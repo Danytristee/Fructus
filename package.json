@@ -26,6 +26,7 @@
     "medir:pintura": "node scripts/entorno-local.mjs node scripts/medir-pintura.mjs",
     "medir:cpu": "node scripts/entorno-local.mjs node scripts/medir-cpu.mjs",
     "cuentas:invitar": "node --env-file=.env.local scripts/invitar.mjs",
+    "push:claves": "node scripts/generar-claves-push.mjs",
     "voz:precision": "vitest run --config vitest.voz.config.ts tests/interprete/precision.voz.ts",
     "voz:stt": "vitest run --config vitest.voz.config.ts tests/interprete/stt.voz.ts"
   },
@@ -40,6 +41,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "server-only": "^0.0.1",
+    "web-push": "3.6.7",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -48,6 +50,7 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/web-push": "3.6.4",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.3",
     "knip": "^6.43.0",
