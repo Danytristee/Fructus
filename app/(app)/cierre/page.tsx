@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { EnviarCierre } from "@/components/cierre/EnviarCierre";
+import { ExportarMes } from "@/components/cierre/ExportarMes";
 import { PanelCierre } from "@/components/cierre/PanelCierre";
 import { Encabezado } from "@/components/marco/Encabezado";
 import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
@@ -9,15 +10,18 @@ import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
 import { calcularCierre, type Medio } from "@/lib/cierre-reglas";
+import { mesesParaExportar } from "@/lib/exportar-reglas";
 import { formatearFecha } from "@/lib/formato";
 import { inicioDelDiaLima } from "@/lib/hoy-reglas";
 import { exigirSesion } from "@/lib/sesion";
 
 export const metadata: Metadata = { title: "Cierre del día · Fructus" };
 
-// Lee lo que entró y salió hoy y lo pasa por lib/cierre-reglas.ts.
+// Lee lo que entró y salió hoy y lo pasa por lib/cierre-reglas.ts. Debajo, el Excel del mes: va dentro del mismo Suspense para que
+// no aparezca antes que el resumen y se corra hacia abajo cuando este llegue. Se ofrece aunque el día no se haya podido leer.
 async function Resumen() {
   const { supabase } = await exigirSesion();
+  const excel = <ExportarMes meses={mesesParaExportar(new Date())} />;
   const desde = inicioDelDiaLima(new Date());
   const [ventas, abonos, gastos, compras] = await Promise.all([
     supabase.from("ventas").select("total, condicion, medio_pago").eq("estado", "registrada").gte("fecha", desde),
@@ -29,9 +33,12 @@ async function Resumen() {
   if (error) {
     console.error("cierre: no se pudo leer el día", { codigo: error.code });
     return (
-      <Aviso titulo="No pudimos leer tu día" accion={<BotonReintentar />}>
-        Revisa tu señal. Lo que ya guardaste está a salvo.
-      </Aviso>
+      <div className="grid grid-cols-1 gap-2.5">
+        <Aviso titulo="No pudimos leer tu día" accion={<BotonReintentar />}>
+          Revisa tu señal. Lo que ya guardaste está a salvo.
+        </Aviso>
+        {excel}
+      </div>
     );
   }
   const medio = (m: string | null) => m as Medio | null;
@@ -42,12 +49,13 @@ async function Resumen() {
     gastos: (gastos.data ?? []).map((g) => ({ monto: Number(g.monto), medio: medio(g.medio_pago) })),
     compras: (compras.data ?? []).map((c) => ({ monto: Number(c.total), medio: medio(c.medio_pago) })),
   });
-  // Una columna propia (grid-cols-1): con cifras de cinco dígitos el panel de arriba se ensancha más que la pantalla a 360 px (pendiente
-  // aparte, ver la bitácora) y el botón no debe heredar ese ancho.
+  // grid-cols-1 es una columna de ancho fijo (minmax(0, 1fr)): el botón de WhatsApp y la tarjeta del Excel miden lo que mide la pantalla aunque el
+  // resumen de arriba, con importes de cinco cifras, se ensanche (ver «Pendiente» en docs/bitacora/2026-11-08-exportar-excel.md).
   return (
     <div className="grid grid-cols-1 gap-2.5">
       <PanelCierre c={cierre} />
       <EnviarCierre c={cierre} />
+      {excel}
     </div>
   );
 }
@@ -79,6 +87,7 @@ export default async function Cierre() {
             <Esqueleto className="h-[170px] rounded-protagonista" />
             <Esqueleto className="h-[130px]" />
             <Esqueleto className="h-[220px]" />
+            <Esqueleto className="h-[330px]" />
           </div>
         }
       >
