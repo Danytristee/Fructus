@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { entrarComo } from "./cuentas";
+import { quieto } from "./medir";
 
 // El escritorio (ADR-0015): desde 1024 px, un panel lateral verde reemplaza a la barra de abajo y al menú de tres rayas. Quien lo usa es quien
 // revisa (administrador o contador). No depende del celular emulado: corre una sola vez, a 1280 × 800.
@@ -54,4 +55,18 @@ test("el contador ve el panel sin Ajustes, y sin el botón de voz", async ({ pag
   const nav = page.getByRole("complementary", { name: "Fructus" }).getByRole("navigation", { name: "Principal" });
   await expect(nav.getByRole("link")).toHaveText(["Hoy", "Clientes", "Stock", "Ventas", "Cierre del día"]);
   await expect(page.getByRole("button", { name: /Mantén para hablar/ })).toHaveCount(0);
+});
+
+test("«Hoy» en grilla: lo vendido a la izquierda y lo cobrado al lado; «Lo último» debajo, con el aviso de stock al lado", async ({ page }) => {
+  await entrarComo(page, "duenio");
+  const vendido = page.getByLabel("Lo vendido hoy");
+  const cobrado = page.getByLabel("Lo que cobraste y lo que te deben");
+  await expect(cobrado).toBeVisible({ timeout: 15_000 });
+  test.skip(!(await vendido.isVisible()), "la base local no tiene ventas hoy: corre npx supabase db reset");
+  await quieto(page); // las tarjetas entran con su animación, desfasadas: se mide cuando terminaron
+  const [v, c] = [(await vendido.boundingBox())!, (await cobrado.boundingBox())!];
+  expect(c.x, "lo cobrado va a la derecha de lo vendido").toBeGreaterThan(v.x + v.width - 1);
+  expect(Math.abs(c.y - v.y), "en la misma fila").toBeLessThan(2);
+  const ultimo = (await page.getByRole("heading", { name: "Lo último" }).boundingBox())!;
+  expect(ultimo.y, "«Lo último» debajo").toBeGreaterThan(v.y + v.height);
 });

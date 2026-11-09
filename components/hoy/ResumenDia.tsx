@@ -36,13 +36,14 @@ export async function ResumenDia() {
   const clientesQueDeben = deudores.count ?? 0;
 
   return (
-    <div className="grid gap-2.5">
+    // En escritorio (ADR-0015), lo vendido es el protagonista a la izquierda y lo cobrado y lo que te deben van al lado.
+    <div className="grid gap-2.5 lg:grid-cols-12 lg:items-start lg:gap-4">
       {dia.numeroVentas === 0 ? (
-        <Vacio icono={<TrendingUp />} titulo="Todavía no vendiste hoy" className="animate-subir">
+        <Vacio icono={<TrendingUp />} titulo="Todavía no vendiste hoy" className="animate-subir lg:col-span-7">
           Mantén el botón de abajo y di la venta, por ejemplo: «10 cajas de mango a don Lucho».
         </Vacio>
       ) : (
-        <Tarjeta protagonista className="grid animate-subir" aria-label="Lo vendido hoy">
+        <Tarjeta protagonista className="grid animate-subir lg:col-span-7" aria-label="Lo vendido hoy">
           <span className="font-bold text-texto-suave">Vendiste hoy</span>
           <span data-testid="monto-vendido">
             <MontoVivo valor={dia.vendido} tamano="total" className="my-0.5" />
@@ -59,7 +60,7 @@ export async function ResumenDia() {
 
       {/* Lo que entró y lo que falta entrar, juntos en una tarjeta: se leen como un par. El ícono va chico junto a la etiqueta para que la
           cifra use todo el ancho: a 360 px, un monto de cinco cifras al lado de un ícono grande no entraba (ADR-0014). */}
-      <Tarjeta className="grid animate-subir overflow-hidden p-0 [animation-delay:70ms]" aria-label="Lo que cobraste y lo que te deben">
+      <Tarjeta className="grid animate-subir overflow-hidden p-0 [animation-delay:70ms] lg:col-span-5" aria-label="Lo que cobraste y lo que te deben">
         <div className="grid gap-0.5 p-4">
           <span className="flex items-center gap-2 font-bold text-texto-suave">
             <span className="grid size-8 place-items-center rounded-[11px] bg-exito-fondo text-exito">
