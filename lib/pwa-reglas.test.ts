@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { COLOR_DE_FONDO, maneraDeInstalar, pasosParaInstalar, sistemaDe } from "./pwa-reglas";
+import { COLOR_DEL_TEMA, maneraDeInstalar, pasosParaInstalar, sistemaDe } from "./pwa-reglas";
 
 const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1";
 const IPAD_NUEVO = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15";
@@ -57,9 +57,9 @@ describe("pasosParaInstalar (en lenguaje de puesto)", () => {
   });
 });
 
-describe("COLOR_DE_FONDO (la barra del navegador y el arranque de la app)", () => {
-  it("es el --fondo de globals.css: si cambia la identidad, cambian los dos", () => {
+describe("COLOR_DEL_TEMA (la barra del teléfono y el arranque de la app)", () => {
+  it("es el --acento de globals.css: si cambia la identidad, cambian los dos", () => {
     const css = readFileSync("app/globals.css", "utf8");
-    expect(css).toMatch(new RegExp(`--fondo:\\s*${COLOR_DE_FONDO};`, "i"));
+    expect(css).toMatch(new RegExp(`--acento:\\s*${COLOR_DEL_TEMA};`, "i"));
   });
 });

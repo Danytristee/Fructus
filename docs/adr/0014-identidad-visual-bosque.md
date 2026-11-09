@@ -25,7 +25,10 @@ y un logo nuevo que se vea bien instalado en el teléfono. Antes de tocar la app
   cada pantalla, pero ahora es la tarjeta marfil sólida con un borde fino. Solo `vidrio-desenfocado` desenfoca (la barra de abajo).
 - **El ícono sale de la imagen aprobada, recortada, no redibujada.** Un SVG dibujado a mano en código se veía como piezas sueltas; los íconos
   de la PWA son PNG de todos modos y la imagen da 818 px de ícono (el más grande que pide un teléfono es de 512). El recorte y sus tres
-  formas (redondeada, a sangre para iPhone, maskable para Android) los arma `docs/maquetas/bosque/logo/generar-iconos.mjs`.
+  formas (redondeada, a sangre para iPhone, maskable para Android) los arma `pnpm iconos` (`scripts/generar-iconos.mjs`) desde
+  `docs/marca/logo-fructus.webp`.
+- **La barra del teléfono y la pantalla de arranque son verde bosque** (`COLOR_DEL_TEMA` en `lib/pwa-reglas.ts`, atado a `--acento`): el
+  mismo color del ícono y de la cabecera, sin un destello marfil al abrir la app instalada.
 
 ## Lo que se apartó de la referencia, y por qué
 

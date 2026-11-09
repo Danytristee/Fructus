@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { COLOR_DE_FONDO } from "@/lib/pwa-reglas";
+import { COLOR_DEL_TEMA } from "@/lib/pwa-reglas";
 
 // La app instalable (PWA). El navegador pide este archivo sin cookies: proxy.ts lo deja pasar sin sesión, o el teléfono diría «no se puede instalar».
 // Los íconos los dibuja scripts/generar-iconos.mjs. Los «maskable» van a sangre: Android los recorta con la forma de su pantalla de inicio.
@@ -19,8 +19,8 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     display_override: ["standalone", "minimal-ui"],
     orientation: "portrait",
-    background_color: COLOR_DE_FONDO,
-    theme_color: COLOR_DE_FONDO,
+    background_color: COLOR_DEL_TEMA,
+    theme_color: COLOR_DEL_TEMA,
     categories: ["business", "finance", "productivity"],
     icons: [
       icono("/icons/icon-192.png", 192, "any"),
