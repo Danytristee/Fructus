@@ -112,8 +112,11 @@ export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, puedeEdit
           {visibles.map((d, i) => {
             const { ventas: nVentas, anuladas, total } = deCadaDia[d.dia] ?? { ventas: 0, anuladas: 0, total: 0 };
             return (
-              <div key={d.dia} className="vidrio animate-subir rounded-tarjeta px-4 py-1" style={{ animationDelay: `${i * 50}ms` }}>
+              <div key={d.dia} className="vidrio animate-subir rounded-tarjeta py-1" style={{ animationDelay: `${i * 50}ms` }}>
+                {/* El relleno de los lados va en la fila del día, no en la tarjeta: así la lista de ventas llega de borde a borde sin salirse.
+                    Con -mx-4 se salía y el desplegable (que recorta para animar su altura) le cortaba el último cero al monto. */}
                 <Desplegable
+                  className="[&>button]:px-4"
                   abiertoAlInicio={i === 0}
                   resumen={
                     <span className="flex items-center justify-between gap-3">
@@ -128,7 +131,7 @@ export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, puedeEdit
                     </span>
                   }
                 >
-                  <ul className="-mx-4 divide-y divide-border border-t border-border">
+                  <ul className="divide-y divide-border border-t border-border">
                     {d.ventas.map((v) => (
                       <FilaOperacion key={v.clave} op={v} alTocar={() => setAbierta(v.completa)} />
                     ))}

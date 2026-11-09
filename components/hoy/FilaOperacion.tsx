@@ -37,8 +37,8 @@ export function FilaOperacion({ op, alTocar }: { op: Operacion; alTocar?: () => 
         {op.fruta && <Fruta fruta={op.fruta} tamano={26} className="absolute -right-2 -bottom-1.5" />}
       </span>
       <span className="grid min-w-0">
-        <span className="leading-tight font-extrabold">{op.titulo}</span>
-        <span className="text-base leading-snug text-texto-suave">{op.detalle}</span>
+        <span className="leading-tight font-extrabold wrap-anywhere">{op.titulo}</span>
+        <span className="text-base leading-snug text-texto-suave wrap-anywhere">{op.detalle}</span>
       </span>
       <span className="grid justify-items-end gap-1">
         {/* Una venta anulada ya no cuenta: el monto se ve, pero tachado. */}

@@ -75,7 +75,7 @@ export function ListaClientes({ clientes, nuevo }: { clientes: ClienteCuaderno[]
               >
                 <Avatar iniciales={c.iniciales} tono={c.tono} />
                 <span className="grid min-w-0">
-                  <span className="leading-tight font-extrabold">{c.nombre}</span>
+                  <span className="leading-tight font-extrabold wrap-anywhere">{c.nombre}</span>
                   {c.apodo && <span className="truncate text-base text-texto-suave">«{c.apodo}»</span>}
                 </span>
                 <span className="grid justify-items-end">
