@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { baseLocal } from "./base";
+import { baseLocal, enSoles } from "./base";
 import { entrarComo } from "./cuentas";
 import { quieto } from "./medir";
 
@@ -79,19 +79,22 @@ test("Clientes en tabla: ordena por deuda o por nombre, coincide con la base y u
   await page.goto("/clientes");
   const tabla = page.getByRole("table", { name: /Cuaderno de clientes/ });
   await expect(tabla).toBeVisible({ timeout: 15_000 });
-  // Por defecto, de quien más debe a quien menos: el primero es el que dice la base.
+  // Por defecto, de quien más debe a quien menos: el primero debe lo mismo que el que más debe en la base (puede haber empate).
   const primera = tabla.locator("tbody tr").first();
-  await expect(primera).toContainText(mayor.nombre!);
+  await expect(primera).toContainText(enSoles(Number(mayor.saldo)));
   await expect(tabla.getByRole("columnheader", { name: /Te debe/ })).toHaveAttribute("aria-sort", "descending");
   // Por nombre, de la A a la Z.
   await tabla.getByRole("button", { name: "Cliente" }).click();
   await expect(tabla.getByRole("columnheader", { name: /Cliente/ })).toHaveAttribute("aria-sort", "ascending");
   const nombres = await tabla.locator("tbody tr a").allTextContents();
   expect(nombres).toEqual([...nombres].sort((a, b) => a.localeCompare(b, "es")));
-  // Toda la fila abre la ficha.
-  await tabla.getByRole("link", { name: mayor.nombre! }).click();
-  await expect(page).toHaveURL(`/clientes/${mayor.cliente_id}`);
-  await expect(page.getByRole("heading", { level: 1, name: mayor.nombre! })).toBeVisible();
+  // Toda la fila abre la ficha: se toca en la celda de la deuda, no en el nombre.
+  const fila = tabla.locator("tbody tr").first();
+  const nombre = (await fila.getByRole("link").textContent())!;
+  const caja = (await fila.locator("td").last().boundingBox())!;
+  await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2);
+  await expect(page).toHaveURL(/\/clientes\/\d+$/);
+  await expect(page.getByRole("heading", { level: 1, name: nombre })).toBeVisible();
 });
 
 test("Ventas en tabla: hora, cliente, qué llevó, cómo quedó y monto; toda la fila abre el detalle", async ({ page }) => {

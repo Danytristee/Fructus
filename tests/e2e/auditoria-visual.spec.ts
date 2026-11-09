@@ -199,7 +199,8 @@ async function hojasDelDuenio(page: Page) {
   await abrir("/stock", "Compra", "hoja de compra");
   await abrir("/stock", "Merma", "hoja de merma");
   await page.goto("/ventas");
-  await page.locator("li button").first().click();
+  // Una venta: en celular es una fila de la lista; en escritorio, de la tabla (ADR-0015). Se toca la que se ve.
+  await page.locator("li button, tbody tr button").filter({ visible: true }).first().click();
   await expect(hoja).toBeVisible();
   await auditar(page, "detalle de una venta", hallazgos);
   expect(sinRepetir(hallazgos)).toEqual([]);

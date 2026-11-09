@@ -107,8 +107,9 @@ export function TableroStock({ alertas, estados, puedeRegistrar }: { alertas: Al
   const nombreDe = new Map(estados.map((e) => [e.id, e.nombre]));
   const conStock = estados.filter((e) => e.stock > 0).sort((a, b) => b.desgaste - a.desgaste);
 
+  // En escritorio (ADR-0015): qué hacer hoy y tu stock, lado a lado.
   return (
-    <>
+    <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
       <section aria-labelledby="que-hacer" className="mt-6">
         <h2 id="que-hacer" className="mb-2.5 text-xl font-extrabold">
           Qué hacer hoy
@@ -146,6 +147,6 @@ export function TableroStock({ alertas, estados, puedeRegistrar }: { alertas: Al
           ))}
         </ul>
       </section>
-    </>
+    </div>
   );
 }
