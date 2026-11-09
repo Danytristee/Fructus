@@ -34,7 +34,7 @@ export function BuscadorCatalogo({ productos }: { productos: ProductoCatalogo[] 
       <ul className="vidrio divide-y divide-border overflow-hidden rounded-tarjeta">
         {visibles.map((p) => (
           <li key={p.id} className="grid min-h-16 grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2">
-            <IconoFruta nombre={p.nombre} tamano={40} />
+            <IconoFruta nombre={[p.nombre, p.variedad].filter(Boolean).join(" ")} tamano={40} />
             <span className="grid min-w-0">
               <span className="truncate font-extrabold">{[p.nombre, p.variedad].filter(Boolean).join(" ")}</span>
               {p.alias.length > 0 && <span className="truncate text-[15px] text-texto-suave">por voz: {p.alias.slice(0, 3).join(", ")}</span>}

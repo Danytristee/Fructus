@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<!-- Fructus · uva red globe: racimo en triángulo de granos grandes y redondos, rojo rosado a vino, con su tallo. -->
+<defs>
+<radialGradient id="grano" cx=".36" cy=".32" r=".72"><stop offset="0" stop-color="#F29AA6"/><stop offset=".45" stop-color="#C23A52"/><stop offset="1" stop-color="#6E1A2C"/></radialGradient>
+<radialGradient id="brillo" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".8"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>
+<g id="g"><circle r="8" fill="url(#grano)"/><circle r="8" fill="none" stroke="#4A0F1C" stroke-opacity=".28" stroke-width=".8"/><ellipse cx="-2.8" cy="-3.2" rx="2.6" ry="1.8" transform="rotate(-35 -2.8 -3.2)" fill="url(#brillo)"/></g>
+</defs>
+<path d="M33 3.5C32.6 7.4 32 10.4 31.4 13M32.4 8.4C36 7.6 39.4 8.4 42 10.6" fill="none" stroke="#7A5A2E" stroke-width="2.4" stroke-linecap="round"/>
+<use href="#g" x="23" y="19"/><use href="#g" x="38.5" y="18.5"/>
+<use href="#g" x="16" y="30"/><use href="#g" x="31" y="28.5"/><use href="#g" x="46" y="30"/>
+<use href="#g" x="23.5" y="40.5"/><use href="#g" x="38.5" y="40"/>
+<use href="#g" x="31" y="51.5"/>
+</svg>

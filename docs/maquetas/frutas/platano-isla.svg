@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<!-- Fructus · plátano de isla: dedos cortos y rechonchos, más rectos que el de seda, amarillo con manchas negras (se vende así, maduro). -->
+<defs>
+<linearGradient id="dedo" x1=".5" y1="0" x2=".5" y2="1"><stop offset="0" stop-color="#FBDD6E"/><stop offset=".55" stop-color="#EFC24A"/><stop offset="1" stop-color="#C9952A"/></linearGradient>
+<linearGradient id="dedo-atras" x1=".5" y1="0" x2=".5" y2="1"><stop offset="0" stop-color="#EECB58"/><stop offset=".6" stop-color="#DDAE36"/><stop offset="1" stop-color="#B07E1E"/></linearGradient>
+<path id="forma" d="M0 0C10-3 22 0 29.4 9.4 31.8 12.4 33 16 32.8 19.6 32.6 22.2 30.6 23.2 28.6 22 24.6 16.8 18.4 14 10.4 12.8 6.2 12.2 2.8 12.2 0 12Z"/>
+<clipPath id="c"><use href="#forma"/></clipPath>
+<g id="manchas" fill="#3B2A1A"><ellipse cx="9" cy="3.6" rx="1.4" ry=".9"/><ellipse cx="15.5" cy="6.4" rx="1" ry=".7"/><ellipse cx="21" cy="5.6" rx="1.6" ry="1"/><ellipse cx="13" cy="9.2" rx=".8" ry=".6"/><ellipse cx="25.5" cy="11.4" rx="1.1" ry=".8"/><ellipse cx="19.5" cy="11" rx=".9" ry=".6"/><ellipse cx="28.5" cy="17" rx="1" ry=".7"/><ellipse cx="6" cy="7" rx=".7" ry=".5"/><ellipse cx="24" cy="15.4" rx=".6" ry=".5"/></g>
+</defs>
+<g transform="translate(3 4)">
+<path d="M8 10 14.5 16" stroke="#6E6A2A" stroke-width="6.5" stroke-linecap="round"/>
+<path d="M7 9 9.6 11.4" stroke="#4A3A1C" stroke-width="6.5" stroke-linecap="round"/>
+<g transform="translate(13 15) rotate(-4)">
+<use href="#forma" fill="url(#dedo-atras)"/>
+<g clip-path="url(#c)"><use href="#manchas" opacity=".75"/></g>
+<use href="#forma" fill="none" stroke="#9A6E14" stroke-opacity=".55" stroke-width=".9"/>
+<circle cx="31.6" cy="21.4" r="1.9" fill="#4A3218"/>
+</g>
+<g transform="translate(13 15) rotate(17)">
+<use href="#forma" fill="url(#dedo)"/>
+<g clip-path="url(#c)"><use href="#manchas" opacity=".8" transform="translate(1.5 .5)"/><path d="M5 2.4C14 1.6 23.5 5.4 29.4 13.4" fill="none" stroke="#FFF2B0" stroke-opacity=".7" stroke-width="1.2" stroke-linecap="round"/></g>
+<use href="#forma" fill="none" stroke="#9A6E14" stroke-opacity=".55" stroke-width=".9"/>
+<circle cx="31.6" cy="21.4" r="1.9" fill="#4A3218"/>
+</g>
+</g>
+</svg>

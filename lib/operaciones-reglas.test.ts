@@ -35,19 +35,33 @@ describe("describirItems", () => {
 
 describe("frutaIlustrada", () => {
   it("encuentra la ilustración sin importar tildes ni mayúsculas", () => {
-    expect(frutaIlustrada("Plátano")).toBe("platano");
     expect(frutaIlustrada("Piña")).toBe("pina");
-    expect(frutaIlustrada("Mandarina")).toBe("naranja");
-    expect(frutaIlustrada("Manzana")).toBe("manzana");
+    expect(frutaIlustrada("LIMÓN")).toBe("limon");
+    expect(frutaIlustrada("Palta fuerte")).toBe("palta");
+    expect(frutaIlustrada("Papaya")).toBe("papaya");
+  });
+  it("distingue la variedad cuando cambia cómo se ve", () => {
+    expect(frutaIlustrada("Mango Edward")).toBe("mango-edward");
+    expect(frutaIlustrada("mango kent")).toBe("mango-kent");
+    expect(frutaIlustrada("Plátano de isla")).toBe("platano-isla");
+    expect(frutaIlustrada("Plátano isla")).toBe("platano-isla");
+    expect(frutaIlustrada("Plátano de seda")).toBe("platano-seda");
+  });
+  it("sin variedad, el mango es Kent y el plátano es de seda (lo más común en el mercado)", () => {
+    expect(frutaIlustrada("Mango")).toBe("mango-kent");
+    expect(frutaIlustrada("Plátano")).toBe("platano-seda");
+  });
+  it("la mandarina tiene su dibujo; el tangelo usa el de la naranja; lo que no está, nada", () => {
+    expect(frutaIlustrada("Mandarina")).toBe("mandarina");
     expect(frutaIlustrada("Tangelo")).toBe("naranja");
-    expect(frutaIlustrada("Papaya")).toBeNull();
+    expect(frutaIlustrada("Granadilla")).toBeNull();
   });
 });
 
 describe("cada operación en una línea", () => {
   it("una venta al crédito dice quién y que lo debe", () => {
     const op = deVenta({ id: 7, fecha: "2026-10-28T15:00:00Z", total: 450, condicion: "credito", medio: null, cliente: { id: 1, nombre: "Luis Paredes" }, items: [{ cantidad: 10, producto: mango }] });
-    expect(op).toMatchObject({ titulo: "Luis Paredes", detalle: "10 de mango kent", monto: 450, estado: "debe", fruta: "mango" });
+    expect(op).toMatchObject({ titulo: "Luis Paredes", detalle: "10 de mango kent", monto: 450, estado: "debe", fruta: "mango-kent" });
     expect(op.persona?.iniciales).toBe("LP");
   });
 

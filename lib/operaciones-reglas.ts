@@ -72,7 +72,7 @@ export function describirItems(items: Item[]): string {
 
 const persona = (c: { id: number; nombre: string } | null) => (c ? { iniciales: iniciales(c.nombre), tono: tonoDe(c.id) } : null);
 const primeraFruta = (items: Item[]) =>
-  items.map((i) => (i.producto ? frutaIlustrada(i.producto.nombre) : null)).find((f) => f !== null) ?? null;
+  items.map((i) => (i.producto ? frutaIlustrada(nombreProducto(i.producto)) : null)).find((f) => f !== null) ?? null;
 
 export function deVenta(v: VentaLeida): Operacion {
   const items = describirItems(v.items);
@@ -123,7 +123,7 @@ export function deMerma(m: MermaLeida): Operacion {
     monto: null,
     estado: "merma",
     persona: null,
-    fruta: m.producto ? frutaIlustrada(m.producto.nombre) : null,
+    fruta: m.producto ? frutaIlustrada(nombreProducto(m.producto)) : null,
   };
 }
 

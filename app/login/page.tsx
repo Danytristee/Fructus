@@ -13,8 +13,8 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
     <main className="mx-auto grid min-h-dvh max-w-md content-center gap-6 px-4 pt-[max(24px,env(safe-area-inset-top))] pb-[max(24px,env(safe-area-inset-bottom))]">
       <header className="grid animate-subir justify-items-center gap-3 text-center">
         <div aria-hidden className="flex -space-x-3">
-          <Fruta fruta="mango" tamano={56} />
-          <Fruta fruta="platano" tamano={56} className="-translate-y-2" />
+          <Fruta fruta="mango-kent" tamano={56} />
+          <Fruta fruta="platano-seda" tamano={56} className="-translate-y-2" />
           <Fruta fruta="pina" tamano={56} />
         </div>
         <h1 className="text-[40px] leading-none font-extrabold tracking-tight">Fructus</h1>

@@ -60,7 +60,7 @@ export function DemoVoz() {
             <Pencil aria-hidden className="size-[22px] text-texto-suave" />
           </button>
           <button type="button" className="grid min-h-[72px] grid-cols-[auto_1fr_auto] items-center gap-3 rounded-control bg-superficie px-3.5 py-3 text-left">
-            <Fruta fruta="mango" tamano={48} />
+            <Fruta fruta="mango-kent" tamano={48} />
             <span className="grid gap-0.5">
               <span className="text-[22px] leading-tight font-extrabold">10 cajas de Mango Kent</span>
               <span className="flex flex-wrap items-center gap-2">
