@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { COLOR_DE_FONDO } from "../../lib/pwa-reglas";
+
 import { entrarComo } from "./cuentas";
 
 // La app se instala en el teléfono (PWA). Lo que tiene que cumplirse para que Chrome, Edge, Samsung Internet y Safari la ofrezcan:
@@ -57,7 +59,7 @@ test("las páginas enlazan el manifest, el ícono de iPhone y el color de la bar
   await page.goto("/login");
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/manifest.webmanifest");
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", /\/apple-icon\.png/);
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#eef3f8");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", COLOR_DE_FONDO);
   // Al abrirla desde el ícono se ve como app, en iPhone y en Android.
   await expect(page.locator('meta[name="mobile-web-app-capable"]')).toHaveAttribute("content", "yes");
   await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute("content", "Fructus");

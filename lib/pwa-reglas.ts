@@ -6,7 +6,7 @@
 
 // El color de fondo de la app, para lo que vive fuera del CSS: la barra del navegador (theme-color) y la pantalla de arranque del manifest.
 // Es el mismo valor de --fondo en app/globals.css: lib/pwa-reglas.test.ts falla si se separan.
-export const COLOR_DE_FONDO = "#eef3f8";
+export const COLOR_DE_FONDO = "#f7f5ee";
 
 export type Sistema = "ios" | "android" | "otro";
 

@@ -4,7 +4,6 @@ import { Aviso } from "@/components/ui/Aviso";
 import { EsperaProveedor } from "@/components/ui/Espera";
 import { Vacio } from "@/components/ui/Vacio";
 import { Boton } from "@/components/ui/Boton";
-import { FondoAurora } from "@/components/ui/FondoAurora";
 import { Fruta } from "@/components/ui/Fruta";
 import { frutasIlustradas } from "@/lib/frutas";
 import { Insignia } from "@/components/ui/Insignia";
@@ -20,13 +19,12 @@ export default async function Piezas({ searchParams }: { searchParams: Promise<{
   if (process.env.NODE_ENV === "production") notFound();
   const tema = (await searchParams).tema === "oscuro" ? "oscuro" : "claro";
 
-  const colores = ["fondo", "vidrio", "superficie", "texto", "texto-suave", "acento", "exito", "exito-fondo", "deuda", "deuda-fondo"];
+  const colores = ["fondo", "vidrio", "superficie", "linea", "texto", "texto-suave", "acento", "lima", "lima-suave", "exito", "exito-fondo", "deuda", "deuda-fondo", "sol"];
 
   return (
     <EsperaProveedor>
       <div data-theme={tema} className="min-h-dvh px-4 pt-[max(16px,env(safe-area-inset-top))] pb-[calc(200px+env(safe-area-inset-bottom))] text-texto">
         <TemaEnHtml tema={tema} />
-        <FondoAurora />
         <header className="mb-4 flex items-center justify-between gap-3">
           <h1 className="text-[32px] leading-tight font-extrabold tracking-tight">Piezas</h1>
           <a

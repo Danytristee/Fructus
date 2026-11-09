@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { KeyRound } from "lucide-react";
 
 import { Boton } from "@/components/ui/Boton";
-import { FondoAurora } from "@/components/ui/FondoAurora";
 import { Fruta } from "@/components/ui/Fruta";
 import { Tarjeta } from "@/components/ui/Tarjeta";
 import { canjearEnlace } from "./acciones";
@@ -18,7 +17,6 @@ export default async function Confirmar({ searchParams }: { searchParams: Promis
 
   return (
     <main className="mx-auto grid min-h-dvh max-w-md content-center gap-6 px-4 pt-[max(24px,env(safe-area-inset-top))] pb-[max(24px,env(safe-area-inset-bottom))]">
-      <FondoAurora />
       <header className="grid animate-subir justify-items-center gap-3 text-center">
         <div aria-hidden className="flex -space-x-3">
           <Fruta fruta="manzana" tamano={56} />

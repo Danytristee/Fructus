@@ -1,72 +1,76 @@
 @import "tailwindcss";
 
 /*
- * Identidad «Aurora» (ADR-0007). Esta es la única fuente de colores, tipografía, radios, sombras y movimiento.
- * Un componente nunca escribe un hex, un rgba() a mano ni bg-white: usa estas clases (bg-vidrio, text-deuda…).
- * Contraste medido: textos y cifras clave 7:1 o más; secundarios 4.5:1 o más (docs/maquetas/identidad/tokens.json).
- * Modo claro por defecto (se usa al sol). El oscuro existe y cumple, pero solo se activa con data-theme="oscuro":
- * activarlo para todos es de la fase 2.
+ * Identidad «Bosque» (ADR-0014, reemplaza a «Aurora» de ADR-0007). Esta es la única fuente de colores, tipografía, radios, sombras y
+ * movimiento. Un componente nunca escribe un hex, un rgba() a mano ni bg-white: usa estas clases (bg-vidrio, text-deuda, bg-lima…).
+ * Contraste medido (lib/contraste-reglas.test.ts lo vuelve a medir en cada cambio): textos y cifras clave 7:1 o más; secundarios 4.5:1
+ * o más; bordes de campos 3:1 o más. La lima NUNCA es texto sobre claro (1.1:1): es relleno con texto bosque encima (9.8:1).
+ * Modo claro por defecto (se usa al sol). El oscuro existe y cumple, pero solo se activa con data-theme="oscuro": es de la fase 2.
+ * Los nombres vienen de Aurora y se conservan para no tocar cada pantalla: «vidrio» ya no es vidrio, es la tarjeta marfil sólida.
  */
 
 @custom-variant oscuro (&:where([data-theme="oscuro"], [data-theme="oscuro"] *));
 
 :root,
 [data-theme="claro"] {
-  --fondo: #eef3f8;
-  --vidrio: #f3f7fb;
+  --fondo: #f7f5ee; /* marfil */
+  --vidrio: #fffefa; /* la tarjeta */
   --superficie: #ffffff;
-  --texto: #0b1526;
-  --texto-suave: #3e4a5c;
-  --acento: #114b5f;
-  --sobre-acento: #ffffff;
-  --acento-texto: #114b5f;
-  --exito: #0d5a33;
-  --exito-fondo: #e3f6ea;
-  --deuda: #95111f;
-  --deuda-fondo: #fde8ec;
-  --borde: #8794a6;
-  --velo: rgb(8 12 24 / 0.45);
-  --sol: #b45309;
-  /* Las cuatro luces del fondo. Decorativas: nunca llevan texto encima sin vidrio. */
-  --luz-1: #9fe8d0;
-  --luz-2: #b9d8ff;
-  --luz-3: #ffd3b5;
-  --luz-4: #e2d4ff;
-  /* El orbe de voz: solo lleva un icono encima (3:1 basta); el texto «Mantén para hablar» va aparte. */
-  --orbe-1: #114b5f;
-  --orbe-2: #2e6fa8;
-  --orbe-3: #5b4fc4;
-  --orbe-4: #1f7a8c;
-  --sobre-orbe: #ffffff;
-  --sombra-color: 20 40 70;
+  --linea: #e4e1d4; /* el borde fino de tarjetas y separadores (decorativo: el texto nunca depende de él) */
+  --texto: #17251d;
+  --texto-suave: #56625a;
+  --acento: #103d29; /* verde bosque */
+  --sobre-acento: #f7f5ee;
+  --acento-texto: #103d29;
+  --profundo: #082c1e; /* el fondo del degradado de la cabecera */
+  --bosque-2: #246b45; /* solo decorativo: rellenos, gráficos */
+  --lima: #d5f45a; /* una acción por pantalla y el aro del orbe; nunca texto */
+  --lima-suave: #eef8c8;
+  --sobre-lima: #103d29;
+  --exito: #185a31;
+  --exito-fondo: #e6f0dc;
+  --deuda: #8e1f2a;
+  --deuda-fondo: #f8e3e3;
+  --borde: #7f8a82; /* bordes de campos: 3:1 sobre el marfil */
+  --velo: rgb(8 28 18 / 0.5);
+  --sol: #8a4a0c; /* avisos: reponer, merma, sugerido */
+  /* El orbe de voz: verdes, con el micrófono en lima encima (9.8:1). */
+  --orbe-1: #103d29;
+  --orbe-2: #246b45;
+  --orbe-3: #0b3321;
+  --orbe-4: #2c7a50;
+  --sobre-orbe: #d5f45a;
+  --sombra-color: 16 40 26;
   color-scheme: light;
 }
 
 [data-theme="oscuro"] {
-  --fondo: #070d17;
-  --vidrio: #141c2a;
-  --superficie: #101826;
-  --texto: #eef3f8;
-  --texto-suave: #b4c0d0;
-  --acento: #7fd6e3;
-  --sobre-acento: #04232a;
-  --acento-texto: #8bdce8;
-  --exito: #7ee2a8;
-  --exito-fondo: #0e2e1e;
-  --deuda: #ff9fb0;
-  --deuda-fondo: #3a1220;
-  --borde: #5d6b80;
+  --fondo: #0b1611;
+  --vidrio: #13241b;
+  --superficie: #172a20;
+  --linea: #24382c;
+  --texto: #eef1e6;
+  --texto-suave: #b6c2b8;
+  --acento: #d5f45a;
+  --sobre-acento: #103d29;
+  --acento-texto: #d5f45a;
+  --profundo: #05110b;
+  --bosque-2: #2c7a50;
+  --lima: #d5f45a;
+  --lima-suave: #23361a;
+  --sobre-lima: #103d29;
+  --exito: #8fdca6;
+  --exito-fondo: #12301f;
+  --deuda: #ffa3ac;
+  --deuda-fondo: #3b161b;
+  --borde: #6c7b70;
   --velo: rgb(0 0 0 / 0.6);
-  --sol: #fcd34d;
-  --luz-1: #0f4c45;
-  --luz-2: #1a3566;
-  --luz-3: #4a2a1c;
-  --luz-4: #33255e;
-  --orbe-1: #7fd6e3;
-  --orbe-2: #9bb8ff;
-  --orbe-3: #c3b5ff;
-  --orbe-4: #8fe3d0;
-  --sobre-orbe: #04232a;
+  --sol: #f2be6a;
+  --orbe-1: #134630;
+  --orbe-2: #2c7a50;
+  --orbe-3: #103d29;
+  --orbe-4: #3c8f5f;
+  --sobre-orbe: #d5f45a;
   --sombra-color: 0 0 0;
   color-scheme: dark;
 }
@@ -89,7 +93,7 @@
   --accent: var(--vidrio);
   --accent-foreground: var(--texto);
   --destructive: var(--deuda);
-  --border: color-mix(in srgb, var(--texto) 10%, transparent);
+  --border: var(--linea);
   --input: var(--borde);
   --ring: var(--texto);
   --radius: 1.5rem;
@@ -112,6 +116,12 @@
   --color-velo: var(--velo);
   --color-sol: var(--sol);
   --color-sobre-orbe: var(--sobre-orbe);
+  --color-linea: var(--linea);
+  --color-profundo: var(--profundo);
+  --color-bosque-2: var(--bosque-2);
+  --color-lima: var(--lima);
+  --color-lima-suave: var(--lima-suave);
+  --color-sobre-lima: var(--sobre-lima);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -331,23 +341,24 @@
   }
 }
 
-/* Vidrio: la superficie de Aurora. SIN desenfoque: las tarjetas van sobre un fondo suave y quieto, y el desenfoque (backdrop-filter) se
-   recalcula en cada cuadro del deslizamiento y por cada tarjeta. Medido deslizando «Ventas»: con desenfoque, 0.34 a 0.39 s de CPU del
-   teléfono en 3 s; sin él, 0.16 s. A la vista no cambia nada: detrás hay un degradado suave. */
+/* «vidrio»: la tarjeta de Bosque. Sólida, con un borde fino y una sombra corta. Se llama así desde Aurora (ADR-0007) y se conserva el nombre.
+   Sin desenfoque: el desenfoque (backdrop-filter) se recalcula en cada cuadro del deslizamiento y por cada tarjeta (ADR-0012). */
 @utility vidrio {
-  background-color: color-mix(in srgb, var(--vidrio) 84%, transparent);
-  border: 1px solid color-mix(in srgb, var(--superficie) 70%, transparent);
-  box-shadow: 0 10px 34px rgb(var(--sombra-color) / 0.08);
+  background-color: var(--vidrio);
+  border: 1px solid var(--linea);
+  box-shadow:
+    0 1px 2px rgb(var(--sombra-color) / 0.05),
+    0 10px 28px -12px rgb(var(--sombra-color) / 0.22);
 }
 
-/* Vidrio con desenfoque: SOLO lo que flota sobre contenido que se desliza (la barra de abajo, la etiqueta y los avisos de la voz). Sin
+/* Con desenfoque: SOLO lo que flota sobre contenido que se desliza (la barra de abajo, la etiqueta y los avisos de la voz). Sin
    desenfoque, el texto de debajo se transparenta y se lee encima del de la barra. */
 @utility vidrio-desenfocado {
-  background-color: color-mix(in srgb, var(--vidrio) 84%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(1.5);
-  backdrop-filter: blur(16px) saturate(1.5);
-  border: 1px solid color-mix(in srgb, var(--superficie) 70%, transparent);
-  box-shadow: 0 10px 34px rgb(var(--sombra-color) / 0.08);
+  background-color: color-mix(in srgb, var(--vidrio) 90%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--linea);
+  box-shadow: 0 12px 34px -10px rgb(var(--sombra-color) / 0.35);
 }
 
 @utility cifra {
@@ -363,7 +374,7 @@
 @utility orbe {
   position: relative;
   isolation: isolate;
-  box-shadow: 0 14px 40px rgb(17 75 95 / 0.45);
+  box-shadow: 0 14px 34px -4px rgb(var(--sombra-color) / 0.55);
   &::before {
     content: "";
     position: absolute;
@@ -392,7 +403,7 @@
 
 /* El resplandor del orbe en reposo: una sombra grande ya dibujada cuyo opacity sube y baja (no se anima la sombra). Va detrás del orbe. */
 @utility halo {
-  box-shadow: 0 18px 54px rgb(17 75 95 / 0.6);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--lima) 35%, transparent), 0 18px 44px rgb(var(--sombra-color) / 0.5);
   opacity: 0;
   animation: var(--animate-respirar);
 }
