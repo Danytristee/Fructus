@@ -56,3 +56,14 @@
 
 - Decir «las anuladas no cuentan» junto al conteo de Ventas (viene del pendiente del celular).
 - La ficha del cliente deja aire bajo «Sus movimientos» cuando tiene pocos.
+
+## 5. Arreglado con OK («Sí, aplica todo»)
+
+| Cambio | Cómo quedó | Se verificó con |
+|---|---|---|
+| 1. Acciones arriba | Desde 1024 px, «Registrar abono», «Compra / Merma» y «Enviar por WhatsApp» van a la derecha del título (`BarraFlotante`, `lg:absolute`). En el celular siguen flotando en la zona del pulgar. | e2e «las acciones de la pantalla van arriba…»: a la altura del título, a su derecha y sin cruzarse con ninguna fila, en Clientes, Stock y Cierre |
+| 2. Columnas ordenables a la vista | «Cliente» lleva un ícono de orden en gris aunque no esté activa | Captura `clientes-1280-despues.png` |
+| 3. Caja negativa explicada | «Hoy salió más efectivo del que entró: revisa los gastos y las compras que pagaste en efectivo.» (`fraseDeLaCaja`, `lib/cierre-reglas.ts`) | Vitest (11 pasan) y captura `cierre-1280-despues.png` |
+
+- **Capturas de después:** `capturas/escritorio-2026-11-09/<pantalla>-1280-despues.png`, con la base recién reiniciada. A 412 px, Clientes y Cierre se ven igual que antes (`*-412-despues.png`).
+- **Sin repetir:** la prueba a ciegas de las tareas 3 y 5. Las e2e cubren lo que se midió; la duda de «se puede tocar» se juzga en la captura.

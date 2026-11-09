@@ -32,3 +32,9 @@
 | Un nombre con `<b>…</b>` | Se ve como texto: no se interpreta como HTML |
 
 - **Aparte (ya estaba antes):** el servidor avisa «Each child in a list should have a unique key prop» en `ListaClientes`, y aparece desde antes de esta obra. Queda en la bitácora como pendiente.
+
+## Arreglado con OK («Sí, aplica todo»)
+
+- **G3:** las dos tablas usan `table-fixed` con anchos por columna. Al probarlo apareció la causa real en Clientes: el resumen «más que nadie, RaroXXX…» tampoco partía el nombre, y ahora lleva `wrap-anywhere`. La e2e de regresión inserta el nombre de 120 letras y mide 0 px de scroll horizontal: falló antes del arreglo y pasa después.
+- **G4:** `Hoja` recuerda qué elemento tenía el foco al abrirse y se lo devuelve al cerrarse (si sigue en la página). La e2e de regresión abre el detalle con Enter, lo cierra con Escape y comprueba que el foco vuelve a la fila: falló antes y pasa después. Arregla también el celular, porque la hoja es la misma.
+- **Corrida final:** `escritorio`, `auditoria-visual`, `cierre-whatsapp` y las píldoras de Stock y Clientes: 33 pasan, 11 se saltan (las de escritorio en el proyecto de 360 px) y ninguna falla.
