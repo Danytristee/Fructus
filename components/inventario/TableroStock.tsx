@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, Lightbulb, PackageX, ShoppingCart, TriangleAlert } from "lucide-react";
+import { ChevronDown, Clock, Lightbulb, PackageX, ShoppingCart, TriangleAlert } from "lucide-react";
 import { cn } from "cn";
 
+import { Boton } from "@/components/ui/Boton";
 import { Desplegable } from "@/components/ui/Desplegable";
 import { Filtros } from "@/components/ui/Filtros";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Vacio } from "@/components/ui/Vacio";
 import { MermaAMano } from "./MermaAMano";
-import type { Alerta, EstadoProducto, TipoAlerta } from "@/lib/inventario-reglas";
-import { agruparPorFruta, tituloEnGrupo } from "@/lib/productos-reglas";
+import { juntarAlertas, listaDeStock, type Alerta, type EstadoProducto, type GrupoAlertas, type TipoAlerta } from "@/lib/inventario-reglas";
+import { tituloEnGrupo } from "@/lib/productos-reglas";
 
 type Filtro = "todas" | TipoAlerta;
 
@@ -23,31 +24,53 @@ const tipos: Record<TipoAlerta, { etiqueta: string; Icono: typeof Clock; clase: 
 
 const dias = (n: number) => `${Math.round(n * 10) / 10} ${Math.round(n * 10) / 10 === 1 ? "día" : "días"}`;
 
-function TarjetaAlerta({ a, nombreFruta, i }: { a: Alerta; nombreFruta: string; i: number }) {
-  const { Icono, clase } = tipos[a.tipo];
+// Cuántas tarjetas se ven de entrada en «Todas»: lo demás, a un toque. Con 10, «Tu stock» quedaba a 3.6 pantallas (/formidable 2026-11-10).
+const TARJETAS_A_LA_VISTA = 3;
+
+function TarjetaAlerta({ g, nombreDe, i }: { g: GrupoAlertas; nombreDe: Map<number, string>; i: number }) {
+  const { Icono, clase } = tipos[g.tipo];
+  const sola = g.alertas.length === 1 ? g.alertas[0]! : null;
   return (
     <li
-      className={cn("vidrio grid animate-subir gap-3 rounded-tarjeta p-4", a.gravedad === "alta" && "animate-pulso-alerta")}
+      data-productos={g.alertas.map((a) => a.productoId).join(" ")}
+      className={cn("vidrio grid animate-subir gap-3 rounded-tarjeta p-4", g.gravedad === "alta" && "animate-pulso-alerta")}
       style={{ animationDelay: `${i * 50}ms` }}
     >
       <div className="grid grid-cols-[auto_1fr_auto] items-start gap-3">
-        <span className="relative">
-          <IconoFruta nombre={nombreFruta} tamano={44} />
-          <span className={cn("absolute -right-1.5 -bottom-1.5 grid size-6 place-items-center rounded-full ring-2 ring-superficie", clase)}>
-            <Icono aria-hidden className="size-3.5" strokeWidth={2.6} />
+        {sola ? (
+          <span className="relative">
+            <IconoFruta nombre={nombreDe.get(sola.productoId) ?? sola.producto} tamano={44} />
+            <span className={cn("absolute -right-1.5 -bottom-1.5 grid size-6 place-items-center rounded-full ring-2 ring-superficie", clase)}>
+              <Icono aria-hidden className="size-3.5" strokeWidth={2.6} />
+            </span>
           </span>
-        </span>
+        ) : (
+          <span className={cn("grid size-11 place-items-center rounded-full", clase)}>
+            <Icono aria-hidden className="size-5" strokeWidth={2.4} />
+          </span>
+        )}
         <span className="grid gap-0.5">
-          <span className="leading-tight font-extrabold">{a.titulo}</span>
-          <span className="text-base leading-snug text-texto-suave">{a.detalle}</span>
+          <span className="leading-tight font-extrabold">{g.titulo}</span>
+          {sola ? (
+            <span className="text-base leading-snug text-texto-suave">{g.detalle}</span>
+          ) : (
+            <ul className="mt-1 grid gap-1 text-base leading-snug">
+              {g.alertas.map((a) => (
+                <li key={a.productoId}>
+                  <span className="font-bold">{a.producto}</span>
+                  <span className="text-texto-suave"> · {a.corto}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </span>
-        <span className={cn("rounded-full px-2.5 py-1 text-sm font-extrabold whitespace-nowrap", a.gravedad === "alta" ? "bg-deuda text-superficie" : "bg-texto/8 text-texto")}>
-          {a.gravedad === "alta" ? "Hoy" : "Pronto"}
+        <span className={cn("rounded-full px-2.5 py-1 text-sm font-extrabold whitespace-nowrap", g.gravedad === "alta" ? "bg-deuda text-superficie" : "bg-texto/8 text-texto")}>
+          {g.gravedad === "alta" ? "Hoy" : "Pronto"}
         </span>
       </div>
       <p className="flex gap-2 rounded-control bg-acento/8 px-3 py-2.5 leading-snug">
         <Lightbulb aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
-        <span>{a.recomendacion}</span>
+        <span>{g.recomendacion}</span>
       </p>
     </li>
   );
@@ -104,14 +127,16 @@ function FilaProducto({ e, puedeRegistrar }: { e: EstadoProducto; puedeRegistrar
 // El tablero de Stock: alertas con su recomendación, filtrables por tipo, y la lista de frutas con su frescura.
 export function TableroStock({ alertas, estados, puedeRegistrar }: { alertas: Alerta[]; estados: EstadoProducto[]; puedeRegistrar: boolean }) {
   const [filtro, setFiltro] = useState<Filtro>("todas");
+  const [todasALaVista, setTodasALaVista] = useState(false);
   const cuenta = (t: TipoAlerta) => alertas.filter((a) => a.tipo === t).length;
-  const visibles = filtro === "todas" ? alertas : alertas.filter((a) => a.tipo === filtro);
+  // Las del mismo tipo y urgencia, en una tarjeta. Con un filtro se ven todas; en «Todas», las primeras y el resto a un toque.
+  const tarjetas = juntarAlertas(filtro === "todas" ? alertas : alertas.filter((a) => a.tipo === filtro));
+  const recortar = filtro === "todas" && !todasALaVista && tarjetas.length > TARJETAS_A_LA_VISTA;
+  const visibles = recortar ? tarjetas.slice(0, TARJETAS_A_LA_VISTA) : tarjetas;
+  const escondidas = tarjetas.slice(TARJETAS_A_LA_VISTA).reduce((s, g) => s + g.alertas.length, 0);
   const nombreDe = new Map(estados.map((e) => [e.id, e.nombre]));
   // Como el catálogo: por fruta, y dentro de cada fruta de la mejor selección a la de menos. Lo urgente ya lo dice «Qué hacer hoy».
-  const grupos = agruparPorFruta(estados.filter((e) => e.stock > 0).map((e) => ({ ...e.partes, estado: e }))).map((g) => ({
-    fruta: g.fruta,
-    estados: g.productos.map((p) => p.estado),
-  }));
+  const { grupos, frutasSinCajas } = listaDeStock(estados);
 
   // En escritorio (ADR-0015): qué hacer hoy y tu stock, lado a lado.
   return (
@@ -123,22 +148,34 @@ export function TableroStock({ alertas, estados, puedeRegistrar }: { alertas: Al
         <Filtros
           etiqueta="Filtrar alertas"
           valor={filtro}
-          alCambiar={setFiltro}
+          alCambiar={(f) => {
+            setFiltro(f);
+            setTodasALaVista(false);
+          }}
           opciones={[
             { valor: "todas" as Filtro, etiqueta: "Todas", cuenta: alertas.length },
             ...(Object.keys(tipos) as TipoAlerta[]).filter((t) => cuenta(t) > 0).map((t) => ({ valor: t as Filtro, etiqueta: tipos[t].etiqueta, cuenta: cuenta(t) })),
           ]}
         />
-        {visibles.length === 0 ? (
+        {tarjetas.length === 0 ? (
           <Vacio className="mt-3" icono={<Lightbulb />} titulo="Todo en orden">
             Ninguna fruta necesita que hagas algo hoy.
           </Vacio>
         ) : (
-          <ul key={filtro} className="mt-3 grid gap-2.5">
-            {visibles.map((a, i) => (
-              <TarjetaAlerta key={`${a.productoId}-${a.tipo}`} a={a} nombreFruta={nombreDe.get(a.productoId) ?? a.producto} i={i} />
-            ))}
-          </ul>
+          <>
+            <ul key={filtro} className="mt-3 grid gap-2.5">
+              {visibles.map((g, i) => (
+                <TarjetaAlerta key={g.clave} g={g} nombreDe={nombreDe} i={i} />
+              ))}
+            </ul>
+            {recortar && (
+              <Boton variante="secundario" className="mt-2.5 w-full" onClick={() => setTodasALaVista(true)}>
+                <span className="flex items-center gap-2">
+                  Ver {escondidas === 1 ? "1 aviso más" : `${escondidas} avisos más`} <ChevronDown aria-hidden className="size-5" />
+                </span>
+              </Boton>
+            )}
+          </>
         )}
       </section>
 
@@ -147,7 +184,7 @@ export function TableroStock({ alertas, estados, puedeRegistrar }: { alertas: Al
           Tu stock
         </h2>
         <p className="mb-2.5 text-texto-suave">Por fruta, de la mejor selección a la de menos. Toca una para ver el detalle.</p>
-        {grupos.length === 0 ? (
+        {grupos.length === 0 && frutasSinCajas.length === 0 ? (
           <Vacio icono={<PackageX />} titulo="No tienes cajas en stock">
             Registra una compra para empezar a contar.
           </Vacio>
@@ -158,16 +195,30 @@ export function TableroStock({ alertas, estados, puedeRegistrar }: { alertas: Al
                 <h3 id={`fruta-${g.fruta}`} className="mb-1.5 flex items-baseline justify-between px-1 font-extrabold">
                   <span>{g.fruta}</span>
                   <span className="cifra text-[15px] font-bold text-texto-suave">
-                    {g.estados.reduce((s, e) => s + e.stock, 0)} cajas
+                    {g.cajas} {g.cajas === 1 ? "caja" : "cajas"}
                   </span>
                 </h3>
                 <ul className="vidrio divide-y divide-border overflow-hidden rounded-tarjeta">
-                  {g.estados.map((e) => (
+                  {g.conCajas.map((e) => (
                     <FilaProducto key={e.id} e={e} puedeRegistrar={puedeRegistrar} />
                   ))}
                 </ul>
+                {/* Lo que de esta fruta no tiene cajas: «¿te queda verde premium?» tiene respuesta sin buscar. */}
+                {g.sinCajas.length > 0 && (
+                  <p className="mt-1.5 px-1 text-base leading-snug text-texto-suave">
+                    <span className="font-bold text-texto">Sin cajas:</span> {g.sinCajas.join(", ")}
+                  </p>
+                )}
               </section>
             ))}
+            {frutasSinCajas.length > 0 && (
+              <section aria-labelledby="sin-cajas" className="vidrio rounded-tarjeta px-4 py-3">
+                <h3 id="sin-cajas" className="font-extrabold">
+                  Sin ninguna caja
+                </h3>
+                <p className="text-base leading-snug text-texto-suave">{frutasSinCajas.join(", ")}</p>
+              </section>
+            )}
           </div>
         )}
       </section>

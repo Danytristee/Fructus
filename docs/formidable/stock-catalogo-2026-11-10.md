@@ -102,3 +102,54 @@ producto activo tiene ese mismo nombre sin calibre. Hoy solo hace falta para la 
 - Los filtros ocupan 3 filas a 412 px y empujan lo útil hacia abajo. Con el cambio 1 hay menos tipos a la vista.
 - Las píldoras «Compra» y «Merma» tapan el texto de la primera tarjeta en la pantalla inicial. Es el patrón elegido; se revisa si el ciego
   vuelve a fallar ahí.
+
+## 6. Después (aplicado con OK del 2026-11-10)
+
+**Qué se hizo:**
+- **Cambio 1:** `juntarAlertas()` junta las alertas del mismo tipo y urgencia en una tarjeta. Cada fruta lleva su dato corto («72 cajas de
+  más») y la tarjeta, una sola recomendación. En «Todas» se ven 3 tarjetas, y el resto va detrás de «Ver N avisos más». Con un filtro se
+  ven todas.
+- **Cambio 2:** cada recuadro cuenta lo mismo que su filtro (`resumen.porTipo`) y, si no todas son para hoy, lo dice en rojo: «1 hoy».
+- **Cambio 3:** `listaDeStock()` agrega al pie de cada fruta la línea «Sin cajas: Verde Premium, …» (con el calibre solo si dos se llaman
+  igual) y, al final, una tarjeta «Sin ninguna caja» con las frutas que no tienen ninguna.
+
+**Medido:**
+
+| | Antes | Después |
+|---|---|---|
+| Dónde empieza «Tu stock» a 412 px | 3.6 pantallas | **1.6 pantallas** (la meta era menos de 1.5: no se llegó) |
+| Dónde empieza «Tu stock» a 360 px | 4.6 pantallas | **2.1 pantallas** |
+| Tarjetas en «Qué hacer hoy» | 10 | 3, más «Ver 4 avisos más» |
+| La misma recomendación repetida | × 6 | ninguna |
+| Recuadro «por malograrse» y su filtro | 1 / 2 | 2 / 2, con «1 hoy» |
+| Controles menores de 48 px, desborde y fuentes (412, 360 y 1280) | 0, 0, Manrope | 0, 0, Manrope |
+
+**Prueba ciega repetida** (otro agente, mismas tareas y capturas de después):
+
+| Tarea | Antes | Después | Lo que dijo |
+|---|---|---|---|
+| A · ¿Te queda manzana verde premium? | 4 | **6** | «No te queda, 0 cajas; tienes la Verde Comercial, 39». Le costó porque el «no» está en una línea gris. |
+| B · Merma de durazno | 6 | 7 | — |
+| C · Lo más urgente | 5 | 6 | Acierta. Todavía no cuadra «6 de 17 urgentes» con 2 + 1 + 6 = 9, ni con «Todas 10». |
+| D · Kiwi | 7 | **9** | «Fue fácil porque el total está en el encabezado del grupo». |
+
+**Pruebas:**
+- `lib/inventario-reglas.test.ts`: 20 pruebas, 6 de ellas nuevas (juntar, recuadros que cuadran, sin cajas y su calibre).
+- E2e de Stock, auditoría visual, escritorio y consultas por voz: pasan.
+- `stock-tablero.spec.ts` ahora cuenta frutas, no tarjetas. Lee los productos de cada tarjeta (`data-productos`) y abre «Ver avisos más».
+  Pasa con el seed y con la demo.
+- Invariantes limpias.
+
+**Notas después:**
+- Leyes: 1 · 7, 2 · 7, 3 · 6, 4 · 7, 5 · 7, 6 · 8, 7 · 8, 8 · 7, 9 · 8.
+- Celular: igual que antes.
+- Oficio: 8.
+- **Nota total: 7.2 → 7.7.**
+
+**Lo que queda** (sin ejecutar):
+- **Las cifras de arriba cuentan cosas distintas.** El anillo cuenta frutas para hoy (6), los recuadros cuentan frutas por tipo (2 + 1 + 6)
+  y «Todas» cuenta avisos (10). El ciego sigue sin saber cuál creer. La salida más simple es que «Todas» no lleve número.
+- **La línea «Sin cajas» se lee como pie de página.** Podría ir en texto normal en vez de gris.
+- **«Tu stock» a 1.6 pantallas.** Para llegar a menos de 1.5 habría que mostrar 2 tarjetas en vez de 3.
+- **El calibre en los títulos de las alertas** («Kiwi Cilíndrico chileno cal. 25 o 27») sigue: es «lo que sobra» de la sección 4.
+

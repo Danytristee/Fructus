@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { cajas, edadLoteMasViejo, evaluarProducto, priorizarAlertas, resumirInventario, veredictoDelStock, vidaUtilDias, type ProductoInventario } from "./inventario-reglas";
+import {
+  cajas,
+  edadLoteMasViejo,
+  evaluarProducto,
+  juntarAlertas,
+  listaDeStock,
+  priorizarAlertas,
+  resumirInventario,
+  veredictoDelStock,
+  vidaUtilDias,
+  type ProductoInventario,
+} from "./inventario-reglas";
 
 const hoy = new Date("2026-10-28T15:00:00Z");
 const haceDias = (n: number) => new Date(hoy.getTime() - n * 86_400_000).toISOString();
@@ -107,6 +118,82 @@ describe("priorizarAlertas y resumirInventario", () => {
   });
 
   it("el resumen cuenta cajas, valor y alertas", () => {
-    expect(resumirInventario(productos, estados)).toEqual({ cajas: 20, valor: 1705.54, alertasAltas: 2, frutasPorMalograrse: 1, porReponer: 1 });
+    expect(resumirInventario(productos, estados)).toMatchObject({ cajas: 20, valor: 1705.54, alertasAltas: 2, frutasPorMalograrse: 1, porReponer: 1 });
+  });
+});
+
+describe("cifras de urgencia que cuadran (/formidable 2026-11-10)", () => {
+  it("cada recuadro cuenta lo mismo que su filtro, y aparte cuántas son para hoy", () => {
+    const productos = [
+      producto({ id: 1, nombre: "Caqui", variedad: null, stock: 6, vendido7: 7, entradas: [{ fecha: haceDias(9), cantidad: 6 }] }), // por malograrse, hoy
+      producto({ id: 2, nombre: "Durazno", variedad: null, stock: 7, vendido7: 0, entradas: [{ fecha: haceDias(5), cantidad: 7 }] }), // por malograrse, pronto
+    ];
+    const estados = productos.map((p) => evaluarProducto(p, hoy));
+    const { porTipo } = resumirInventario(productos, estados);
+    const filtro = priorizarAlertas(estados).filter((a) => a.tipo === "deterioro").length;
+    expect(porTipo.deterioro).toEqual({ total: filtro, hoy: 1 });
+    expect(filtro).toBe(2);
+  });
+});
+
+describe("juntarAlertas", () => {
+  const sobra = (id: number, nombre: string, stock: number) =>
+    producto({ id, nombre, variedad: null, stock, vendido7: 7, entradas: [{ fecha: haceDias(1), cantidad: stock }] });
+
+  it("las del mismo tipo y urgencia van en una tarjeta, con una recomendación y el dato de cada fruta", () => {
+    const estados = [sobra(1, "Kiwi", 80), sobra(2, "Tuna", 40), sobra(3, "Piña", 30)].map((p) => evaluarProducto(p, hoy));
+    const grupos = juntarAlertas(priorizarAlertas(estados));
+    expect(grupos).toHaveLength(1);
+    expect(grupos[0]!.titulo).toBe("Te sobran 3 frutas");
+    expect(grupos[0]!.recomendacion).toMatch(/^No compres más hasta que bajen/);
+    expect(grupos[0]!.detalle).toBe("");
+    // Cada fruta lleva su propio dato, el mismo que dice su alerta suelta: «56 cajas de más».
+    expect(grupos[0]!.alertas.map((a) => a.productoId)).toEqual([1, 2, 3]);
+    expect(grupos[0]!.alertas.every((a) => /^\d+ cajas? de más$/.test(a.corto))).toBe(true);
+  });
+
+  it("una sola alerta queda como estaba, con su título y su detalle", () => {
+    const [a] = evaluarProducto(sobra(1, "Kiwi", 80), hoy).alertas;
+    const [g] = juntarAlertas([a!]);
+    expect(g).toMatchObject({ titulo: a!.titulo, detalle: a!.detalle, recomendacion: a!.recomendacion });
+  });
+
+  it("lo urgente y lo que puede esperar no se mezclan, y se respeta el orden de prioridad", () => {
+    const estados = [
+      producto({ id: 1, nombre: "Caqui", variedad: null, stock: 6, vendido7: 7, entradas: [{ fecha: haceDias(9), cantidad: 6 }] }),
+      producto({ id: 2, nombre: "Durazno", variedad: null, stock: 7, vendido7: 7, entradas: [{ fecha: haceDias(5), cantidad: 7 }] }),
+    ].map((p) => evaluarProducto(p, hoy));
+    const alertas = priorizarAlertas(estados);
+    const grupos = juntarAlertas(alertas);
+    // Ningún grupo mezcla urgencias ni tipos, y van en el orden en que priorizarAlertas los puso.
+    for (const g of grupos) expect(g.alertas.every((a) => a.tipo === g.tipo && a.gravedad === g.gravedad)).toBe(true);
+    const orden = [...new Set(alertas.map((a) => `${a.gravedad} ${a.tipo}`))];
+    expect(grupos.map((g) => `${g.gravedad} ${g.tipo}`)).toEqual(orden);
+    expect(orden.slice(0, 1)).toEqual(["alta deterioro"]);
+  });
+});
+
+describe("listaDeStock", () => {
+  const e = (id: number, nombre: string, variedad: string | null, stock: number, extra: Partial<ProductoInventario> = {}) =>
+    evaluarProducto(producto({ id, nombre, variedad, stock, vendido7: 0, entradas: [], ...extra }), hoy);
+
+  it("dice qué variedades de una fruta no tienen cajas, y qué frutas no tienen ninguna", () => {
+    const { grupos, frutasSinCajas } = listaDeStock([
+      e(1, "Manzana", "Verde", 39, { seleccion: "Comercial" }),
+      e(2, "Manzana", "Verde", 0, { seleccion: "Premium" }),
+      e(3, "Cereza", "chilena", 0),
+      e(4, "Albaricoque", null, 0, { seleccion: "Extra" }),
+    ]);
+    expect(grupos).toEqual([expect.objectContaining({ fruta: "Manzana", cajas: 39, sinCajas: ["Verde Premium"] })]);
+    expect(grupos[0]!.conCajas.map((x) => x.id)).toEqual([1]);
+    expect(frutasSinCajas).toEqual(["Albaricoque", "Cereza"]);
+  });
+
+  it("si dos sin cajas se llaman igual, se distinguen por el calibre", () => {
+    const { grupos } = listaDeStock([
+      e(1, "Manzana", "Roja americana", 0, { seleccion: "Premium", calibre: "113" }),
+      e(2, "Manzana", "Roja americana", 5, { seleccion: "Premium", calibre: "100" }),
+    ]);
+    expect(grupos[0]!.sinCajas).toEqual(["Roja americana Premium cal.\u00a0113"]);
   });
 });

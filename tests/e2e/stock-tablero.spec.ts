@@ -21,12 +21,16 @@ test("el anillo dice cuántas frutas piden algo hoy («X de Y frutas» / «urgen
   await expect(anillo).toContainText(/^(\d+ de )?\d+\s*frutas$/);
   await expect(anillo).not.toContainText("%");
   await expect(page.getByText(/^(urgentes?|nada urgente)$/)).toBeVisible();
-  // El anillo cuenta lo mismo que la lista: las frutas con la etiqueta roja «Hoy».
+  // El anillo cuenta lo mismo que la lista: las frutas con la etiqueta roja «Hoy». Una tarjeta puede juntar varias frutas, y en «Todas»
+  // se ven las primeras y el resto a un toque (/formidable 2026-11-10): se abren todas y se cuentan frutas, no tarjetas.
   const urgentes = Number((await anillo.getAttribute("aria-label"))!.match(/^(\d+) de/)?.[1] ?? 0);
   await page.getByRole("button", { name: /^Todas/ }).click();
-  const conHoy = await page.locator("li").filter({ has: page.getByText("Hoy", { exact: true }) }).evaluateAll((filas) =>
-    new Set(filas.map((f) => f.querySelector("img")?.getAttribute("src") ?? f.textContent)).size,
-  );
+  const verMas = page.getByRole("button", { name: /^Ver \d+ avisos? más/ });
+  if (await verMas.isVisible()) await verMas.click();
+  const conHoy = await page
+    .locator("li[data-productos]")
+    .filter({ has: page.getByText("Hoy", { exact: true }) })
+    .evaluateAll((tarjetas) => new Set(tarjetas.flatMap((t) => t.getAttribute("data-productos")!.split(" "))).size);
   expect(urgentes).toBe(conHoy);
   await expect(page.getByText("sin avisos", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/están bien/)).toHaveCount(0);
