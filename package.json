@@ -21,6 +21,7 @@
     "prepare": "git config core.hooksPath .githooks || true",
     "medir:js": "node scripts/medir-js.mjs",
     "iconos": "node scripts/generar-iconos.mjs",
+    "frutas": "node scripts/frutas/generar.mjs",
     "build:local": "node scripts/entorno-local.mjs pnpm exec next build",
     "medir:fluidez": "node scripts/entorno-local.mjs node scripts/medir-fluidez.mjs",
     "medir:pintura": "node scripts/entorno-local.mjs node scripts/medir-pintura.mjs",

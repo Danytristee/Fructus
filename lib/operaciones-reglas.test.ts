@@ -1,6 +1,7 @@
+import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-import { frutaIlustrada } from "./frutas";
+import { frutaIlustrada, frutasIlustradas } from "./frutas";
 import { deAbono, deCompra, deGasto, deMerma, deVenta, describirItems, iniciales, tonoDe, ultimas } from "./operaciones-reglas";
 
 const mango = { nombre: "Mango", variedad: "Kent" };
@@ -61,8 +62,28 @@ describe("frutaIlustrada", () => {
   });
   it("la mandarina tiene su dibujo; el tangelo usa el de la naranja; lo que no está, nada", () => {
     expect(frutaIlustrada("Mandarina")).toBe("mandarina");
-    expect(frutaIlustrada("Tangelo")).toBe("naranja");
-    expect(frutaIlustrada("Granadilla")).toBeNull();
+    expect(frutaIlustrada("Naranja Tangelo")).toBe("naranja");
+    expect(frutaIlustrada("Bomba")).toBeNull();
+  });
+  it("cada fruta del catálogo real tiene su dibujo, con la variedad cuando cambia cómo se ve (ADR-0016)", () => {
+    expect(frutaIlustrada("Manzana Verde Premium")).toBe("manzana-verde");
+    expect(frutaIlustrada("Manzana Roja americana Premium")).toBe("manzana");
+    expect(frutaIlustrada("Plátano bizcocho orgánico")).toBe("platano-bizcocho");
+    expect(frutaIlustrada("Ciruela chilena Nectarín")).toBe("ciruela");
+    expect(frutaIlustrada("Níspero HBS")).toBe("nispero");
+    expect(frutaIlustrada("Lima")).toBe("lima");
+    expect(frutaIlustrada("Limón")).toBe("limon");
+    for (const [nombre, fruta] of [
+      ["Albaricoque Premium", "albaricoque"], ["Caqui", "caqui"], ["Cereza chilena", "cereza"], ["Chirimoya", "chirimoya"],
+      ["Cocona", "cocona"], ["Durazno chileno", "durazno"], ["Granadilla", "granadilla"], ["Kiwi Riñón chileno", "kiwi"],
+      ["Membrillo 3era", "membrillo"], ["Pepino", "pepino"], ["Pera Gaucho Elegido", "pera"], ["Piña", "pina"], ["Tumbo", "tumbo"],
+      ["Tuna", "tuna"], ["Uva sin pepa", "uva"], ["Naranja Valencia", "naranja"],
+    ] as const) {
+      expect(frutaIlustrada(nombre), nombre).toBe(fruta);
+    }
+  });
+  it("cada ilustración de la lista tiene su archivo en public/frutas/", () => {
+    for (const fruta of frutasIlustradas) expect(existsSync(`public/frutas/${fruta}.svg`), fruta).toBe(true);
   });
 });
 

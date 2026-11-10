@@ -16,7 +16,7 @@ export function Fruta({ fruta, tamano = 40, className }: Props) {
       width={tamano}
       height={tamano}
       unoptimized
-      // Pesan menos de 1 KB: cargarlas «cuando se acerquen» no ahorra nada y las hace aparecer de golpe al deslizar.
+      // Comprimidas pesan menos de 4 KB: cargarlas «cuando se acerquen» no ahorra nada y las hace aparecer de golpe al deslizar.
       loading="eager"
       className={cn("sombra-fruta", className)}
     />
