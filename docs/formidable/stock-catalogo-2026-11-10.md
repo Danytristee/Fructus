@@ -147,8 +147,8 @@ producto activo tiene ese mismo nombre sin calibre. Hoy solo hace falta para la 
 - **Nota total: 7.2 → 7.7.**
 
 **Lo que queda** (sin ejecutar):
-- **Las cifras de arriba cuentan cosas distintas.** El anillo cuenta frutas para hoy (6), los recuadros cuentan frutas por tipo (2 + 1 + 6)
-  y «Todas» cuenta avisos (10). El ciego sigue sin saber cuál creer. La salida más simple es que «Todas» no lleve número.
+- ~~**Las cifras de arriba cuentan cosas distintas.**~~ **Aplicado con OK:** «Todas» va sin número. Los recuadros cuadran con sus filtros
+  y el anillo dice aparte cuántas frutas son para hoy. Captura: `capturas/stock-catalogo-2026-11-10/stock-412-todas-sin-numero.png`.
 - **La línea «Sin cajas» se lee como pie de página.** Podría ir en texto normal en vez de gris.
 - **«Tu stock» a 1.6 pantallas.** Para llegar a menos de 1.5 habría que mostrar 2 tarjetas en vez de 3.
 - **El calibre en los títulos de las alertas** («Kiwi Cilíndrico chileno cal. 25 o 27») sigue: es «lo que sobra» de la sección 4.

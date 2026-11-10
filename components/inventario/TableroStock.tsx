@@ -153,7 +153,9 @@ export function TableroStock({ alertas, estados, puedeRegistrar }: { alertas: Al
             setTodasALaVista(false);
           }}
           opciones={[
-            { valor: "todas" as Filtro, etiqueta: "Todas", cuenta: alertas.length },
+            // «Todas» sin número: contaba avisos (10) junto a recuadros que cuentan frutas (2 + 1 + 6) y al anillo (6 de 17), y el ciego
+            // no supo a cuál creerle (/formidable 2026-11-10).
+            { valor: "todas" as Filtro, etiqueta: "Todas" },
             ...(Object.keys(tipos) as TipoAlerta[]).filter((t) => cuenta(t) > 0).map((t) => ({ valor: t as Filtro, etiqueta: tipos[t].etiqueta, cuenta: cuenta(t) })),
           ]}
         />
