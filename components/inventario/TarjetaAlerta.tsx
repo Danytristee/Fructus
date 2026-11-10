@@ -46,7 +46,7 @@ export function TarjetaAlerta({ g, nombreDe, i }: { g: GrupoAlertas; nombreDe: M
             <Icono aria-hidden className="size-5" strokeWidth={2.4} />
           </span>
         )}
-        <span className="grid gap-0.5">
+        <span className="grid min-w-0 gap-0.5 wrap-anywhere">
           <span className="leading-tight font-extrabold">{g.titulo}</span>
           {sola ? (
             <span className="text-base leading-snug text-texto-suave">{g.detalle}</span>
