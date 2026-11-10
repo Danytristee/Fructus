@@ -9,7 +9,7 @@
 **Base:** local. Tenía el catálogo real y la demo de dos semanas, y antes de atacar se guardó un volcado. Las invariantes estaban limpias
 antes y siguieron limpias después de cada ataque que escribió. Al final se rehízo la base con `db reset` y se recargó la demo.
 
-**Conteo:** 8 ataques, **6 resistieron**, 1 hallazgo nuevo de gravedad 2 y 1 observación que ya estaba antes de este PR.
+**Conteo:** 8 ataques, **6 resistieron**, 1 hallazgo nuevo de gravedad 2 (ya arreglado) y 1 observación que ya estaba antes de este PR.
 
 **Sin probar:** la voz real. `/api/voz` necesita `GROQ_API_KEY`, que esta máquina no tiene. En su lugar se probó que la búsqueda de las
 hojas distinga las selecciones (N3).
@@ -36,6 +36,21 @@ hojas distinga las selecciones (N3).
     que diga qué hacer: «La app cuenta menos de cero: falta registrar una compra».
   - El total del grupo sigue sumando solo lo positivo.
   - Prueba primero: Vitest de `listaDeStock` con stock −3, y el mismo ataque con la semilla 1110.
+
+**Arreglado (con OK del 2026-11-10):**
+- **Prueba primero:** `lib/inventario-reglas.test.ts`, «un stock negativo no es "sin cajas"» y «con stock negativo, "alcanza para" dice 0
+  días». Las dos fallaron antes del arreglo.
+- **Arreglo:**
+  - `listaDeStock()` separa por `stock !== 0` en vez de `stock > 0`. Lo negativo queda como fila en su fruta y el total del grupo sigue
+    sumando solo lo positivo.
+  - La fila muestra «−3 cajas» en el color de la deuda, con un icono y la línea «La app cuenta menos de cero: falta registrar una
+    compra» en lugar de la barra de frescura.
+  - Al repetir el ataque apareció «Alcanza para −4.2 días» en el detalle. Ahora `coberturaDias` cuenta desde 0.
+- **Mismo ataque, semilla 1110:** Durazno 7 → −3 con una merma de 10. Sale en su grupo como «Chileno · −3 cajas» y ya no en «Sin
+  ninguna caja». El detalle dice «Alcanza para 0 días». Sin desborde a 412 ni a 360 px. Invariantes limpias
+  (`stock-catalogo-2026-11-10/x1-despues-412.png` y `x1-despues-360.png`).
+- **Queda igual, a propósito:** «Qué hacer hoy» sigue diciendo «se acabó: compra unas 3 cajas». Esa cantidad no cuenta el −3: es una regla
+  de compra y no se tocó.
 
 ### Observación · ya estaba antes de este PR · Con el teclado abierto a 360 px, «Listo» queda bajo el borde en la hoja de Compra
 

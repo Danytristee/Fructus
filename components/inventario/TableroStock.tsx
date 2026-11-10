@@ -79,6 +79,8 @@ function TarjetaAlerta({ g, nombreDe, i }: { g: GrupoAlertas; nombreDe: Map<numb
 function FilaProducto({ e, puedeRegistrar }: { e: EstadoProducto; puedeRegistrar: boolean }) {
   const frescura = Math.round((1 - e.desgaste) * 100);
   const color = e.desgaste >= 0.85 ? "bg-deuda" : e.desgaste >= 0.6 ? "bg-sol" : "bg-exito";
+  // Menos de cero: se registró más salida que entrada (una merma de 8 con 5 en la app). No es «sin cajas», es un aviso (/chaos 2026-11-10).
+  const negativo = e.stock < 0;
   return (
     <li className="px-4 py-1">
       <Desplegable
@@ -88,13 +90,20 @@ function FilaProducto({ e, puedeRegistrar }: { e: EstadoProducto; puedeRegistrar
             <span className="grid min-w-0 gap-0.5">
               <span className="leading-tight font-extrabold wrap-anywhere">{tituloEnGrupo(e.partes)}</span>
               {e.detalle && <span className="text-[15px] leading-snug text-texto-suave">{e.detalle}</span>}
-              <span className="h-2 overflow-hidden rounded-full bg-texto/10" aria-hidden>
-                <span className={cn("block h-full origin-left animate-llenar rounded-full", color)} style={{ width: `${Math.max(6, frescura)}%` }} />
-              </span>
+              {negativo ? (
+                <span className="flex gap-1.5 text-[15px] leading-snug font-bold text-deuda">
+                  <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+                  La app cuenta menos de cero: falta registrar una compra
+                </span>
+              ) : (
+                <span className="h-2 overflow-hidden rounded-full bg-texto/10" aria-hidden>
+                  <span className={cn("block h-full origin-left animate-llenar rounded-full", color)} style={{ width: `${Math.max(6, frescura)}%` }} />
+                </span>
+              )}
             </span>
-            <span className="text-right">
-              <span className="cifra block text-xl">{e.stock}</span>
-              <span className="text-[15px] text-texto-suave">{e.stock === 1 ? "caja" : "cajas"}</span>
+            <span className={cn("text-right", negativo && "text-deuda")}>
+              <span className="cifra block text-xl">{negativo ? `\u2212${-e.stock}` : e.stock}</span>
+              <span className={cn("text-[15px]", negativo ? "font-bold" : "text-texto-suave")}>{Math.abs(e.stock) === 1 ? "caja" : "cajas"}</span>
             </span>
           </span>
         }

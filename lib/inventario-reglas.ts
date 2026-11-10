@@ -135,7 +135,8 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProduct
   const nombre = nombreProducto(p);
   const vidaUtil = vidaUtilDias(p.nombre);
   const demandaDiaria = p.vendido7 / 7;
-  const coberturaDias = demandaDiaria > 0 ? p.stock / demandaDiaria : null;
+  // Con stock negativo (una merma mayor que lo contado) no alcanza para nada: 0 días, no «−4.2 días» (/chaos 2026-11-10).
+  const coberturaDias = demandaDiaria > 0 ? Math.max(0, p.stock) / demandaDiaria : null;
   const edadDias = edadLoteMasViejo(p.stock, p.entradas, hoy);
   const desgaste = edadDias === null ? 0 : Math.min(1, edadDias / vidaUtil);
   const alertas: Alerta[] = [];
@@ -320,21 +321,22 @@ export function listaDeStock(estados: EstadoProducto[]): {
   frutasSinCajas: string[];
 } {
   const grupos = agruparPorFruta(estados.map((e) => ({ ...e.partes, estado: e }))).map((g) => g.productos.map((p) => p.estado));
-  const conAlguna = grupos.filter((g) => g.some((e) => e.stock > 0));
+  // Un stock negativo no es «sin cajas»: dice que falta registrar una compra o un conteo, y se muestra como fila (/chaos 2026-11-10).
+  const conAlguna = grupos.filter((g) => g.some((e) => e.stock !== 0));
   return {
     grupos: conAlguna.map((g) => ({
       fruta: g[0]!.partes.nombre,
       cajas: g.reduce((s, e) => s + Math.max(0, e.stock), 0),
-      conCajas: g.filter((e) => e.stock > 0),
+      conCajas: g.filter((e) => e.stock !== 0),
       // Con el calibre solo si otra de la misma fruta se llama igual: «Roja americana Premium cal. 113».
       sinCajas: g
-        .filter((e) => e.stock <= 0)
+        .filter((e) => e.stock === 0)
         .map((e) => {
           const titulo = tituloEnGrupo(e.partes);
           const repetido = g.some((o) => o !== e && tituloEnGrupo(o.partes) === titulo);
           return repetido && e.partes.calibre ? `${titulo} cal.\u00a0${e.partes.calibre}` : titulo;
         }),
     })),
-    frutasSinCajas: grupos.filter((g) => g.every((e) => e.stock <= 0)).map((g) => g[0]!.partes.nombre),
+    frutasSinCajas: grupos.filter((g) => g.every((e) => e.stock === 0)).map((g) => g[0]!.partes.nombre),
   };
 }

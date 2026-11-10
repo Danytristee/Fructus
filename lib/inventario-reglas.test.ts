@@ -196,4 +196,21 @@ describe("listaDeStock", () => {
     ]);
     expect(grupos[0]!.sinCajas).toEqual(["Roja americana Premium cal.\u00a0113"]);
   });
+
+  it("un stock negativo no es «sin cajas»: queda como fila en su fruta y no resta del total (/chaos 2026-11-10)", () => {
+    const { grupos, frutasSinCajas } = listaDeStock([
+      e(1, "Durazno", "chileno", -3, { calibre: "40" }),
+      e(2, "Kiwi", "Riñón", 33),
+      e(3, "Kiwi", "Cilíndrico", -2),
+    ]);
+    expect(frutasSinCajas).toEqual([]);
+    expect(grupos.map((g) => [g.fruta, g.cajas, g.conCajas.map((x) => x.id), g.sinCajas])).toEqual([
+      ["Durazno", 0, [1], []],
+      ["Kiwi", 33, [3, 2], []],
+    ]);
+  });
+
+  it("con stock negativo, «alcanza para» dice 0 días, no −4.2", () => {
+    expect(e(1, "Durazno", "chileno", -3, { vendido7: 5 }).coberturaDias).toBe(0);
+  });
 });
