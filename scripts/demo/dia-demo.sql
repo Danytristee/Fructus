@@ -1,5 +1,5 @@
 -- =============================================================================
--- Un día de demo con el catálogo de la proyección (scripts/demo/catalogo-proyeccion.sql), para mostrar Fructus con datos.
+-- Un día de demo con el catálogo real del puesto (scripts/demo/catalogo-real.sql), para mostrar Fructus con datos.
 --
 -- - Todo entra por las RPC reales (registrar_compra, registrar_venta), así cuadran stock, deudas e invariantes.
 -- - Queda a nombre del primer perfil activo de dueño (o administrador): toda operación necesita un perfil.
@@ -12,10 +12,19 @@
 --      en el proyecto, solo con OK de quien dirige el proyecto.
 -- =============================================================================
 
-create or replace function pg_temp.producto(p_nombre text, p_variedad text) returns bigint language sql stable as $$
-  select id from productos
-   where lower(nombre) = lower(p_nombre) and lower(coalesce(variedad, '')) = lower(coalesce(p_variedad, ''))
-$$;
+-- El producto por su nombre completo, como se ve en pantalla: «Pera Gaucho Premium», o con el calibre si hace falta para no
+-- confundirlo («Manzana Roja americana Premium 113»). Si no hay exactamente uno, se dice y se para (ADR-0016).
+create or replace function pg_temp.producto(p_clave text) returns bigint language plpgsql stable as $$
+declare v_ids bigint[];
+begin
+  select array_agg(id) into v_ids from productos
+   where activo and (lower(concat_ws(' ', nombre, variedad, seleccion)) = lower(p_clave)
+                  or lower(concat_ws(' ', nombre, variedad, seleccion, calibre)) = lower(p_clave));
+  if coalesce(cardinality(v_ids), 0) <> 1 then
+    raise exception '«%»: % productos activos con ese nombre. Corre antes scripts/demo/catalogo-real.sql', p_clave, coalesce(cardinality(v_ids), 0);
+  end if;
+  return v_ids[1];
+end $$;
 
 create or replace function pg_temp.mover(p_tabla text, p_id bigint, p_fecha timestamptz) returns void language plpgsql as $$
 begin
@@ -24,9 +33,9 @@ begin
   if p_tabla = 'compras' then update movimientos_stock set fecha = p_fecha where compra_id = p_id; end if;
 end $$;
 
--- [producto, variedad, cantidad, precio] → los items que esperan las RPC.
+-- [producto, cantidad, precio] → los items que esperan las RPC.
 create or replace function pg_temp.items(p jsonb, p_clave text) returns jsonb language sql stable as $$
-  select jsonb_agg(jsonb_build_object('producto_id', pg_temp.producto(i ->> 0, i ->> 1), 'cantidad', i -> 2, p_clave, i -> 3))
+  select jsonb_agg(jsonb_build_object('producto_id', pg_temp.producto(i ->> 0), 'cantidad', i -> 1, p_clave, i -> 2))
     from jsonb_array_elements(p) i
 $$;
 
@@ -42,24 +51,24 @@ declare
   v        jsonb;
   -- [cliente o null, condición, medio, items, momento del día entre 0 y 1]
   v_ventas jsonb := '[
-    ["Juguería El Paraíso", "contado", "yape",          [["Naranja", null, 10, 75], ["Piña", "golden", 6, 43]],    0.04],
-    ["Luis Paredes",        "credito", null,            [["Manzana", "Royal", 10, 129]],                            0.11],
-    [null,                  "contado", "efectivo",      [["Manzana", "Crispin", 4, 130]],                           0.18],
-    ["Restaurante Mochica", "contado", "transferencia", [["Kiwi", "importado", 5, 140], ["Uva", "Bolón", 4, 134]],  0.24],
-    ["Bodega Santa Ana",    "credito", null,            [["Pera", "Gaucho", 12, 121]],                              0.31],
-    ["Rosa Quispe",         "contado", "efectivo",      [["Plátano", "biscocho", 8, 22]],                           0.38],
-    ["Carlos Mendoza",      "credito", null,            [["Mango", "Kent", 6, 102]],                                0.45],
-    ["Juguería El Paraíso", "contado", "yape",          [["Plátano", "biscocho", 15, 21.5]],                        0.52],
-    [null,                  "contado", "efectivo",      [["Granadilla", "selección", 3, 54]],                       0.58],
-    ["Restaurante Mochica", "contado", "transferencia", [["Manzana", "Royal", 8, 128.7]],                           0.65],
-    ["Luis Paredes",        "credito", null,            [["Uva", "Bolón", 6, 134]],                                 0.72],
-    [null,                  "contado", "yape",          [["Piña", "golden", 10, 43]],                               0.80],
-    ["Bodega Santa Ana",    "contado", "efectivo",      [["Pera", "chilena", 8, 121.2]],                            0.88],
-    ["Rosa Quispe",         "credito", null,            [["Manzana", "Crispin", 5, 129]],                           0.95]
+    ["Juguería El Paraíso", "contado", "yape",          [["Naranja Valencia", 10, 40], ["Piña", 6, 38]],    0.04],
+    ["Luis Paredes",        "credito", null,            [["Manzana Royal Comercial", 10, 110]],                            0.11],
+    [null,                  "contado", "efectivo",      [["Manzana Verde Comercial", 4, 140]],                           0.18],
+    ["Restaurante Mochica", "contado", "transferencia", [["Kiwi Riñón chileno", 5, 160], ["Uva sin pepa", 4, 110]],  0.24],
+    ["Bodega Santa Ana",    "credito", null,            [["Pera Gaucho Premium", 12, 150]],                              0.31],
+    ["Rosa Quispe",         "contado", "efectivo",      [["Tuna", 8, 70]],                           0.38],
+    ["Carlos Mendoza",      "credito", null,            [["Manzana Roja americana Premium 113", 6, 190]],                                0.45],
+    ["Juguería El Paraíso", "contado", "yape",          [["Tuna", 15, 70]],                        0.52],
+    [null,                  "contado", "efectivo",      [["Pera Salud", 3, 100]],                       0.58],
+    ["Restaurante Mochica", "contado", "transferencia", [["Manzana Royal Comercial", 8, 110]],                           0.65],
+    ["Luis Paredes",        "credito", null,            [["Uva sin pepa", 6, 110]],                                 0.72],
+    [null,                  "contado", "yape",          [["Piña", 10, 38]],                               0.80],
+    ["Bodega Santa Ana",    "contado", "efectivo",      [["Pera Cesta", 8, 110]],                            0.88],
+    ["Rosa Quispe",         "credito", null,            [["Manzana Verde Comercial", 5, 140]],                           0.95]
   ]';
 begin
   if v_perfil is null then raise exception 'No hay un perfil activo de dueño o administrador'; end if;
-  if pg_temp.producto('Manzana', 'Royal') is null then raise exception 'Falta el catálogo: corre antes scripts/demo/catalogo-proyeccion.sql'; end if;
+  perform pg_temp.producto('Manzana Royal Comercial'); -- sin el catálogo real, se para aquí con el aviso
   perform set_config('request.jwt.claims', json_build_object('sub', v_perfil, 'role', 'authenticated')::text, true);
 
   -- El tramo del día: de 6 a. m. a ahora si es hoy; de 6 a. m. a 7 p. m. si es otro día.
@@ -69,11 +78,11 @@ begin
   -- Ayer: llega fruta y quedan cuatro deudas.
   v_id := registrar_compra(jsonb_build_object('proveedor_id', (select id from proveedores where nombre = 'Transportes Piura Norte'),
     'condicion', 'contado', 'medio_pago', 'transferencia', 'items', pg_temp.items('[
-      ["Manzana", "Royal", 60, 124.56], ["Pera", "Gaucho", 40, 117.30], ["Kiwi", "importado", 30, 134.94], ["Naranja", null, 50, 72.66]]', 'costo_unitario')));
+      ["Manzana Royal Comercial", 60, 100], ["Pera Gaucho Premium", 40, 140], ["Kiwi Riñón chileno", 30, 145], ["Naranja Valencia", 50, 30]]', 'costo_unitario')));
   perform pg_temp.mover('compras', v_id, v_ayer - interval '9 hours');
   for v in select * from jsonb_array_elements('[
-      ["Luis Paredes", [["Manzana", "Royal", 8, 129]], 5], ["Bodega Santa Ana", [["Pera", "Gaucho", 10, 121]], 4],
-      ["Rosa Quispe", [["Kiwi", "importado", 6, 140]], 3], ["Restaurante Mochica", [["Naranja", null, 12, 75]], 2]]'::jsonb) loop
+      ["Luis Paredes", [["Manzana Royal Comercial", 8, 110]], 5], ["Bodega Santa Ana", [["Pera Gaucho Premium", 10, 150]], 4],
+      ["Rosa Quispe", [["Kiwi Riñón chileno", 6, 160]], 3], ["Restaurante Mochica", [["Naranja Valencia", 12, 40]], 2]]'::jsonb) loop
     v_id := registrar_venta(jsonb_build_object('cliente_id', (select id from clientes where nombre = v ->> 0), 'condicion', 'credito',
       'items', pg_temp.items(v -> 1, 'precio_unitario')));
     perform pg_temp.mover('ventas', v_id, v_ayer - make_interval(hours => (v ->> 2)::int));
@@ -83,8 +92,8 @@ begin
   -- Una compra de este tamaño se paga por transferencia: en efectivo dejaría la caja del día en negativo.
   v_id := registrar_compra(jsonb_build_object('proveedor_id', (select id from proveedores where nombre = 'Agrícola Chao'),
     'condicion', 'contado', 'medio_pago', 'transferencia', 'items', pg_temp.items('[
-      ["Manzana", "Crispin", 30, 124.56], ["Uva", "Bolón", 25, 129.75], ["Piña", "golden", 40, 41.52], ["Mango", "Kent", 20, 98.61],
-      ["Plátano", "biscocho", 60, 20.76], ["Granadilla", "selección", 20, 51.90], ["Pera", "chilena", 20, 117.30]]', 'costo_unitario')));
+      ["Manzana Verde Comercial", 30, 125], ["Uva sin pepa", 25, 100], ["Piña", 40, 34], ["Manzana Roja americana Premium 113", 20, 180],
+      ["Tuna", 60, 65], ["Pera Salud", 20, 90], ["Pera Cesta", 20, 100]]', 'costo_unitario')));
   perform pg_temp.mover('compras', v_id, v_desde);
 
   for v in select * from jsonb_array_elements(v_ventas) loop
@@ -98,7 +107,7 @@ begin
     ((select id from clientes where nombre = 'Luis Paredes'),     500, 'yape',     v_desde + (v_hasta - v_desde) * 0.35),
     ((select id from clientes where nombre = 'Bodega Santa Ana'), 600, 'efectivo', v_desde + (v_hasta - v_desde) * 0.76);
   insert into movimientos_stock (producto_id, tipo, cantidad, motivo, fecha)
-  values (pg_temp.producto('Plátano', 'biscocho'), 'merma', -2, 'se malogró', v_desde + (v_hasta - v_desde) * 0.62);
+  values (pg_temp.producto('Tuna'), 'merma', -2, 'se malogró', v_desde + (v_hasta - v_desde) * 0.62);
   insert into gastos (categoria, monto, medio_pago, descripcion, fecha) values
     ('flete',    120, 'efectivo', 'Flete de Chao', v_desde + (v_hasta - v_desde) * 0.02),
     ('personal',  60, 'efectivo', 'Cargador',      v_desde + (v_hasta - v_desde) * 0.70);

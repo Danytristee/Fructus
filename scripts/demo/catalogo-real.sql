@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Catálogo real del puesto, del inventario del dueño («Copia de Inventario de Frutas.xlsx», filas 2 a 51; ADR-0016).
--- Reemplaza a catalogo-proyeccion.sql, que salió de una proyección con precios promedio.
+-- Reemplaza a catalogo-proyeccion.sql (en el historial de git), que salió de una proyección con precios promedio.
 --
 -- Qué hace (se puede correr varias veces; no duplica):
 --   1. Crea o pone al día un producto por cada fila del Excel. La llave es fruta + variedad + marca + selección + calibre.
@@ -15,9 +15,9 @@
 --        americana» tienen que preguntar cuál (lib/voz/tarjeta-reglas.ts, elegir).
 --      - Sin precio en el Excel, sin precio sugerido: Chirimoya, Granadilla y Plátano bizcocho. La cereza trae «280 a 150»
 --        y queda sin precio sugerido: nunca se inventa dinero (principio 2); se sugiere el último que se cobró.
---   3. Quedan activas, aunque no estén en la lista, las frutas que el puesto vende según sus ventas diarias (columnas N a
---      R): Níspero HBS y ASV, Cocona y Lima, que ya existían, y se agregan Tumbo, Pepino, Bomba y Plátano bizcocho
---      orgánico, sin precio.
+--   3. También van, aunque no estén en la lista, las frutas que el puesto vende según sus ventas diarias (columnas N a
+--      R): Tumbo, Pepino, Bomba, Plátano bizcocho orgánico, Níspero HBS y ASV, Cocona y Lima. Sin precio: si ya tenían el
+--      precio PROYECTADO de catalogo-proyeccion.sql, se le quita (no era un precio real).
 --   4. Todo lo demás queda inactivo. No se borra (CLAUDE.md): las ventas viejas conservan su producto.
 --
 -- Uso: en local, docker exec -i supabase_db_fructus psql -U postgres -v ON_ERROR_STOP=1 < scripts/demo/catalogo-real.sql
@@ -93,7 +93,11 @@ insert into catalogo values
   ('Tumbo',   null,                 null,         null,        null,           null, null, null, '{"tumbo","tumbos"}'),
   ('Pepino',  null,                 null,         null,        null,           null, null, null, '{"pepino","pepinos","pepino dulce"}'),
   ('Bomba',   null,                 null,         null,        null,           null, null, null, '{"bomba","bombas"}'),
-  ('Plátano', 'bizcocho orgánico',  null,         null,        null,           null, null, null, '{"bizcocho orgánico","biscocho orgánico","orgánico"}');
+  ('Plátano', 'bizcocho orgánico',  null,         null,        null,           null, null, null, '{"bizcocho orgánico","biscocho orgánico","orgánico"}'),
+  ('Níspero', 'HBS',                null,         null,        null,           null, null, null, '{"níspero hbs","nispero hbs"}'),
+  ('Níspero', 'ASV',                null,         null,        null,           null, null, null, '{"níspero asv","nispero asv"}'),
+  ('Cocona',  null,                 null,         null,        null,           null, null, null, '{"cocona"}'),
+  ('Lima',    null,                 null,         null,        null,           null, null, null, '{"lima"}');
 
 insert into productos (nombre, variedad, marca, seleccion, calibre, unidad, kg_por_caja, costo_referencia, precio_referencia, alias, activo)
 select nombre, variedad, marca, seleccion, calibre, 'caja', kg, costo, precio, alias, true from catalogo
@@ -109,8 +113,7 @@ update productos p set activo = false
       where lower(p.nombre) = lower(c.nombre) and lower(coalesce(p.variedad, '')) = lower(coalesce(c.variedad, ''))
         and lower(coalesce(p.marca, '')) = lower(coalesce(c.marca, '')) and lower(coalesce(p.seleccion, '')) = lower(coalesce(c.seleccion, ''))
         and lower(coalesce(p.calibre, '')) = lower(coalesce(c.calibre, ''))
-   )
-   and (p.nombre, coalesce(p.variedad, '')) not in (('Níspero', 'HBS'), ('Níspero', 'ASV'), ('Cocona', ''), ('Lima', ''));
+   );
 
 select count(*) filter (where activo) as activos, count(*) filter (where not activo) as inactivos from productos;
 
