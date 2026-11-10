@@ -16,11 +16,11 @@
     -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5);
   }
   .marca { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 800; margin-right: 18px; }
-  .marca img { width: 26px; height: 26px; }
+  .marca .icono-app { width: 36px; height: 36px; }
   .pestanas { display: flex; gap: 2px; }
-  .pestanas a { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 16px; border-radius: 999px; font-weight: 800; color: var(--texto-suave); }
-  .pestanas a:hover { color: var(--texto); background: color-mix(in srgb, var(--acento) 6%, transparent); }
-  .pestanas a[aria-current="page"] { background: color-mix(in srgb, var(--acento) 13%, transparent); color: var(--acento-texto); }
+  .pestanas a { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 16px; border-radius: 999px; font-weight: 800; color: rgb(247 245 238 / .82); }
+  .pestanas a:hover { color: var(--sobre-acento); background: rgb(247 245 238 / .08); }
+  .pestanas a[aria-current="page"] { background: var(--lima); color: var(--acento); }
   .derecha { margin-left: auto; display: flex; align-items: center; gap: 8px; }
   .dictar { padding: 0 18px 0 6px; gap: 10px; }
   .dictar .orbe { width: 38px; height: 38px; box-shadow: none; }
@@ -59,12 +59,12 @@
 </head>
 <body>
 <div class="fondo"><span></span><span></span><span></span><span></span></div>
-<header class="barra vidrio">
-  <div class="marca"><img src="../../../public/frutas/mango.svg" alt="">Fructus</div>
+<header class="barra verde">
+  <div class="marca"><span id="marca"></span>Fructus</div>
   <nav class="pestanas" aria-label="Principal" id="nav"></nav>
   <div class="derecha">
-    <button type="button" class="boton dictar" data-orbe><span class="orbe" data-orbe-visual id="orbe"></span><span id="estado-voz">Dictar</span><kbd>Espacio</kbd></button>
-    <span class="avatar" title="Dueño de prueba · Dueño">DP</span>
+    <button type="button" class="boton lima dictar" data-orbe><span class="orbe" data-orbe-visual id="orbe"></span><span id="estado-voz">Dictar</span><kbd>Espacio</kbd></button>
+    <span class="avatar" style="background:rgb(247 245 238 / .14);color:var(--sobre-acento)" title="Dueño de prueba · Dueño">DP</span>
   </div>
 </header>
 <main class="contenido" id="pantalla"></main>
@@ -75,6 +75,7 @@
 <script src="datos.js"></script>
 <script>
   document.getElementById("orbe").innerHTML = icono("micro");
+  document.getElementById("marca").innerHTML = MARCA;
   const destinos = [["hoy", "Hoy", "casa"], ["clientes", "Clientes", "clientes"], ["stock", "Stock", "stock"], ["ventas", "Ventas", "ventas"], ["cierre", "Cierre", "cierre"], ["ajustes", "Ajustes", "ajustes"]];
   let pantalla = location.hash.slice(1) || "hoy";
   let filtro = "deben";
@@ -88,7 +89,7 @@
     const tipos = { todo: "Todo", venta: "Ventas", abono: "Abonos", otro: "Mermas y gastos" };
     const filas = ULTIMAS.filter((o) => filtroHoy === "todo" || (filtroHoy === "otro" ? ["merma", "gasto"].includes(o.tipo) : o.tipo === filtroHoy));
     return `
-    <header class="cabecera subir"><div><h1>Hoy</h1><p class="suave">${HOY.fecha}</p></div>
+    <header class="cabecera subir"><div class="titulo-bosque"><h1>Hoy</h1><p class="suave">${HOY.fecha}</p></div>
       <div class="acciones"><button class="boton claro" type="button">${icono("mas")}Registrar a mano</button></div></header>
     <div class="franja">
       <div class="kpi vidrio subir"><span class="etiqueta">Vendiste</span><span class="cifra">${S(HOY.vendido)}</span><small>${HOY.ventas} ventas · ${HOY.cajas} cajas</small></div>
@@ -118,7 +119,7 @@
     lista = [...lista].sort((a, b) => orden === "saldo" ? b.saldo - a.saldo : orden === "dias" ? b.dias - a.dias : a.nombre.localeCompare(b.nombre));
     const flecha = (k) => (orden === k ? " ↓" : "");
     return `
-    <header class="cabecera subir"><div><h1>Clientes</h1><p class="suave">Te deben <strong class="cifra deuda">${S(TE_DEBEN)}</strong> entre ${DEUDORES.length} clientes · <strong class="cifra">${S(DEUDORES.filter((c) => c.dias > 30).reduce((s, c) => s + c.saldo, 0))}</strong> llevan más de 30 días</p></div>
+    <header class="cabecera subir"><div class="titulo-bosque"><h1>Clientes</h1><p class="suave">Te deben <strong class="cifra deuda">${S(TE_DEBEN)}</strong> entre ${DEUDORES.length} clientes · <strong class="cifra">${S(DEUDORES.filter((c) => c.dias > 30).reduce((s, c) => s + c.saldo, 0))}</strong> llevan más de 30 días</p></div>
       <div class="acciones"><button class="boton claro" type="button">${icono("bajar")}Excel</button><button class="boton claro" type="button">${icono("mas")}Nuevo cliente</button><button class="boton" type="button">${icono("mano")}Registrar abono</button></div></header>
     <section class="bloque vidrio tabla-bloque subir">
       <div class="bloque-cab"><label class="buscador" style="flex:1;max-width:420px">${icono("buscar")}<input placeholder="Busca por nombre, apodo, DNI o RUC" aria-label="Buscar cliente"></label>

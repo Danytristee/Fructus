@@ -3,6 +3,7 @@ import { Banknote, HandCoins, PackagePlus, ReceiptText, TrendingUp, Wallet } fro
 import { Monto } from "@/components/ui/Monto";
 import { MontoVivo } from "@/components/ui/MontoVivo";
 import { Tarjeta } from "@/components/ui/Tarjeta";
+import { fraseDeLaCaja } from "@/lib/cierre-reglas";
 import type { Cierre, Medio } from "@/lib/cierre-reglas";
 import { formatearSoles } from "@/lib/formato";
 
@@ -20,13 +21,14 @@ export function PanelCierre({ c }: { c: Cierre }) {
   ];
 
   return (
-    <div className="grid gap-2.5">
+    // En escritorio (ADR-0015), dos columnas: la caja y el contado o crédito arriba; cómo entró y salió la plata y los totales debajo.
+    <div className="grid gap-2.5 lg:grid-cols-2 lg:items-start lg:gap-4">
       <Tarjeta protagonista className="grid animate-subir gap-1">
         <span className="flex items-center gap-2 font-bold text-texto-suave">
           <Banknote aria-hidden className="size-5" /> Debería haber en tu caja
         </span>
         <MontoVivo valor={c.efectivoEsperado} tamano="total" tono={c.efectivoEsperado < 0 ? "deuda" : "normal"} />
-        <span className="text-texto-suave">en efectivo. Cuenta tu caja y compara: si no cuadra, revisa los gastos del día.</span>
+        <span className="text-texto-suave">{fraseDeLaCaja(c.efectivoEsperado)}</span>
         {c.digital > 0 && (
           <span className="mt-1 text-texto-suave">
             Además entraron <strong className="cifra font-extrabold text-texto">{formatearSoles(c.digital)}</strong> por Yape, Plin o transferencia.

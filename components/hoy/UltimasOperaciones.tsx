@@ -45,7 +45,7 @@ export async function UltimasOperaciones() {
   if (error) {
     console.error("hoy: no se pudo leer lo último", { codigo: error.code });
     return (
-      <section aria-labelledby="lo-ultimo" className="mt-6">
+      <section aria-labelledby="lo-ultimo" className="mt-6 lg:mt-0">
         <h2 id="lo-ultimo" className="mb-2.5 text-xl font-extrabold">Lo último</h2>
         <Aviso titulo="No pudimos leer tus últimas operaciones" accion={<BotonReintentar />}>
           Revisa tu señal. Lo que ya guardaste está a salvo.
@@ -73,7 +73,7 @@ export async function UltimasOperaciones() {
   if (operaciones.length === 0) return null;
 
   return (
-    <section aria-labelledby="lo-ultimo" className="mt-6 animate-subir [animation-delay:200ms]">
+    <section aria-labelledby="lo-ultimo" className="mt-6 animate-subir [animation-delay:200ms] lg:mt-0">
       <div className="mb-2 flex items-center justify-between">
         <h2 id="lo-ultimo" className="text-xl font-extrabold">
           Lo último

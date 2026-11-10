@@ -11,11 +11,12 @@
   /* C · Mostrador: tres zonas. Un riel de iconos a la izquierda, la pantalla al centro y, a la derecha, el mostrador fijo: lo que va
      pasando hoy y el orbe de voz grande abajo. La tarjeta de lo entendido sale EN el mostrador, sin tapar la pantalla. */
   .marco { display: grid; grid-template-columns: 96px 1fr 380px; height: 100vh; }
-  .riel { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0; }
-  .riel img { width: 34px; height: 34px; margin-bottom: 14px; }
-  .riel a { display: grid; justify-items: center; gap: 2px; width: 76px; min-height: 64px; padding: 8px 0; border-radius: 20px; font-size: 13px; font-weight: 800; color: var(--texto-suave); }
-  .riel a:hover { background: color-mix(in srgb, var(--acento) 6%, transparent); color: var(--texto); }
-  .riel a[aria-current="page"] { background: color-mix(in srgb, var(--acento) 13%, transparent); color: var(--acento-texto); }
+  .riel { border-radius: 0 28px 28px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 18px 0; }
+  .riel .icono-app { margin-bottom: 14px; }
+  .riel .avatar { background: rgb(247 245 238 / .14); color: var(--sobre-acento); }
+  .riel a { display: grid; justify-items: center; gap: 2px; width: 76px; min-height: 64px; padding: 8px 0; border-radius: 20px; font-size: 13px; font-weight: 800; color: rgb(247 245 238 / .82); }
+  .riel a:hover { background: rgb(247 245 238 / .08); color: var(--sobre-acento); }
+  .riel a[aria-current="page"] { background: var(--lima); color: var(--acento); }
   .riel a svg { width: 26px; height: 26px; }
   .riel .abajo { margin-top: auto; }
 
@@ -65,7 +66,7 @@
 <body>
 <div class="fondo"><span></span><span></span><span></span><span></span></div>
 <div class="marco">
-  <nav class="riel" aria-label="Principal" id="nav"></nav>
+  <nav class="riel verde" aria-label="Principal" id="nav"></nav>
   <main class="centro" id="pantalla"></main>
   <aside class="mostrador vidrio" aria-label="Mostrador">
     <div class="cab"><h2><span class="punto"></span>Hoy en el puesto</h2><span class="suave" style="font-size:14px" id="cuenta-feed"></span></div>
@@ -90,7 +91,7 @@
   const feed = [...ULTIMAS];
 
   function pintarNav() {
-    document.getElementById("nav").innerHTML = `<img src="../../../public/frutas/mango.svg" alt="Fructus">` +
+    document.getElementById("nav").innerHTML = MARCA +
       destinos.map(([k, t, i]) => `<a href="#${k}" ${k === pantalla ? 'aria-current="page"' : ""}>${icono(i)}${t}</a>`).join("") +
       `<a href="#ajustes" class="abajo" ${pantalla === "ajustes" ? 'aria-current="page"' : ""}>${icono("ajustes")}Ajustes</a><span class="avatar" style="margin-top:8px">DP</span>`;
   }
@@ -103,7 +104,7 @@
 
   function hoy() {
     return `
-    <header class="cabecera subir"><div><h1>Hoy</h1><p class="suave">${HOY.fecha}</p></div><a class="boton claro" href="#cierre">${icono("cierre")}Cerrar el día</a></header>
+    <header class="cabecera subir"><div class="titulo-bosque"><h1>Hoy</h1><p class="suave">${HOY.fecha}</p></div><a class="boton claro" href="#cierre">${icono("cierre")}Cerrar el día</a></header>
     <section class="protagonista vidrio subir" style="display:grid;grid-template-columns:1fr 1.25fr;gap:24px;align-items:end">
       <div><span class="etiqueta">Vendiste hoy</span><div class="cifra total">${S(HOY.vendido)}</div>
         <p class="suave"><strong class="cifra" style="color:var(--texto)">${S(HOY.contado)}</strong> al contado y <strong class="cifra" style="color:var(--texto)">${S(HOY.credito)}</strong> al crédito</p>
@@ -124,7 +125,7 @@
   function clientes() {
     const c = elegido;
     return `
-    <header class="cabecera subir"><div><h1>Clientes</h1><p class="suave">Te deben <strong class="cifra deuda">${S(TE_DEBEN)}</strong> entre ${DEUDORES.length}</p></div><button class="boton claro" type="button">${icono("mas")}Nuevo cliente</button></header>
+    <header class="cabecera subir"><div class="titulo-bosque"><h1>Clientes</h1><p class="suave">Te deben <strong class="cifra deuda">${S(TE_DEBEN)}</strong> entre ${DEUDORES.length}</p></div><button class="boton claro" type="button">${icono("mas")}Nuevo cliente</button></header>
     <div class="maestro">
       <section class="tarjeta vidrio subir" style="padding:12px">
         <label class="buscador">${icono("buscar")}<input placeholder="Nombre o apodo" aria-label="Buscar cliente"></label>

@@ -24,7 +24,7 @@ export async function AvisoInventario() {
   return (
     <Link
       href="/stock"
-      className="vidrio mt-2.5 grid animate-subir grid-cols-[auto_1fr_auto] items-center gap-3.5 rounded-tarjeta p-4 transition-transform duration-150 [animation-delay:200ms] active:scale-[0.98]"
+      className="vidrio mt-2.5 grid animate-subir lg:mt-0 grid-cols-[auto_1fr_auto] items-center gap-3.5 rounded-tarjeta p-4 transition-transform duration-150 [animation-delay:200ms] active:scale-[0.98]"
     >
       <span className="relative grid size-[52px] place-items-center rounded-[18px] bg-deuda-fondo text-deuda">
         <TriangleAlert aria-hidden />

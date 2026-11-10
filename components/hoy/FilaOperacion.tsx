@@ -7,7 +7,7 @@ import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
 import type { Estado, Operacion } from "@/lib/operaciones-reglas";
 
-const insignias: Record<Estado, string> = {
+export const insignias: Record<Estado, string> = {
   pago: "Pagó",
   debe: "Lo debe",
   abono: "Abono",

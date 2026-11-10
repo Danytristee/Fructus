@@ -33,8 +33,9 @@ const ICONOS = {
 };
 const icono = (n, clase = "i") => `<svg class="${clase}" viewBox="0 0 24 24" aria-hidden="true">${ICONOS[n]}</svg>`;
 
-const FRUTAS = { "Mango": "mango", "Plátano": "platano", "Piña": "pina", "Mandarina": "naranja", "Uva": "uva", "Palta": "pera", "Papaya": "naranja", "Limón": "kiwi" };
-const fruta = (nombre) => `<img class="fruta" alt="" src="../../../public/frutas/${FRUTAS[nombre] ?? "mango"}.svg">`;
+const FRUTAS = { "Mango": "mango-kent", "Mango Edward": "mango-edward", "Plátano": "platano-seda", "Plátano isla": "platano-isla", "Piña": "pina", "Mandarina": "mandarina", "Uva": "uva", "Palta": "palta", "Papaya": "papaya", "Limón": "limon" };
+const fruta = (nombre) => `<img class="fruta" alt="" src="../../../public/frutas/${FRUTAS[nombre] ?? "mango-kent"}.svg">`;
+const MARCA = `<img class="icono-app" alt="" src="../../../public/icons/icon-192.png">`;
 
 const HOY = {
   fecha: "lunes 9 de noviembre",
@@ -66,7 +67,7 @@ const ULTIMAS = [
   { hora: "11:05", tipo: "venta", quien: "Restaurante Mochica", que: "6 cajas de palta fuerte", fruta: "Palta", monto: 420, estado: "pago", medio: "Efectivo" },
   { hora: "10:47", tipo: "venta", quien: "Carlos Mendoza", que: "10 cajas de mango Kent", fruta: "Mango", monto: 450, estado: "debe" },
   { hora: "10:12", tipo: "gasto", quien: "Estiba", que: "Descarga del camión de Chao", monto: 180, estado: "gasto" },
-  { hora: "9:48", tipo: "venta", quien: "Bodega Santa Ana", que: "15 cajas de mango Edward", fruta: "Mango", monto: 570, estado: "debe" },
+  { hora: "9:48", tipo: "venta", quien: "Bodega Santa Ana", que: "15 cajas de mango Edward", fruta: "Mango Edward", monto: 570, estado: "debe" },
 ];
 
 // dias = días desde la venta al crédito más antigua sin pagar (lo que la app llamaría «antigüedad»).
@@ -121,8 +122,8 @@ const STOCK = [
   { nombre: "Limón", variedad: "", cajas: 33, diarias: 5, precio: 50 },
   { nombre: "Mandarina", variedad: "", cajas: 38, diarias: 0, precio: 30 },
   { nombre: "Plátano", variedad: "de seda", cajas: 46, diarias: 14, precio: 32 },
-  { nombre: "Mango", variedad: "Edward", cajas: 155, diarias: 18, precio: 38 },
-  { nombre: "Plátano", variedad: "isla", cajas: 160, diarias: 16, precio: 28 },
+  { nombre: "Mango Edward", variedad: "", cajas: 155, diarias: 18, precio: 38 },
+  { nombre: "Plátano isla", variedad: "", cajas: 160, diarias: 16, precio: 28 },
 ];
 for (const f of STOCK) {
   f.dias = f.diarias ? f.cajas / f.diarias : Infinity;

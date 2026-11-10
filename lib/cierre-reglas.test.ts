@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calcularCierre, enlaceWhatsAppDelCierre, hayMovimientoEnElCierre, mensajeDelCierre } from "./cierre-reglas";
+import { calcularCierre, enlaceWhatsAppDelCierre, fraseDeLaCaja, hayMovimientoEnElCierre, mensajeDelCierre } from "./cierre-reglas";
 
 describe("calcularCierre", () => {
   const cierre = calcularCierre({
@@ -95,5 +95,15 @@ describe("el cierre por WhatsApp", () => {
     expect(hayMovimientoEnElCierre(cierre)).toBe(true);
     // Solo un gasto ya es un día con movimiento.
     expect(hayMovimientoEnElCierre(calcularCierre({ ventasContado: [], ventasCredito: [], abonos: [], gastos: [{ monto: 20, medio: null }], compras: [] }))).toBe(true);
+  });
+});
+
+describe("fraseDeLaCaja", () => {
+  it("con la caja en negativo explica por qué, en vez de pedir que se cuente", () => {
+    expect(fraseDeLaCaja(-122.92)).toBe("Hoy salió más efectivo del que entró: revisa los gastos y las compras que pagaste en efectivo.");
+  });
+  it("con la caja en cero o positiva, pide contarla", () => {
+    expect(fraseDeLaCaja(0)).toMatch(/^en efectivo\. Cuenta tu caja/);
+    expect(fraseDeLaCaja(785.08)).toMatch(/^en efectivo\. Cuenta tu caja/);
   });
 });

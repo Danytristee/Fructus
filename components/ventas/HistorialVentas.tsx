@@ -7,6 +7,7 @@ import { Receipt } from "lucide-react";
 import { FilaOperacion } from "@/components/hoy/FilaOperacion";
 import { Desplegable } from "@/components/ui/Desplegable";
 import { Segmento } from "@/components/ui/Segmento";
+import { TablaVentasDelDia } from "./TablaVentasDelDia";
 import { Filtros } from "@/components/ui/Filtros";
 import { Monto } from "@/components/ui/Monto";
 import { Tarjeta } from "@/components/ui/Tarjeta";
@@ -82,7 +83,10 @@ export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, puedeEdit
         </span>
       </Tarjeta>
 
+      {/* En escritorio, el período y los filtros van en una sola fila. */}
+      <div className="lg:flex lg:items-center lg:gap-4">
       <Segmento
+        className="lg:w-80 lg:shrink-0"
         etiqueta="Período"
         valor={periodo}
         alCambiar={setPeriodo}
@@ -91,7 +95,7 @@ export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, puedeEdit
           { valor: "semana", etiqueta: "7 días", cuenta: resumenes.semana.ventas },
         ]}
       />
-      <div className="mt-3">
+      <div className="mt-3 lg:mt-0">
         <Filtros
           etiqueta="Filtrar ventas"
           valor={filtro}
@@ -102,6 +106,7 @@ export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, puedeEdit
             { valor: "credito", etiqueta: "Crédito", cuenta: resumen.ventasCredito },
           ]}
         />
+      </div>
       </div>
 
       {visibles.length === 0 ? (
@@ -132,7 +137,8 @@ export function HistorialVentas({ dias, hoy, puedeAnular, puedeEmitir, puedeEdit
                     </span>
                   }
                 >
-                  <ul className="divide-y divide-border border-t border-border">
+                  <TablaVentasDelDia ventas={d.ventas} alAbrir={(v) => setAbierta(v.completa)} className="hidden lg:table" />
+                  <ul className="divide-y divide-border border-t border-border lg:hidden">
                     {d.ventas.map((v) => (
                       <FilaOperacion key={v.clave} op={v} conHora alTocar={() => setAbierta(v.completa)} />
                     ))}

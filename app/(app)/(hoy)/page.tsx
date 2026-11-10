@@ -29,13 +29,21 @@ export default async function Hoy() {
       <Suspense fallback={<EsqueletoResumen />}>
         <ResumenDia />
       </Suspense>
-      {/* Sin esqueleto: si no hay alertas no ocupa lugar, y si las hay aparece con su animación. */}
-      <Suspense fallback={null}>
-        <AvisoInventario />
-      </Suspense>
-      <Suspense fallback={<EsqueletoUltimas />}>
-        <UltimasOperaciones />
-      </Suspense>
+      {/* En escritorio (ADR-0015): «Lo último» a la izquierda y el aviso de stock al lado, alineado con la lista. En celular, uno debajo del otro,
+          el aviso primero. */}
+      <div className="lg:mt-4 lg:grid lg:grid-cols-12 lg:items-start lg:gap-4">
+        <div className="lg:col-span-5 lg:col-start-8 lg:row-start-1 lg:pt-[60px]">
+          {/* Sin esqueleto: si no hay alertas no ocupa lugar, y si las hay aparece con su animación. */}
+          <Suspense fallback={null}>
+            <AvisoInventario />
+          </Suspense>
+        </div>
+        <div className="lg:col-span-7 lg:col-start-1 lg:row-start-1">
+          <Suspense fallback={<EsqueletoUltimas />}>
+            <UltimasOperaciones />
+          </Suspense>
+        </div>
+      </div>
       {permisos.registrar && (
         <>
           {/* Espacio para que la última fila suba por encima del orbe y su etiqueta. */}

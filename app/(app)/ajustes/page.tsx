@@ -39,7 +39,9 @@ export default async function Ajustes() {
   return (
     <>
       <Encabezado titulo="Ajustes" subtitulo="Tu catálogo y tu equipo" />
-      <section aria-labelledby="catalogo" className="animate-subir">
+      {/* En escritorio (ADR-0015): el catálogo a la izquierda y el equipo al lado. */}
+      <div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
+      <section aria-labelledby="catalogo" className="animate-subir lg:col-span-7">
         <h2 id="catalogo" className="mb-2.5 flex items-center gap-2 text-xl font-extrabold">
           <Apple aria-hidden className="size-5 text-acento-texto" /> Tus frutas
         </h2>
@@ -53,7 +55,7 @@ export default async function Ajustes() {
           }))}
         />
       </section>
-      <section aria-labelledby="equipo" className="mt-6 animate-subir [animation-delay:120ms]">
+      <section aria-labelledby="equipo" className="mt-6 animate-subir [animation-delay:120ms] lg:col-span-5 lg:mt-0">
         <h2 id="equipo" className="mb-2.5 flex items-center gap-2 text-xl font-extrabold">
           <Users aria-hidden className="size-5 text-acento-texto" /> Tu equipo
         </h2>
@@ -68,6 +70,7 @@ export default async function Ajustes() {
         </ul>
         <p className="mt-2 text-texto-suave">Para dar acceso a alguien nuevo se le manda un enlace de invitación (por ahora lo hace quien administra).</p>
       </section>
+      </div>
     </>
   );
 }

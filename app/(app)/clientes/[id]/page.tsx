@@ -77,8 +77,10 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
   );
   const deudaTotal = (deudas.data ?? []).reduce((suma, c) => suma + Math.max(0, Number(c.saldo ?? 0)), 0);
 
+  // En escritorio (ADR-0015): la deuda y sus datos a la izquierda, fijos al deslizar; su historial a la derecha.
   return (
-    <>
+    <div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
+      <div className="lg:sticky lg:top-8 lg:col-span-5">
       <TarjetaDeuda
         iniciales={iniciales(cliente.nombre)}
         tono={tonoDe(cliente.id)}
@@ -94,9 +96,12 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
         notas={cliente.notas}
         editar={permisos.ajustes ? <BotonCliente cliente={{ id: cliente.id, borrador: borradorDeCliente(cliente) }} /> : undefined}
       />
-      <HistorialCliente dias={dias} hayMas={hayMas} tope={HISTORIAL_TOPE} />
+      </div>
+      <div className="lg:col-span-7 lg:[&>*:first-child]:mt-0">
+        <HistorialCliente dias={dias} hayMas={hayMas} tope={HISTORIAL_TOPE} />
+      </div>
       {permisos.registrar && <AbonoAMano cliente={persona} />}
-    </>
+    </div>
   );
 }
 

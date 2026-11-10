@@ -21,8 +21,8 @@ export function ResumenInventario({ resumen, estados }: Props) {
   ];
 
   return (
-    <div className="grid gap-2.5">
-      <Tarjeta protagonista className="grid animate-subir grid-cols-[auto_1fr] items-center gap-4">
+    <div className="grid gap-2.5 lg:grid-cols-12 lg:gap-4">
+      <Tarjeta protagonista className="grid animate-subir grid-cols-[auto_1fr] items-center gap-4 lg:col-span-7">
         <div className="grid justify-items-center gap-1">
           <figure
             className="relative grid size-24 place-items-center"
@@ -72,7 +72,7 @@ export function ResumenInventario({ resumen, estados }: Props) {
           </span>
         </div>
       </Tarjeta>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2 lg:col-span-5 lg:gap-4">
         {tiles.map(({ cuenta, etiqueta, Icono, clase }, i) => (
           <Tarjeta key={etiqueta} className="grid animate-subir justify-items-center gap-1 px-2 py-3 text-center" style={{ animationDelay: `${80 + i * 60}ms` }}>
             <span className={`grid size-10 place-items-center rounded-full ${clase}`}>

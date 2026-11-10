@@ -16,28 +16,30 @@
     border-radius: 0 28px 28px 0; border-left: 0;
   }
   .marca { display: flex; align-items: center; gap: 8px; padding: 0 10px 14px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
-  .marca img { width: 28px; height: 28px; margin-right: -12px; }
+  .marca { gap: 12px; }
   .dictar {
     display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px; padding: 12px; margin-bottom: 10px;
-    border-radius: 24px; background: var(--superficie); box-shadow: inset 0 0 0 1px var(--linea);
+    border-radius: 24px; background: rgb(247 245 238 / .08); box-shadow: inset 0 0 0 1px rgb(247 245 238 / .16);
   }
   .dictar .orbe { width: 64px; height: 64px; }
   .dictar .orbe svg { width: 28px; height: 28px; }
   .dictar strong { display: block; line-height: 1.2; }
-  .dictar span { font-size: 14px; color: var(--texto-suave); }
+  .dictar span { font-size: 14px; color: rgb(247 245 238 / .78); }
+  .dictar kbd { background: rgb(247 245 238 / .14); color: var(--sobre-acento); box-shadow: none; }
   .nav { display: grid; gap: 4px; }
   .nav a {
-    display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border-radius: 16px; font-weight: 800; color: var(--texto-suave);
+    display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border-radius: 16px; font-weight: 800; color: rgb(247 245 238 / .82);
     transition: background .15s;
   }
-  .nav a:hover { background: color-mix(in srgb, var(--acento) 6%, transparent); color: var(--texto); }
-  .nav a[aria-current="page"] { background: color-mix(in srgb, var(--acento) 13%, transparent); color: var(--acento-texto); }
+  .nav a:hover { background: rgb(247 245 238 / .08); color: var(--sobre-acento); }
+  .nav a[aria-current="page"] { background: var(--lima); color: var(--acento); }
   .nav a .cuenta { margin-left: auto; font-size: 13px; }
-  .separador { height: 1px; background: var(--linea); margin: 10px 8px; }
+  .separador { height: 1px; background: rgb(247 245 238 / .16); margin: 10px 8px; }
   .quien { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 18px; }
-  .quien small { display: block; color: var(--texto-suave); font-size: 14px; }
-  .quien button { margin-left: auto; border: 0; background: transparent; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: var(--texto-suave); }
-  .quien button:hover { background: color-mix(in srgb, var(--deuda) 8%, transparent); color: var(--deuda); }
+  .quien small { display: block; color: rgb(247 245 238 / .72); font-size: 14px; }
+  .quien .avatar { background: rgb(247 245 238 / .14); color: var(--sobre-acento); }
+  .quien button { margin-left: auto; border: 0; background: transparent; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: rgb(247 245 238 / .72); }
+  .quien button:hover { background: rgb(247 245 238 / .1); color: var(--sobre-acento); }
 
   .contenido { padding: 28px 36px 60px; max-width: 1240px; width: 100%; }
   .cabecera { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
@@ -84,8 +86,8 @@
 <body>
 <div class="fondo"><span></span><span></span><span></span><span></span></div>
 <div class="marco">
-  <aside class="lateral vidrio" aria-label="Fructus">
-    <div class="marca"><img src="../../../public/frutas/mango.svg" alt=""><img src="../../../public/frutas/platano.svg" alt=""><img src="../../../public/frutas/pina.svg" alt=""><span style="margin-left:16px">Fructus</span></div>
+  <aside class="lateral verde" aria-label="Fructus">
+    <div class="marca"><span id="marca"></span><span>Fructus</span></div>
     <div class="dictar">
       <button type="button" class="orbe" data-orbe aria-label="Mantén para hablar">${micro}</button>
       <div><strong id="estado-voz">Mantén para hablar</strong><span>o deja apretada <kbd>Espacio</kbd></span></div>
@@ -105,6 +107,7 @@
 <script src="datos.js"></script>
 <script>
   document.querySelector("[data-orbe]").innerHTML = icono("micro");
+  document.getElementById("marca").innerHTML = MARCA;
   document.getElementById("salir").innerHTML = icono("salir");
 
   const destinos = [
@@ -117,13 +120,13 @@
 
   function pintarNav() {
     document.getElementById("nav").innerHTML = destinos.map((d) => d === null ? '<div class="separador"></div>' :
-      `<a href="#${d[0]}" ${d[0] === pantalla ? 'aria-current="page"' : ""}>${icono(d[2])}<span class="texto">${d[1]}</span>${d[3] ? `<span class="insignia ${d[0] === "stock" ? "sol" : "neutra"} cuenta">${d[3]}</span>` : ""}</a>`).join("");
+      `<a href="#${d[0]}" ${d[0] === pantalla ? 'aria-current="page"' : ""}>${icono(d[2])}<span class="texto">${d[1]}</span>${d[3] ? `<span class="insignia ${d[0] === "stock" ? "lima" : "claro-sobre-verde"} cuenta">${d[3]}</span>` : ""}</a>`).join("");
   }
 
   function hoy() {
     const alertas = STOCK.filter((f) => f.estado === "se-acabo" || f.estado === "reponer" );
     return `
-    <header class="cabecera subir"><div><h1>Hoy</h1><p class="suave">${HOY.fecha} · ${HOY.ventas} ventas, ${HOY.cajas} cajas</p></div>
+    <header class="cabecera subir"><div class="titulo-bosque"><h1>Hoy</h1><p class="suave">${HOY.fecha} · ${HOY.ventas} ventas, ${HOY.cajas} cajas</p></div>
       <div class="acciones"><a class="boton claro" href="#ventas">${icono("recibo")}Ver ventas</a><button class="boton" type="button">${icono("mas")}Registrar a mano</button></div></header>
     <div class="grilla">
       <section class="c7 protagonista vidrio subir" aria-label="Lo vendido hoy">
@@ -174,7 +177,7 @@
       return { t: i === 3 ? "Más de 30 días" : `${a} a ${b} días`, v };
     }) : [];
     return `
-    <header class="cabecera subir"><div><h1>Clientes</h1><p class="suave">Te deben <strong class="cifra deuda">${S(TE_DEBEN)}</strong> entre ${DEUDORES.length} clientes</p></div>
+    <header class="cabecera subir"><div class="titulo-bosque"><h1>Clientes</h1><p class="suave">Te deben <strong class="cifra deuda">${S(TE_DEBEN)}</strong> entre ${DEUDORES.length} clientes</p></div>
       <div class="acciones"><button class="boton claro" type="button">${icono("mas")}Nuevo cliente</button><button class="boton" type="button">${icono("mano")}Registrar abono</button></div></header>
     <div class="maestro">
       <section class="lista vidrio subir" aria-label="Cuaderno">
