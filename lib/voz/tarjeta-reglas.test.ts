@@ -29,6 +29,32 @@ describe("elegir", () => {
     expect(e.opciones.map((o) => o.id)).toEqual([2, 4, 1]);
   });
 
+  it("si dos calzan casi igual, pregunta aunque pasen de 0.45: «manzana verde» es Premium o Comercial", () => {
+    const e = elegir("manzana verde", [
+      { id: 1, nombre: "Manzana Verde Premium cal. 100", similitud: 0.64 },
+      { id: 2, nombre: "Manzana Verde Comercial cal. 80 o 75", similitud: 0.58 },
+      { id: 3, nombre: "Manzana Buena", similitud: 0.42 },
+    ]);
+    expect(e.elegido).toBeNull();
+    expect(e.opciones.map((o) => o.id)).toEqual([1, 2, 3]);
+  });
+
+  it("con un empate exacto también pregunta: nunca se elige al azar", () => {
+    const e = elegir("roja americana", [
+      { id: 1, nombre: "Manzana Roja americana Premium cal. 100", similitud: 0.79 },
+      { id: 2, nombre: "Manzana Roja americana Premium cal. 113", similitud: 0.79 },
+    ]);
+    expect(e.elegido).toBeNull();
+  });
+
+  it("si el mejor le saca ventaja al segundo, elige solo", () => {
+    const e = elegir("membrillo cuarta", [
+      { id: 4, nombre: "Membrillo 4ta", similitud: 0.85 },
+      { id: 5, nombre: "Membrillo 5ta", similitud: 0.55 },
+    ]);
+    expect(e.elegido).toEqual({ id: 4, nombre: "Membrillo 4ta" });
+  });
+
   it("si no se dijo nada, no elige ni ofrece", () => {
     expect(elegir(null, [lucho])).toEqual({ dicho: null, elegido: null, opciones: [] });
   });

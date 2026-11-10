@@ -427,7 +427,7 @@ isOneToOne: false
                            },
 "buscar_productos":
 { Args: { "limite"?: number,"q": string }; Returns: {
-              "id": number,"nombre": string,"similitud": number,"variedad": string
+              "calibre": string,"id": number,"marca": string,"nombre": string,"seleccion": string,"similitud": number,"variedad": string
             }[]
                            },
 "registrar_compra":

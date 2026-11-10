@@ -14,11 +14,15 @@ audio ──► Whisper (Groq) ──► transcripción ──► LLM con tool c
 Whisper acepta un `prompt` corto que sesga la ortografía. Se arma **en el servidor** en cada llamada con los nombres reales de la base:
 
 ```
-Venta de fruta por cajas en La Hermelinda, Trujillo. Clientes: don Lucho, la señora Rosa,
-el Paraíso, Santa Ana, el flaco Carlos, el Mochica. Frutas: mango Kent, mango Edward,
-plátano de seda, plátano isla, papaya, piña golden, mandarina, uva red globe, palta fuerte,
-limón. Pagos: Yape, Plin, efectivo, al crédito, lo debe, abonó.
+Venta de fruta por cajas en La Hermelinda, Trujillo. Frutas: albaricoque, bomba, caqui, cereza chilena,
+ciruela chilena angelino fortuna larryaan nectarín pink lady, kiwi cilíndrico americano chileno riñón,
+manzana buena delicia nacional pink lady roja americana chilena royal verde, membrillo, … Clientes: don lucho, …
+Proveedores: el de piura, chao. Pagos: Yape, Plin, efectivo, transferencia, al crédito, lo debe, abonó, a cuenta.
 ```
+
+Cada fruta va **una vez**, con las palabras de sus variedades sin repetir (ADR-0016): con el catálogo real, la lista de frases
+(«ciruela chilena angelino, ciruela chilena fortuna…») medía 808 caracteres, pasaba el tope de ~700 y se comía a los clientes. La
+selección («premium», «4ta») no va: Whisper la escribe bien solo.
 
 Parámetros: `model: whisper-large-v3-turbo`, `language: es`, `temperature: 0`.
 
@@ -64,9 +68,9 @@ Reglas que NO se rompen:
 `lib/voz/catalogo-reglas.ts` lo arma desde la base (productos, clientes con sus apodos y proveedores). Por ejemplo:
 
 ```text
-Lo que hay en este puesto (si lo que dijo calza con uno de estos, cópialo completo: "mango edward", no "mango";
+Lo que hay en este puesto (si lo que dijo calza con uno de estos, cópialo completo: "manzana verde premium", no "manzana";
 "el flaco Carlos", no "Carlos"):
-- Productos: mango kent, mango edward, plátano de seda, plátano isla, papaya, piña golden, …
+- Productos: albaricoque premium, albaricoque extra, …, manzana verde premium, manzana verde comercial, membrillo 3era, …
 - Clientes: don lucho / lucho (Luis Paredes); la señora rosa / puesto 12 (Rosa Quispe); …
 - Proveedores: el de piura / piura (Transportes Piura Norte); chao / el de chao (Agrícola Chao).
 "Me trajo", "llegó" y "compré" son compras a un proveedor, nunca ventas.
@@ -252,7 +256,11 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
 ## 5. Después de interpretar
 
 1. Registrar el comando en `comandos_voz` (transcripción, intención, JSON, latencia).
-2. Resolver `cliente_texto` / `producto_texto` con `buscar_*`. Similitud ≥ 0.45 → se elige sola; menor → la tarjeta muestra las 3 mejores opciones para tocar una.
+2. Resolver `cliente_texto` / `producto_texto` con `buscar_*`. Similitud ≥ 0.45 **y** al menos 0.15 por encima del segundo → se
+   elige sola; si no, la tarjeta muestra las 3 mejores opciones para tocar una. El margen existe por el catálogo real (ADR-0016):
+   «manzana verde» calza igual con la Premium (0.64) y con la Comercial (0.58), y elegir una sería adivinar. `buscar_productos`
+   compara contra fruta + variedad + selección, contra el nombre completo con marca y calibre, y contra los alias
+   («membrillo de cuarta»). Un alias nunca es el nombre a secas de una fruta con varias selecciones.
 3. Precio null → `ultimo_precio(cliente, producto)`, marcado como "sugerido" en la tarjeta.
 4. Condición null → dos botones grandes: **Pagó** / **Lo debe**.
 5. Al confirmar → `registrar_venta` / `registrar_compra` con `comando_voz_id` (marcan el comando como `confirmado`). Abonos, mermas y gastos se insertan directo en su tabla y la app marca el comando.

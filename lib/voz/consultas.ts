@@ -18,6 +18,7 @@ import {
   type Respuesta,
 } from "./consultas-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
+import { nombreProducto, type PartesProducto } from "../productos-reglas";
 
 type Cliente = SupabaseClient<Database>;
 type Consulta = Extract<Tarjeta, { tipo: "consulta" }>;
@@ -43,7 +44,7 @@ export async function responderConsulta(supabase: Cliente, p: PedidoConsulta): P
     }
     case "stock_producto": {
       if (p.productoId === null) return null; // falta elegir qué fruta
-      const { data, error } = await supabase.from("v_stock").select("producto_id, nombre, variedad, stock").eq("producto_id", p.productoId).single();
+      const { data, error } = await supabase.from("v_stock").select("producto_id, nombre, variedad, seleccion, calibre, stock").eq("producto_id", p.productoId).single();
       if (error) throw new Error(`stock_producto (${error.code})`);
       return respuestaStockProducto({ id: data.producto_id, nombre: nombreFruta(data), stock: Number(data.stock ?? 0) });
     }
@@ -57,14 +58,14 @@ export async function responderConsulta(supabase: Cliente, p: PedidoConsulta): P
       return p.consulta === "ventas_hoy" ? respuestaVentasHoy(dia) : p.consulta === "gastos_hoy" ? respuestaGastosHoy(dia) : respuestaResumenDia(dia);
     }
     case "stock": {
-      const { data, error } = await supabase.from("v_stock").select("producto_id, nombre, variedad, stock");
+      const { data, error } = await supabase.from("v_stock").select("producto_id, nombre, variedad, seleccion, calibre, stock");
       if (error) throw new Error(`stock (${error.code})`);
       return respuestaStock((data ?? []).map((x) => ({ id: x.producto_id, nombre: nombreFruta(x), stock: Number(x.stock ?? 0) })));
     }
   }
 }
 
-const nombreFruta = (p: { nombre: string; variedad: string | null }) => [p.nombre, p.variedad].filter(Boolean).join(" ");
+const nombreFruta = (p: PartesProducto) => nombreProducto(p);
 
 /** El pedido que sale de la tarjeta de consulta: lo que se preguntó y lo que se eligió solo. */
 export const pedidoDe = (t: Consulta): PedidoConsulta => ({

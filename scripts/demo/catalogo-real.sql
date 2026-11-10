@@ -11,6 +11,8 @@
 --        ventas del mismo Excel). «Manzana Nacional delicia» es Manzana Delicia nacional.
 --      - «Pink de light» se escribe Pink Lady (lo confirmó quien dirige el proyecto, 2026-11-10).
 --      - El calibre va tal cual, como texto: «125 o 113», «AA», «Jumbo».
+--      - Un alias nunca es el nombre a secas de una fruta que tiene varias selecciones o calibres: «pera gaucho» o «roja
+--        americana» tienen que preguntar cuál (lib/voz/tarjeta-reglas.ts, elegir).
 --      - Sin precio en el Excel, sin precio sugerido: Chirimoya, Granadilla y Plátano bizcocho. La cereza trae «280 a 150»
 --        y queda sin precio sugerido: nunca se inventa dinero (principio 2); se sugiere el último que se cobró.
 --   3. Quedan activas, aunque no estén en la lista, las frutas que el puesto vende según sus ventas diarias (columnas N a
@@ -34,21 +36,21 @@ insert into catalogo values
   ('Manzana', 'Royal',              'Unifrutti',  'Comercial', '150, 125 o 113', 19, 100, 110, '{"manzana royal","royal"}'),
   ('Manzana', 'Royal americana',    'Nordic',     null,        '113',            20, 160, 180, '{"royal americana","manzana royal nordic"}'),
   ('Manzana', 'Buena',              'Unifrutti',  null,        '125 o 113',      19, 130, 140, '{"manzana buena"}'),
-  ('Manzana', 'Roja americana',     'Nordic',     'Premium',   '113',            20, 180, 190, '{"roja americana","manzana roja nordic"}'),
-  ('Manzana', 'Roja americana',     'Nordic',     'Premium',   '100',            20, 170, 185, '{"roja americana cien","manzana roja nordic cien"}'),
+  ('Manzana', 'Roja americana',     'Nordic',     'Premium',   '113',            20, 180, 190, '{"roja americana 113","roja americana ciento trece"}'),
+  ('Manzana', 'Roja americana',     'Nordic',     'Premium',   '100',            20, 170, 185, '{"roja americana 100","roja americana cien"}'),
   ('Manzana', 'Roja chilena',       'Marinero',   'Comercial', '138',            19, 100, 110, '{"roja chilena","manzana marinero","marinero"}'),
   ('Manzana', 'Pink Lady',          'Moño Azul',  null,        '120',            18, 110, 120, '{"pink lady","pink de light","manzana pink","moño azul"}'),
   ('Manzana', 'Verde',              'Nordic',     'Premium',   '100',            18, 160, 180, '{"manzana verde premium","verde premium"}'),
   ('Manzana', 'Verde',              'Nordic',     'Comercial', '80 o 75',        18, 125, 140, '{"manzana verde comercial","verde comercial"}'),
   ('Manzana', 'Delicia nacional',   null,         '6ta',       null,             18,  90, 100, '{"manzana delicia","delicia","manzana nacional"}'),
   -- Pera
-  ('Pera',    'Gaucho',             null,         'Premium',   '100',            18, 140, 150, '{"pera gaucho","gaucho"}'),
+  ('Pera',    'Gaucho',             null,         'Premium',   '100',            18, 140, 150, '{"pera gaucho premium","gaucho premium"}'),
   ('Pera',    'Gaucho',             null,         'Elegido',   '110',            18, 110, 130, '{"gaucho elegido","pera gaucho elegido"}'),
   ('Pera',    'Cesta',              null,         null,        '110',            18, 100, 110, '{"pera cesta","cesta"}'),
   ('Pera',    'Salud',              null,         null,        '150',            18,  90, 100, '{"pera salud","salud"}'),
   ('Pera',    'Italiana chilena',   null,         null,        '60',             10,  60,  70, '{"pera italiana","perita italiana","perita"}'),
   -- Kiwi
-  ('Kiwi',    'Riñón chileno',      'VerFruit',   null,        '33',             15, 145, 160, '{"kiwi riñón","kiwi riñon","kiwi r"}'),
+  ('Kiwi',    'Riñón chileno',      'VerFruit',   null,        '33',             15, 145, 160, '{"kiwi riñón","kiwi riñon"}'),
   ('Kiwi',    'Cilíndrico chileno', 'VerFruit',   null,        '25 o 27',        15, 200, 220, '{"kiwi cilíndrico chileno","kiwi cilindrico"}'),
   ('Kiwi',    'Cilíndrico americano','California',null,        '23',              9, 190, 220, '{"kiwi americano","kiwi california"}'),
   -- Ciruela
