@@ -140,3 +140,42 @@ export function caliz(cx, cy, n, largo, ancho, color, giro = 0, luz = "#fff") {
   }
   return `<g fill="${color}" stroke="${luz}" stroke-opacity=".25" stroke-width=".5">${s}</g>`;
 }
+
+/**
+ * Una fruta partida vista de frente: el canto de la cáscara, la piel blanca si tiene, la pulpa con su textura y sus pepas. Es la misma
+ * receta del limón y del kiwi, para el tumbo, la tuna y la chirimoya.
+ */
+export function mitad(id, { cx, cy, rx, ry, giro = 0, cascara, canto, piel, pulpa, textura: tx, pepas, semilla = 1 }) {
+  const az = azar(semilla);
+  const g = (n) => r1(n);
+  let semillas = "";
+  if (pepas) {
+    const { n, color, brillo = "#fff", rmin = 0.8, rmax = 1.4, zona = 0.8, radial: hacia = true, alargo = 1.6 } = pepas;
+    for (let i = 0; i < n; i++) {
+      const a = az() * Math.PI * 2;
+      const m = Math.sqrt(az()) * zona;
+      const x = cx + Math.cos(a) * (rx - 4) * m;
+      const y = cy + Math.sin(a) * (ry - 4) * m;
+      const r = rmin + az() * (rmax - rmin);
+      const ang = hacia ? (a * 180) / Math.PI : az() * 180;
+      semillas += `<g transform="rotate(${g(ang)} ${g(x)} ${g(y)})"><ellipse cx="${g(x)}" cy="${g(y)}" rx="${g(r * alargo)}" ry="${g(r)}" fill="${color}"/>` +
+        `<ellipse cx="${g(x - r * 0.4)}" cy="${g(y - r * 0.35)}" rx="${g(r * 0.45)}" ry="${g(r * 0.3)}" fill="${brillo}" opacity=".55"/></g>`;
+    }
+  }
+  const defs =
+    lineal(`${id}k`, cx - rx, cy - ry, cx + rx, cy + ry, [[0, canto[0]], [1, canto[1]]]) +
+    radial(`${id}p`, cx - rx * 0.2, cy - ry * 0.25, Math.max(rx, ry) * 1.05, [[0, pulpa[0]], [0.65, pulpa[1]], [1, pulpa[2] ?? pulpa[1]]]) +
+    (tx ? textura(`${id}t`, tx) : "") + desenfoque(`${id}b`, 1.6);
+  const p = piel ? 2.2 : 0;
+  const cuerpo =
+    `<g transform="rotate(${giro} ${cx} ${cy})">` +
+    `<ellipse cx="${cx + 1.4}" cy="${cy + 3.2}" rx="${rx + 0.6}" ry="${ry + 0.6}" fill="url(#${id}k)"/>` +
+    `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${cascara}"/>` +
+    (piel ? `<ellipse cx="${cx}" cy="${cy}" rx="${rx - 2.2}" ry="${ry - 2.2}" fill="${piel}"/>` : "") +
+    `<g${tx ? ` filter="url(#${id}t)"` : ""}><ellipse cx="${cx}" cy="${cy}" rx="${g(rx - 2.4 - p)}" ry="${g(ry - 2.4 - p)}" fill="url(#${id}p)"/></g>` +
+    semillas +
+    `<ellipse cx="${g(cx - rx * 0.3)}" cy="${g(cy - ry * 0.38)}" rx="${g(rx * 0.38)}" ry="${g(ry * 0.16)}" transform="rotate(-25 ${g(cx - rx * 0.3)} ${g(cy - ry * 0.38)})" fill="#fff" opacity=".32" filter="url(#${id}b)"/>` +
+    `<ellipse cx="${g(cx - rx * 0.4)}" cy="${g(cy - ry * 0.45)}" rx="${g(rx * 0.1)}" ry="${g(ry * 0.05)}" transform="rotate(-25 ${g(cx - rx * 0.4)} ${g(cy - ry * 0.45)})" fill="#fff" opacity=".8"/>` +
+    `</g>`;
+  return { defs, cuerpo };
+}

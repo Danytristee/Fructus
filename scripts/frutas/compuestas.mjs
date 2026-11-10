@@ -1,6 +1,6 @@
 // Las frutas que se arman de muchas piezas: racimos (plátano, uva), escamas (piña, chirimoya) y las que se venden partidas para mostrar
 // la pulpa (papaya, palta, kiwi).
-import { azar, desenfoque, elipse, lineal, orbe, r1, radial, radialCaja, svg, tallo, textura } from "./piezas.mjs";
+import { azar, desenfoque, elipse, lineal, mitad, orbe, r1, radial, radialCaja, svg, tallo, textura } from "./piezas.mjs";
 
 /**
  * Un plátano: una curva del tallo `c` a la punta `t`, combada `comba` hacia su izquierda, con su ancho, sus caras (la de arriba con luz,
@@ -316,30 +316,43 @@ export const compuestas = {
 
   chirimoya() {
     const d = "M62 22C90 20 110 46 106 78C102 104 84 120 63 120C42 120 24 104 21 78C18 46 36 24 62 22Z";
-    // Las aréolas: escamas en forma de U, cada una con su relieve, que dan la vuelta a la fruta.
+    // Las aréolas: escamas como huellas de dedo, cada una abombada (luz arriba, sombra en su borde de U), de tamaños un poco distintos y
+    // corridas al azar. Algunas tienen el borde café, como la chirimoya que ya está para comer.
+    const az = azar(91);
     let escamas = "";
-    for (let fila = 0; fila < 9; fila++) {
-      const y = 30 + fila * 10.5;
-      const t = (y - 72) / 50;
+    for (let fila = 0; fila < 10; fila++) {
+      const y0 = 28 + fila * 9.6;
+      const t = (y0 - 72) / 50;
       const ancho = 43 * Math.sqrt(Math.max(0, 1 - t * t));
-      for (let k = -5; k <= 5; k++) {
-        const th = (k + (fila % 2) * 0.5) * 0.3;
-        if (Math.abs(th) > 1.42) continue;
+      for (let k = -6; k <= 6; k++) {
+        const th = (k + (fila % 2) * 0.5) * 0.27 + (az() - 0.5) * 0.08;
+        if (Math.abs(th) > 1.4) continue;
         const x = 64 + ancho * Math.sin(th);
-        const w = ancho * 0.3 * Math.cos(th) + 0.8;
-        escamas += `<path d="M${r1(x - w / 2)} ${r1(y - 3.5)}Q${r1(x)} ${r1(y + 7)} ${r1(x + w / 2)} ${r1(y - 3.5)}"/>` +
-          `<ellipse cx="${r1(x - w * 0.08)}" cy="${r1(y - 1)}" rx="${r1(w * 0.28)}" ry="2.4" fill="#E2F0A8" stroke="none" opacity=".28"/>`;
+        const y = y0 + (az() - 0.5) * 2;
+        const e = Math.cos(th);
+        const w = (ancho * 0.27 * e + 1) * (0.9 + az() * 0.25);
+        const h = 4.6 * (0.9 + az() * 0.2);
+        const cafe = az() > 0.8;
+        escamas +=
+          `<path d="M${r1(x - w / 2)} ${r1(y - h * 0.6)}Q${r1(x)} ${r1(y - h * 1.1)} ${r1(x + w / 2)} ${r1(y - h * 0.6)}Q${r1(x + w * 0.5)} ${r1(y + h)} ${r1(x)} ${r1(y + h)}Q${r1(x - w * 0.5)} ${r1(y + h)} ${r1(x - w / 2)} ${r1(y - h * 0.6)}Z" fill="url(#es)"/>` +
+          `<path d="M${r1(x - w / 2)} ${r1(y - h * 0.6)}Q${r1(x - w * 0.5)} ${r1(y + h)} ${r1(x)} ${r1(y + h)}Q${r1(x + w * 0.5)} ${r1(y + h)} ${r1(x + w / 2)} ${r1(y - h * 0.6)}" fill="none" stroke="${cafe ? "#5A4A1E" : "#2E4E16"}" stroke-opacity="${cafe ? 0.75 : 0.5}" stroke-width="${cafe ? 1.3 : 1}"/>`;
       }
     }
     const o = orbe({
-      id: "q", d, cx: 63, cy: 72, R: 47, c: ["#D6E68E", "#AECB5E", "#82AA3E", "#58822A", "#36581A"], rebote: "#C8DE8A", brillo: 0.35,
+      id: "q", d, cx: 63, cy: 72, R: 47, c: ["#D2E48A", "#A8C85C", "#7EA63E", "#56802A", "#36581A"], rebote: "#C8DE8A", brillo: 0.3,
       textura: { f: 0.5, s: 1, min: 0.88, semilla: 41 },
-      capas: `<g fill="none" stroke="#2E4E16" stroke-opacity=".55" stroke-width="1.1">${escamas}</g>`,
+      capas: escamas,
+    });
+    // La chirimoya partida: cáscara verde delgada, pulpa blanca cremosa en gajos y sus pepas negras brillantes.
+    const m = mitad("m", {
+      cx: 92, cy: 94, rx: 26, ry: 24, cascara: "#6E9A36", canto: ["#5A8A2A", "#2E4E16"], piel: null,
+      pulpa: ["#FFFDF2", "#F6F0D8", "#E8E0B8"], textura: { f: 0.22, o: 3, s: 2.4, min: 0.84, semilla: 8 },
+      pepas: { n: 9, color: "#120C08", brillo: "#B8B0A8", rmin: 2, rmax: 2.4, zona: 0.7, alargo: 1.55, radial: true }, semilla: 23,
     });
     return svg(
-      "chirimoya: verde, en forma de corazón, con su cáscara de escamas en U, como huellas de dedo.",
-      o.defs,
-      o.cuerpo + tallo([62, 23], [60, 15], [63, 9], 3.4, "#5A4A22", "#9A8A5A"),
+      "chirimoya: verde, en forma de corazón, con su cáscara de escamas como huellas de dedo; entera y partida, con su pulpa blanca y pepas negras.",
+      o.defs + m.defs + radialCaja("es", 0.4, 0.3, 0.8, [[0, "#E6F2B4", 0.55], [0.6, "#B8D474", 0.15], [1, "#3E6420", 0.2]]),
+      `<g transform="translate(-8 -10) scale(.86)">${o.cuerpo}${tallo([62, 23], [60, 15], [63, 9], 3.4, "#5A4A22", "#9A8A5A")}</g>` + m.cuerpo,
     );
   },
 };

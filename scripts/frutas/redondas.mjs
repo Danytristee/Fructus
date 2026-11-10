@@ -1,5 +1,5 @@
 // Las frutas de cuerpo redondo u ovalado: cítricos, manzanas, peras, frutas de hueso, mangos y las del norte y la sierra.
-import { azar, caliz, desenfoque, elipse, hoja, lineal, ondular, orbe, puntos, r1, radial, svg, tallo } from "./piezas.mjs";
+import { azar, caliz, desenfoque, elipse, hoja, lineal, mitad, ondular, orbe, puntos, r1, radial, svg, tallo } from "./piezas.mjs";
 
 /** El hueco del pedúnculo: una sombra suave donde nace el tallo. */
 const hoyo = (id, x, y, rx, ry, color, op = 0.45) => ({
@@ -265,32 +265,46 @@ export const redondas = {
 
   tuna() {
     const d = "M44 18C56 12 74 12 86 18C100 26 108 50 106 76C104 100 88 118 64 118C40 118 24 100 22 76C20 50 30 26 44 18Z";
-    // Las aréolas: puntitos oscuros con su mechón de espinitas, en filas que dan la vuelta a la fruta.
+    // Las aréolas: cada una en su lomito, con un punto café y un mechón de espinitas claras. Van en filas que dan la vuelta a la fruta,
+    // corridas un poco al azar, como en la tuna de verdad.
+    const az = azar(81);
     let areolas = "";
     for (let fila = 0; fila < 8; fila++) {
-      const y = 28 + fila * 11.5;
-      const t = (y - 68) / 52;
+      const y0 = 28 + fila * 11.5;
+      const t = (y0 - 68) / 52;
       const rx = 42 * Math.sqrt(Math.max(0, 1 - t * t));
       for (let k = -4; k <= 4; k++) {
-        const th = (k + (fila % 2) * 0.5) * 0.36;
-        if (Math.abs(th) > 1.38) continue;
+        const th = (k + (fila % 2) * 0.5) * 0.36 + (az() - 0.5) * 0.12;
+        if (Math.abs(th) > 1.36) continue;
         const x = 64 + rx * Math.sin(th);
+        const y = y0 + (az() - 0.5) * 3;
         const e = Math.cos(th);
-        areolas += `<ellipse cx="${r1(x)}" cy="${r1(y)}" rx="${r1(1.6 * e + 0.4)}" ry="1.5" fill="#5A3A14" opacity=".75"/>` +
-          `<path d="M${r1(x)} ${r1(y)}l${r1(-1.6 * e)} -2.2M${r1(x)} ${r1(y)}l${r1(1.4 * e)} -2.4M${r1(x)} ${r1(y)}l0 -2.8" stroke="#F4E8B0" stroke-width=".55" opacity=".85"/>`;
+        const s = 0.8 + az() * 0.45;
+        areolas +=
+          `<ellipse cx="${r1(x - 0.6)}" cy="${r1(y - 1.8)}" rx="${r1(4.2 * e * s)}" ry="${r1(3.4 * s)}" fill="#FFF0B0" opacity=".28"/>` +
+          `<ellipse cx="${r1(x + 0.4)}" cy="${r1(y + 2)}" rx="${r1(3.6 * e * s)}" ry="${r1(1.8 * s)}" fill="#6E2A0E" opacity=".22"/>` +
+          `<ellipse cx="${r1(x)}" cy="${r1(y)}" rx="${r1((1.3 * e + 0.4) * s)}" ry="${r1(1.2 * s)}" fill="#5A3A14" opacity=".85"/>` +
+          `<path d="M${r1(x)} ${r1(y)}l${r1(-1.8 * e * s)} ${r1(-2.4 * s)}M${r1(x)} ${r1(y)}l${r1(-0.5 * e * s)} ${r1(-3 * s)}M${r1(x)} ${r1(y)}l${r1(0.8 * e * s)} ${r1(-2.9 * s)}M${r1(x)} ${r1(y)}l${r1(1.9 * e * s)} ${r1(-2.2 * s)}" stroke="#FAF0C4" stroke-width=".5" opacity=".9"/>`;
       }
     }
     const o = orbe({
-      id: "t", d, cx: 64, cy: 70, R: 46, c: ["#F6D46A", "#EEA83C", "#E07A2A", "#B8501E", "#7E3414"], rebote: "#F2B860",
-      textura: { f: 0.6, s: 0.8, min: 0.9, semilla: 33 }, brillo: 0.5,
-      capas: `<path d="M20 90C40 100 60 118 64 118C40 118 24 104 20 90Z" fill="#8AA03A" opacity=".5" filter="url(#bl6)"/>` +
-        `<ellipse cx="70" cy="28" rx="30" ry="14" fill="#D2402E" opacity=".45" filter="url(#bl6)"/>` + areolas,
+      id: "t", d, cx: 64, cy: 70, R: 46, c: ["#F4DC74", "#E6B444", "#DC8A30", "#B05C22", "#723814"], rebote: "#EEC070",
+      textura: { f: 0.6, s: 0.8, min: 0.9, semilla: 33 }, brillo: 0.45,
+      capas: `<path d="M18 74C26 104 46 120 64 118C40 118 24 100 18 74Z" fill="#8AA03A" opacity=".6" filter="url(#bl6)"/>` +
+        `<ellipse cx="34" cy="86" rx="14" ry="26" fill="#9AAE40" opacity=".45" filter="url(#bl6)"/>` +
+        `<ellipse cx="74" cy="30" rx="28" ry="14" fill="#D2502E" opacity=".4" filter="url(#bl6)"/>` + areolas,
     });
     const h = hoyo("hy", 64, 20, 16, 5, "#6E2A0E", 0.5);
+    // La tuna partida: cáscara gruesa y pulpa naranja llena de pepitas.
+    const m = mitad("m", {
+      cx: 90, cy: 92, rx: 27, ry: 25, cascara: "#D88A36", canto: ["#B8742A", "#6E3A12"], piel: "#F2C46A",
+      pulpa: ["#FFC468", "#F59A36", "#E07A26"], textura: { f: 0.5, s: 1.6, min: 0.8, semilla: 4 },
+      pepas: { n: 46, color: "#7A4E22", brillo: "#E8C890", rmin: 0.8, rmax: 1.2, zona: 0.85, alargo: 1.3, radial: false }, semilla: 9,
+    });
     return svg(
-      "tuna: el fruto del nopal, ovalada y de tope chato, de verde a naranja rojizo, con sus aréolas de espinitas.",
-      o.defs + h.defs + desenfoque("bl6", 6),
-      o.cuerpo + h.cuerpo + `<ellipse cx="64" cy="19.5" rx="9" ry="2.6" fill="#7A4A1E" opacity=".55"/>`,
+      "tuna: el fruto del nopal, ovalada y de tope chato, de verde a naranja, con sus aréolas de espinitas; entera y partida.",
+      o.defs + h.defs + m.defs + desenfoque("bl6", 6),
+      `<g transform="translate(-6 -6) scale(.84)">${o.cuerpo}${h.cuerpo}<ellipse cx="64" cy="19.5" rx="9" ry="2.6" fill="#7A4A1E" opacity=".55"/></g>` + m.cuerpo,
     );
   },
 
@@ -300,12 +314,20 @@ export const redondas = {
       id: "u", d, cx: 66, cy: 66, R: 46, c: ["#FAEE9A", "#F2D864", "#E2BC3E", "#BE9426", "#86681A"], rebote: "#F6E296",
       textura: { f: 1, s: 0.7, min: 0.9, semilla: 37 }, brillo: 0.35,
       capas: `<ellipse cx="108" cy="88" rx="14" ry="12" fill="#8AA03A" opacity=".45" filter="url(#bl6)"/>` +
-        puntos(41, 60, { cx: 66, cy: 64, rx: 44, ry: 26 }, { rmin: 0.3, rmax: 0.7, color: "#A68A2A", op: 0.4 }),
+        // Las costillas suaves que corren a lo largo del tumbo.
+        `<g fill="none" stroke="#B89232" stroke-opacity=".28" stroke-width="2.4" filter="url(#bl2)"><path d="M18 40C40 50 70 70 112 90"/><path d="M24 30C50 40 84 62 114 82"/><path d="M16 50C38 64 64 84 100 102"/></g>` +
+        puntos(41, 70, { cx: 66, cy: 64, rx: 44, ry: 26 }, { rmin: 0.3, rmax: 0.7, color: "#A68A2A", op: 0.45 }),
+    });
+    // El tumbo partido a lo largo: cáscara delgada, una capa blanca y la pulpa naranja de sacos jugosos con pepas negras.
+    const m = mitad("m", {
+      cx: 80, cy: 94, rx: 34, ry: 15, giro: -24, cascara: "#E8C850", canto: ["#C8A43A", "#7A6418"], piel: "#FBF4D8",
+      pulpa: ["#FFC456", "#F59E2E", "#E8861E"], textura: { f: 0.32, s: 3, min: 0.72, semilla: 6 },
+      pepas: { n: 26, color: "#1E140C", brillo: "#9A8A7A", rmin: 1, rmax: 1.4, zona: 0.85, alargo: 1.5, radial: false }, semilla: 11,
     });
     return svg(
-      "tumbo: de la sierra, alargado como un plátano gordo, amarillo y aterciopelado, verde en la punta.",
-      o.defs + desenfoque("bl6", 6),
-      o.cuerpo + caliz(23, 40, 4, 5, 2, "#7A8A3A", 200, "#E8F0B0") + tallo([22, 39], [14, 30], [12, 20], 3, "#5E6A26", "#A4B058"),
+      "tumbo: de la sierra, alargado, amarillo y aterciopelado, verde en la punta; entero y partido, con su pulpa naranja y pepas negras.",
+      o.defs + m.defs + desenfoque("bl6", 6) + desenfoque("bl2", 2),
+      `<g transform="translate(-2 -14) scale(.92)">${o.cuerpo}${caliz(23, 40, 4, 5, 2, "#7A8A3A", 200, "#E8F0B0")}${tallo([22, 39], [14, 30], [12, 20], 3, "#5E6A26", "#A4B058")}</g>` + m.cuerpo,
     );
   },
 
