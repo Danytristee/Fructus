@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Clock, Lightbulb, PackageX, ShoppingCart, TriangleAlert } from "lucide-react";
+import { ChevronDown, Lightbulb, PackageX, TriangleAlert } from "lucide-react";
 import { cn } from "cn";
 
 import { Boton } from "@/components/ui/Boton";
@@ -10,71 +10,16 @@ import { Filtros } from "@/components/ui/Filtros";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Vacio } from "@/components/ui/Vacio";
 import { MermaAMano } from "./MermaAMano";
-import { juntarAlertas, listaDeStock, type Alerta, type EstadoProducto, type GrupoAlertas, type TipoAlerta } from "@/lib/inventario-reglas";
+import { TarjetaAlerta, tipos } from "./TarjetaAlerta";
+import { juntarAlertas, listaDeStock, type Alerta, type EstadoProducto, type TipoAlerta } from "@/lib/inventario-reglas";
 import { tituloEnGrupo } from "@/lib/productos-reglas";
 
 type Filtro = "todas" | TipoAlerta;
-
-const tipos: Record<TipoAlerta, { etiqueta: string; Icono: typeof Clock; clase: string }> = {
-  deterioro: { etiqueta: "Por malograrse", Icono: TriangleAlert, clase: "bg-deuda-fondo text-deuda" },
-  reponer: { etiqueta: "Reponer", Icono: ShoppingCart, clase: "bg-acento/12 text-acento-texto" },
-  sobrestock: { etiqueta: "Te sobra", Icono: PackageX, clase: "bg-exito-fondo text-exito" },
-  sin_movimiento: { etiqueta: "Sin movimiento", Icono: Clock, clase: "bg-texto/8 text-texto-suave" },
-};
 
 const dias = (n: number) => `${Math.round(n * 10) / 10} ${Math.round(n * 10) / 10 === 1 ? "día" : "días"}`;
 
 // Cuántas tarjetas se ven de entrada en «Todas»: lo demás, a un toque. Con 10, «Tu stock» quedaba a 3.6 pantallas (/formidable 2026-11-10).
 const TARJETAS_A_LA_VISTA = 3;
-
-function TarjetaAlerta({ g, nombreDe, i }: { g: GrupoAlertas; nombreDe: Map<number, string>; i: number }) {
-  const { Icono, clase } = tipos[g.tipo];
-  const sola = g.alertas.length === 1 ? g.alertas[0]! : null;
-  return (
-    <li
-      data-productos={g.alertas.map((a) => a.productoId).join(" ")}
-      className={cn("vidrio grid animate-subir gap-3 rounded-tarjeta p-4", g.gravedad === "alta" && "animate-pulso-alerta")}
-      style={{ animationDelay: `${i * 50}ms` }}
-    >
-      <div className="grid grid-cols-[auto_1fr_auto] items-start gap-3">
-        {sola ? (
-          <span className="relative">
-            <IconoFruta nombre={nombreDe.get(sola.productoId) ?? sola.producto} tamano={44} />
-            <span className={cn("absolute -right-1.5 -bottom-1.5 grid size-6 place-items-center rounded-full ring-2 ring-superficie", clase)}>
-              <Icono aria-hidden className="size-3.5" strokeWidth={2.6} />
-            </span>
-          </span>
-        ) : (
-          <span className={cn("grid size-11 place-items-center rounded-full", clase)}>
-            <Icono aria-hidden className="size-5" strokeWidth={2.4} />
-          </span>
-        )}
-        <span className="grid gap-0.5">
-          <span className="leading-tight font-extrabold">{g.titulo}</span>
-          {sola ? (
-            <span className="text-base leading-snug text-texto-suave">{g.detalle}</span>
-          ) : (
-            <ul className="mt-1 grid gap-1 text-base leading-snug">
-              {g.alertas.map((a) => (
-                <li key={a.productoId}>
-                  <span className="font-bold">{a.producto}</span>
-                  <span className="text-texto-suave"> · {a.corto}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </span>
-        <span className={cn("rounded-full px-2.5 py-1 text-sm font-extrabold whitespace-nowrap", g.gravedad === "alta" ? "bg-deuda text-superficie" : "bg-texto/8 text-texto")}>
-          {g.gravedad === "alta" ? "Hoy" : "Pronto"}
-        </span>
-      </div>
-      <p className="flex gap-2 rounded-control bg-acento/8 px-3 py-2.5 leading-snug">
-        <Lightbulb aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
-        <span>{g.recomendacion}</span>
-      </p>
-    </li>
-  );
-}
 
 function FilaProducto({ e, puedeRegistrar }: { e: EstadoProducto; puedeRegistrar: boolean }) {
   const frescura = Math.round((1 - e.desgaste) * 100);
