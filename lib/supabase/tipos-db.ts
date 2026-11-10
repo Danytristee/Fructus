@@ -259,14 +259,14 @@ isOneToOne: false
                   ]
                 },"productos": {
                   Row: {
-                    "activo": boolean,"afectacion_igv": string,"alias": (string)[],"creado_en": string,"id": number,"nombre": string,"precio_referencia": number | null,"unidad": string,"variedad": string | null
+                    "activo": boolean,"afectacion_igv": string,"alias": (string)[],"calibre": string | null,"costo_referencia": number | null,"creado_en": string,"id": number,"kg_por_caja": number | null,"marca": string | null,"nombre": string,"precio_referencia": number | null,"seleccion": string | null,"unidad": string,"variedad": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "activo"?: boolean,"afectacion_igv"?: string,"alias"?: (string)[],"creado_en"?: string,"id"?: never,"nombre": string,"precio_referencia"?: number | null,"unidad"?: string,"variedad"?: string | null
+                    "activo"?: boolean,"afectacion_igv"?: string,"alias"?: (string)[],"calibre"?: string | null,"costo_referencia"?: number | null,"creado_en"?: string,"id"?: never,"kg_por_caja"?: number | null,"marca"?: string | null,"nombre": string,"precio_referencia"?: number | null,"seleccion"?: string | null,"unidad"?: string,"variedad"?: string | null
                   }
                   Update: {
-                    "activo"?: boolean,"afectacion_igv"?: string,"alias"?: (string)[],"creado_en"?: string,"id"?: never,"nombre"?: string,"precio_referencia"?: number | null,"unidad"?: string,"variedad"?: string | null
+                    "activo"?: boolean,"afectacion_igv"?: string,"alias"?: (string)[],"calibre"?: string | null,"costo_referencia"?: number | null,"creado_en"?: string,"id"?: never,"kg_por_caja"?: number | null,"marca"?: string | null,"nombre"?: string,"precio_referencia"?: number | null,"seleccion"?: string | null,"unidad"?: string,"variedad"?: string | null
                   }
                   Relationships: [
                     
@@ -408,7 +408,7 @@ isOneToOne: false
                   ]
                 },"v_stock": {
                   Row: {
-                    "nombre": string,"producto_id": number,"stock": number | null,"unidad": string,"variedad": string | null
+                    "calibre": string | null,"marca": string | null,"nombre": string,"producto_id": number,"seleccion": string | null,"stock": number | null,"unidad": string,"variedad": string | null
                   }
                   ComputedFields: never
                   Relationships: [

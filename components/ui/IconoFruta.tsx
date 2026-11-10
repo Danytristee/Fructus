@@ -7,7 +7,8 @@ import { Fruta } from "./Fruta";
 export function IconoFruta({ nombre, tamano = 44, className }: { nombre: string; tamano?: number; className?: string }) {
   const fruta = frutaIlustrada(nombre);
   if (fruta) return <Fruta fruta={fruta} tamano={tamano} className={className} />;
-  const tono = [...nombre].reduce((s, c) => s + c.charCodeAt(0), 0) % 360;
+  // El color sale de la fruta (la primera palabra), no del nombre completo: «Caqui Super» y «Caqui 2da» van del mismo color.
+  const tono = [...(nombre.trim().split(/\s+/)[0] ?? "").toLowerCase()].reduce((s, c) => s + c.charCodeAt(0), 0) % 360;
   return (
     <span
       aria-hidden

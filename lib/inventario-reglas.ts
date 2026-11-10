@@ -1,6 +1,8 @@
 // El dashboard inteligente de inventario: con el stock, la demanda y la edad de cada lote, decide qué fruta está por
 // malograrse, cuál sobra, cuál hay que reponer y qué conviene hacer. Lógica pura: no importa React ni Supabase.
 
+import { detalleProducto, nombreProducto, type PartesProducto } from "./productos-reglas";
+
 /**
  * Días que aguanta una caja en buen estado en el puesto (sin cámara de frío). Valores de referencia para la demo, por
  * familia de fruta; se ajustan con el dueño y, si hace falta, pasan a una columna de productos.
@@ -72,10 +74,8 @@ export type Alerta = {
   recomendacion: string;
 };
 
-export type ProductoInventario = {
+export type ProductoInventario = PartesProducto & {
   id: number;
-  nombre: string;
-  variedad: string | null;
   stock: number;
   /** Cajas vendidas en los últimos 7 días. */
   vendido7: number;
@@ -86,7 +86,12 @@ export type ProductoInventario = {
 
 export type EstadoProducto = {
   id: number;
+  /** El nombre en una frase, sin confusiones: «Manzana Roja americana Premium cal. 113» (lib/productos-reglas.ts). */
   nombre: string;
+  /** La línea chica debajo del nombre: «Nordic · cal. 100 · 18 kg». */
+  detalle: string;
+  /** Las partes, para ordenar y agrupar la lista como el catálogo. */
+  partes: PartesProducto;
   stock: number;
   demandaDiaria: number;
   /** Días que alcanza el stock al ritmo de venta actual; null si no se vende. */
@@ -98,7 +103,6 @@ export type EstadoProducto = {
   alertas: Alerta[];
 };
 
-const nombreCompleto = (p: { nombre: string; variedad: string | null }) => [p.nombre, p.variedad].filter(Boolean).join(" ");
 // Cajas y días enteros, como se dice en el puesto: «unas 136 cajas», no «136.3» («no vendo media caja», prueba a ciegas de /formidable
 // 2026-11-09). Lo que no llega a uno se dice en palabras.
 export const cajas = (n: number) => (n > 0 && n < 1 ? "menos de una caja" : `${Math.round(n)} ${Math.round(n) === 1 ? "caja" : "cajas"}`);
@@ -119,7 +123,7 @@ export function veredictoDelStock(estados: Pick<EstadoProducto, "stock" | "alert
 
 /** Las reglas de negocio de una fruta: deterioro, reposición, sobrestock y fruta que no se mueve. */
 export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProducto {
-  const nombre = nombreCompleto(p);
+  const nombre = nombreProducto(p);
   const vidaUtil = vidaUtilDias(p.nombre);
   const demandaDiaria = p.vendido7 / 7;
   const coberturaDias = demandaDiaria > 0 ? p.stock / demandaDiaria : null;
@@ -192,7 +196,8 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProduct
     }
   }
 
-  return { id: p.id, nombre, stock: p.stock, demandaDiaria, coberturaDias, edadDias, vidaUtil, desgaste, alertas };
+  const partes: PartesProducto = { nombre: p.nombre, variedad: p.variedad, marca: p.marca, seleccion: p.seleccion, calibre: p.calibre, kgPorCaja: p.kgPorCaja };
+  return { id: p.id, nombre, detalle: detalleProducto(p), partes, stock: p.stock, demandaDiaria, coberturaDias, edadDias, vidaUtil, desgaste, alertas };
 }
 
 const ORDEN_TIPO: Record<TipoAlerta, number> = { deterioro: 0, reponer: 1, sobrestock: 2, sin_movimiento: 3 };

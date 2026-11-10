@@ -15,7 +15,7 @@ export async function leerInventario(supabase: SupabaseClient<Database>, hoy = n
   const hace7 = new Date(hoy.getTime() - 7 * DIA_MS).toISOString();
   const hace45 = new Date(hoy.getTime() - 45 * DIA_MS).toISOString();
   const [productos, stock, vendidos, entradas] = await Promise.all([
-    supabase.from("productos").select("id, nombre, variedad, precio_referencia").eq("activo", true).order("nombre"),
+    supabase.from("productos").select("id, nombre, variedad, marca, seleccion, calibre, kg_por_caja, precio_referencia").eq("activo", true),
     supabase.from("v_stock").select("producto_id, stock"),
     supabase.from("venta_items").select("producto_id, cantidad, venta:ventas!inner(fecha, estado)").gte("venta.fecha", hace7).eq("venta.estado", "registrada"),
     supabase.from("movimientos_stock").select("producto_id, cantidad, fecha").eq("tipo", "entrada_compra").gte("fecha", hace45),
@@ -33,6 +33,10 @@ export async function leerInventario(supabase: SupabaseClient<Database>, hoy = n
     id: p.id,
     nombre: p.nombre,
     variedad: p.variedad,
+    marca: p.marca,
+    seleccion: p.seleccion,
+    calibre: p.calibre,
+    kgPorCaja: p.kg_por_caja === null ? null : Number(p.kg_por_caja),
     stock: stockDe.get(p.id) ?? 0,
     vendido7: vendidoDe.get(p.id) ?? 0,
     entradas: entradasDe.get(p.id) ?? [],

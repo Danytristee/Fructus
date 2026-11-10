@@ -10,6 +10,7 @@ import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Vacio } from "@/components/ui/Vacio";
 import { MermaAMano } from "./MermaAMano";
 import type { Alerta, EstadoProducto, TipoAlerta } from "@/lib/inventario-reglas";
+import { agruparPorFruta, tituloEnGrupo } from "@/lib/productos-reglas";
 
 type Filtro = "todas" | TipoAlerta;
 
@@ -61,8 +62,9 @@ function FilaProducto({ e, puedeRegistrar }: { e: EstadoProducto; puedeRegistrar
         resumen={
           <span className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
             <IconoFruta nombre={e.nombre} tamano={40} />
-            <span className="grid min-w-0">
-              <span className="truncate font-extrabold">{e.nombre}</span>
+            <span className="grid min-w-0 gap-0.5">
+              <span className="leading-tight font-extrabold wrap-anywhere">{tituloEnGrupo(e.partes)}</span>
+              {e.detalle && <span className="text-[15px] leading-snug text-texto-suave">{e.detalle}</span>}
               <span className="h-2 overflow-hidden rounded-full bg-texto/10" aria-hidden>
                 <span className={cn("block h-full origin-left animate-llenar rounded-full", color)} style={{ width: `${Math.max(6, frescura)}%` }} />
               </span>
@@ -105,7 +107,11 @@ export function TableroStock({ alertas, estados, puedeRegistrar }: { alertas: Al
   const cuenta = (t: TipoAlerta) => alertas.filter((a) => a.tipo === t).length;
   const visibles = filtro === "todas" ? alertas : alertas.filter((a) => a.tipo === filtro);
   const nombreDe = new Map(estados.map((e) => [e.id, e.nombre]));
-  const conStock = estados.filter((e) => e.stock > 0).sort((a, b) => b.desgaste - a.desgaste);
+  // Como el catálogo: por fruta, y dentro de cada fruta de la mejor selección a la de menos. Lo urgente ya lo dice «Qué hacer hoy».
+  const grupos = agruparPorFruta(estados.filter((e) => e.stock > 0).map((e) => ({ ...e.partes, estado: e }))).map((g) => ({
+    fruta: g.fruta,
+    estados: g.productos.map((p) => p.estado),
+  }));
 
   // En escritorio (ADR-0015): qué hacer hoy y tu stock, lado a lado.
   return (
@@ -140,12 +146,30 @@ export function TableroStock({ alertas, estados, puedeRegistrar }: { alertas: Al
         <h2 id="tu-stock" className="mb-1 text-xl font-extrabold">
           Tu stock
         </h2>
-        <p className="mb-2.5 text-texto-suave">Primero lo que más se está gastando. Toca una fruta para ver el detalle.</p>
-        <ul className="vidrio divide-y divide-border overflow-hidden rounded-tarjeta">
-          {conStock.map((e) => (
-            <FilaProducto key={e.id} e={e} puedeRegistrar={puedeRegistrar} />
-          ))}
-        </ul>
+        <p className="mb-2.5 text-texto-suave">Por fruta, de la mejor selección a la de menos. Toca una para ver el detalle.</p>
+        {grupos.length === 0 ? (
+          <Vacio icono={<PackageX />} titulo="No tienes cajas en stock">
+            Registra una compra para empezar a contar.
+          </Vacio>
+        ) : (
+          <div className="grid gap-4">
+            {grupos.map((g) => (
+              <section key={g.fruta} aria-labelledby={`fruta-${g.fruta}`}>
+                <h3 id={`fruta-${g.fruta}`} className="mb-1.5 flex items-baseline justify-between px-1 font-extrabold">
+                  <span>{g.fruta}</span>
+                  <span className="cifra text-[15px] font-bold text-texto-suave">
+                    {g.estados.reduce((s, e) => s + e.stock, 0)} cajas
+                  </span>
+                </h3>
+                <ul className="vidrio divide-y divide-border overflow-hidden rounded-tarjeta">
+                  {g.estados.map((e) => (
+                    <FilaProducto key={e.id} e={e} puedeRegistrar={puedeRegistrar} />
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
