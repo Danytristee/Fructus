@@ -10,6 +10,7 @@
 import { calcularCierre, type Medio } from "./cierre-reglas";
 import { comprobanteAMostrar, fraseDeComprobante, type CodigoTipo } from "./comprobantes/comprobante-reglas";
 import { diaDeLima } from "./formato";
+import { nombreProducto, type PartesProducto } from "./productos-reglas";
 
 // -----------------------------------------------------------------------------------------------------------------------------------
 // El mes
@@ -75,7 +76,7 @@ export type DatosDelMes = {
   rango: RangoDelMes;
   /** Los catálogos, completos: una venta del mes puede ser de un cliente o una fruta que hoy está inactivo. */
   clientes: { id: number; nombre: string }[];
-  productos: { id: number; nombre: string; variedad: string | null }[];
+  productos: (PartesProducto & { id: number })[];
   proveedores: { id: number; nombre: string }[];
   ventas: {
     id: number;
@@ -140,7 +141,7 @@ const condiciones = { contado: "Contado", credito: "Crédito" } as const;
 const categorias: Record<string, string> = { flete: "Flete", alquiler: "Alquiler", servicios: "Servicios", personal: "Personal", otros: "Otros" };
 
 const medio = (m: Medio | null): string | null => (m ? medios[m] : null);
-const nombreDeFruta = (p: { nombre: string; variedad: string | null } | undefined) => (p ? [p.nombre, p.variedad].filter(Boolean).join(" ") : "Fruta que ya no está");
+const nombreDeFruta = (p: PartesProducto | undefined) => (p ? nombreProducto(p) : "Fruta que ya no está");
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
 /** Del más viejo al más nuevo; a igual hora, por orden de registro. */

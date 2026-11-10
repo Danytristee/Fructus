@@ -24,6 +24,14 @@ describe("tonoDe", () => {
 });
 
 describe("describirItems", () => {
+  it("dos selecciones o dos calibres de la misma fruta no se confunden en la frase", () => {
+    const tercera = { nombre: "Membrillo", variedad: null, seleccion: "3era" };
+    const cuarta = { nombre: "Membrillo", variedad: null, seleccion: "4ta" };
+    expect(describirItems([{ cantidad: 2, producto: tercera }, { cantidad: 1, producto: cuarta }])).toBe("2 de membrillo 3era y 1 de membrillo 4ta");
+    const roja = { nombre: "Manzana", variedad: "Roja americana", seleccion: "Premium", calibre: "100" };
+    expect(describirItems([{ cantidad: 3, producto: roja }]).replace(/\u00a0/g, " ")).toBe("3 de manzana roja americana premium cal. 100");
+  });
+
   it("cuenta en lenguaje de puesto", () => {
     expect(describirItems([{ cantidad: 10, producto: mango }])).toBe("10 de mango kent");
     expect(describirItems([{ cantidad: 5, producto: mango }, { cantidad: 3, producto: pina }])).toBe("5 de mango kent y 3 de piña golden");

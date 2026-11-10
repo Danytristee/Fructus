@@ -14,6 +14,7 @@ import { exigirSesion } from "@/lib/sesion";
 import { leerFilasDeVentas } from "@/lib/ventas";
 import { comprobanteAMostrar, type CodigoTipo } from "@/lib/comprobantes/comprobante-reglas";
 import { resumirVentas } from "@/lib/ventas-reglas";
+import { nombreProducto, type PartesProducto } from "@/lib/productos-reglas";
 
 export const metadata: Metadata = { title: "Ventas · Fructus" };
 
@@ -22,7 +23,7 @@ const DIA_MS = 86_400_000;
 // Cuántas ventas muestra la lista (para no cargar de más). Los totales de arriba NO salen de ella: cuentan todas las del período.
 const LIMITE_LISTA = 300;
 
-const nombreFruta = (p: { nombre: string; variedad: string | null } | null) => (p ? [p.nombre, p.variedad].filter(Boolean).join(" ") : "Fruta");
+const nombreFruta = (p: PartesProducto | null) => (p ? nombreProducto(p) : "Fruta");
 
 // El historial de ventas de los últimos 7 días, agrupado por día de Lima, de la más reciente a la más antigua. Cada venta trae
 // todo su detalle (fruta, precios, quién la registró) para abrirlo al tocarla sin pedir nada más. La lista muestra a lo sumo las
@@ -37,7 +38,7 @@ async function Historial() {
     supabase
       .from("ventas")
       .select(
-        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre, tipo_documento, telefono), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad)), comprobantes(id, tipo, serie, numero, estado, pdf_url, motivo:respuesta->>mensaje)",
+        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre, tipo_documento, telefono), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad, seleccion, calibre)), comprobantes(id, tipo, serie, numero, estado, pdf_url, motivo:respuesta->>mensaje)",
       )
       .gte("fecha", desde)
       .order("fecha", { ascending: false })

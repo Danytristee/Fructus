@@ -6,6 +6,7 @@ import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Avatar } from "@/components/ui/Avatar";
 import { BuscadorCatalogo } from "@/components/ui/BuscadorCatalogo";
+import { compararProductos } from "@/lib/productos-reglas";
 import { nombreDelRol } from "@/lib/permisos-reglas";
 import { iniciales } from "@/lib/operaciones-reglas";
 import { exigirSesion } from "@/lib/sesion";
@@ -33,7 +34,7 @@ export default async function Ajustes() {
     );
   }
   const [productos, equipo] = await Promise.all([
-    supabase.from("productos").select("id, nombre, variedad, precio_referencia, alias").eq("activo", true).order("nombre").order("variedad"),
+    supabase.from("productos").select("id, nombre, variedad, marca, seleccion, calibre, kg_por_caja, costo_referencia, precio_referencia, alias").eq("activo", true),
     supabase.from("perfiles").select("id, nombre, rol, activo").order("nombre"),
   ]);
   return (
@@ -46,13 +47,20 @@ export default async function Ajustes() {
           <Apple aria-hidden className="size-5 text-acento-texto" /> Tus frutas
         </h2>
         <BuscadorCatalogo
-          productos={(productos.data ?? []).map((p) => ({
-            id: p.id,
-            nombre: p.nombre,
-            variedad: p.variedad,
-            precio: p.precio_referencia === null ? null : Number(p.precio_referencia),
-            alias: p.alias ?? [],
-          }))}
+          productos={(productos.data ?? [])
+            .map((p) => ({
+              id: p.id,
+              nombre: p.nombre,
+              variedad: p.variedad,
+              marca: p.marca,
+              seleccion: p.seleccion,
+              calibre: p.calibre,
+              kgPorCaja: p.kg_por_caja === null ? null : Number(p.kg_por_caja),
+              precio: p.precio_referencia === null ? null : Number(p.precio_referencia),
+              costo: p.costo_referencia === null ? null : Number(p.costo_referencia),
+              alias: p.alias ?? [],
+            }))
+            .sort(compararProductos)}
         />
       </section>
       <section aria-labelledby="equipo" className="mt-6 animate-subir [animation-delay:120ms] lg:col-span-5 lg:mt-0">

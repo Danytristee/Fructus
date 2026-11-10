@@ -42,7 +42,7 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
     supabase.from("v_saldo_clientes").select("saldo"),
     supabase
       .from("ventas")
-      .select("id, fecha, total, condicion, medio_pago, items:venta_items(cantidad, producto:productos(nombre, variedad))")
+      .select("id, fecha, total, condicion, medio_pago, items:venta_items(cantidad, producto:productos(nombre, variedad, seleccion, calibre))")
       .eq("cliente_id", cliente.id)
       .eq("estado", "registrada")
       .order("fecha", { ascending: false })

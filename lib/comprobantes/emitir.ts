@@ -19,6 +19,7 @@ import {
   type RespuestaDelProveedor,
 } from "./comprobante-reglas";
 import { consultarEnProveedor, enviarAlProveedor, leerConfiguracion, type ConfiguracionLucode } from "./lucode";
+import { nombreProducto } from "@/lib/productos-reglas";
 
 // Emitir una boleta o una factura de una venta, y reintentar las que no terminaron (A9). El orden importa y es siempre el mismo
 // (CLAUDE.md, «Comprobantes»):
@@ -76,7 +77,7 @@ function vistaDe(f: { id: number; tipo: string; serie: string; numero: number; e
 }
 
 const SELECT_VENTA =
-  "id, total, estado, cliente:clientes(id, nombre, tipo_documento, numero_documento), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad, afectacion_igv))";
+  "id, total, estado, cliente:clientes(id, nombre, tipo_documento, numero_documento), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad, seleccion, calibre, afectacion_igv))";
 
 /** La venta se lee con la sesión de la persona (la RLS decide qué ve), no con la llave de servicio. */
 async function leerVenta(supabase: ClienteUsuario, ventaId: number) {
@@ -105,7 +106,7 @@ function datosDeVenta(venta: VentaLeida, cliente: ClienteDeVenta | null): DatosD
         }
       : null,
     items: venta.items.map((i) => ({
-      descripcion: [i.producto?.nombre, i.producto?.variedad].filter(Boolean).join(" ") || "Fruta",
+      descripcion: i.producto ? nombreProducto(i.producto) : "Fruta",
       cantidad: Number(i.cantidad),
       precioUnitario: Number(i.precio_unitario),
       descuento: Number(i.descuento),

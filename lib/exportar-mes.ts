@@ -42,7 +42,7 @@ export async function leerDatosDelMes(supabase: Cliente, rango: RangoDelMes): Pr
   const { desde, hasta } = rango;
   const [clientes, productos, proveedores, ventas, items, abonos, gastos, compras, mermas] = await Promise.all([
     leerTodo("clientes", (a, b) => supabase.from("clientes").select("id, nombre").order("id").range(a, b)),
-    leerTodo("productos", (a, b) => supabase.from("productos").select("id, nombre, variedad").order("id").range(a, b)),
+    leerTodo("productos", (a, b) => supabase.from("productos").select("id, nombre, variedad, seleccion, calibre").order("id").range(a, b)),
     leerTodo("proveedores", (a, b) => supabase.from("proveedores").select("id, nombre").order("id").range(a, b)),
     leerTodo("ventas", (a, b) =>
       supabase
