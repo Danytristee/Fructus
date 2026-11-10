@@ -14,7 +14,7 @@
   - Capturas de Stock, Ajustes y Ventas a 412 y 360 px, sin scroll horizontal.
 - **Pendiente:**
   - **Sin probar:** `/voz-precision` y `voz-api.spec.ts:15`. Esta máquina no tiene `GROQ_API_KEY` en `.env.local`.
-  - **Aplicar al proyecto:** las 2 migraciones y `catalogo-real.sql`, con OK.
+  - **Aplicar al proyecto:** las 2 migraciones ya están aplicadas (2026-11-10, `supabase db push`, misma versión que el archivo; tipos sin cambios y sin avisos nuevos del linter). Falta `catalogo-real.sql`, con OK.
   - **`/formidable` de Stock y Ajustes, y `/chaos` de Stock**, que no se corrieron en esta obra. En las alertas, el calibre alarga el título
     («Te sobra Naranja Wando cal. 72»).
   - Sugerir `costo_referencia` en la hoja de Compra cuando la fruta nunca se compró (`lib/voz/resolver.ts`, `costosSugeridos`).
