@@ -7,6 +7,7 @@ import { inicioDelDiaLima } from "@/lib/hoy-reglas";
 import { deAbono, deCompra, deGasto, deMerma, deVenta, ultimas, type Medio } from "@/lib/operaciones-reglas";
 import { exigirSesion } from "@/lib/sesion";
 import { FilaOperacion } from "./FilaOperacion";
+import type { PartesProducto } from "@/lib/productos-reglas";
 
 const CUANTAS = 5;
 
@@ -19,7 +20,7 @@ export async function UltimasOperaciones() {
   const [ventas, abonos, compras, mermas, gastos] = await Promise.all([
     supabase
       .from("ventas")
-      .select("id, fecha, total, condicion, medio_pago, cliente:clientes(id, nombre), items:venta_items(cantidad, producto:productos(nombre, variedad))")
+      .select("id, fecha, total, condicion, medio_pago, cliente:clientes(id, nombre), items:venta_items(cantidad, producto:productos(nombre, variedad, seleccion, calibre))")
       .eq("estado", "registrada")
       .gte("fecha", desde)
       .order("fecha", reciente)
@@ -27,13 +28,13 @@ export async function UltimasOperaciones() {
     supabase.from("abonos").select("id, fecha, monto, medio_pago, cliente:clientes(id, nombre)").gte("fecha", desde).order("fecha", reciente).limit(CUANTAS),
     supabase
       .from("compras")
-      .select("id, fecha, total, proveedor:proveedores(nombre), items:compra_items(cantidad, producto:productos(nombre, variedad))")
+      .select("id, fecha, total, proveedor:proveedores(nombre), items:compra_items(cantidad, producto:productos(nombre, variedad, seleccion, calibre))")
       .gte("fecha", desde)
       .order("fecha", reciente)
       .limit(CUANTAS),
     supabase
       .from("movimientos_stock")
-      .select("id, fecha, cantidad, motivo, producto:productos(nombre, variedad)")
+      .select("id, fecha, cantidad, motivo, producto:productos(nombre, variedad, seleccion, calibre)")
       .eq("tipo", "merma")
       .gte("fecha", desde)
       .order("fecha", reciente)
@@ -54,7 +55,7 @@ export async function UltimasOperaciones() {
     );
   }
 
-  const items = (lista: { cantidad: number; producto: { nombre: string; variedad: string | null } | null }[]) =>
+  const items = (lista: { cantidad: number; producto: PartesProducto | null }[]) =>
     lista.map((i) => ({ cantidad: Number(i.cantidad), producto: i.producto }));
 
   const operaciones = ultimas(

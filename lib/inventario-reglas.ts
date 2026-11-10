@@ -1,6 +1,8 @@
 // El dashboard inteligente de inventario: con el stock, la demanda y la edad de cada lote, decide qué fruta está por
 // malograrse, cuál sobra, cuál hay que reponer y qué conviene hacer. Lógica pura: no importa React ni Supabase.
 
+import { agruparPorFruta, detalleProducto, nombreProducto, tituloEnGrupo, type PartesProducto } from "./productos-reglas";
+
 /**
  * Días que aguanta una caja en buen estado en el puesto (sin cámara de frío). Valores de referencia para la demo, por
  * familia de fruta; se ajustan con el dueño y, si hace falta, pasan a una columna de productos.
@@ -23,6 +25,13 @@ const VIDA_UTIL_DIAS: Record<string, number> = {
   nispero: 7,
   tuna: 7,
   kaki: 10,
+  caqui: 10,
+  membrillo: 20,
+  albaricoque: 7,
+  cereza: 7,
+  durazno: 7,
+  tumbo: 7,
+  pepino: 7,
   arandano: 10,
   sandia: 10,
   aguaymanto: 10,
@@ -70,12 +79,12 @@ export type Alerta = {
   detalle: string;
   /** Qué hacer. */
   recomendacion: string;
+  /** El dato en pocas palabras, para cuando la alerta va junto a otras del mismo tipo: «72 de más», «lote de 9 días, dura 10». */
+  corto: string;
 };
 
-export type ProductoInventario = {
+export type ProductoInventario = PartesProducto & {
   id: number;
-  nombre: string;
-  variedad: string | null;
   stock: number;
   /** Cajas vendidas en los últimos 7 días. */
   vendido7: number;
@@ -86,7 +95,12 @@ export type ProductoInventario = {
 
 export type EstadoProducto = {
   id: number;
+  /** El nombre en una frase, sin confusiones: «Manzana Roja americana Premium cal. 113» (lib/productos-reglas.ts). */
   nombre: string;
+  /** La línea chica debajo del nombre: «Nordic · cal. 100 · 18 kg». */
+  detalle: string;
+  /** Las partes, para ordenar y agrupar la lista como el catálogo. */
+  partes: PartesProducto;
   stock: number;
   demandaDiaria: number;
   /** Días que alcanza el stock al ritmo de venta actual; null si no se vende. */
@@ -98,7 +112,6 @@ export type EstadoProducto = {
   alertas: Alerta[];
 };
 
-const nombreCompleto = (p: { nombre: string; variedad: string | null }) => [p.nombre, p.variedad].filter(Boolean).join(" ");
 // Cajas y días enteros, como se dice en el puesto: «unas 136 cajas», no «136.3» («no vendo media caja», prueba a ciegas de /formidable
 // 2026-11-09). Lo que no llega a uno se dice en palabras.
 export const cajas = (n: number) => (n > 0 && n < 1 ? "menos de una caja" : `${Math.round(n)} ${Math.round(n) === 1 ? "caja" : "cajas"}`);
@@ -119,10 +132,11 @@ export function veredictoDelStock(estados: Pick<EstadoProducto, "stock" | "alert
 
 /** Las reglas de negocio de una fruta: deterioro, reposición, sobrestock y fruta que no se mueve. */
 export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProducto {
-  const nombre = nombreCompleto(p);
+  const nombre = nombreProducto(p);
   const vidaUtil = vidaUtilDias(p.nombre);
   const demandaDiaria = p.vendido7 / 7;
-  const coberturaDias = demandaDiaria > 0 ? p.stock / demandaDiaria : null;
+  // Con stock negativo (una merma mayor que lo contado) no alcanza para nada: 0 días, no «−4.2 días» (/chaos 2026-11-10).
+  const coberturaDias = demandaDiaria > 0 ? Math.max(0, p.stock) / demandaDiaria : null;
   const edadDias = edadLoteMasViejo(p.stock, p.entradas, hoy);
   const desgaste = edadDias === null ? 0 : Math.min(1, edadDias / vidaUtil);
   const alertas: Alerta[] = [];
@@ -138,6 +152,7 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProduct
       titulo: alta ? `${nombre} se está por malograr` : `${nombre} hay que revisarlo pronto`,
       detalle: `El lote más viejo tiene ${dias(edadDias)} y esta fruta dura unos ${dias(vidaUtil)}.`,
       recomendacion: alta ? "Véndelo hoy, antes que lo nuevo. Si no sale, ofrécelo con rebaja." : "Ponlo adelante y véndelo primero.",
+      corto: `lote de ${dias(edadDias)}, dura ${dias(vidaUtil)}`,
     });
   }
 
@@ -150,6 +165,7 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProduct
         titulo: `Se acabó ${nombre}`,
         detalle: `Vendes unas ${cajas(demandaDiaria)} al día y no te queda ninguna.`,
         recomendacion: `Compra unas ${cajas(Math.ceil(demandaDiaria * 4))} para cubrir 4 días.`,
+        corto: `se acabó: compra unas ${cajas(Math.ceil(demandaDiaria * 4))}`,
       });
     }
   } else if (coberturaDias === null) {
@@ -161,6 +177,7 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProduct
       titulo: `${nombre} no se está vendiendo`,
       detalle: `Tienes ${cajas(p.stock)} y no vendiste ninguna en 7 días.`,
       recomendacion: "Ofrécelo a tus clientes de siempre o con una rebaja; no compres más.",
+      corto: `${cajas(p.stock)} sin vender en 7 días`,
     });
   } else {
     // Sobrestock: al ritmo de venta, parte del stock se malogra antes de venderse.
@@ -177,6 +194,7 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProduct
         titulo: `Te sobra ${nombre}`,
         detalle: `Tienes ${cajas(p.stock)} y vendes ${cajas(demandaDiaria)} al día: unas ${cajas(Math.ceil(enRiesgo))} no alcanzan a venderse antes de malograrse.`,
         recomendacion: "No compres más hasta que baje. Muévelo con precio o con tus clientes grandes.",
+        corto: `${cajas(Math.ceil(enRiesgo))} de más`,
       });
     }
     // Reponer: lo que hay no alcanza para 2 días.
@@ -188,11 +206,13 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProduct
         titulo: `Te queda poco ${nombre}`,
         detalle: `Tienes ${cajas(p.stock)}: te alcanza para ${dias(coberturaDias)} al ritmo de venta.`,
         recomendacion: `Compra unas ${cajas(Math.max(1, Math.ceil(demandaDiaria * 4 - p.stock)))} para cubrir 4 días.`,
+        corto: `alcanza para ${dias(coberturaDias)}: compra unas ${cajas(Math.max(1, Math.ceil(demandaDiaria * 4 - p.stock)))}`,
       });
     }
   }
 
-  return { id: p.id, nombre, stock: p.stock, demandaDiaria, coberturaDias, edadDias, vidaUtil, desgaste, alertas };
+  const partes: PartesProducto = { nombre: p.nombre, variedad: p.variedad, marca: p.marca, seleccion: p.seleccion, calibre: p.calibre, kgPorCaja: p.kgPorCaja };
+  return { id: p.id, nombre, detalle: detalleProducto(p), partes, stock: p.stock, demandaDiaria, coberturaDias, edadDias, vidaUtil, desgaste, alertas };
 }
 
 const ORDEN_TIPO: Record<TipoAlerta, number> = { deterioro: 0, reponer: 1, sobrestock: 2, sin_movimiento: 3 };
@@ -212,6 +232,8 @@ export type ResumenInventario = {
   /** Cajas del lote más viejo de las frutas que se están por malograr. */
   frutasPorMalograrse: number;
   porReponer: number;
+  /** Por tipo de alerta: cuántas frutas en total (lo mismo que cuenta su filtro) y cuántas de ellas son para hoy. */
+  porTipo: Record<TipoAlerta, { total: number; hoy: number }>;
 };
 
 export function resumirInventario(productos: ProductoInventario[], estados: EstadoProducto[]): ResumenInventario {
@@ -222,5 +244,99 @@ export function resumirInventario(productos: ProductoInventario[], estados: Esta
     alertasAltas: alertas.filter((a) => a.gravedad === "alta").length,
     frutasPorMalograrse: alertas.filter((a) => a.tipo === "deterioro" && a.gravedad === "alta").length,
     porReponer: alertas.filter((a) => a.tipo === "reponer").length,
+    porTipo: Object.fromEntries(
+      (Object.keys(ORDEN_TIPO) as TipoAlerta[]).map((t) => {
+        const deTipo = alertas.filter((a) => a.tipo === t);
+        return [t, { total: deTipo.length, hoy: deTipo.filter(esUrgente).length }];
+      }),
+    ) as ResumenInventario["porTipo"],
+  };
+}
+
+/** Una tarjeta de «Qué hacer hoy»: una alerta sola, o varias del mismo tipo y la misma urgencia juntas, con una sola recomendación. */
+export type GrupoAlertas = {
+  clave: string;
+  tipo: TipoAlerta;
+  gravedad: Gravedad;
+  titulo: string;
+  /** Con una sola fruta, su detalle; con varias, vacío: cada una dice lo suyo en `alertas[].corto`. */
+  detalle: string;
+  recomendacion: string;
+  alertas: Alerta[];
+};
+
+const TITULO_GRUPO: Record<TipoAlerta, Record<Gravedad, (n: number) => string>> = {
+  deterioro: { alta: (n) => `${n} frutas se están por malograr`, media: (n) => `${n} frutas hay que revisarlas pronto` },
+  reponer: { alta: (n) => `Hay que comprar ${n} frutas hoy`, media: (n) => `Te queda poco de ${n} frutas` },
+  sobrestock: { alta: (n) => `Te sobran ${n} frutas`, media: (n) => `Te sobra algo de ${n} frutas` },
+  sin_movimiento: { alta: (n) => `${n} frutas no se están vendiendo`, media: (n) => `${n} frutas no se están vendiendo` },
+};
+
+// Cuando van juntas, la recomendación no puede llevar la cantidad de una sola fruta («Compra unas 7 cajas…»): esa va en cada fila.
+const RECOMENDACION_GRUPO: Record<TipoAlerta, Record<Gravedad, string>> = {
+  deterioro: { alta: "Véndelas hoy, antes que lo nuevo. Si no salen, ofrécelas con rebaja.", media: "Ponlas adelante y véndelas primero." },
+  reponer: { alta: "Compra hoy lo que dice cada una, para cubrir 4 días.", media: "Compra lo que dice cada una, para cubrir 4 días." },
+  sobrestock: {
+    alta: "No compres más hasta que bajen. Muévelas con precio o con tus clientes grandes.",
+    media: "No compres más hasta que bajen. Muévelas con precio o con tus clientes grandes.",
+  },
+  sin_movimiento: {
+    alta: "Ofrécelas a tus clientes de siempre o con una rebaja; no compres más.",
+    media: "Ofrécelas a tus clientes de siempre o con una rebaja; no compres más.",
+  },
+};
+
+/**
+ * Junta las alertas del mismo tipo y la misma urgencia en una tarjeta, en el orden de priorizarAlertas. Con el catálogo real, «Qué hacer
+ * hoy» llegó a 10 tarjetas y la misma frase seis veces; «Tu stock» quedaba a 3.6 pantallas (/formidable 2026-11-10).
+ */
+export function juntarAlertas(alertas: Alerta[]): GrupoAlertas[] {
+  const grupos = new Map<string, Alerta[]>();
+  for (const a of alertas) {
+    const clave = `${a.gravedad}-${a.tipo}`;
+    grupos.set(clave, [...(grupos.get(clave) ?? []), a]);
+  }
+  return [...grupos].map(([clave, lista]) => {
+    const [a] = lista as [Alerta, ...Alerta[]];
+    if (lista.length === 1) return { clave, tipo: a.tipo, gravedad: a.gravedad, titulo: a.titulo, detalle: a.detalle, recomendacion: a.recomendacion, alertas: lista };
+    return {
+      clave,
+      tipo: a.tipo,
+      gravedad: a.gravedad,
+      titulo: TITULO_GRUPO[a.tipo][a.gravedad](lista.length),
+      detalle: "",
+      recomendacion: RECOMENDACION_GRUPO[a.tipo][a.gravedad],
+      alertas: lista,
+    };
+  });
+}
+
+/**
+ * «Tu stock» por fruta, con lo que NO tiene cajas a la vista: «¿te queda manzana verde premium?» quedaba sin respuesta, porque la lista solo
+ * mostraba lo que tenía cajas (prueba a ciegas de /formidable 2026-11-10). Dentro de una fruta con cajas, las variedades sin cajas van en una
+ * línea; las frutas que no tienen ninguna caja van todas juntas al final.
+ */
+export function listaDeStock(estados: EstadoProducto[]): {
+  grupos: { fruta: string; cajas: number; conCajas: EstadoProducto[]; sinCajas: string[] }[];
+  frutasSinCajas: string[];
+} {
+  const grupos = agruparPorFruta(estados.map((e) => ({ ...e.partes, estado: e }))).map((g) => g.productos.map((p) => p.estado));
+  // Un stock negativo no es «sin cajas»: dice que falta registrar una compra o un conteo, y se muestra como fila (/chaos 2026-11-10).
+  const conAlguna = grupos.filter((g) => g.some((e) => e.stock !== 0));
+  return {
+    grupos: conAlguna.map((g) => ({
+      fruta: g[0]!.partes.nombre,
+      cajas: g.reduce((s, e) => s + Math.max(0, e.stock), 0),
+      conCajas: g.filter((e) => e.stock !== 0),
+      // Con el calibre solo si otra de la misma fruta se llama igual: «Roja americana Premium cal. 113».
+      sinCajas: g
+        .filter((e) => e.stock === 0)
+        .map((e) => {
+          const titulo = tituloEnGrupo(e.partes);
+          const repetido = g.some((o) => o !== e && tituloEnGrupo(o.partes) === titulo);
+          return repetido && e.partes.calibre ? `${titulo} cal.\u00a0${e.partes.calibre}` : titulo;
+        }),
+    })),
+    frutasSinCajas: grupos.filter((g) => g.every((e) => e.stock === 0)).map((g) => g[0]!.partes.nombre),
   };
 }

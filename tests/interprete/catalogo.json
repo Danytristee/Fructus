@@ -1,145 +1,261 @@
 {
-  "descripcion": "Catálogo del puesto para las pruebas de voz: los productos de scripts/demo/catalogo-proyeccion.sql (Excel del dueño) y los clientes y proveedores que hoy tiene el proyecto. Se actualiza cuando cambie el catálogo real.",
+  "descripcion": "Catálogo del puesto para las pruebas de voz: los productos activos de scripts/demo/catalogo-real.sql (inventario del dueño, ADR-0016) y los clientes y proveedores que hoy tiene el proyecto. Se actualiza cuando cambie el catálogo real.",
   "productos": [
     {
-      "nombre": "Manzana",
-      "variedad": "Royal"
+      "nombre": "Albaricoque",
+      "variedad": null,
+      "seleccion": "Premium"
     },
     {
-      "nombre": "Manzana",
-      "variedad": "Roja"
+      "nombre": "Albaricoque",
+      "variedad": null,
+      "seleccion": "Extra"
     },
     {
-      "nombre": "Manzana",
-      "variedad": "Verde"
+      "nombre": "Albaricoque",
+      "variedad": null,
+      "seleccion": "1era"
     },
     {
-      "nombre": "Manzana",
-      "variedad": "Crispin"
+      "nombre": "Albaricoque",
+      "variedad": null,
+      "seleccion": "2da"
     },
     {
-      "nombre": "Pera",
-      "variedad": "Gaucho"
+      "nombre": "Albaricoque",
+      "variedad": null,
+      "seleccion": "3ra"
     },
     {
-      "nombre": "Pera",
-      "variedad": "Zaledias"
+      "nombre": "Albaricoque",
+      "variedad": null,
+      "seleccion": "4ta"
     },
     {
-      "nombre": "Pera",
-      "variedad": "chilena"
-    },
-    {
-      "nombre": "Ciruela",
-      "variedad": "nacional"
-    },
-    {
-      "nombre": "Ciruela",
-      "variedad": "chilena"
-    },
-    {
-      "nombre": "Kiwi",
-      "variedad": "importado"
-    },
-    {
-      "nombre": "Kiwi",
-      "variedad": "AAA"
-    },
-    {
-      "nombre": "Kiwi",
-      "variedad": "Cope"
-    },
-    {
-      "nombre": "Naranja",
+      "nombre": "Bomba",
       "variedad": null
     },
     {
-      "nombre": "Tangelo",
-      "variedad": null
+      "nombre": "Caqui",
+      "variedad": null,
+      "seleccion": "Super"
     },
     {
-      "nombre": "Lima",
-      "variedad": null
+      "nombre": "Caqui",
+      "variedad": null,
+      "seleccion": "Extra"
     },
     {
-      "nombre": "Uva",
-      "variedad": "Bolón"
+      "nombre": "Caqui",
+      "variedad": null,
+      "seleccion": "1era"
     },
     {
-      "nombre": "Uva",
+      "nombre": "Caqui",
+      "variedad": null,
+      "seleccion": "2da"
+    },
+    {
+      "nombre": "Cereza",
       "variedad": "chilena"
-    },
-    {
-      "nombre": "Uva",
-      "variedad": "Ica"
-    },
-    {
-      "nombre": "Piña",
-      "variedad": "C8"
-    },
-    {
-      "nombre": "Piña",
-      "variedad": "C10"
-    },
-    {
-      "nombre": "Piña",
-      "variedad": "golden"
-    },
-    {
-      "nombre": "Plátano",
-      "variedad": "biscocho"
     },
     {
       "nombre": "Chirimoya",
-      "variedad": "selección"
-    },
-    {
-      "nombre": "Granadilla",
-      "variedad": "selección"
-    },
-    {
-      "nombre": "Níspero",
-      "variedad": "HBS"
-    },
-    {
-      "nombre": "Níspero",
-      "variedad": "ASV"
-    },
-    {
-      "nombre": "Tuna",
-      "variedad": "selección"
-    },
-    {
-      "nombre": "Mango",
-      "variedad": "Kent"
-    },
-    {
-      "nombre": "Kaki",
       "variedad": null
     },
     {
-      "nombre": "Arándano",
-      "variedad": null
+      "nombre": "Ciruela",
+      "variedad": "chilena Angelino"
     },
     {
-      "nombre": "Sandía",
-      "variedad": null
+      "nombre": "Ciruela",
+      "variedad": "chilena Fortuna"
     },
     {
-      "nombre": "Papaya",
-      "variedad": null
+      "nombre": "Ciruela",
+      "variedad": "chilena Larryaan"
     },
     {
-      "nombre": "Aguaymanto",
-      "variedad": null
+      "nombre": "Ciruela",
+      "variedad": "chilena Nectarín"
+    },
+    {
+      "nombre": "Ciruela",
+      "variedad": "chilena Pink Lady"
     },
     {
       "nombre": "Cocona",
       "variedad": null
     },
     {
-      "nombre": "Carambola",
+      "nombre": "Durazno",
+      "variedad": "chileno"
+    },
+    {
+      "nombre": "Granadilla",
       "variedad": null
+    },
+    {
+      "nombre": "Kiwi",
+      "variedad": "Cilíndrico americano"
+    },
+    {
+      "nombre": "Kiwi",
+      "variedad": "Cilíndrico chileno"
+    },
+    {
+      "nombre": "Kiwi",
+      "variedad": "Riñón chileno"
+    },
+    {
+      "nombre": "Lima",
+      "variedad": null
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Buena"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Delicia nacional",
+      "seleccion": "6ta"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Pink Lady"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Roja americana",
+      "seleccion": "Premium"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Roja americana",
+      "seleccion": "Premium"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Roja chilena",
+      "seleccion": "Comercial"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Royal",
+      "seleccion": "Comercial"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Royal americana"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Verde",
+      "seleccion": "Premium"
+    },
+    {
+      "nombre": "Manzana",
+      "variedad": "Verde",
+      "seleccion": "Comercial"
+    },
+    {
+      "nombre": "Membrillo",
+      "variedad": null,
+      "seleccion": "3era"
+    },
+    {
+      "nombre": "Membrillo",
+      "variedad": null,
+      "seleccion": "4ta"
+    },
+    {
+      "nombre": "Membrillo",
+      "variedad": null,
+      "seleccion": "5ta"
+    },
+    {
+      "nombre": "Naranja",
+      "variedad": "Primavera",
+      "seleccion": "Extra"
+    },
+    {
+      "nombre": "Naranja",
+      "variedad": "Tangelo"
+    },
+    {
+      "nombre": "Naranja",
+      "variedad": "Valencia"
+    },
+    {
+      "nombre": "Naranja",
+      "variedad": "Wando"
+    },
+    {
+      "nombre": "Naranja",
+      "variedad": "Wando nacional",
+      "seleccion": "Extra"
+    },
+    {
+      "nombre": "Níspero",
+      "variedad": "ASV"
+    },
+    {
+      "nombre": "Níspero",
+      "variedad": "HBS"
+    },
+    {
+      "nombre": "Pepino",
+      "variedad": null
+    },
+    {
+      "nombre": "Pera",
+      "variedad": "Cesta"
+    },
+    {
+      "nombre": "Pera",
+      "variedad": "Gaucho",
+      "seleccion": "Premium"
+    },
+    {
+      "nombre": "Pera",
+      "variedad": "Gaucho",
+      "seleccion": "Elegido"
+    },
+    {
+      "nombre": "Pera",
+      "variedad": "Italiana chilena"
+    },
+    {
+      "nombre": "Pera",
+      "variedad": "Salud"
+    },
+    {
+      "nombre": "Piña",
+      "variedad": null
+    },
+    {
+      "nombre": "Plátano",
+      "variedad": "bizcocho"
+    },
+    {
+      "nombre": "Plátano",
+      "variedad": "bizcocho orgánico"
+    },
+    {
+      "nombre": "Tumbo",
+      "variedad": null
+    },
+    {
+      "nombre": "Tuna",
+      "variedad": null
+    },
+    {
+      "nombre": "Uva",
+      "variedad": "iqueña"
+    },
+    {
+      "nombre": "Uva",
+      "variedad": "sin pepa"
     }
   ],
   "clientes": [

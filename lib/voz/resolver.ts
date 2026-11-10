@@ -9,11 +9,10 @@ import type { Database } from "../supabase/tipos-db";
 import type { Interpretacion } from "./esquemas";
 import { similitud } from "./similitud-reglas";
 import { elegir, type Resolucion } from "./tarjeta-reglas";
+import { nombreProducto } from "../productos-reglas";
 
 type Cliente = SupabaseClient<Database>;
 type Candidato = Resolucion["clientes"][number];
-
-const nombreProducto = (p: { nombre: string; variedad: string | null }) => [p.nombre, p.variedad].filter(Boolean).join(" ");
 
 async function buscarClientes(supabase: Cliente, q: string | null): Promise<Candidato[]> {
   if (!q) return [];

@@ -14,7 +14,7 @@ let guardado: { hasta: number; catalogo: Catalogo } | null = null;
 export async function leerCatalogo(supabase: SupabaseClient<Database>): Promise<Catalogo> {
   if (guardado && guardado.hasta > Date.now()) return guardado.catalogo;
   const [productos, clientes, proveedores] = await Promise.all([
-    supabase.from("productos").select("nombre, variedad").eq("activo", true).order("nombre"),
+    supabase.from("productos").select("nombre, variedad, seleccion").eq("activo", true),
     supabase.from("clientes").select("nombre, alias").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("nombre, alias").eq("activo", true).order("nombre"),
   ]);

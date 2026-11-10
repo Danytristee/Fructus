@@ -1,8 +1,9 @@
 // Cómo se cuenta cada operación del día en una línea de puesto: quién, qué y cuánto. Lógica pura: no importa React ni Supabase.
 import { frutaIlustrada, type FrutaIlustrada } from "./frutas";
+import { nombreProducto, type PartesProducto } from "./productos-reglas";
 
 export type Medio = "efectivo" | "yape" | "plin" | "transferencia" | "otro";
-type Producto = { nombre: string; variedad: string | null };
+type Producto = PartesProducto;
 type Item = { cantidad: number; producto: Producto | null };
 
 export type VentaLeida = {
@@ -58,21 +59,21 @@ export const medios: Record<Medio, string> = {
   otro: "por otro medio",
 };
 
-const nombreProducto = (p: Producto | null) =>
-  p ? [p.nombre, p.variedad].filter(Boolean).join(" ").toLowerCase() : "fruta";
+// En la frase va en minúsculas, como se dice: «10 de manzana verde premium». El calibre, con su nombre (lib/productos-reglas.ts).
+const nombreEnFrase = (p: Producto | null) => (p ? nombreProducto(p).toLowerCase() : "fruta");
 
 const cantidad = (n: number) => (Number.isInteger(n) ? String(n) : n.toLocaleString("es-PE"));
 
 /** «10 de mango kent», «5 de plátano de seda y 3 de piña golden», «4 de mango kent, 2 de uva y 1 más». */
 export function describirItems(items: Item[]): string {
-  const partes = items.map((i) => `${cantidad(i.cantidad)} de ${nombreProducto(i.producto)}`);
+  const partes = items.map((i) => `${cantidad(i.cantidad)} de ${nombreEnFrase(i.producto)}`);
   if (partes.length <= 2) return partes.join(" y ");
   return `${partes.slice(0, 2).join(", ")} y ${partes.length - 2} más`;
 }
 
 const persona = (c: { id: number; nombre: string } | null) => (c ? { iniciales: iniciales(c.nombre), tono: tonoDe(c.id) } : null);
 const primeraFruta = (items: Item[]) =>
-  items.map((i) => (i.producto ? frutaIlustrada(nombreProducto(i.producto)) : null)).find((f) => f !== null) ?? null;
+  items.map((i) => (i.producto ? frutaIlustrada(nombreEnFrase(i.producto)) : null)).find((f) => f !== null) ?? null;
 
 export function deVenta(v: VentaLeida): Operacion {
   const items = describirItems(v.items);
@@ -119,11 +120,11 @@ export function deMerma(m: MermaLeida): Operacion {
     clave: `merma-${m.id}`,
     fecha: m.fecha,
     titulo: "Merma",
-    detalle: `${cantidad(Math.abs(m.cantidad))} de ${nombreProducto(m.producto)}${m.motivo ? `, ${m.motivo}` : ""}`,
+    detalle: `${cantidad(Math.abs(m.cantidad))} de ${nombreEnFrase(m.producto)}${m.motivo ? `, ${m.motivo}` : ""}`,
     monto: null,
     estado: "merma",
     persona: null,
-    fruta: m.producto ? frutaIlustrada(nombreProducto(m.producto)) : null,
+    fruta: m.producto ? frutaIlustrada(nombreEnFrase(m.producto)) : null,
   };
 }
 

@@ -7,6 +7,10 @@ import type { Interpretacion } from "./esquemas";
 
 /** Desde esta similitud (pg_trgm) un nombre se elige solo; por debajo, la persona elige entre las 3 mejores (CLAUDE.md, «La voz»). */
 const SIMILITUD_SUFICIENTE = 0.45;
+// Si el segundo queda a menos de esto del mejor, es un empate: «manzana verde» calza igual con la Premium y con la Comercial, y
+// elegir una sola sería adivinar (principio 1). Medido con el catálogo real: «kiwi» da 0.45 / 0.33 y tiene que preguntar;
+// «membrillo cuarta» da 0.85 / 0.55 y elige solo.
+const MARGEN_EMPATE = 0.15;
 
 type Opcion = { id: number; nombre: string };
 type Candidato = Opcion & { similitud: number };
@@ -75,12 +79,14 @@ export type Resolucion = {
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
-/** Si el mejor candidato se parece lo suficiente, se elige solo; si no, se ofrecen los 3 mejores para tocar uno. */
+/** Si el mejor candidato se parece lo suficiente y le saca ventaja al segundo, se elige solo; si no, se ofrecen los 3 mejores para tocar uno. */
 export function elegir(dicho: string | null, candidatos: Candidato[]): Eleccion {
   if (!dicho) return { dicho: null, elegido: null, opciones: [] };
   const orden = [...candidatos].sort((a, b) => b.similitud - a.similitud);
   const mejor = orden[0];
-  if (mejor && mejor.similitud >= SIMILITUD_SUFICIENTE) return { dicho, elegido: { id: mejor.id, nombre: mejor.nombre }, opciones: [] };
+  const segundo = orden[1];
+  const empata = segundo !== undefined && mejor !== undefined && mejor.similitud - segundo.similitud < MARGEN_EMPATE;
+  if (mejor && mejor.similitud >= SIMILITUD_SUFICIENTE && !empata) return { dicho, elegido: { id: mejor.id, nombre: mejor.nombre }, opciones: [] };
   return { dicho, elegido: null, opciones: orden.slice(0, 3).map(({ id, nombre }) => ({ id, nombre })) };
 }
 

@@ -7,6 +7,7 @@ import { emitirComprobanteDeVenta } from "@/lib/comprobantes/emitir";
 import { leerSaldo, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import { PRECIO_MAXIMO, pedidoVenta } from "@/lib/voz/confirmar-venta-reglas";
 import { preciosSugeridos } from "@/lib/voz/resolver";
+import { nombreProducto } from "@/lib/productos-reglas";
 
 // Lo que la tarjeta de voz le pide al servidor: guardar la venta, descartar el comando, buscar quién o qué fue, el precio
 // sugerido y la deuda del cliente. En «Hoy» el navegador no carga supabase-js (CLAUDE.md, regla 9): todo pasa por aquí.
@@ -14,8 +15,6 @@ import { preciosSugeridos } from "@/lib/voz/resolver";
 
 const SIN_SESION = sinSesion("la venta");
 const REVISA = "Revisa el precio y las cajas de la tarjeta.";
-
-const nombreProducto = (p: { nombre: string; variedad: string | null }) => [p.nombre, p.variedad].filter(Boolean).join(" ");
 
 const borrador = z.object({
   cliente: z.object({ id: z.number().int().positive(), nombre: z.string() }).nullable(),

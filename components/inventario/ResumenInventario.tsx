@@ -12,12 +12,13 @@ export function ResumenInventario({ resumen, estados }: Props) {
   const { urgentes, total } = veredictoDelStock(estados);
   // El anillo se llena con lo mismo que dice el texto: las frutas que piden algo hoy, en rojo. Sin nada urgente, queda lleno en verde.
   const lleno = total === 0 || urgentes === 0 ? 100 : Math.round((100 * urgentes) / total);
-  const sobrestock = estados.filter((e) => e.alertas.some((a) => a.tipo === "sobrestock")).length;
-
+  // Cada recuadro cuenta lo mismo que su filtro de abajo; si no todas son para hoy, lo dice («1 hoy»). Antes el recuadro decía
+  // «1 por malograrse» y el filtro «2», y el ciego no supo a cuál creerle (/formidable 2026-11-10).
+  const { deterioro, reponer, sobrestock } = resumen.porTipo;
   const tiles = [
-    { cuenta: resumen.frutasPorMalograrse, etiqueta: "por malograrse", Icono: TriangleAlert, clase: "bg-deuda-fondo text-deuda" },
-    { cuenta: resumen.porReponer, etiqueta: "por reponer", Icono: ShoppingCart, clase: "bg-acento/12 text-acento-texto" },
-    { cuenta: sobrestock, etiqueta: "te sobran", Icono: PackageX, clase: "bg-exito-fondo text-exito" },
+    { ...deterioro, etiqueta: "por malograrse", Icono: TriangleAlert, clase: "bg-deuda-fondo text-deuda" },
+    { ...reponer, etiqueta: "por reponer", Icono: ShoppingCart, clase: "bg-acento/12 text-acento-texto" },
+    { ...sobrestock, etiqueta: "te sobran", Icono: PackageX, clase: "bg-exito-fondo text-exito" },
   ];
 
   return (
@@ -73,13 +74,14 @@ export function ResumenInventario({ resumen, estados }: Props) {
         </div>
       </Tarjeta>
       <div className="grid grid-cols-3 gap-2 lg:col-span-5 lg:gap-4">
-        {tiles.map(({ cuenta, etiqueta, Icono, clase }, i) => (
+        {tiles.map(({ total, hoy, etiqueta, Icono, clase }, i) => (
           <Tarjeta key={etiqueta} className="grid animate-subir justify-items-center gap-1 px-2 py-3 text-center" style={{ animationDelay: `${80 + i * 60}ms` }}>
             <span className={`grid size-10 place-items-center rounded-full ${clase}`}>
               <Icono aria-hidden className="size-5" />
             </span>
-            <span className="cifra text-2xl">{cuenta}</span>
+            <span className="cifra text-2xl">{total}</span>
             <span className="text-[15px] leading-tight text-texto-suave">{etiqueta}</span>
+            {hoy > 0 && hoy < total && <span className="text-[15px] leading-tight font-bold text-deuda">{hoy} hoy</span>}
           </Tarjeta>
         ))}
       </div>

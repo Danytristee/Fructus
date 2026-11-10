@@ -799,6 +799,107 @@
           "consulta": "gastos_hoy"
         }
       }
+    },
+    {
+      "id": "catalogo-real-venta-seleccion",
+      "transcripcion": "Tres cajas de manzana verde premium a don Lucho a 180, lo debe",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "manzana verde premium",
+              "cantidad": 3,
+              "precio_unitario": 180
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "catalogo-real-venta-seleccion-hablada",
+      "transcripcion": "Dale dos de membrillo de cuarta al flaco Carlos a 150, pagó en efectivo",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "el flaco carlos",
+          "items": [
+            {
+              "producto_texto": "membrillo de cuarta",
+              "cantidad": 2,
+              "precio_unitario": 150
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "catalogo-real-venta-dos-selecciones",
+      "transcripcion": "Al Paraíso cuatro de caqui super a 140 y dos de caqui de segunda a 90, me yapeó",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "paraiso",
+          "items": [
+            {
+              "producto_texto": "caqui super",
+              "cantidad": 4,
+              "precio_unitario": 140
+            },
+            {
+              "producto_texto": "caqui de segunda",
+              "cantidad": 2,
+              "precio_unitario": 90
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "catalogo-real-merma",
+      "transcripcion": "Se malograron dos cajas de albaricoque de segunda",
+      "esperado": {
+        "herramienta": "registrar_merma",
+        "datos": {
+          "producto_texto": "albaricoque de segunda",
+          "cantidad": 2
+        }
+      }
+    },
+    {
+      "id": "catalogo-real-compra",
+      "transcripcion": "El de Chao me trajo veinte de pera gaucho premium a 140",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": "chao",
+          "items": [
+            {
+              "producto_texto": "pera gaucho premium",
+              "cantidad": 20,
+              "costo_unitario": 140
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "catalogo-real-consulta-stock",
+      "transcripcion": "¿Cuántas cajas de ciruela pink lady me quedan?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "stock_producto",
+          "producto_texto": "ciruela pink lady"
+        }
+      }
     }
   ]
 }
