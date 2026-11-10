@@ -78,8 +78,19 @@ describe("evaluarProducto", () => {
     expect(evaluarProducto(producto({ stock: 0 }), hoy).alertas[0]).toMatchObject({ tipo: "reponer", titulo: "Se acabó Manzana Royal" });
   });
 
-  it("con stock y sin ventas en 7 días: no se está vendiendo", () => {
-    expect(evaluarProducto(producto({ vendido7: 0 }), hoy).alertas[0]?.tipo).toBe("sin_movimiento");
+  it("con stock de hace más de 7 días y sin ventas en esos 7 días: no se está vendiendo", () => {
+    expect(evaluarProducto(producto({ vendido7: 0, entradas: [{ fecha: haceDias(8), cantidad: 30 }] }), hoy).alertas[0]?.tipo).toBe("sin_movimiento");
+  });
+
+  it("stock sin entradas en 45 días (es viejo) y sin ventas: no se está vendiendo", () => {
+    expect(evaluarProducto(producto({ vendido7: 0, entradas: [] }), hoy).alertas[0]?.tipo).toBe("sin_movimiento");
+  });
+
+  it("cajas que llegaron hace menos de 7 días todavía no son «sin vender en 7 días» (2026-11-10: 20 cajas de hoy salían como sin movimiento)", () => {
+    for (const d of [0, 3, 6]) {
+      const alertas = evaluarProducto(producto({ vendido7: 0, entradas: [{ fecha: haceDias(d), cantidad: 20 }] }), hoy).alertas;
+      expect(alertas.map((a) => a.tipo), `${d} días`).not.toContain("sin_movimiento");
+    }
   });
 });
 
@@ -109,7 +120,7 @@ describe("priorizarAlertas y resumirInventario", () => {
   const productos = [
     producto({ id: 1, stock: 6, vendido7: 70 }),
     producto({ id: 2, nombre: "Papaya", variedad: null, stock: 10, vendido7: 14, entradas: [{ fecha: haceDias(5), cantidad: 20 }], precioReferencia: 48.27 }),
-    producto({ id: 3, nombre: "Kaki", variedad: null, stock: 4, vendido7: 0, precioReferencia: 112.63 }),
+    producto({ id: 3, nombre: "Kaki", variedad: null, stock: 4, vendido7: 0, entradas: [], precioReferencia: 112.63 }),
   ];
   const estados = productos.map((p) => evaluarProducto(p, hoy));
 

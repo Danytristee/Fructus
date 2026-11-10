@@ -88,7 +88,7 @@ export type ProductoInventario = PartesProducto & {
   stock: number;
   /** Cajas vendidas en los últimos 7 días. */
   vendido7: number;
-  /** Entradas de compra (fecha y cajas), para la edad del lote. */
+  /** Entradas de compra o de ajuste a favor (fecha y cajas), para la edad del lote. */
   entradas: { fecha: string; cantidad: number }[];
   precioReferencia: number | null;
 };
@@ -169,16 +169,20 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProduct
       });
     }
   } else if (coberturaDias === null) {
-    // Hay stock y no se vendió nada en 7 días.
-    alertas.push({
-      ...base,
-      tipo: "sin_movimiento",
-      gravedad: "media",
-      titulo: `${nombre} no se está vendiendo`,
-      detalle: `Tienes ${cajas(p.stock)} y no vendiste ninguna en 7 días.`,
-      recomendacion: "Ofrécelo a tus clientes de siempre o con una rebaja; no compres más.",
-      corto: `${cajas(p.stock)} sin vender en 7 días`,
-    });
+    // Hay stock y no se vendió nada en 7 días. Solo es «no se está vendiendo» si esas cajas ya estaban hace 7 días: las que llegaron
+    // hoy no tuvieron tiempo de venderse (2026-11-10: 20 cajas cargadas hoy salían como «sin vender en 7 días»). Sin entradas en los
+    // 45 días que se leen, el stock es más viejo que eso.
+    if (edadDias === null || edadDias >= 7) {
+      alertas.push({
+        ...base,
+        tipo: "sin_movimiento",
+        gravedad: "media",
+        titulo: `${nombre} no se está vendiendo`,
+        detalle: `Tienes ${cajas(p.stock)} y no vendiste ninguna en 7 días.`,
+        recomendacion: "Ofrécelo a tus clientes de siempre o con una rebaja; no compres más.",
+        corto: `${cajas(p.stock)} sin vender en 7 días`,
+      });
+    }
   } else {
     // Sobrestock: al ritmo de venta, parte del stock se malogra antes de venderse.
     const vidaRestante = Math.max(0, vidaUtil - (edadDias ?? 0));
