@@ -31,8 +31,9 @@
       900 000 1xx, contacto y notas.
   - **`/formidable`** (`docs/formidable/proveedores-2026-11-12.md`): 8.2 → 8.8, con 3 cambios aplicados con OK. Quedan «Se enfrió» y
     «Ocasional», que en la prueba a ciegas no se entendieron solos.
-  - **`/chaos`** (`docs/chaos/proveedores-2026-11-12.md`, semilla 1112): de 9 ataques, 8 resistieron. Queda 1 hallazgo de gravedad 4:
-    «Revisa lo marcado en rojo» sin nada rojo, cuando el RUC malo queda dentro de «Más datos» cerrado. Espera OK para arreglarlo.
+  - **`/chaos`** (`docs/chaos/proveedores-2026-11-12.md`, semilla 1112): de 9 ataques, 8 resistieron. El hallazgo de gravedad 4 («Revisa lo
+    marcado en rojo» con el RUC escondido) ya está arreglado con OK: el aviso nombra el campo y «Más datos» se mantiene abierto
+    mientras tenga un error.
   - **Pago a proveedor por voz:** falta la herramienta en `docs/interprete-voz.md` y su tarjeta.
   - **Merma por proveedor**, para saber cuál trae fruta que se malogra antes. Hoy `movimientos_stock` no guarda de qué compra
     salió la merma.

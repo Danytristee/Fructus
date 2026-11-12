@@ -10,12 +10,21 @@ type Props = {
   /** Lo que aparece al tocar: el «¿por qué?» y el «qué hacer» (ley 6: lo difícil, a un toque). */
   children: React.ReactNode;
   abiertoAlInicio?: boolean;
+  /** Controlado desde afuera: la hoja de proveedor lo mantiene abierto mientras adentro hay un campo con error (/chaos 2026-11-12). */
+  abierto?: boolean;
+  alCambiar?: (abierto: boolean) => void;
   className?: string;
 };
 
 // Una fila que se despliega con un toque. La altura se anima con grid-template-rows (0fr → 1fr): sin medir en JavaScript.
-export function Desplegable({ resumen, children, abiertoAlInicio = false, className }: Props) {
-  const [abierto, setAbierto] = useState(abiertoAlInicio);
+export function Desplegable({ resumen, children, abiertoAlInicio = false, abierto: controlado, alCambiar, className }: Props) {
+  const [propio, setPropio] = useState(abiertoAlInicio);
+  const abierto = controlado ?? propio;
+  const setAbierto = (f: (a: boolean) => boolean) => {
+    const nuevo = f(abierto);
+    setPropio(nuevo);
+    alCambiar?.(nuevo);
+  };
   const id = useId();
   return (
     <div className={className}>
