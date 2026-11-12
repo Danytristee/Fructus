@@ -134,6 +134,12 @@ isOneToOne: false
       referencedRelation: "proveedores"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "compras_proveedor_id_fkey"
+      columns: ["proveedor_id"]
+isOneToOne: false
+      referencedRelation: "v_saldo_proveedores"
+      referencedColumns: ["proveedor_id"]
+    },{
       foreignKeyName: "compras_registrado_por_fkey"
       columns: ["registrado_por"]
 isOneToOne: false
@@ -243,6 +249,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"pagos_proveedor": {
+                  Row: {
+                    "comando_voz_id": number | null,"fecha": string,"id": number,"medio_pago": Database["public"]['Enums']["medio_pago"],"monto": number,"nota": string | null,"proveedor_id": number,"registrado_por": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "comando_voz_id"?: number | null,"fecha"?: string,"id"?: never,"medio_pago": Database["public"]['Enums']["medio_pago"],"monto": number,"nota"?: string | null,"proveedor_id": number,"registrado_por"?: string
+                  }
+                  Update: {
+                    "comando_voz_id"?: number | null,"fecha"?: string,"id"?: never,"medio_pago"?: Database["public"]['Enums']["medio_pago"],"monto"?: number,"nota"?: string | null,"proveedor_id"?: number,"registrado_por"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "pagos_proveedor_comando_voz_id_fkey"
+      columns: ["comando_voz_id"]
+isOneToOne: false
+      referencedRelation: "comandos_voz"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "pagos_proveedor_proveedor_id_fkey"
+      columns: ["proveedor_id"]
+isOneToOne: false
+      referencedRelation: "proveedores"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "pagos_proveedor_proveedor_id_fkey"
+      columns: ["proveedor_id"]
+isOneToOne: false
+      referencedRelation: "v_saldo_proveedores"
+      referencedColumns: ["proveedor_id"]
+    },{
+      foreignKeyName: "pagos_proveedor_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "perfiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"perfiles": {
                   Row: {
                     "activo": boolean,"creado_en": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol_usuario"]
@@ -273,14 +317,14 @@ isOneToOne: false
                   ]
                 },"proveedores": {
                   Row: {
-                    "activo": boolean,"alias": (string)[],"creado_en": string,"id": number,"nombre": string,"ruc": string | null,"telefono": string | null
+                    "activo": boolean,"alias": (string)[],"contacto": string | null,"creado_en": string,"direccion": string | null,"id": number,"nombre": string,"notas": string | null,"origen": string | null,"ruc": string | null,"telefono": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "activo"?: boolean,"alias"?: (string)[],"creado_en"?: string,"id"?: never,"nombre": string,"ruc"?: string | null,"telefono"?: string | null
+                    "activo"?: boolean,"alias"?: (string)[],"contacto"?: string | null,"creado_en"?: string,"direccion"?: string | null,"id"?: never,"nombre": string,"notas"?: string | null,"origen"?: string | null,"ruc"?: string | null,"telefono"?: string | null
                   }
                   Update: {
-                    "activo"?: boolean,"alias"?: (string)[],"creado_en"?: string,"id"?: never,"nombre"?: string,"ruc"?: string | null,"telefono"?: string | null
+                    "activo"?: boolean,"alias"?: (string)[],"contacto"?: string | null,"creado_en"?: string,"direccion"?: string | null,"id"?: never,"nombre"?: string,"notas"?: string | null,"origen"?: string | null,"ruc"?: string | null,"telefono"?: string | null
                   }
                   Relationships: [
                     
@@ -406,6 +450,14 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"v_saldo_proveedores": {
+                  Row: {
+                    "activo": boolean,"alias": (string)[],"nombre": string,"proveedor_id": number,"saldo": number | null,"ultima_compra_credito": string | null,"ultimo_pago": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    
+                  ]
                 },"v_stock": {
                   Row: {
                     "calibre": string | null,"marca": string | null,"nombre": string,"producto_id": number,"seleccion": string | null,"stock": number | null,"unidad": string,"variedad": string | null
@@ -428,6 +480,11 @@ isOneToOne: false
 "buscar_productos":
 { Args: { "limite"?: number,"q": string }; Returns: {
               "calibre": string,"id": number,"marca": string,"nombre": string,"seleccion": string,"similitud": number,"variedad": string
+            }[]
+                           },
+"compras_por_proveedor":
+{ Args: { "p_desde": string }; Returns: {
+              "cajas": number,"compras": number,"costo_promedio": number,"producto_id": number,"proveedor_id": number,"total": number,"ultima": string,"ultimo_costo": number
             }[]
                            },
 "registrar_compra":
