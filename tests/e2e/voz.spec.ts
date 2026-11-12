@@ -226,19 +226,19 @@ test("si el servicio falla, dice qué hacer y el audio guardado se reintenta con
   await expect(avisoVoz(page)).toHaveCount(0);
 });
 
-test("sin señal no intenta enviar: lo dice y guarda el audio", async ({ page, context }) => {
+test("sin señal no intenta enviar: lo dice y guarda el audio en la cola (ADR-0019)", async ({ page, context }) => {
   await entrarComo(page, "duenio");
   let llamadas = 0;
   await page.route("/api/voz", (r) => (llamadas++, r.abort()));
   await context.setOffline(true);
   await dictar(page);
-  await expect(page.getByRole("alert").filter({ hasText: "Sin señal" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Reintentar" })).toBeVisible();
+  await expect(page.getByText(/Sin señal: guardé lo que dijiste/)).toBeVisible();
+  // No hace falta Reintentar: se envía solo cuando vuelva la señal.
+  await expect(page.getByRole("button", { name: "Reintentar" })).toHaveCount(0);
+  await expect(page.getByText(/Por enviar: 1 dictado/)).toBeVisible();
   expect(llamadas).toBe(0);
-  // La X borra el audio guardado.
-  await page.getByRole("button", { name: "Borrar el audio guardado" }).click();
+  await page.getByRole("button", { name: "Cerrar el aviso" }).click();
   await expect(avisoVoz(page)).toHaveCount(0);
-  await context.setOffline(false);
 });
 
 test("si no entendió nada, lo pide otra vez sin guardar el audio", async ({ page }) => {

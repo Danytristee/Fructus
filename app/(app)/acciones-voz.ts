@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { notaDeComprobante } from "@/lib/comprobantes/comprobante-reglas";
 import { emitirComprobanteDeVenta } from "@/lib/comprobantes/emitir";
-import { leerSaldo, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
+import { CLIENTE_YA_NO_ESTA, leerSaldo, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import { PRECIO_MAXIMO, pedidoVenta } from "@/lib/voz/confirmar-venta-reglas";
 import { preciosSugeridos } from "@/lib/voz/resolver";
 import { nombreProducto } from "@/lib/productos-reglas";
@@ -67,6 +67,9 @@ export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Pro
     console.error("voz: no se pudo registrar la venta", { comandoId, codigo: error?.code });
     if (error?.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar ventas." };
     if (error?.code === "23514") return { ok: false, error: "Al crédito tienes que elegir a quién le fiaste." };
+    // El cliente se borró mientras la tarjeta estaba abierta (o la venta esperaba en la cola). No es la señal: reintentar no
+    // sirve, y la cola lo seguía reintentando para siempre (/chaos 2026-11-12).
+    if (error?.code === "23503") return { ok: false, error: CLIENTE_YA_NO_ESTA };
     if (error?.message.includes("dos decimales")) return { ok: false, error: "El precio y las cajas van con dos decimales como máximo." };
     return { ok: false, error: SIN_SENAL };
   }

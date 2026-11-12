@@ -18,6 +18,7 @@ import { EditorItem } from "./EditorItem";
 import { FilaCliente } from "./FilaCliente";
 import { FilaTarjeta } from "./FilaTarjeta";
 import { GrupoOpciones } from "./GrupoOpciones";
+import { EnCola } from "./EnCola";
 import { Guardado } from "./Guardado";
 import { InsigniaSugerido } from "./InsigniaSugerido";
 import { MedidorDeuda } from "./MedidorDeuda";
@@ -49,7 +50,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [borrador, setBorrador] = useState<Borrador>(() => borradorDe(tarjeta));
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const [saldo, setSaldo] = useState<number | null>(null);
-  const { confirmar: enviar, guardando, error, guardado: guardada, incierto } = useConfirmar<{ ok: true; saldo: number | null; comprobante: string | null }>({ alGuardar, alCambiarGuardando });
+  const { confirmar: enviar, guardando, error, guardado: guardada, encolado, incierto } = useConfirmar<{ ok: true; saldo: number | null; comprobante: string | null }>({ alGuardar, alCambiarGuardando });
 
   const clienteId = borrador.cliente?.id ?? null;
   useEffect(() => {
@@ -86,8 +87,12 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
   function confirmar() {
     if (falta.length > 0) return;
-    void enviar(() => confirmarVenta({ comandoId, borrador, corregido: fueCorregido(tarjeta, borrador), latenciaMs }));
+    const entrada = { comandoId, borrador, corregido: fueCorregido(tarjeta, borrador), latenciaMs };
+    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
+    void enviar(() => confirmarVenta(entrada), { tipo: "venta", entrada });
   }
+
+  if (encolado) return <EnCola tipo="venta" />;
 
   if (guardada) {
     const nombre = borrador.cliente?.nombre;

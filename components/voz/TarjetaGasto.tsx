@@ -10,6 +10,7 @@ import { borradorGasto, CATEGORIAS, faltaGasto, fueCorregidoGasto, leerGasto, ty
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorMonto } from "./EditorMonto";
 import { FilaTarjeta } from "./FilaTarjeta";
+import { EnCola } from "./EnCola";
 import { Guardado } from "./Guardado";
 import { GrupoOpciones } from "./GrupoOpciones";
 import { PieConfirmar } from "./PieConfirmar";
@@ -37,14 +38,18 @@ const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 export function TarjetaGasto({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando }: Props) {
   const [borrador, setBorrador] = useState<BorradorGasto>(() => borradorGasto(tarjeta));
   const [editando, setEditando] = useState(false);
-  const { confirmar: enviar, guardando, error, guardado, incierto } = useConfirmar<{ ok: true }>({ alGuardar, alCambiarGuardando });
+  const { confirmar: enviar, guardando, error, guardado, encolado, incierto } = useConfirmar<{ ok: true }>({ alGuardar, alCambiarGuardando });
   const falta = faltaGasto(borrador);
   const { monto } = borrador;
 
   function confirmar() {
     if (falta.length > 0) return;
-    void enviar(() => confirmarGasto({ comandoId, borrador, corregido: fueCorregidoGasto(tarjeta, borrador), latenciaMs }));
+    const entrada = { comandoId, borrador, corregido: fueCorregidoGasto(tarjeta, borrador), latenciaMs };
+    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
+    void enviar(() => confirmarGasto(entrada), { tipo: "gasto", entrada });
   }
+
+  if (encolado) return <EnCola tipo="gasto" />;
 
   if (guardado) {
     return <Guardado titulo="Gasto guardado">{monto !== null && `${formatearSoles(monto)} en ${NOMBRES[borrador.categoria].toLowerCase()}`}</Guardado>;

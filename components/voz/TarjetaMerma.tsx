@@ -17,6 +17,7 @@ import {
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorItem } from "./EditorItem";
 import { FilaTarjeta } from "./FilaTarjeta";
+import { EnCola } from "./EnCola";
 import { Guardado } from "./Guardado";
 import { PieConfirmar } from "./PieConfirmar";
 import { useConfirmar } from "./useConfirmar";
@@ -42,7 +43,7 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [borrador, setBorrador] = useState<BorradorMerma>(() => borradorMerma(tarjeta));
   const [editando, setEditando] = useState(false);
   const [stock, setStock] = useState<number | null>(null);
-  const { confirmar: enviar, guardando, error, guardado, incierto } = useConfirmar<{ ok: true; stock: number | null }>({ alGuardar, alCambiarGuardando });
+  const { confirmar: enviar, guardando, error, guardado, encolado, incierto } = useConfirmar<{ ok: true; stock: number | null }>({ alGuardar, alCambiarGuardando });
 
   const productoId = borrador.producto?.id ?? null;
   useEffect(() => {
@@ -61,8 +62,12 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
   function confirmar() {
     if (falta.length > 0) return;
-    void enviar(() => confirmarMerma({ comandoId, borrador, corregido: fueCorregidaMerma(tarjeta, borrador), latenciaMs, aMano }));
+    const entrada = { comandoId, borrador, corregido: fueCorregidaMerma(tarjeta, borrador), latenciaMs, aMano };
+    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
+    void enviar(() => confirmarMerma(entrada), { tipo: "merma", entrada });
   }
+
+  if (encolado) return <EnCola tipo="merma" />;
 
   if (guardado) {
     return (
