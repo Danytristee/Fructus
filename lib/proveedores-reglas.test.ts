@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { listarFrutas, palancas, porcentaje, porQue, TITULOS } from "./negociacion-reglas";
+import { listarFrutas, palancas, porcentaje, porQue, razonCorta, TITULOS } from "./negociacion-reglas";
 import {
   analizarProveedores,
   nivelClienteFijo,
@@ -136,11 +136,23 @@ describe("analizarProveedores", () => {
     expect(porQue(nuevo!)).toBe("Todavía no le compras nada.");
   });
 
+  it("cada fila de la lista dice su porqué en una línea", () => {
+    const nombres = (id: number) => (id === 2 ? "Andina" : "?");
+    expect(razonCorta(pacifico!, nombres)).toBe("Solo él te trae kiwi");
+    // La uva de Andina es S/ 3 más barata, pero son S/ 30 al mes: no vale la conversación; manda la frecuencia.
+    expect(razonCorta(chao!, nombres)).toBe("Le compras cada 4 días");
+    const [soloManzana] = analizarProveedores([PACIFICO, ANDINA], todas, frutas.filter((f) => f.productoId === 10), HOY);
+    expect(razonCorta(soloManzana!, nombres)).toBe("Andina te deja manzana a S/ 14 menos");
+    expect(razonCorta(lambayeque!, nombres)).toBe("Hace 52 días que no le compras");
+    expect(razonCorta(andina!, nombres)).toBe("Le compras cada 9 días");
+  });
+
   it("el resumen nombra al que más pesa y suma lo que debes", () => {
     const resumen = resumirProveedores([pacifico!, chao!, andina!, lambayeque!]);
     expect(resumen.principal!.nombre).toBe(PACIFICO.nombre);
     expect(resumen.deuda).toBe(2800);
     expect(resumen.conDeuda).toBe(1);
+    expect(resumen.mayorDeuda).toEqual({ nombre: PACIFICO.nombre, saldo: 2800 });
     expect(resumen.enRiesgo).toBe(1);
   });
 
