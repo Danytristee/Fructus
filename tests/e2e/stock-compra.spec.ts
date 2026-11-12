@@ -13,8 +13,11 @@ test.setTimeout(90_000);
 const base = baseLocal();
 const PREFIJO = "Fruta de compra";
 
+// Solo las de este worker: con dos en paralelo, desactivar todas las del prefijo le quitaba la fruta a la prueba que el otro
+// todavía estaba corriendo (v_stock deja de mostrarla y su stock sale nulo).
+const creadas: number[] = [];
 test.afterAll(async () => {
-  await base.from("productos").update({ activo: false }).like("nombre", `${PREFIJO}%`);
+  if (creadas.length) await base.from("productos").update({ activo: false }).in("id", creadas);
 });
 
 /** Una fruta de prueba. Con `cajas`, ya tiene una compra anterior a S/ 20 la caja (de ahí sale el costo «sugerido»). */
@@ -22,6 +25,7 @@ async function fruta(cajas: number | null = null) {
   const nombre = `${PREFIJO} ${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
   const { data, error } = await base.from("productos").insert({ nombre, unidad: "caja" }).select("id, nombre").single();
   if (error || !data) throw new Error(`No se pudo crear la fruta de prueba: ${error?.message}`);
+  creadas.push(data.id);
   if (cajas !== null) await abastecer(data.id, cajas);
   return data;
 }
