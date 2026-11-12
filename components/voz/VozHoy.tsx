@@ -9,7 +9,7 @@ import { descartarComando } from "@/app/(app)/acciones-voz";
 import { borrarPendiente, guardarPendiente, leerPendiente } from "@/lib/voz/audio-pendiente";
 import { avisoDescarte, nombreOperacion } from "@/lib/voz/nombre-operacion-reglas";
 import { DURACION_MINIMA_MS, desenlaceDeRespuesta, desenlaceSinRed, type Desenlace } from "@/lib/voz/envio-reglas";
-import { REPOSO, TOPE_ESCUCHA_MS, siguienteGesto, textoEscuchando, type EventoGesto, type Gesto } from "@/lib/voz/gesto-reglas";
+import { REPOSO, TOPE_ESCUCHA_MS, avanceAlCandado, siguienteGesto, textoEscuchando, type EventoGesto, type Gesto } from "@/lib/voz/gesto-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { AvisoVoz } from "./AvisoVoz";
 import { BotonVoz, type EstadoVoz } from "./BotonVoz";
@@ -86,6 +86,9 @@ export function VozHoy() {
   // Arranca oculta: quien ya aprendió no la ve parpadear. Si es su primera vez, aparece enseguida.
   const [aprendio, setAprendio] = useState(true);
   const [bloqueado, setBloqueado] = useState(false);
+  // Cuánto subió el dedo hacia el candado (0 a 1) y desde qué altura bajó.
+  const [avance, setAvance] = useState(0);
+  const inicioY = useRef(0);
   const grabadora = useGrabadora();
   const gesto = useRef<Gesto>(REPOSO);
   // Mientras se envía un audio el orbe no acepta otro (antes lo decía `estado`, pero el tope llama desde un reloj viejo).
@@ -163,6 +166,7 @@ export function VozHoy() {
     if (r.efecto === "empezar") void empezar();
     else if (r.efecto === "bloquear") {
       setBloqueado(true);
+      setAvance(0);
       navigator.vibrate?.(15);
     } else if (r.efecto === "enviar") void terminar(true);
     else if (r.efecto === "descartar") void terminar(false);
@@ -202,6 +206,7 @@ export function VozHoy() {
     window.clearInterval(reloj.current);
     window.clearTimeout(tope.current);
     setBloqueado(false);
+    setAvance(0);
     const grabacion = await grabadora.terminar();
     if (!enviarlo) {
       setEstado("listo");
@@ -321,9 +326,17 @@ export function VozHoy() {
         verTexto={!aviso && (!aprendio || estado !== "listo" || texto !== TEXTO_LISTO)}
         bloqueado={bloqueado}
         alCancelar={bloqueado ? () => aplicar({ tipo: "cancelar" }) : undefined}
+        candado={estado === "escuchando" && !bloqueado ? avance : undefined}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
+          inicioY.current = e.clientY;
           aplicar({ tipo: "bajar", en: performance.now() });
+        }}
+        onPointerMove={(e) => {
+          if (gesto.current.fase !== "presionado") return;
+          const subida = inicioY.current - e.clientY;
+          setAvance(avanceAlCandado(subida)); // en pasos de 0.1: React no vuelve a dibujar si el paso no cambió
+          aplicar({ tipo: "deslizar", subida });
         }}
         onPointerUp={() => aplicar({ tipo: "subir", en: performance.now() })}
         onPointerCancel={() => aplicar({ tipo: "perder" })}

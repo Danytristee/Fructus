@@ -1,4 +1,4 @@
-import { Mic, X } from "lucide-react";
+import { ChevronUp, Lock, Mic, X } from "lucide-react";
 import { cn } from "cn";
 
 export type EstadoVoz = "listo" | "escuchando" | "entendiendo";
@@ -13,12 +13,14 @@ type Props = Omit<React.ComponentProps<"button">, "children"> & {
   bloqueado?: boolean;
   /** Mientras escucha sin el dedo, la X a la izquierda del orbe que descarta sin enviar. */
   alCancelar?: () => void;
+  /** Mientras se mantiene, el candado a la derecha del orbe: cuánto subió el dedo hacia él, de 0 a 1. Sin valor, no se dibuja. */
+  candado?: number;
 };
 
 const ondas = ["-0.45s", "-0.15s", "-0.6s", "-0.3s", "-0.75s"];
 
 // El orbe de Aurora (ADR-0007). Solo dibuja: grabar, enviar y abrir la tarjeta son de quien lo usa.
-export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, alCancelar, className, ...props }: Props) {
+export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, alCancelar, candado, className, ...props }: Props) {
   return (
     <div className={cn("pointer-events-none grid justify-items-center gap-2", className)}>
       <span
@@ -42,6 +44,23 @@ export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, al
             <X aria-hidden className="size-6" strokeWidth={2.4} />
             <span className="sr-only">Cancelar sin enviar</span>
           </button>
+        )}
+        {candado !== undefined && (
+          // Del otro lado que la X: subir el dedo hasta aquí deja el orbe escuchando sin el dedo (ADR de la voz sin mantener).
+          // El lector de pantalla no lo necesita: con teclado, pulsar una vez ya lo deja escuchando.
+          <span
+            aria-hidden
+            data-candado
+            className="vidrio-desenfocado pointer-events-none absolute bottom-1/2 left-[calc(100%+20px)] grid w-14 translate-y-1/2 animate-subir justify-items-center gap-0.5 rounded-full pt-3 pb-2 text-texto"
+          >
+            <Lock
+              className="size-6 transition-transform duration-100 ease-out"
+              style={{ transform: `translateY(${-candado * 10}px)` }}
+              strokeWidth={2.4}
+            />
+            <ChevronUp className="size-5 text-texto-suave" strokeWidth={2.6} />
+            <span className="text-[13px] font-extrabold">Sube</span>
+          </span>
         )}
         {/* El resplandor que respira en reposo, detrás del orbe. */}
         <span aria-hidden className="halo pointer-events-none absolute inset-0 rounded-full" />

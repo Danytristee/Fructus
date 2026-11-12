@@ -122,6 +122,53 @@ test("escuchando sin el dedo, la X descarta sin enviar nada", async ({ page }) =
   expect(llamadas).toBe(0);
 });
 
+/** Mantiene el orbe y, ya escuchando, sube el dedo los píxeles dados (sin soltarlo). */
+async function mantenerYSubir(page: Page, px: number) {
+  await page.waitForLoadState("networkidle");
+  const caja = (await page.locator("button[data-estado]").boundingBox())!;
+  const x = caja.x + caja.width / 2;
+  const y = caja.y + caja.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await expect(page.locator("button[data-estado]")).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
+  await expect(page.locator("[data-candado]")).toBeVisible();
+  await page.waitForTimeout(700);
+  await page.mouse.move(x, y - px, { steps: 8 });
+}
+
+test("mientras se mantiene, subir el dedo hasta el candado lo deja escuchando sin el dedo", async ({ page }) => {
+  test.slow(); // la primera vez compila la hoja
+  await entrarComo(page, "duenio");
+  await simularVoz(page, { status: 200, body: { comandoId: 5, tarjeta: tarjetaVenta, latenciaMs: 900 } });
+  let llamadas = 0;
+  page.on("request", (r) => r.url().endsWith("/api/voz") && llamadas++);
+  const orbe = page.locator("button[data-estado]");
+
+  await mantenerYSubir(page, 120);
+  await expect(orbe).toHaveAttribute("data-bloqueado", "true");
+  await expect(page.locator("[data-candado]")).toHaveCount(0);
+  await page.mouse.up();
+  // Soltar ya no envía: sigue escuchando hasta el siguiente toque.
+  await page.waitForTimeout(1000);
+  await expect(orbe).toHaveAttribute("data-estado", "escuchando");
+  await expect(page.locator("#voz-texto")).toContainText("toca para enviar");
+  expect(llamadas).toBe(0);
+
+  await tocarOrbe(page);
+  await expect(page.getByRole("dialog", { name: "¿Así fue la venta?" })).toBeVisible({ timeout: 15_000 });
+  expect(llamadas).toBe(1);
+});
+
+test("subir el dedo solo un poco y soltar envía, como mantener", async ({ page }) => {
+  test.slow();
+  await entrarComo(page, "duenio");
+  await simularVoz(page, { status: 200, body: { comandoId: 6, tarjeta: tarjetaVenta, latenciaMs: 900 } });
+  await mantenerYSubir(page, 40);
+  await expect(page.locator("button[data-estado]")).not.toHaveAttribute("data-bloqueado", "true");
+  await page.mouse.up();
+  await expect(page.getByRole("dialog", { name: "¿Así fue la venta?" })).toBeVisible({ timeout: 15_000 });
+});
+
 test("mantener un instante sin alcanzar a hablar no envía nada y dice por qué", async ({ page }) => {
   await entrarComo(page, "duenio");
   let llamadas = 0;
