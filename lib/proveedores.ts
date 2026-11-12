@@ -11,7 +11,7 @@ const DIA_MS = 86_400_000;
 const HISTORIA_DIAS = 180;
 const PAGINA = 1000;
 
-export type DatosProveedor = {
+type DatosProveedor = {
   id: number;
   nombre: string;
   alias: string[];

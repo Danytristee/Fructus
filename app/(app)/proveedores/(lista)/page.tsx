@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { Encabezado } from "@/components/marco/Encabezado";
 import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
+import { BotonProveedor } from "@/components/proveedores/BotonProveedor";
 import { ListaProveedores, type FilaProveedor } from "@/components/proveedores/ListaProveedores";
 import { TarjetaDependencia } from "@/components/proveedores/TarjetaDependencia";
 import { Aviso } from "@/components/ui/Aviso";
@@ -53,7 +54,7 @@ async function Tablero() {
         <TarjetaDependencia resumen={resumen} analisis={analisis} />
       </div>
       <div className="lg:col-span-7 lg:[&>section]:mt-0">
-        <ListaProveedores proveedores={filas} />
+        <ListaProveedores proveedores={filas} nuevo={permisos.ajustes ? <BotonProveedor proveedor={null} /> : null} />
       </div>
     </div>
   );

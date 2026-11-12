@@ -41,7 +41,7 @@ export type FrutaDelProveedor = {
 };
 
 /** Una fruta que solo te trae este proveedor, y qué parte de todas tus compras es esa fruta. */
-export type FrutaUnica = { grupo: string; peso: number };
+type FrutaUnica = { grupo: string; peso: number };
 
 export type AnalisisProveedor = {
   id: number;

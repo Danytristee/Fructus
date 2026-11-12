@@ -5,8 +5,10 @@ import { Suspense } from "react";
 import { HistorialCliente } from "@/components/clientes/HistorialCliente";
 import { Encabezado } from "@/components/marco/Encabezado";
 import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
+import { BotonProveedor } from "@/components/proveedores/BotonProveedor";
 import { DatosProveedor } from "@/components/proveedores/DatosProveedor";
 import { FrutasDelProveedor } from "@/components/proveedores/FrutasDelProveedor";
+import { PagoAMano } from "@/components/proveedores/PagoAMano";
 import { TarjetaNegociacion } from "@/components/proveedores/TarjetaNegociacion";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
@@ -14,6 +16,7 @@ import { Esqueleto } from "@/components/ui/Esqueleto";
 import { HISTORIAL_TOPE, historialDelProveedor } from "@/lib/ficha-proveedor-reglas";
 import { palancas } from "@/lib/negociacion-reglas";
 import { iniciales, tonoDe, type Medio } from "@/lib/operaciones-reglas";
+import { borradorDeProveedor } from "@/lib/proveedor-reglas";
 import { leerProveedores } from "@/lib/proveedores";
 import { exigirSesion } from "@/lib/sesion";
 
@@ -107,12 +110,14 @@ async function Cuenta({ proveedor }: { proveedor: Proveedor }) {
           direccion={proveedor.direccion}
           notas={proveedor.notas}
           mensaje={mensaje}
+          editar={permisos.ajustes ? <BotonProveedor proveedor={{ id: proveedor.id, borrador: borradorDeProveedor(proveedor) }} /> : undefined}
         />
       </div>
       <div className="lg:col-span-7 lg:[&>*:first-child]:mt-0">
         <FrutasDelProveedor frutas={a.frutas} nombreDe={nombreDe} />
         <HistorialCliente dias={historial.dias} hayMas={historial.hayMas} tope={HISTORIAL_TOPE} vacio="Cuando le compres o le pagues, aparece aquí." />
       </div>
+      {permisos.registrar && <PagoAMano proveedor={{ id: proveedor.id, nombre: proveedor.nombre }} deuda={Math.max(0, a.saldo)} />}
     </div>
   );
 }
