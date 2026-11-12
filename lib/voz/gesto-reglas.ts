@@ -3,8 +3,12 @@
 
 /** Un toque más corto que esto no es «mantener»: deja el botón escuchando sin el dedo encima. */
 export const TOQUE_MAXIMO_MS = 300;
-/** Cuánto hay que subir el dedo (px) mientras se mantiene para dejarlo escuchando, como el candado de los audios de WhatsApp. */
-export const SUBIDA_PARA_BLOQUEAR = 80;
+/**
+ * Cuánto hay que subir el dedo (px) mientras se mantiene para dejarlo escuchando, como el candado de los audios de WhatsApp. Es la
+ * distancia del centro del orbe al centro del candado, que va encima (BotonVoz): la mitad del orbe, 52; el espacio, 8; la mitad
+ * del candado, 34. Así se bloquea cuando el dedo llega al candado, no antes.
+ */
+export const SUBIDA_PARA_BLOQUEAR = 94;
 /** El servidor rechaza audios de más de 60 s: a los 55 se envía solo, por si alguien lo dejó escuchando y se olvidó. */
 export const TOPE_ESCUCHA_MS = 55_000;
 
@@ -68,8 +72,8 @@ export function avanceAlCandado(subida: number): number {
   return Math.round(Math.min(1, Math.max(0, subida / SUBIDA_PARA_BLOQUEAR)) * 10) / 10;
 }
 
-/** La etiqueta mientras escucha: con el dedo encima basta el tiempo; sin el dedo, además, cómo terminar. */
-export function textoEscuchando(segundos: number, bloqueado: boolean): string {
+/** La etiqueta mientras escucha, con o sin el dedo encima. Sin el dedo, el orbe ya dice «Enviar» (/formidable 2026-11-12). */
+export function textoEscuchando(segundos: number): string {
   const reloj = `0:${String(Math.min(59, Math.max(0, Math.floor(segundos)))).padStart(2, "0")}`;
-  return bloqueado ? `Te escucho ${reloj} · toca para enviar` : `Te escucho… ${reloj}`;
+  return `Te escucho… ${reloj}`;
 }

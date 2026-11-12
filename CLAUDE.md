@@ -225,6 +225,7 @@ Si dos leyes chocan, gana la que va primero.
 El flujo completo, el prompt y las herramientas del intérprete viven en `docs/interprete-voz.md`.
 
 - **Mantener → hablar → soltar → tarjeta → Confirmar.** Un toque largo graba (`MediaRecorder`, `audio/webm;codecs=opus`) y al soltar se envía a `POST /api/voz`. El botón tiene tres estados visibles y anunciados con `aria-live`: escuchando, entendiendo y listo.
+  - **Sin mantener (ADR-0017):** un toque corto, o subir el dedo hasta el candado mientras se mantiene, deja el orbe escuchando sin el dedo. El orbe dice «Enviar» y el siguiente toque envía; «Borrar» descarta. A los 55 s se envía solo.
 - **El servidor hace todo lo sensible:**
   1. Whisper, con el prompt de vocabulario armado desde la base.
   2. El LLM con las herramientas.

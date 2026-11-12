@@ -93,8 +93,8 @@ test("un toque deja el botón escuchando sin el dedo, y otro toque envía", asyn
   await tocarOrbe(page);
   await expect(orbe).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
   await expect(orbe).toHaveAttribute("data-bloqueado", "true");
-  await expect(page.locator("#voz-texto")).toContainText("toca para enviar");
-  await expect(page.getByRole("button", { name: "Cancelar sin enviar" })).toBeVisible();
+  await expect(page.locator("[data-enviar]")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Borrar" })).toBeVisible();
 
   const pedido = page.waitForRequest((r) => r.url().endsWith("/api/voz"));
   await page.waitForTimeout(1500); // sigue escuchando sin el dedo encima
@@ -103,7 +103,7 @@ test("un toque deja el botón escuchando sin el dedo, y otro toque envía", asyn
   const enviado = await pedido;
   expect(Number(enviado.postDataBuffer()!.toString("latin1").match(/name="duracion_ms"\r\n\r\n(\d+)/)?.[1])).toBeGreaterThanOrEqual(1400);
   await expect(page.getByRole("dialog", { name: "¿Así fue la venta?" })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole("button", { name: "Cancelar sin enviar" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Borrar" })).toHaveCount(0);
 });
 
 test("escuchando sin el dedo, la X descarta sin enviar nada", async ({ page }) => {
@@ -114,7 +114,7 @@ test("escuchando sin el dedo, la X descarta sin enviar nada", async ({ page }) =
   const orbe = page.locator("button[data-estado]");
   await tocarOrbe(page);
   await expect(orbe).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
-  await page.getByRole("button", { name: "Cancelar sin enviar" }).click();
+  await page.getByRole("button", { name: "Borrar" }).click();
   await expect(orbe).toHaveAttribute("data-estado", "listo");
   await expect(orbe).not.toHaveAttribute("data-bloqueado", "true");
   await expect(page.locator("#voz-texto")).toHaveText("Cancelado. No se envió nada.");
@@ -151,7 +151,7 @@ test("mientras se mantiene, subir el dedo hasta el candado lo deja escuchando si
   // Soltar ya no envía: sigue escuchando hasta el siguiente toque.
   await page.waitForTimeout(1000);
   await expect(orbe).toHaveAttribute("data-estado", "escuchando");
-  await expect(page.locator("#voz-texto")).toContainText("toca para enviar");
+  await expect(page.locator("[data-enviar]")).toBeVisible();
   expect(llamadas).toBe(0);
 
   await tocarOrbe(page);

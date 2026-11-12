@@ -195,7 +195,7 @@ export function VozHoy() {
     setEstado("escuchando");
     navigator.vibrate?.(20);
     const inicio = Date.now();
-    const contar = () => setTexto(textoEscuchando((Date.now() - inicio) / 1000, gesto.current.fase !== "presionado"));
+    const contar = () => setTexto(textoEscuchando((Date.now() - inicio) / 1000));
     contar();
     reloj.current = window.setInterval(contar, 250);
     tope.current = window.setTimeout(() => aplicar({ tipo: "tope" }), TOPE_ESCUCHA_MS);
@@ -330,7 +330,7 @@ export function VozHoy() {
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
           inicioY.current = e.clientY;
-          aplicar({ tipo: "bajar", en: performance.now() });
+          aplicar({ tipo: "bajar", en: e.timeStamp });
         }}
         onPointerMove={(e) => {
           if (gesto.current.fase !== "presionado") return;
@@ -338,17 +338,17 @@ export function VozHoy() {
           setAvance(avanceAlCandado(subida)); // en pasos de 0.1: React no vuelve a dibujar si el paso no cambió
           aplicar({ tipo: "deslizar", subida });
         }}
-        onPointerUp={() => aplicar({ tipo: "subir", en: performance.now() })}
+        onPointerUp={(e) => aplicar({ tipo: "subir", en: e.timeStamp })}
         onPointerCancel={() => aplicar({ tipo: "perder" })}
         // Con teclado: mantener Espacio o Enter es como mantener el dedo; pulsarlo una vez, como un toque.
         onKeyDown={(e) => {
           if ((e.key === "Enter" || e.key === " ") && !e.repeat) {
             e.preventDefault();
-            aplicar({ tipo: "bajar", en: performance.now() });
+            aplicar({ tipo: "bajar", en: e.timeStamp });
           }
         }}
         onKeyUp={(e) => {
-          if (e.key === "Enter" || e.key === " ") aplicar({ tipo: "subir", en: performance.now() });
+          if (e.key === "Enter" || e.key === " ") aplicar({ tipo: "subir", en: e.timeStamp });
         }}
         onContextMenu={(e) => e.preventDefault()}
       />

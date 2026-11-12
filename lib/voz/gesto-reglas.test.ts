@@ -93,13 +93,13 @@ describe("deslizar hacia arriba", () => {
 });
 
 describe("textoEscuchando", () => {
-  it("con el dedo encima, solo el tiempo; sin el dedo, también cómo terminar", () => {
-    expect(textoEscuchando(3.7, false)).toBe("Te escucho… 0:03");
-    expect(textoEscuchando(12, true)).toBe("Te escucho 0:12 · toca para enviar");
+  it("dice el tiempo escuchando, en segundos enteros", () => {
+    expect(textoEscuchando(3.7)).toBe("Te escucho… 0:03");
+    expect(textoEscuchando(12)).toBe("Te escucho… 0:12");
   });
 
   it("no muestra tiempos imposibles", () => {
-    expect(textoEscuchando(-1, false)).toBe("Te escucho… 0:00");
-    expect(textoEscuchando(75, true)).toBe("Te escucho 0:59 · toca para enviar");
+    expect(textoEscuchando(-1)).toBe("Te escucho… 0:00");
+    expect(textoEscuchando(75)).toBe("Te escucho… 0:59");
   });
 });
