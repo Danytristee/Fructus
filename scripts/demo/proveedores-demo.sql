@@ -14,7 +14,9 @@
 --     ocasional:          Wilmer Rojas, acopiador de Cajamarca
 --     le debes:           Pacífico, Tacna y Chao (compras al crédito con pagos a cuenta)
 -- - Los teléfonos son de prueba (900 000 1xx): no los uses para escribir de verdad.
--- - Son datos falsos. En el proyecto quedan en el historial; se anulan, no se borran (CLAUDE.md). Suman cajas al stock.
+-- - Son datos falsos. En el proyecto quedan en el historial; se anulan, no se borran (CLAUDE.md).
+-- - No tocan el stock: cada compra de prueba lleva su salida por ajuste, con el motivo «compra de prueba (demo de
+--   proveedores)». Para encontrarlas: select * from movimientos_stock where motivo like 'compra de prueba%'.
 -- - Se puede correr dos veces: si ya están las compras del Pacífico, no vuelve a comprar.
 --
 -- Uso: en local, docker exec -i supabase_db_fructus psql -U postgres -v ON_ERROR_STOP=1 < scripts/demo/proveedores-demo.sql
@@ -143,6 +145,11 @@ begin
         v_fecha := v_hoy - make_interval(days => d) + make_interval(mins => 300 + floor(random() * 120)::int);
         update compras set fecha = v_fecha where id = v_id;
         update movimientos_stock set fecha = v_fecha where compra_id = v_id;
+        -- Sin tocar el stock (decisión del 2026-11-12): cada caja de prueba que entra sale en el mismo minuto por un ajuste
+        -- con su motivo. Proveedores se ve completo y Stock sigue diciendo las cajas reales del puesto.
+        insert into movimientos_stock (producto_id, tipo, cantidad, motivo, fecha)
+        select (i ->> 'producto_id')::bigint, 'ajuste', -(i ->> 'cantidad')::numeric, 'compra de prueba (demo de proveedores)', v_fecha
+          from jsonb_array_elements(v_items) i;
         v_n := v_n + 1;
       end if;
       d := d - r.cada;
