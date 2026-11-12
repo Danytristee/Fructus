@@ -1,4 +1,4 @@
-# ADR-0017 — El botón de voz escucha sin mantener presionado: toque, candado y «Borrar»
+# ADR-0018 — El botón de voz escucha sin mantener presionado: toque, candado y «Borrar»
 
 **Fecha:** 2026-11-12 · **Estado:** aceptado
 

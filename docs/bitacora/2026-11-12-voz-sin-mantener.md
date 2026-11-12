@@ -1,4 +1,4 @@
-# 2026-11-12 · Voz sin mantener presionado (ADR-0017)
+# 2026-11-12 · Voz sin mantener presionado (ADR-0018)
 
 - **Qué cambió:**
   - Un toque deja el orbe escuchando y otro toque envía.

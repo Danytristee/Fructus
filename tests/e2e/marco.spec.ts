@@ -42,10 +42,10 @@ test("la barra de abajo lleva a los 4 destinos y marca el actual", async ({ page
   }
 });
 
-test("el menú abre Cierre y Ajustes, y la barra no marca ninguno", async ({ page }) => {
+test("el menú abre Proveedores, Cierre y Ajustes, y la barra no marca ninguno", async ({ page }) => {
   await page.getByRole("button", { name: /^Menú/ }).click();
   const menu = page.getByRole("dialog", { name: "Más" });
-  await expect(menu.getByRole("link")).toHaveText(["Cierre del día", "Ajustes"]);
+  await expect(menu.getByRole("link")).toHaveText(["Proveedores", "Cierre del día", "Ajustes"]);
   await expect(menu.getByRole("button", { name: "Salir" })).toBeVisible();
 
   await menu.getByRole("link", { name: "Cierre del día" }).click();
@@ -54,6 +54,11 @@ test("el menú abre Cierre y Ajustes, y la barra no marca ninguno", async ({ pag
   await expect(page.getByRole("dialog")).toHaveCount(0);
   // Solo lo que se ve: en celular el panel lateral del escritorio (ADR-0015) está en el HTML pero escondido, y él sí marca Cierre.
   await expect(page.locator('nav[aria-label="Principal"] [aria-current]').filter({ visible: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: /^Menú/ }).click();
+  await page.getByRole("dialog", { name: "Más" }).getByRole("link", { name: "Proveedores" }).click();
+  await expect(page).toHaveURL("/proveedores");
+  await expect(page.getByRole("heading", { level: 1, name: "Proveedores" })).toBeVisible();
 
   await page.getByRole("button", { name: /^Menú/ }).click();
   await page.getByRole("dialog", { name: "Más" }).getByRole("link", { name: "Ajustes" }).click();
