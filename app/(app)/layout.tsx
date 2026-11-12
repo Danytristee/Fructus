@@ -30,7 +30,7 @@ export default async function MarcoApp({ children }: { children: React.ReactNode
   }
   return (
     <EsperaProveedor>
-      {/* La cola sin conexión (ADR-0017): lo confirmado o dictado sin señal se guarda en el celular y se envía solo, en orden. */}
+      {/* La cola sin conexión (ADR-0019): lo confirmado o dictado sin señal se guarda en el celular y se envía solo, en orden. */}
       <ColaProveedor usuarioId={sesion.usuarioId}>
         {sesion.permisos && (
           <PanelLateral

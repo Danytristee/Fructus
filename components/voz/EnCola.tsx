@@ -2,7 +2,7 @@ import { CloudUpload } from "lucide-react";
 
 import { nombreOperacion } from "@/lib/voz/nombre-operacion-reglas";
 
-// Lo que ve la persona cuando confirmó sin señal (ADR-0017): quedó en el celular, todavía no en la base. No es el sello
+// Lo que ve la persona cuando confirmó sin señal (ADR-0019): quedó en el celular, todavía no en la base. No es el sello
 // verde de «guardado» (nada optimista en dinero ni en stock): es un icono quieto que dice qué pasa y qué va a pasar.
 export function EnCola({ tipo }: { tipo: string }) {
   const { uno } = nombreOperacion(tipo);

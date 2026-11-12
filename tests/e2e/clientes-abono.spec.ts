@@ -105,7 +105,7 @@ test("desde el cuaderno: se elige a quién pagó y, pagando todo, queda al día"
   expect(await saldoDe(c.id)).toBe(0);
 });
 
-test("respuesta perdida al confirmar: queda en el celular, se reintenta solo y el abono no se repite (ADR-0017)", async ({ page }) => {
+test("respuesta perdida al confirmar: queda en el celular, se reintenta solo y el abono no se repite (ADR-0019)", async ({ page }) => {
   const c = await clienteConDeuda(100);
   const hoja = await abrirDesdeLaFicha(page, c.id);
   await escribirMonto(hoja, "25");
@@ -125,7 +125,7 @@ test("respuesta perdida al confirmar: queda en el celular, se reintenta solo y e
   expect(await saldoDe(c.id)).toBe(75);
 });
 
-test("la señal no responde al abrir: la hoja abre igual, el abono va a la cola y entra una vez (ADR-0017)", async ({ page }) => {
+test("la señal no responde al abrir: la hoja abre igual, el abono va a la cola y entra una vez (ADR-0019)", async ({ page }) => {
   const c = await clienteConDeuda(100);
   await entrarComo(page, "duenio");
   await page.goto(`/clientes/${c.id}`);

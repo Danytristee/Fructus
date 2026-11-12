@@ -1,4 +1,4 @@
-# /formidable · Cola sin conexión (ADR-0017) · 2026-11-12
+# /formidable · Cola sin conexión (ADR-0019) · 2026-11-12
 
 **Qué se revisó:** la franja de arriba (`components/cola/FranjaConexion.tsx`) en sus estados (sin señal, sin señal con pendientes,
 señal débil, listo, rechazo), el estado «Quedó en el celular» de las tarjetas (`components/voz/EnCola.tsx`) y el aviso de dictados que

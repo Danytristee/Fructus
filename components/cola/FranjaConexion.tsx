@@ -16,7 +16,7 @@ const TONOS = {
 } as const;
 
 /**
- * La franja de arriba que dice si hay señal y qué pasa con lo guardado en el celular (CLAUDE.md, regla 10; ADR-0017).
+ * La franja de arriba que dice si hay señal y qué pasa con lo guardado en el celular (CLAUDE.md, regla 10; ADR-0019).
  * Pegada arriba mientras se desliza, en todas las pantallas con sesión. El color nunca va solo: icono y texto.
  */
 export function FranjaConexion() {

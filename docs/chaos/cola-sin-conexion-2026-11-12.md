@@ -1,4 +1,4 @@
-# /chaos · Cola sin conexión (ADR-0017) · 2026-11-12
+# /chaos · Cola sin conexión (ADR-0019) · 2026-11-12
 
 - **Qué se atacó:** la cola sin conexión (`useConfirmar`, `ColaProveedor`, `lib/cola/enviar.ts`, registrar a mano sin señal, audios en cola).
 - **Rama:** `claude/offline-request-queue-2a6568` · **Semilla:** 1112 · **Ancho:** 412 px

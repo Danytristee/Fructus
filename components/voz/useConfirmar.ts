@@ -38,7 +38,7 @@ export function useConfirmar<R extends { ok: true }>({ alGuardar, alCambiarGuard
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<{ mensaje: string; sinSesion: boolean } | null>(null);
   const [guardado, setGuardado] = useState<R | null>(null);
-  /** Quedó guardado en el celular, no en la base: se envía solo cuando vuelva la señal (ADR-0017). No es un éxito. */
+  /** Quedó guardado en el celular, no en la base: se envía solo cuando vuelva la señal (ADR-0019). No es un éxito. */
   const [encolado, setEncolado] = useState(false);
   const cola = useCola();
   const enviando = useRef(false);

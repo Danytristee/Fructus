@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardCheck, House, Package, Receipt, Settings, Users } from "lucide-react";
+import { ClipboardCheck, House, Package, Receipt, Settings, Truck, Users } from "lucide-react";
 import { cn } from "cn";
 
 import { MenuMas } from "./MenuMas";
@@ -27,11 +27,12 @@ const principales = [
 const esActual = (href: string, ruta: string) => (href === "/" ? ruta === "/" : ruta === href || ruta.startsWith(`${href}/`));
 
 // El marco de escritorio (desde 1024 px, ADR-0015): en vez de la barra de abajo y del menú de tres rayas, un panel verde a la izquierda con los
-// cuatro destinos y, separados, Cierre y Ajustes, siempre a la vista. Abajo, quién entró y «Más» (el mismo menú del celular: aviso del día,
+// cuatro destinos y, separados, Proveedores, Cierre y Ajustes, siempre a la vista. Abajo, quién entró y «Más» (el mismo menú del celular: aviso del día,
 // instalar la app y salir). En celular no se dibuja: la barra de abajo sigue siendo la navegación.
 export function PanelLateral({ nombre, rol, verCierre, verAjustes, clavePush }: Props) {
   const ruta = usePathname();
   const secundarios = [
+    { href: "/proveedores", nombre: "Proveedores", Icono: Truck },
     ...(verCierre ? [{ href: "/cierre", nombre: "Cierre del día", Icono: ClipboardCheck }] : []),
     ...(verAjustes ? [{ href: "/ajustes", nombre: "Ajustes", Icono: Settings }] : []),
   ];
@@ -64,7 +65,7 @@ export function PanelLateral({ nombre, rol, verCierre, verAjustes, clavePush }: 
       </div>
       <nav aria-label="Principal" className="grid gap-1">
         {principales.map(enlace)}
-        {secundarios.length > 0 && <hr className="mx-2 my-2.5 border-sobre-acento/15" />}
+        <hr className="mx-2 my-2.5 border-sobre-acento/15" />
         {secundarios.map(enlace)}
       </nav>
       <div className="mt-auto flex items-center gap-2.5 rounded-2xl px-2 py-2">

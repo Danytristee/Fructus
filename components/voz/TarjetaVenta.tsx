@@ -88,7 +88,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   function confirmar() {
     if (falta.length > 0) return;
     const entrada = { comandoId, borrador, corregido: fueCorregido(tarjeta, borrador), latenciaMs };
-    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0017).
+    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
     void enviar(() => confirmarVenta(entrada), { tipo: "venta", entrada });
   }
 

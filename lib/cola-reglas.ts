@@ -1,4 +1,4 @@
-// La cola sin conexión (ADR-0017): lo que la persona confirmó o dictó sin señal se guarda en el celular y se envía solo,
+// La cola sin conexión (ADR-0019): lo que la persona confirmó o dictó sin señal se guarda en el celular y se envía solo,
 // en el mismo orden, cuando vuelve la señal. Aquí vive lo que se decide sin tocar el navegador: qué se envía primero,
 // qué hacer con cada respuesta, cuánto esperar entre intentos y qué dice la franja. Lógica pura.
 //

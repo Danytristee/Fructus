@@ -171,7 +171,7 @@ Se prueba con Playwright y en el navegador a estos anchos, en este orden:
    - **180 KB brotli o menos de JavaScript** en la primera carga de «Hoy»: lo que baja un teléfono, sin los polyfills `nomodule` que ningún Android actual descarga (ADR-0012; hoy son 149.7 KB). Se mide con `pnpm build && pnpm medir:js / 180`.
    - En «Hoy» el navegador no carga supabase-js: el resumen llega del servidor y la tarjeta se confirma con una server action.
    - **De soltar el botón de voz a ver la tarjeta: 2.5 s o menos** (se mide en `comandos_voz.latencia_ms`).
-10. **Sin conexión, se dice y se encola** (ADR-0017). Si se cae la red, una franja arriba lo dice en todas las pantallas. Lo que se confirma o se dicta sin señal se guarda en el celular (IndexedDB) y se envía solo, en orden, cuando vuelve; lo dictado vuelve como tarjeta para confirmar. Reenviar no duplica porque cada acción es idempotente por comando. Una operación que se agregue tiene que poder encolarse (pasar sus datos a `useConfirmar`) o decir que necesita señal.
+10. **Sin conexión, se dice y se encola** (ADR-0019). Si se cae la red, una franja arriba lo dice en todas las pantallas. Lo que se confirma o se dicta sin señal se guarda en el celular (IndexedDB) y se envía solo, en orden, cuando vuelve; lo dictado vuelve como tarjeta para confirmar. Reenviar no duplica porque cada acción es idempotente por comando. Una operación que se agregue tiene que poder encolarse (pasar sus datos a `useConfirmar`) o decir que necesita señal.
 
 ## Diseño: excelente, no correcto
 
@@ -225,6 +225,7 @@ Si dos leyes chocan, gana la que va primero.
 El flujo completo, el prompt y las herramientas del intérprete viven en `docs/interprete-voz.md`.
 
 - **Mantener → hablar → soltar → tarjeta → Confirmar.** Un toque largo graba (`MediaRecorder`, `audio/webm;codecs=opus`) y al soltar se envía a `POST /api/voz`. El botón tiene tres estados visibles y anunciados con `aria-live`: escuchando, entendiendo y listo.
+  - **Sin mantener (ADR-0018):** un toque corto, o subir el dedo hasta el candado mientras se mantiene, deja el orbe escuchando sin el dedo. El orbe dice «Enviar» y el siguiente toque envía; «Borrar» descarta. A los 55 s se envía solo.
 - **El servidor hace todo lo sensible:**
   1. Whisper, con el prompt de vocabulario armado desde la base.
   2. El LLM con las herramientas.

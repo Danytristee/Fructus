@@ -50,7 +50,7 @@ export function OperacionAMano({ intencion, tarjeta, titulo, icono, etiqueta, va
   async function abrir() {
     if (abriendo) return;
     // Sin señal la hoja abre igual, con un comando solo del celular: al confirmar va a la cola y el comando de verdad se
-    // abre cuando vuelva la señal (ADR-0017).
+    // abre cuando vuelva la señal (ADR-0019).
     if (!navigator.onLine) {
       setError(null);
       setResultado({ comandoId: comandoTemporal(Date.now()), tarjeta, latenciaMs: 0 });

@@ -73,7 +73,7 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
   function confirmar() {
     if (falta.length > 0) return;
     const entrada = { comandoId, borrador, corregido: fueCorregidaCompra(tarjeta, borrador), latenciaMs, aMano };
-    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0017).
+    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
     void enviar(() => confirmarCompra(entrada), { tipo: "compra", entrada });
   }
 

@@ -2,7 +2,7 @@
 
 - **Qué cambió:** cola en el celular (IndexedDB) con las confirmaciones y los audios hechos sin señal; se envían solos y en orden al volver
   (los audios vuelven como tarjetas por confirmar). Franja «Sin señal / Enviando / Listo / No se pudo guardar» arriba en todas las pantallas.
-  «Quedó en el celular» en vez del sello cuando se confirma sin señal. Registrar a mano abre sin señal. ADR-0017.
+  «Quedó en el celular» en vez del sello cuando se confirma sin señal. Registrar a mano abre sin señal. ADR-0019.
 - **Cómo se verificó:** Vitest (550, con 26 de `lib/cola-reglas.test.ts`); e2e nuevo `tests/e2e/cola-sin-conexion.spec.ts` a 412 y 360 px
   (corta la red, confirma una venta, dicta, vuelve la señal y revisa en la base la venta, el saldo y el abono); se actualizaron las pruebas de
   «respuesta perdida» y «sin señal» al comportamiento nuevo. `medir:js` de «Hoy»: 149.7 KB. Invariantes: las 12 en orden.
@@ -10,5 +10,5 @@
   culpando a la señal: `confirmarVenta` ahora traduce el 23503 (prueba de regresión en `cola-sin-conexion.spec.ts`). `/formidable` (7.6): el
   rechazo dice «No entró» con su motivo y «Quitar de la lista», la señal débil ya no tiene botón y reintenta cada 30 s como máximo, y el aviso del
   dictado dice qué es. Informes en `docs/chaos/` y `docs/formidable/`.
-- **Pendiente:** la fecha de lo encolado es la del envío (ver ADR-0017); decidir si avisar el saldo a favor de un abono en cola cuya venta se
+- **Pendiente:** la fecha de lo encolado es la del envío (ver ADR-0019); decidir si avisar el saldo a favor de un abono en cola cuya venta se
   anuló; `voz-compra` y la merma simultánea ya fallaban en `main` antes de este cambio.

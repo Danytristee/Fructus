@@ -5,7 +5,7 @@ import "server-only";
 import { permisosDe } from "@/lib/permisos-reglas";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 
-// La frase vive en las reglas de la cola: así la cola sabe que no es un rechazo y lo reintenta (ADR-0017).
+// La frase vive en las reglas de la cola: así la cola sabe que no es un rechazo y lo reintenta (ADR-0019).
 export { SIN_SENAL } from "@/lib/cola-reglas";
 
 /** La llave foránea se rompió (23503): el cliente se borró mientras la tarjeta estaba abierta. Reintentar no sirve: hay que elegir otro. */

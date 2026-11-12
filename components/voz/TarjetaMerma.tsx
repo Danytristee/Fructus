@@ -63,7 +63,7 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   function confirmar() {
     if (falta.length > 0) return;
     const entrada = { comandoId, borrador, corregido: fueCorregidaMerma(tarjeta, borrador), latenciaMs, aMano };
-    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0017).
+    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
     void enviar(() => confirmarMerma(entrada), { tipo: "merma", entrada });
   }
 

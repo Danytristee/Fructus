@@ -5,7 +5,7 @@ type Props = {
   icono: React.ReactNode;
   /** Qué falta: «Todavía no vendiste hoy». */
   titulo: string;
-  /** Qué hacer: «Mantén el botón y di la venta». */
+  /** Qué hacer: «Toca el botón y di la venta». */
   children: React.ReactNode;
   accion?: React.ReactNode;
   className?: string;

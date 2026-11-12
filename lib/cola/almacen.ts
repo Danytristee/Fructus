@@ -1,4 +1,4 @@
-// Dónde vive la cola sin conexión (ADR-0017): IndexedDB del celular, para que sobreviva a una recarga, a cerrar la app
+// Dónde vive la cola sin conexión (ADR-0019): IndexedDB del celular, para que sobreviva a una recarga, a cerrar la app
 // o a quedarse sin batería. La llave la pone IndexedDB y crece: es el orden en que se guardó. Solo navegador.
 // Si el almacenamiento no existe (modo privado), `agregar` devuelve false y la tarjeta dice que no se pudo guardar.
 import type { Entrada } from "@/lib/cola-reglas";

@@ -28,7 +28,7 @@ export const useCola = () => useContext(Contexto);
 const LISTO_MS = 4_000;
 
 /**
- * La cola sin conexión (ADR-0017), montada una vez en el layout. Lo que se confirma o se dicta sin señal se guarda en el
+ * La cola sin conexión (ADR-0019), montada una vez en el layout. Lo que se confirma o se dicta sin señal se guarda en el
  * celular y se envía solo, en orden, apenas vuelve: al conectarse, al volver a la app y con reintentos que se espacian.
  * Un solo envío a la vez, también entre pestañas (Web Locks). El código que envía se baja recién cuando hay algo que
  * enviar: no pesa en la primera carga de «Hoy».

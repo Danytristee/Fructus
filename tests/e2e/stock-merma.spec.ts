@@ -105,7 +105,7 @@ test("desde el botón flotante de Stock: se elige la fruta por su nombre y se po
   expect(await stockDe(f.id)).toBe(antes - 2);
 });
 
-test("respuesta perdida al confirmar: queda en el celular, se reintenta solo y la merma no se repite (ADR-0017)", async ({ page }) => {
+test("respuesta perdida al confirmar: queda en el celular, se reintenta solo y la merma no se repite (ADR-0019)", async ({ page }) => {
   const f = await fruta(10);
   const hoja = await abrirDesdeLaFila(page, f.nombre);
   await ponerCajas(hoja, 2);

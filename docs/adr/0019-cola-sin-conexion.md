@@ -1,4 +1,4 @@
-# ADR-0017 — Lo que se confirma o se dicta sin señal se guarda en el celular y se envía solo, en orden
+# ADR-0019 — Lo que se confirma o se dicta sin señal se guarda en el celular y se envía solo, en orden
 
 **Fecha:** 2026-11-12 · **Estado:** aceptado (reemplaza la parte de ADR-0011 que dejaba la cola para la fase 2)
 

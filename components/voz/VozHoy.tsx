@@ -10,6 +10,7 @@ import { useCola } from "@/components/cola/ColaProveedor";
 import { borrarPendiente, guardarPendiente, leerPendiente } from "@/lib/voz/audio-pendiente";
 import { avisoDescarte, nombreOperacion } from "@/lib/voz/nombre-operacion-reglas";
 import { DURACION_MINIMA_MS, desenlaceDeRespuesta, desenlaceSinRed, type Desenlace } from "@/lib/voz/envio-reglas";
+import { REPOSO, TOPE_ESCUCHA_MS, avanceAlCandado, siguienteGesto, textoEscuchando, type EventoGesto, type Gesto } from "@/lib/voz/gesto-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { AvisoCola } from "./AvisoCola";
 import { AvisoVoz } from "./AvisoVoz";
@@ -19,7 +20,9 @@ import { useGrabadora, type FallaGrabadora, type Grabacion } from "./useGrabador
 // La hoja llega recién cuando hay tarjeta: no pesa en la primera carga de «Hoy» (CLAUDE.md, presupuesto de JavaScript).
 const HojaVoz = dynamic(() => import("./HojaVoz").then((m) => m.HojaVoz), { ssr: false });
 
-const TEXTO_LISTO = "Mantén para hablar";
+const TEXTO_LISTO = "Toca o mantén para hablar";
+// Grabó menos de DURACION_MINIMA_MS: casi siempre empezó a hablar antes de «Te escucho» o tocó dos veces seguidas.
+const TEXTO_CORTO = "No alcancé a oírte. Habla después de «Te escucho».";
 // Marca local del dispositivo: ya usó el botón una vez. Es solo comodidad de interfaz; si se borra, la ayuda vuelve.
 const MARCA_APRENDIO = "fructus:voz-aprendida";
 // Whisper con respaldo, más el intérprete con respaldo: el servidor puede tardar hasta ~20 s en el peor caso.
@@ -57,7 +60,7 @@ const POR_FALLA: Record<FallaGrabadora, string> = {
 export type ResultadoVoz = { comandoId: number; tarjeta: Tarjeta; latenciaMs: number };
 type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "en_cola" } | { tipo: "descartada"; incierto: boolean; que: string } | { tipo: "sin_confirmar"; resultado: ResultadoVoz };
 
-// Un audio dictado sin señal va a la cola del celular (ADR-0017): vuelve como tarjeta cuando haya señal.
+// Un audio dictado sin señal va a la cola del celular (ADR-0019): vuelve como tarjeta cuando haya señal.
 const EN_COLA = "Sin señal: guardé lo que dijiste. Cuando vuelva, te muestro la tarjeta para que la confirmes.";
 
 /** «sin_red»: no salió del celular (o no hubo respuesta). Lo demás, lo que contestó el servidor. */
@@ -77,7 +80,8 @@ async function enviarAudio({ audio, duracionMs }: Grabacion): Promise<Desenlace 
 
 /**
  * El botón de voz de «Hoy», encajado al centro de la barra de abajo, en la zona del pulgar (CLAUDE.md, regla 1).
- * Mantener → hablar → soltar → la tarjeta en una hoja. Si algo falla, dice qué hacer y guarda el audio para reintentarlo.
+ * Mantener → hablar → soltar, o tocar → hablar → tocar (lib/voz/gesto-reglas.ts) → la tarjeta en una hoja. Si algo falla,
+ * dice qué hacer y guarda el audio para reintentarlo.
  */
 export function VozHoy() {
   const [estado, setEstado] = useState<EstadoVoz>("listo");
@@ -87,13 +91,20 @@ export function VozHoy() {
   const [hojaAbierta, setHojaAbierta] = useState(false);
   // Arranca oculta: quien ya aprendió no la ve parpadear. Si es su primera vez, aparece enseguida.
   const [aprendio, setAprendio] = useState(true);
+  const [bloqueado, setBloqueado] = useState(false);
+  // Cuánto subió el dedo hacia el candado (0 a 1) y desde qué altura bajó.
+  const [avance, setAvance] = useState(0);
+  const inicioY = useRef(0);
   const grabadora = useGrabadora();
   const cola = useCola();
   // La tarjeta abierta vino de la cola (un dictado sin señal que ya volvió): se saca de la cola al guardarla o descartarla.
   const desdeCola = useRef<number | null>(null);
   const audiosEnCola = cola?.entradas.filter((e) => e.contenido.clase === "audio" && e.estado === "pendiente").length ?? 0;
-  const presionado = useRef(false);
+  const gesto = useRef<Gesto>(REPOSO);
+  // Mientras se envía un audio el orbe no acepta otro (antes lo decía `estado`, pero el tope llama desde un reloj viejo).
+  const enviando = useRef(false);
   const reloj = useRef(0);
+  const tope = useRef(0);
   const vuelta = useRef(0);
   // El comando cerrado sin guardar: se marca descartado cuando vence el «Deshacer» (o antes, si se dicta otro).
   const descarte = useRef<{ comandoId: number; latenciaMs: number; reloj: number; colaId: number | null } | null>(null);
@@ -114,6 +125,7 @@ export function VozHoy() {
       cancelAnimationFrame(cuadro);
       window.clearInterval(reloj.current);
       window.clearTimeout(vuelta.current);
+      window.clearTimeout(tope.current);
       cerrarDescarte(); // se fue de «Hoy» con el «Deshacer» abierto: el descarte vale
     };
   }, []);
@@ -172,9 +184,21 @@ export function VozHoy() {
     vuelta.current = window.setTimeout(() => setTexto(TEXTO_LISTO), volverEn);
   }
 
-  async function presionar() {
-    if (presionado.current || estado === "entendiendo") return;
-    presionado.current = true;
+  /** Un paso del gesto (lib/voz/gesto-reglas.ts) y lo que pide hacer con el micrófono. */
+  function aplicar(e: EventoGesto) {
+    if (enviando.current) return;
+    const r = siguienteGesto(gesto.current, e);
+    gesto.current = r.gesto;
+    if (r.efecto === "empezar") void empezar();
+    else if (r.efecto === "bloquear") {
+      setBloqueado(true);
+      setAvance(0);
+      navigator.vibrate?.(15);
+    } else if (r.efecto === "enviar") void terminar(true);
+    else if (r.efecto === "descartar") void terminar(false);
+  }
+
+  async function empezar() {
     try {
       localStorage.setItem(MARCA_APRENDIO, "si");
     } catch {
@@ -186,30 +210,38 @@ export function VozHoy() {
     setAviso(null);
     const falla = await grabadora.empezar();
     if (falla) {
-      presionado.current = false;
+      gesto.current = REPOSO;
+      setBloqueado(false);
       setAviso({ tipo: "error", mensaje: POR_FALLA[falla], pendiente: false });
       return;
     }
-    if (!presionado.current) return; // lo soltó antes de que el micrófono arrancara
+    if (gesto.current.fase === "reposo") return; // soltó, envió o canceló antes de que el micrófono arrancara
     // «Te escucho» y la vibración recién cuando el micrófono graba (unos 200 ms después del toque): son la señal para
     // hablar. Si se mostraran al toque, el «Vendí…» del principio podía quedar fuera del audio.
     setEstado("escuchando");
     navigator.vibrate?.(20);
     const inicio = Date.now();
-    setTexto("Te escucho… 0:00");
-    reloj.current = window.setInterval(() => {
-      setTexto(`Te escucho… 0:${String(Math.floor((Date.now() - inicio) / 1000)).padStart(2, "0")}`);
-    }, 250);
+    const contar = () => setTexto(textoEscuchando((Date.now() - inicio) / 1000));
+    contar();
+    reloj.current = window.setInterval(contar, 250);
+    tope.current = window.setTimeout(() => aplicar({ tipo: "tope" }), TOPE_ESCUCHA_MS);
   }
 
-  async function soltar() {
-    if (!presionado.current) return;
-    presionado.current = false;
+  /** Apaga el micrófono y envía lo grabado, o lo tira si se canceló. */
+  async function terminar(enviarlo: boolean) {
     window.clearInterval(reloj.current);
+    window.clearTimeout(tope.current);
+    setBloqueado(false);
+    setAvance(0);
     const grabacion = await grabadora.terminar();
+    if (!enviarlo) {
+      setEstado("listo");
+      decir("Cancelado. No se envió nada.");
+      return;
+    }
     if (grabacion.duracionMs < DURACION_MINIMA_MS || grabacion.audio.size === 0) {
       setEstado("listo");
-      decir("Mantén el botón mientras hablas");
+      decir(TEXTO_CORTO, 3500);
       return;
     }
     navigator.vibrate?.(10);
@@ -217,6 +249,15 @@ export function VozHoy() {
   }
 
   async function enviar(grabacion: Grabacion) {
+    enviando.current = true;
+    try {
+      await entender(grabacion);
+    } finally {
+      enviando.current = false;
+    }
+  }
+
+  async function entender(grabacion: Grabacion) {
     setEstado("entendiendo");
     window.clearTimeout(vuelta.current);
     setTexto("Entendiendo…");
@@ -321,21 +362,31 @@ export function VozHoy() {
         texto={texto}
         // La etiqueta enseña el primer día y acompaña mientras escucha; después no tapa «Lo último» (/formidable 2026-10-28).
         verTexto={!aviso && (!aprendio || estado !== "listo" || texto !== TEXTO_LISTO)}
+        bloqueado={bloqueado}
+        alCancelar={bloqueado ? () => aplicar({ tipo: "cancelar" }) : undefined}
+        candado={estado === "escuchando" && !bloqueado ? avance : undefined}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
-          void presionar();
+          inicioY.current = e.clientY;
+          aplicar({ tipo: "bajar", en: e.timeStamp });
         }}
-        onPointerUp={() => void soltar()}
-        onPointerCancel={() => void soltar()}
-        // Con teclado: mantener Espacio o Enter es como mantener el dedo.
+        onPointerMove={(e) => {
+          if (gesto.current.fase !== "presionado") return;
+          const subida = inicioY.current - e.clientY;
+          setAvance(avanceAlCandado(subida)); // en pasos de 0.1: React no vuelve a dibujar si el paso no cambió
+          aplicar({ tipo: "deslizar", subida });
+        }}
+        onPointerUp={(e) => aplicar({ tipo: "subir", en: e.timeStamp })}
+        onPointerCancel={() => aplicar({ tipo: "perder" })}
+        // Con teclado: mantener Espacio o Enter es como mantener el dedo; pulsarlo una vez, como un toque.
         onKeyDown={(e) => {
           if ((e.key === "Enter" || e.key === " ") && !e.repeat) {
             e.preventDefault();
-            void presionar();
+            aplicar({ tipo: "bajar", en: e.timeStamp });
           }
         }}
         onKeyUp={(e) => {
-          if (e.key === "Enter" || e.key === " ") void soltar();
+          if (e.key === "Enter" || e.key === " ") aplicar({ tipo: "subir", en: e.timeStamp });
         }}
         onContextMenu={(e) => e.preventDefault()}
       />

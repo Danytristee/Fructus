@@ -4,7 +4,7 @@ import { baseLocal, enSoles } from "./base";
 import { entrarComo } from "./cuentas";
 import { comando, crearComando, dictar, saldoDe } from "./dictar";
 
-// La cola sin conexión (ADR-0017): se corta la red de verdad (el navegador queda offline), se confirma y se dicta, y al
+// La cola sin conexión (ADR-0019): se corta la red de verdad (el navegador queda offline), se confirma y se dicta, y al
 // volver la señal todo entra solo y en orden. Se revisa lo que quedó en la base, no solo la pantalla. Cada prueba crea su
 // propio cliente, así las dos corridas en paralelo no se pisan.
 

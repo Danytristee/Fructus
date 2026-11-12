@@ -182,7 +182,7 @@ test("mientras guarda no se puede descartar, y si la red se cuelga a los 15 s la
   await expect(hoja.getByRole("button", { name: "Descartar" })).toBeDisabled();
   await page.keyboard.press("Escape");
   await expect(hoja).toBeVisible();
-  // A los 15 s sin respuesta queda en el celular (ADR-0017): no pide otro toque ni dice «no guardé».
+  // A los 15 s sin respuesta queda en el celular (ADR-0019): no pide otro toque ni dice «no guardé».
   await expect(page.getByText("Quedó en el celular")).toBeVisible({ timeout: 20_000 });
   // La red vuelve: el pedido colgado llega, y el reintento de la cola devuelve la misma venta.
   soltar();

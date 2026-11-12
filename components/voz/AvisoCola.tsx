@@ -11,7 +11,7 @@ import type { ResultadoVoz } from "./VozHoy";
 
 type Props = { alAbrir: (id: number, resultado: ResultadoVoz) => void };
 
-// Lo que dejó la cola sin conexión para «Hoy» (ADR-0017): los dictados sin señal ya volvieron como tarjetas y esperan a la
+// Lo que dejó la cola sin conexión para «Hoy» (ADR-0019): los dictados sin señal ya volvieron como tarjetas y esperan a la
 // persona (nada se guarda sin que vea lo que se entendió, principio 1), o un dictado que no se entendió. De a uno, en orden.
 export function AvisoCola({ alAbrir }: Props) {
   const cola = useCola();

@@ -15,7 +15,7 @@ test("el panel lateral lleva a todas las pantallas, marca la actual, y no hay ba
   const panel = page.getByRole("complementary", { name: "Fructus" });
   await expect(panel).toBeVisible();
   const nav = panel.getByRole("navigation", { name: "Principal" });
-  await expect(nav.getByRole("link")).toHaveText(["Hoy", "Clientes", "Stock", "Ventas", "Cierre del día", "Ajustes"]);
+  await expect(nav.getByRole("link")).toHaveText(["Hoy", "Clientes", "Stock", "Ventas", "Proveedores", "Cierre del día", "Ajustes"]);
   // La barra de abajo y el botón de tres rayas de la cabecera no se dibujan: el panel los reemplaza.
   await expect(page.getByRole("navigation", { name: "Principal" })).toHaveCount(1);
   await expect(page.locator("header").getByRole("button", { name: /^Menú/ })).toBeHidden();
@@ -24,6 +24,7 @@ test("el panel lateral lleva a todas las pantallas, marca la actual, y no hay ba
     ["Clientes", "/clientes", "Clientes"],
     ["Stock", "/stock", "Stock"],
     ["Ventas", "/ventas", "Ventas"],
+    ["Proveedores", "/proveedores", "Proveedores"],
     ["Cierre del día", "/cierre", "Cierre del día"],
     ["Ajustes", "/ajustes", "Ajustes"],
     ["Hoy", "/", "Hoy"],
@@ -55,8 +56,8 @@ test("«Más» del panel abre el mismo menú: quién entró, aviso del día y sa
 test("el contador ve el panel sin Ajustes, y sin el botón de voz", async ({ page }) => {
   await entrarComo(page, "contador");
   const nav = page.getByRole("complementary", { name: "Fructus" }).getByRole("navigation", { name: "Principal" });
-  await expect(nav.getByRole("link")).toHaveText(["Hoy", "Clientes", "Stock", "Ventas", "Cierre del día"]);
-  await expect(page.getByRole("button", { name: /Mantén para hablar/ })).toHaveCount(0);
+  await expect(nav.getByRole("link")).toHaveText(["Hoy", "Clientes", "Stock", "Ventas", "Proveedores", "Cierre del día"]);
+  await expect(page.getByRole("button", { name: /mantén para hablar/i })).toHaveCount(0);
 });
 
 test("«Hoy» en grilla: lo vendido a la izquierda y lo cobrado al lado; «Lo último» debajo, con el aviso de stock al lado", async ({ page }) => {
