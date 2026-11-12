@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 export type FallaGrabadora = "sin_permiso" | "sin_microfono" | "no_soportado";
 
@@ -17,17 +17,21 @@ function falla(e: unknown): FallaGrabadora {
 }
 
 /**
- * Graba mientras se mantiene el botón. El micrófono se pide al presionar y se suelta al terminar: la luz de «micrófono
+ * Graba desde que se toca el botón hasta que se termina (soltar o un segundo toque). El micrófono se pide al empezar y se suelta al terminar: la luz de «micrófono
  * en uso» del celular no queda prendida. Si se suelta antes de que el micrófono arranque, la grabación sale vacía.
+ *
+ * Cada `empezar` tiene su vuelta. Si llega el micrófono de una vuelta que ya no es la vigente (se terminó, o se volvió a
+ * tocar mientras el celular preguntaba), se apaga ahí mismo. Con una sola bandera «soltado», un toque nuevo la reiniciaba
+ * y el micrófono del toque anterior quedaba prendido sin que nadie lo supiera (/chaos 2026-11-12, A1).
  */
 export function useGrabadora() {
   const grabadora = useRef<MediaRecorder | null>(null);
   const trozos = useRef<Blob[]>([]);
   const inicio = useRef(0);
-  const soltado = useRef(false);
+  const vuelta = useRef(0);
 
   const empezar = useCallback(async (): Promise<FallaGrabadora | null> => {
-    soltado.current = false;
+    const mia = ++vuelta.current;
     if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) return "no_soportado";
     let flujo: MediaStream;
     try {
@@ -35,10 +39,15 @@ export function useGrabadora() {
     } catch (e) {
       return falla(e);
     }
-    // Lo soltó mientras el celular preguntaba por el permiso: no se graba nada.
-    if (soltado.current) {
+    // Se terminó o se volvió a tocar mientras el celular preguntaba por el permiso: este micrófono no graba nada.
+    if (vuelta.current !== mia) {
       flujo.getTracks().forEach((t) => t.stop());
       return null;
+    }
+    const anterior = grabadora.current;
+    if (anterior) {
+      if (anterior.state !== "inactive") anterior.stop();
+      anterior.stream.getTracks().forEach((t) => t.stop());
     }
     const formato = FORMATOS.find((f) => MediaRecorder.isTypeSupported(f));
     const g = new MediaRecorder(flujo, formato ? { mimeType: formato } : undefined);
@@ -53,7 +62,7 @@ export function useGrabadora() {
   }, []);
 
   const terminar = useCallback(async (): Promise<Grabacion> => {
-    soltado.current = true;
+    vuelta.current++; // el micrófono que todavía no llegó ya no es de nadie
     const g = grabadora.current;
     grabadora.current = null;
     if (!g || g.state === "inactive") return { audio: new Blob(), duracionMs: 0 };
@@ -65,6 +74,18 @@ export function useGrabadora() {
     g.stream.getTracks().forEach((t) => t.stop());
     return { audio: new Blob(trozos.current, { type: g.mimeType || "audio/webm" }), duracionMs };
   }, []);
+
+  // Se fue de la pantalla con el micrófono escuchando (un toque lo deja abierto sin el dedo): se apaga y no se envía nada.
+  useEffect(
+    () => () => {
+      vuelta.current++;
+      const g = grabadora.current;
+      grabadora.current = null;
+      if (g && g.state !== "inactive") g.stop();
+      g?.stream.getTracks().forEach((t) => t.stop());
+    },
+    [],
+  );
 
   return { empezar, terminar };
 }

@@ -426,6 +426,15 @@
   body:has([data-voz-fijo]) {
     --hueco-voz: 96px;
   }
+  /* Mientras el orbe escucha, los destinos de la barra se apartan, como en los audios de WhatsApp: la X de cancelar y el candado
+     se leen solos, y un toque desviado no saca de «Hoy» a mitad de lo dicho. Solo opacidad (ADR-0012). */
+  nav[aria-label="Principal"] > div {
+    transition: opacity 200ms var(--ease-salida);
+  }
+  body:has([data-bloqueado], [data-estado="escuchando"]) nav[aria-label="Principal"] > div {
+    opacity: 0;
+    pointer-events: none;
+  }
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
