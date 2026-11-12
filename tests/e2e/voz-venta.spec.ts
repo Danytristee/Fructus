@@ -171,7 +171,7 @@ test("un precio que no es precio se rechaza con una frase, sin adivinar ni guard
   await expect(hoja.getByText("S/ 475.00")).toBeVisible();
 });
 
-test("mientras guarda no se puede descartar, y si la red se cuelga a los 15 s dice qué hacer sin duplicar", async ({ page }) => {
+test("mientras guarda no se puede descartar, y si la red se cuelga a los 15 s la deja en el celular sin duplicar", async ({ page }) => {
   test.setTimeout(90_000);
   const comandoId = await crearComando();
   const hoja = await dictarVenta(page, comandoId, tarjeta(null, { condicion: "contado", medio: "efectivo", falta: [] }));
@@ -182,17 +182,12 @@ test("mientras guarda no se puede descartar, y si la red se cuelga a los 15 s di
   await expect(hoja.getByRole("button", { name: "Descartar" })).toBeDisabled();
   await page.keyboard.press("Escape");
   await expect(hoja).toBeVisible();
-  await expect(hoja.getByText("La señal no respondió y no sé si se guardó.")).toBeVisible({ timeout: 20_000 });
-  // Sin saber si se guardó, el aviso de descartar no puede decir «no guardé».
-  await hoja.getByRole("button", { name: "Descartar" }).click();
-  await expect(page.getByText("La descarté. Si alcanzó a guardarse, la ves en «Lo último».")).toBeVisible();
-  await page.getByRole("button", { name: "Deshacer" }).click();
-  await expect(hoja).toBeVisible();
-  // La red vuelve: el pedido colgado llega, y el segundo toque devuelve la misma venta.
+  // A los 15 s sin respuesta queda en el celular (ADR-0017): no pide otro toque ni dice «no guardé».
+  await expect(page.getByText("Quedó en el celular")).toBeVisible({ timeout: 20_000 });
+  // La red vuelve: el pedido colgado llega, y el reintento de la cola devuelve la misma venta.
   soltar();
   await page.unroute("**/*");
-  await hoja.getByRole("button", { name: "Confirmar venta" }).click();
-  await expect(page.getByText("Venta guardada")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Listo: se envió lo guardado")).toBeVisible({ timeout: 30_000 });
   await expect.poll(async () => (await ventasDe(comandoId)).length).toBe(1);
 });
 

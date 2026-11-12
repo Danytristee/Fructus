@@ -5,7 +5,8 @@ import "server-only";
 import { permisosDe } from "@/lib/permisos-reglas";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 
-export const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra vez.";
+// La frase vive en las reglas de la cola: así la cola sabe que no es un rechazo y lo reintenta (ADR-0017).
+export { SIN_SENAL } from "@/lib/cola-reglas";
 
 /** La llave foránea se rompió (23503): el cliente se borró mientras la tarjeta estaba abierta. Reintentar no sirve: hay que elegir otro. */
 export const CLIENTE_YA_NO_ESTA = "Ese cliente ya no está en tu cuaderno. Elige a otro.";

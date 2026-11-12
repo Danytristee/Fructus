@@ -7,6 +7,7 @@ import { abrirComandoAMano, type IntencionAMano, type ResultadoComandoAMano } fr
 import { descartarComando } from "@/app/(app)/acciones-voz";
 import { Boton } from "@/components/ui/Boton";
 import { NO_ABRIO } from "@/lib/a-mano-reglas";
+import { comandoTemporal } from "@/lib/cola-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import type { ResultadoVoz } from "./VozHoy";
 
@@ -48,6 +49,14 @@ export function OperacionAMano({ intencion, tarjeta, titulo, icono, etiqueta, va
 
   async function abrir() {
     if (abriendo) return;
+    // Sin señal la hoja abre igual, con un comando solo del celular: al confirmar va a la cola y el comando de verdad se
+    // abre cuando vuelva la señal (ADR-0017).
+    if (!navigator.onLine) {
+      setError(null);
+      setResultado({ comandoId: comandoTemporal(Date.now()), tarjeta, latenciaMs: 0 });
+      setAbierta(true);
+      return;
+    }
     setAbriendo(true);
     setError(null);
     let reloj = 0;
@@ -57,6 +66,12 @@ export function OperacionAMano({ intencion, tarjeta, titulo, icono, etiqueta, va
     const r = await Promise.race([abrirComandoAMano(intencion).catch((): ResultadoComandoAMano => ({ ok: false, error: NO_ABRIO })), tope]);
     window.clearTimeout(reloj);
     setAbriendo(false);
+    // La señal no respondió: se abre igual y va a la cola, como sin señal. Otro error (sesión, permiso) se dice.
+    if (!r.ok && r.error === NO_ABRIO) {
+      setResultado({ comandoId: comandoTemporal(Date.now()), tarjeta, latenciaMs: 0 });
+      setAbierta(true);
+      return;
+    }
     if (!r.ok) {
       setError(r.error);
       return;
