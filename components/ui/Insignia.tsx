@@ -1,4 +1,4 @@
-import { Ban, Check, Clock, HandCoins, PackagePlus, ReceiptText, Sparkles, TriangleAlert } from "lucide-react";
+import { BadgePercent, Ban, Check, Clock, HandCoins, Handshake, PackagePlus, ReceiptText, Repeat, Snowflake, Sparkles, TriangleAlert } from "lucide-react";
 import { cn } from "cn";
 
 const tipos = {
@@ -12,6 +12,15 @@ const tipos = {
   gasto: { clase: "bg-acento/12 text-acento-texto", Icono: ReceiptText },
   merma: { clase: "bg-deuda-fondo text-deuda", Icono: TriangleAlert },
   anulada: { clase: "bg-texto/8 text-texto-suave", Icono: Ban },
+  // La ficha del proveedor: una compra fiada (le debes) y un pago que le hiciste.
+  credito: { clase: "bg-deuda-fondo text-deuda", Icono: Clock },
+  pagaste: { clase: "bg-exito-fondo text-exito", Icono: HandCoins },
+  // La posición para negociar con un proveedor (lib/proveedores-reglas.ts, posicionDe).
+  riesgo: { clase: "bg-deuda-fondo text-deuda", Icono: TriangleAlert },
+  socio: { clase: "bg-acento/12 text-acento-texto", Icono: Handshake },
+  ventaja: { clase: "bg-exito-fondo text-exito", Icono: BadgePercent },
+  ocasional: { clase: "bg-texto/8 text-texto-suave", Icono: Repeat },
+  enfriado: { clase: "bg-texto/8 text-texto-suave", Icono: Snowflake },
 } as const;
 
 type Props = { tipo: keyof typeof tipos; children: React.ReactNode; className?: string };
