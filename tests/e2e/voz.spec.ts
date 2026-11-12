@@ -79,9 +79,9 @@ test("el botón de voz vive abajo al centro, mide 96 px o más, graba al mantene
 });
 
 /** Un toque corto en el orbe (menos de TOQUE_MAXIMO_MS). */
-async function tocarOrbe(page: Page) {
+async function tocarOrbe(page: Page, delay = 60) {
   const caja = (await page.locator("button[data-estado]").boundingBox())!;
-  await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2, { delay: 60 });
+  await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2, { delay });
 }
 
 test("un toque deja el botón escuchando sin el dedo, y otro toque envía", async ({ page }) => {
@@ -167,6 +167,31 @@ test("subir el dedo solo un poco y soltar envía, como mantener", async ({ page 
   await expect(page.locator("button[data-estado]")).not.toHaveAttribute("data-bloqueado", "true");
   await page.mouse.up();
   await expect(page.getByRole("dialog", { name: "¿Así fue la venta?" })).toBeVisible({ timeout: 15_000 });
+});
+
+test("tocar el orbe muchas veces seguidas no deja el micrófono prendido (/chaos 2026-11-12, A1)", async ({ page }) => {
+  // Cuenta las pistas de micrófono que se abren, para ver si alguna queda viva cuando el orbe ya no escucha.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __pistas: MediaStreamTrack[] };
+    w.__pistas = [];
+    const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = async (c) => {
+      const s = await original(c);
+      w.__pistas.push(...s.getTracks());
+      return s;
+    };
+  });
+  await entrarComo(page, "duenio");
+  await page.route("/api/voz", (r) => r.abort());
+  await page.waitForLoadState("networkidle");
+  const vivas = () => page.evaluate(() => (window as unknown as { __pistas: MediaStreamTrack[] }).__pistas.filter((t) => t.readyState === "live").length);
+  const orbe = page.locator("button[data-estado]");
+  for (let i = 0; i < 5; i++) await tocarOrbe(page, 20);
+  await page.waitForTimeout(2000);
+  // Si quedó escuchando, se termina con un toque: después no debe quedar ningún micrófono abierto.
+  if ((await orbe.getAttribute("data-estado")) === "escuchando") await tocarOrbe(page);
+  await expect(orbe).toHaveAttribute("data-estado", "listo", { timeout: 10_000 });
+  await expect.poll(vivas, { timeout: 3_000 }).toBe(0);
 });
 
 test("mantener un instante sin alcanzar a hablar no envía nada y dice por qué", async ({ page }) => {
