@@ -106,6 +106,7 @@ export function TarjetaGasto({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       </div>
 
       <PieConfirmar
+          guardaSinSenal
         style={pieza(3)}
         aviso={falta.length > 0 ? "Falta escribir cuánto gastaste." : null}
         error={error}

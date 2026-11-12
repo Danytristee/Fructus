@@ -149,6 +149,7 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       )}
 
       <PieConfirmar
+          guardaSinSenal
         style={pieza(2)}
         aviso={frasesFaltaMerma(falta)}
         avisoNeutro={aMano}

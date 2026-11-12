@@ -10,5 +10,16 @@
   culpando a la señal: `confirmarVenta` ahora traduce el 23503 (prueba de regresión en `cola-sin-conexion.spec.ts`). `/formidable` (7.6): el
   rechazo dice «No entró» con su motivo y «Quitar de la lista», la señal débil ya no tiene botón y reintenta cada 30 s como máximo, y el aviso del
   dictado dice qué es. Informes en `docs/chaos/` y `docs/formidable/`.
-- **Pendiente:** la fecha de lo encolado es la del envío (ver ADR-0019); decidir si avisar el saldo a favor de un abono en cola cuya venta se
-  anuló; `voz-compra` y la merma simultánea ya fallaban en `main` antes de este cambio.
+- **Segunda parte (con las decisiones del día):**
+  - lo encolado queda con la hora del toque (migración `fecha_del_celular`, **solo en local**, falta aplicarla al proyecto con OK);
+  - aviso de saldo a favor;
+  - «Anotarlo otra vez» en el rechazo;
+  - «Sin señal: se guarda en el celular» dentro de la tarjeta;
+  - «+ 1 venta por enviar» bajo «Vendiste hoy»;
+  - «Si lo cierras, lo verás aquí otra vez» en el aviso del dictado.
+
+  Verificado con pgTAP 17 (12/12), 12 e2e de la cola y 106 vecinas a 412 y 360 px, y 613 de lógica.
+- **Pendiente:**
+  - aplicar la migración al proyecto;
+  - las pgTAP 01, 03, 07, 08, 09, 11, 14 y 15 fallan en la base local compartida porque está sucia (gastos «cargador» repetidos, Mango Kent inactivo), igual sin los triggers nuevos: correr `db reset` cuando la otra sesión termine;
+  - `voz-compra` y la merma simultánea ya fallaban en `main`.

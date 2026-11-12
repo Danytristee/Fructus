@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { formatearCajas, formatearSoles } from "./formato";
-import { queEsLaTarjeta, contarPorEnviar, desenlaceConfirmacion, esperaTras, franjaDe, resumenDe, siguiente, SIN_SENAL, type Entrada, type Operacion, type Situacion } from "./cola-reglas";
+import { contarPorEnviar, desenlaceConfirmacion, esperaTras, franjaDe, resumenDe, siguiente, SIN_SENAL, type Entrada, type Operacion, type Situacion } from "./cola-reglas";
 
 const venta: Operacion = {
   tipo: "venta",
@@ -106,7 +106,7 @@ describe("contarPorEnviar", () => {
 });
 
 describe("franjaDe", () => {
-  const base: Situacion = { enLinea: true, porEnviar: [], rechazada: null, enviando: false, esperando: false, sinSesion: false, enviadas: 0 };
+  const base: Situacion = { enLinea: true, porEnviar: [], rechazada: null, enviando: false, esperando: false, sinSesion: false, enviadas: 0, notas: [] };
 
   it("con señal y nada pendiente, no hay franja", () => expect(franjaDe(base)).toBeNull());
 
@@ -135,24 +135,22 @@ describe("franjaDe", () => {
   it("un rechazo manda sobre todo: dice qué no entró y por qué, sin la orden de la tarjeta («Elige a otro»)", () => {
     const rechazada = conf(venta, { estado: "rechazada", resumen: "Venta a Don Lucho · 3 cajas", error: "Ese cliente ya no está en tu cuaderno. Elige a otro." });
     const f = franjaDe({ ...base, enLinea: false, rechazada });
-    expect(f).toMatchObject({ tono: "error", accion: "quitar", titulo: "No entró: Venta a Don Lucho · 3 cajas" });
-    expect(f?.detalle).toBe("Ese cliente ya no está en tu cuaderno. Anótala otra vez con lo correcto y quítala de aquí.");
+    expect(f).toMatchObject({ tono: "error", accion: "anotar", titulo: "No entró: Venta a Don Lucho · 3 cajas" });
+    expect(f?.detalle).toBe("Ese cliente ya no está en tu cuaderno. Anótala otra vez con lo correcto.");
   });
 
   it("el rechazo de un abono habla en masculino", () => {
     const rechazada = conf(abono, { estado: "rechazada", resumen: "Abono de Don Lucho", error: "Tu cuenta no puede registrar abonos." });
-    expect(franjaDe({ ...base, rechazada })?.detalle).toBe("Tu cuenta no puede registrar abonos. Anótalo otra vez con lo correcto y quítalo de aquí.");
+    expect(franjaDe({ ...base, rechazada })?.detalle).toBe("Tu cuenta no puede registrar abonos. Anótalo otra vez con lo correcto.");
   });
 
-  it("al terminar, dice «Listo» un momento", () => expect(franjaDe({ ...base, enviadas: 3 })).toMatchObject({ tono: "listo" }));
-});
+  it("al terminar, dice «Listo» un momento", () => expect(franjaDe({ ...base, enviadas: 3 })).toMatchObject({ tono: "listo", accion: null }));
 
-describe("queEsLaTarjeta", () => {
-  const lucho = { dicho: "lucho", elegido: { id: 1, nombre: "Don Lucho" }, opciones: [] };
-  it("un abono dice de quién y cuánto", () => expect(queEsLaTarjeta({ tipo: "abono", cliente: lucho, monto: 50 })).toBe(`tu abono de Don Lucho · ${formatearSoles(50)}`));
-  it("una venta dice a quién y el total", () => expect(queEsLaTarjeta({ tipo: "venta", cliente: lucho, total: 120 })).toBe(`tu venta a Don Lucho · ${formatearSoles(120)}`));
-  it("sin elegir, usa lo que se dijo", () => expect(queEsLaTarjeta({ tipo: "abono", cliente: { dicho: "el flaco", elegido: null, opciones: [] }, monto: null })).toBe("tu abono del flaco"));
-  it("una merma dice la fruta y las cajas", () =>
-    expect(queEsLaTarjeta({ tipo: "merma", producto: { dicho: null, elegido: { id: 2, nombre: "Palta" }, opciones: [] }, cantidad: 2 })).toBe(`tu merma de Palta · ${formatearCajas(2)}`));
-  it("lo que no reconoce no rompe", () => expect(queEsLaTarjeta(null)).toBe("lo que dictaste"));
+  it("si lo que entró dejó algo que saber, lo dice y espera «Entendido»", () => {
+    expect(franjaDe({ ...base, enviadas: 1, notas: ["Don Lucho quedó con S/ 60.00 a favor."] })).toMatchObject({
+      tono: "listo",
+      detalle: "Don Lucho quedó con S/ 60.00 a favor.",
+      accion: "entendido",
+    });
+  });
 });

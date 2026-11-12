@@ -196,6 +196,7 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       )}
 
       <PieConfirmar
+          guardaSinSenal
         style={pieza(4)}
         aviso={frasesFaltaAbono(falta)}
         avisoNeutro={aMano}

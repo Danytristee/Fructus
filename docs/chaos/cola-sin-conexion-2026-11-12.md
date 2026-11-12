@@ -68,3 +68,6 @@ previo está en el scratchpad de la sesión. Conviene `npx supabase db reset` cu
   franja muestra el rechazo, nada se guarda, «Quitar de la lista» limpia la cola. En verde a 412 y 360 px.
 - **Hallazgo 2:** el aviso dice «Un dictado que guardé sin señal no se entendió. Dilo otra vez.».
 - **A decidir:** el saldo a favor del abono en cola cuya venta se anuló sigue esperando la decisión de quien dirige.
+- **A decidir → decidido (2026-11-12):** se avisa. Al entrar un abono que deja saldo a favor, la franja dice «… quedó con S/ … a favor.» y espera
+  «Entendido». Prueba: «un abono en cola de una venta que se anuló mientras tanto avisa que el cliente quedó a favor» en `cola-sin-conexion.spec.ts`.
+

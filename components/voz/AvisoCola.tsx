@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Eye } from "lucide-react";
 
 import { useCola } from "@/components/cola/ColaProveedor";
-import { queEsLaTarjeta } from "@/lib/cola-reglas";
+import { queEsLaTarjeta } from "@/lib/cola-tarjetas-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { AvisoVoz } from "./AvisoVoz";
 import type { ResultadoVoz } from "./VozHoy";
@@ -43,6 +43,7 @@ export function AvisoCola({ alAbrir }: Props) {
         icono: <Eye aria-hidden className="size-5" />,
         alTocar: () => alAbrir(primera.id, { comandoId, tarjeta: tarjeta as Tarjeta, latenciaMs }),
       }}
+      detalle="Si lo cierras, lo verás aquí otra vez."
       cerrar={{ etiqueta: "Después (no se pierde)", alTocar: () => setEscondidas(n) }}
     />
   );

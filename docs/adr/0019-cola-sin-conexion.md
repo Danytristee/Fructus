@@ -49,9 +49,14 @@ que siempre se vea cuándo no hay señal.
 
 ## Consecuencias
 
-- **La fecha de lo encolado es la del envío,** no la del toque: `registrar_venta` usa `now()`. Si la señal se va a las 11 p. m. y vuelve al día
-  siguiente, la venta cuenta para el día siguiente. Corregirlo pide pasar la hora del celular a las RPC (cambio de una regla de dinero: va aparte,
-  con OK).
+- **La fecha de lo encolado es la del toque** (decidido el 2026-11-12, migración `fecha_del_celular`). La cola manda la hora en que se tocó
+  Confirmar; `registrar_venta` y `registrar_compra` la usan para la operación y su stock, y los inserts directos (abonos, mermas, gastos) también.
+  La base la acepta solo si es creíble: entre 48 h atrás y 5 min adelante. Si no (el celular con la hora mal, o más de dos días sin señal), usa la
+  suya. Un trigger aplica la regla a las cinco tablas, así que nadie mete una fecha de otro mes. `creado_en` sigue siendo la hora real del servidor.
+- **Un abono que entra después de que se anuló su venta** deja al cliente a favor. Se permite (decisión del 31-10), pero ahora la franja lo dice
+  («Don Lucho quedó con S/ 60.00 a favor») y espera «Entendido».
+- **Lo rechazado se anota otra vez** desde la franja: «Anotarlo otra vez» abre la misma tarjeta ya llenada, con lo que causó el rechazo por elegir.
+  El rechazo sale de la lista solo cuando lo nuevo quedó guardado. Para eso, `abrirComandoAMano` acepta también `registrar_venta`.
 - Sin señal, las búsquedas de la tarjeta (otro cliente, otra fruta) no responden: se puede confirmar lo que ya vino en la tarjeta o en la ficha.
 - Al montar, la cola no cambia su contexto si no cambió nada y espera a que la página termine de cargar: un contexto nuevo mientras «Hoy» llegaba
   del servidor hacía que React rearmara secciones aún sin hidratar y por un momento se veían dos veces.

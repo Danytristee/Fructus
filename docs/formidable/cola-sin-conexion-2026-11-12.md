@@ -98,3 +98,17 @@ Capturas en `capturas/cola-sin-conexion-2026-11-12/despues/`, mismos anchos.
   - decir si la venta pendiente ya está sumada en «Vendiste hoy» (no lo está);
   - la línea «Sin señal: se guarda en el celular» sobre Confirmar;
   - la X del aviso con un texto que diga que no se pierde.
+
+## 6 · Segunda tanda (con OK, el mismo día)
+
+Capturas en `capturas/cola-sin-conexion-2026-11-12/segunda/` (412 y 360 px). Medido: 0 desborde, 0 controles chicos.
+
+- **Rechazo:** botón principal «Anotarlo/Anotarla otra vez», que abre la tarjeta ya llenada con lo que falló por elegir; «Quitar de la lista» queda
+  en texto. El detalle ya no pide quitarlo: sale solo cuando lo nuevo se guarda.
+- **Dentro de la tarjeta, sin señal:** «Sin señal: se guarda en el celular y se envía cuando vuelva.» sobre Confirmar. Las hojas que no se encolan
+  dicen «para guardar esto necesitas señal».
+- **«Vendiste hoy»:** «+ 1 venta por enviar (S/ 120.00): todavía no está sumada.».
+- **Aviso del dictado:** «Si lo cierras, lo verás aquí otra vez.» bajo el mensaje.
+- **Saldo a favor** (de /chaos A4): la franja dice «Don Lucho quedó con S/ 60.00 a favor.» y espera «Entendido».
+- **Falta:** una 3.ª prueba a ciegas de estas capturas.
+

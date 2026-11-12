@@ -237,6 +237,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       )}
 
       <PieConfirmar
+          guardaSinSenal
         style={pieza(borrador.items.length + 3)}
         aviso={aviso}
         error={error}
