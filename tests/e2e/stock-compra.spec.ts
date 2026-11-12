@@ -198,7 +198,7 @@ test("dos frutas en la misma compra: el total suma, se puede quitar la última y
   expect([await stockDe(a.id), await stockDe(b.id)]).toEqual([5, 3]);
 });
 
-test("respuesta perdida al confirmar: no dice que no se guardó, y al reintentar no se repite la compra", async ({ page }) => {
+test("respuesta perdida al confirmar: queda en el celular, se reintenta solo y la compra no se repite (ADR-0019)", async ({ page }) => {
   const f = await fruta();
   const hoja = await abrirCompra(page);
   await llenarFruta(hoja, f.nombre, 4, "25");
@@ -206,12 +206,13 @@ test("respuesta perdida al confirmar: no dice que no se guardó, y al reintentar
 
   await page.route("**/*", async (r) => (r.request().method() === "POST" && r.request().headers()["next-action"] ? (await r.fetch(), r.abort()) : r.fallback()));
   await hoja.getByRole("button", { name: "Confirmar compra" }).click();
-  await expect(hoja.getByRole("alert")).toHaveText("La señal no respondió y no sé si se guardó. Toca Confirmar otra vez: no se va a repetir.");
+  // Desde ADR-0019 no pide otro toque: queda en el celular y se reintenta solo, sin repetir la compra.
+  await expect(page.getByText("Quedó en el celular")).toBeVisible({ timeout: 20_000 });
   expect(await comprasDe(f.id)).toHaveLength(1);
 
-  await page.unrouteAll();
-  await hoja.getByRole("button", { name: "Confirmar compra" }).click();
-  await expect(page.getByText("Compra guardada")).toBeVisible();
+  // La cola puede estar reintentando justo ahora: ese pedido en vuelo se deja terminar.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await expect(page.getByText("Listo: se envió lo guardado")).toBeVisible({ timeout: 30_000 });
   expect(await comprasDe(f.id)).toHaveLength(1);
   expect(await stockDe(f.id)).toBe(4);
 });
