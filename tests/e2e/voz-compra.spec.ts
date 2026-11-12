@@ -3,13 +3,27 @@ import { expect, test } from "@playwright/test";
 import { baseLocal, enSoles } from "./base";
 import { comando, crearComando, dictar, stockDe } from "./dictar";
 
-// Dictar una compra → tarjeta → Confirmar, contra la base local (A6). Cada prueba que mira el stock y cada ancho usan su
-// propia fruta para que las corridas en paralelo no se lo pisen, y ninguna es de otra prueba.
+// Dictar una compra → tarjeta → Confirmar, contra la base local (A6). Cada prueba crea su propia fruta: así las corridas en
+// paralelo no se pisan el stock y la prueba no depende del catálogo que tenga la base (el catálogo real de ADR-0016 deja
+// inactivas las frutas del seed, y v_stock solo muestra las activas). Al terminar se desactivan (nunca se borran datos).
 
 const base = baseLocal();
-const frutaPorAncho = { "s25-412": { id: 2, nombre: "Mango Edward" }, "gama-media-360": { id: 4, nombre: "Plátano isla" } } as const;
-const otraFrutaPorAncho = { "s25-412": { id: 9, nombre: "Palta fuerte" }, "gama-media-360": { id: 10, nombre: "Limón" } } as const;
-type Ancho = keyof typeof frutaPorAncho;
+const PREFIJO = "Fruta de compra por voz";
+
+// Solo las de este worker: con dos en paralelo, desactivar todas las del prefijo le quitaba la fruta a la prueba que el otro
+// todavía estaba corriendo (v_stock deja de mostrarla y su stock sale nulo).
+const creadas: number[] = [];
+test.afterAll(async () => {
+  if (creadas.length) await base.from("productos").update({ activo: false }).in("id", creadas);
+});
+
+async function nuevaFruta() {
+  const nombre = `${PREFIJO} ${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
+  const { data, error } = await base.from("productos").insert({ nombre, unidad: "caja" }).select("id, nombre").single();
+  if (error || !data) throw new Error(`No se pudo crear la fruta de prueba: ${error?.message}`);
+  creadas.push(data.id);
+  return data;
+}
 const chao = { id: 2, nombre: "Agrícola Chao" };
 
 const comprasDe = async (comandoId: number) =>
@@ -29,9 +43,9 @@ function tarjeta(fruta: { id: number; nombre: string }, cambios: Record<string, 
 
 const dictarCompra = (page: Parameters<typeof dictar>[0], comandoId: number, t: ReturnType<typeof tarjeta>) => dictar(page, comandoId, t, "¿Así fue la compra?");
 
-test("compra sin decir si se pagó: lo pregunta, y al crédito con dos toques se guarda una vez", async ({ page }, info) => {
+test("compra sin decir si se pagó: lo pregunta, y al crédito con dos toques se guarda una vez", async ({ page }) => {
   test.slow();
-  const fruta = frutaPorAncho[info.project.name as Ancho];
+  const fruta = await nuevaFruta();
   const antes = await stockDe(fruta.id);
   const comandoId = await crearComando("registrar_compra");
   const hoja = await dictarCompra(page, comandoId, tarjeta(fruta));
@@ -58,9 +72,9 @@ test("compra sin decir si se pagó: lo pregunta, y al crédito con dos toques se
   expect(await comando(comandoId)).toEqual({ resultado: "confirmado", latencia_ms: expect.any(Number) });
 });
 
-test("costo sugerido corregido a mano, al contado con Yape y sin proveedor; el comando queda corregido", async ({ page }, info) => {
+test("costo sugerido corregido a mano, al contado con Yape y sin proveedor; el comando queda corregido", async ({ page }) => {
   test.slow();
-  const fruta = otraFrutaPorAncho[info.project.name as Ancho];
+  const fruta = await nuevaFruta();
   const comandoId = await crearComando("registrar_compra");
   const hoja = await dictarCompra(
     page,
@@ -93,9 +107,9 @@ test("costo sugerido corregido a mano, al contado con Yape y sin proveedor; el c
   expect((await comando(comandoId)).resultado).toBe("corregido");
 });
 
-test("al crédito sin proveedor no se guarda: se elige de la lista, y descartar avisa qué no guardó", async ({ page }, info) => {
+test("al crédito sin proveedor no se guarda: se elige de la lista, y descartar avisa qué no guardó", async ({ page }) => {
   test.slow();
-  const fruta = frutaPorAncho[info.project.name as Ancho];
+  const fruta = await nuevaFruta();
   const comandoId = await crearComando("registrar_compra");
   const hoja = await dictarCompra(
     page,

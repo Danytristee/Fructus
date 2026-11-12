@@ -153,10 +153,10 @@ test("respuesta perdida al anular: no dice que no se hizo, y al reintentar no de
   expect(invariantes()).toBe("limpias");
 });
 
-test("el dueño y el administrador anulan la misma venta a la vez: gana uno, el otro lo sabe, y la fruta vuelve una sola vez", async ({ page, browser }) => {
+test("el dueño y el administrador anulan la misma venta a la vez: gana uno, el otro lo sabe, y la fruta vuelve una sola vez", async ({ page, browser, baseURL }) => {
   const { cliente, ventaId } = await ventaAlCredito(70);
   const hojaA = await abrirDetalle(page, cliente.nombre, "duenio");
-  const ctx = await browser.newContext({ baseURL: "http://127.0.0.1:3000", viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
+  const ctx = await browser.newContext({ baseURL, viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
   const paginaB = await ctx.newPage();
   const hojaB = await abrirDetalle(paginaB, cliente.nombre, "administrador");
   await irAAnular(hojaA);
