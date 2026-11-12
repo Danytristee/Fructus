@@ -20,7 +20,8 @@ export type CompraLeida = { id: number; fecha: string; total: number; proveedor:
 export type MermaLeida = { id: number; fecha: string; cantidad: number; motivo: string | null; producto: Producto | null };
 export type GastoLeido = { id: number; fecha: string; monto: number; categoria: string; descripcion: string | null };
 
-export type Estado = "pago" | "debe" | "abono" | "compra" | "merma" | "gasto" | "anulada";
+/** «credito» y «pagaste» son de la ficha del proveedor: una compra fiada y un pago a cuenta, vistos desde tu lado. */
+export type Estado = "pago" | "debe" | "abono" | "compra" | "merma" | "gasto" | "anulada" | "credito" | "pagaste";
 
 export type Operacion = {
   clave: string;

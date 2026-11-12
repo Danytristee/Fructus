@@ -12,6 +12,9 @@ const tipos = {
   gasto: { clase: "bg-acento/12 text-acento-texto", Icono: ReceiptText },
   merma: { clase: "bg-deuda-fondo text-deuda", Icono: TriangleAlert },
   anulada: { clase: "bg-texto/8 text-texto-suave", Icono: Ban },
+  // La ficha del proveedor: una compra fiada (le debes) y un pago que le hiciste.
+  credito: { clase: "bg-deuda-fondo text-deuda", Icono: Clock },
+  pagaste: { clase: "bg-exito-fondo text-exito", Icono: HandCoins },
   // La posición para negociar con un proveedor (lib/proveedores-reglas.ts, posicionDe).
   riesgo: { clase: "bg-deuda-fondo text-deuda", Icono: TriangleAlert },
   socio: { clase: "bg-acento/12 text-acento-texto", Icono: Handshake },

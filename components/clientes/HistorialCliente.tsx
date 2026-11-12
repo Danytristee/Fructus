@@ -4,14 +4,20 @@ import { FilaOperacion } from "@/components/hoy/FilaOperacion";
 import { Vacio } from "@/components/ui/Vacio";
 import type { DiaOperaciones } from "@/lib/ficha-cliente-reglas";
 
-type Props = { dias: DiaOperaciones[]; hayMas: boolean; tope: number };
+type Props = {
+  dias: DiaOperaciones[];
+  hayMas: boolean;
+  tope: number;
+  /** Qué decir sin movimientos. La ficha del proveedor usa la misma pieza con su frase. */
+  vacio?: string;
+};
 
 // Lo que le vendiste y lo que te pagó, día por día, de lo más reciente a lo más viejo: su hoja del cuaderno.
-export function HistorialCliente({ dias, hayMas, tope }: Props) {
+export function HistorialCliente({ dias, hayMas, tope, vacio = "Cuando le vendas o te pague, aparece aquí." }: Props) {
   if (dias.length === 0) {
     return (
       <Vacio className="mt-6" icono={<Receipt />} titulo="Todavía no hay movimientos">
-        Cuando le vendas o te pague, aparece aquí.
+        {vacio}
       </Vacio>
     );
   }
