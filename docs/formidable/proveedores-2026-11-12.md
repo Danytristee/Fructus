@@ -97,3 +97,25 @@ campo propio, la ficha podría decir «el pago vence el jueves». Eso cambia una
 - botón de pago desde la lista;
 - «Compra fiada» en vez de «Al crédito» en el historial;
 - el contraste de 6.4:1 de las insignias grises (es la misma pieza de «Anulada»: se cambia en `Insignia` para toda la app).
+
+## 5. Después (los 3 cambios, con OK del 2026-11-12)
+
+Capturas antes y después, al mismo ancho, en `capturas/proveedores-2026-11-12/` (`antes-*` y `despues-*`, a 412 y 360 px).
+
+- **Medido de nuevo:**
+  - 0 controles chicos y 0 desborde a 412 y 360 px.
+  - En la ficha, «Le debes S/ 28,823.00» queda a y ≈ 395 de 915, sobre el pliegue y lejos de «Registrar pago».
+  - 560 pruebas de Vitest, con `razonCorta` y `mayorDeuda` nuevas.
+- **Segunda prueba ciega**, con las mismas preguntas:
+  - **B se resuelve desde la lista:** «Chao: Agroexportadora Valle de Ica te deja uva a S/ 8 menos».
+  - La mayor deuda (Pacífico, S/ 28,823) se lee desde arriba.
+  - En la ficha leyó la deuda, el 63 % y «cada 3 días» sin deslizar.
+- **Lo que vio y se arregló en el momento:** el filtro decía «Pide rebaja» y la insignia «Pide mejor precio». El filtro ahora dice
+  «Pide mejor precio», como prometía el cambio 2.
+- **Nota:** 8.2 → **8.8**. Suben la ley 1 (9), la 2 (9), la 3 (9), la 6 (8), la 8 (8) y la regla C1.
+- **Lo que queda de la 2.ª prueba ciega** (sin ejecutar):
+  - «Se enfrió» y «Ocasional» no se entienden solos: ¿es bueno o malo?
+  - «Para negociar con él» como título de la tarjeta.
+  - «cal. 113».
+  - «Los demás 16 %».
+  - No dice qué hacer con el dato «tus 3 primeros, 79 %».

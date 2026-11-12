@@ -78,7 +78,7 @@ export function ListaProveedores({ proveedores, nuevo }: { proveedores: FilaProv
           opciones={[
             { valor: "todos", etiqueta: "Todos", cuenta: proveedores.length },
             // Los filtros dicen lo mismo que las insignias: «Para negociar» no se entendía en la prueba a ciegas (/formidable 2026-11-12).
-            { valor: "negociar", etiqueta: "Pide rebaja", cuenta: proveedores.filter(pasa.negociar).length },
+            { valor: "negociar", etiqueta: "Pide mejor precio", cuenta: proveedores.filter(pasa.negociar).length },
             { valor: "riesgo", etiqueta: "Dependes de él", cuenta: proveedores.filter(pasa.riesgo).length },
             { valor: "debes", etiqueta: "Les debes", cuenta: proveedores.filter(pasa.debes).length },
           ]}
