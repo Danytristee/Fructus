@@ -21,7 +21,7 @@ async function quieta(page: Page) {
 /** Los textos visibles en la ventana, con su color, tamaño y si alguna caja los recorta. */
 async function textosVisibles(page: Page) {
   return page.evaluate(() => {
-    // Lo que deja pasar los toques (pointer-events: none, como la etiqueta «Mantén para hablar») igual tapa a la vista: mientras se mide,
+    // Lo que deja pasar los toques (pointer-events: none, como la etiqueta «Toca o mantén para hablar») igual tapa a la vista: mientras se mide,
     // todo recibe toques para que elementFromPoint devuelva lo que de verdad está encima.
     const todoTocable = document.createElement("style");
     todoTocable.textContent = "* { pointer-events: auto !important; }";

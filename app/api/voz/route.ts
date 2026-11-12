@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   // 2. El audio: un archivo de audio, de 10 MB y 60 s como máximo.
   const formulario = await request.formData().catch(() => null);
   const audio = formulario?.get("audio");
-  if (!(audio instanceof Blob) || audio.size === 0) return responder(400, { error: "No llegó el audio. Mantén el botón mientras hablas." });
+  if (!(audio instanceof Blob) || audio.size === 0) return responder(400, { error: "No llegó el audio. Toca el botón y habla después de «Te escucho»." });
   if (audio.size > TOPE_BYTES) return responder(413, { error: "El audio es muy largo. Dilo en menos de un minuto." });
   if (audio.type && !audio.type.startsWith("audio/")) return responder(415, { error: "Eso no es un audio." });
   const duracionMs = Number(formulario?.get("duracion_ms")) || null;

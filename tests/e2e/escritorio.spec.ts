@@ -56,7 +56,7 @@ test("el contador ve el panel sin Ajustes, y sin el botón de voz", async ({ pag
   await entrarComo(page, "contador");
   const nav = page.getByRole("complementary", { name: "Fructus" }).getByRole("navigation", { name: "Principal" });
   await expect(nav.getByRole("link")).toHaveText(["Hoy", "Clientes", "Stock", "Ventas", "Cierre del día"]);
-  await expect(page.getByRole("button", { name: /Mantén para hablar/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /mantén para hablar/i })).toHaveCount(0);
 });
 
 test("«Hoy» en grilla: lo vendido a la izquierda y lo cobrado al lado; «Lo último» debajo, con el aviso de stock al lado", async ({ page }) => {

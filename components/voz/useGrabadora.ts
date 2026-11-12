@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 export type FallaGrabadora = "sin_permiso" | "sin_microfono" | "no_soportado";
 
@@ -17,7 +17,7 @@ function falla(e: unknown): FallaGrabadora {
 }
 
 /**
- * Graba mientras se mantiene el botón. El micrófono se pide al presionar y se suelta al terminar: la luz de «micrófono
+ * Graba desde que se toca el botón hasta que se termina (soltar o un segundo toque). El micrófono se pide al empezar y se suelta al terminar: la luz de «micrófono
  * en uso» del celular no queda prendida. Si se suelta antes de que el micrófono arranque, la grabación sale vacía.
  */
 export function useGrabadora() {
@@ -65,6 +65,18 @@ export function useGrabadora() {
     g.stream.getTracks().forEach((t) => t.stop());
     return { audio: new Blob(trozos.current, { type: g.mimeType || "audio/webm" }), duracionMs };
   }, []);
+
+  // Se fue de la pantalla con el micrófono escuchando (un toque lo deja abierto sin el dedo): se apaga y no se envía nada.
+  useEffect(
+    () => () => {
+      soltado.current = true;
+      const g = grabadora.current;
+      grabadora.current = null;
+      if (g && g.state !== "inactive") g.stop();
+      g?.stream.getTracks().forEach((t) => t.stop());
+    },
+    [],
+  );
 
   return { empezar, terminar };
 }

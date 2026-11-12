@@ -1,20 +1,24 @@
-import { Mic } from "lucide-react";
+import { Mic, X } from "lucide-react";
 import { cn } from "cn";
 
 export type EstadoVoz = "listo" | "escuchando" | "entendiendo";
 
 type Props = Omit<React.ComponentProps<"button">, "children"> & {
   estado: EstadoVoz;
-  /** Lo que se lee arriba: «Mantén para hablar», «Te escucho… 0:03», «Entendiendo…». Se anuncia con aria-live. */
+  /** Lo que se lee arriba: «Toca o mantén para hablar», «Te escucho… 0:03», «Entendiendo…». Se anuncia con aria-live. */
   texto: string;
   /** Si la etiqueta se ve. Oculta, el lector de pantalla la sigue leyendo. */
   verTexto?: boolean;
+  /** Escucha sin el dedo encima: el siguiente toque envía. */
+  bloqueado?: boolean;
+  /** Mientras escucha sin el dedo, la X a la izquierda del orbe que descarta sin enviar. */
+  alCancelar?: () => void;
 };
 
 const ondas = ["-0.45s", "-0.15s", "-0.6s", "-0.3s", "-0.75s"];
 
 // El orbe de Aurora (ADR-0007). Solo dibuja: grabar, enviar y abrir la tarjeta son de quien lo usa.
-export function BotonVoz({ estado, texto, verTexto = true, className, ...props }: Props) {
+export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, alCancelar, className, ...props }: Props) {
   return (
     <div className={cn("pointer-events-none grid justify-items-center gap-2", className)}>
       <span
@@ -28,6 +32,17 @@ export function BotonVoz({ estado, texto, verTexto = true, className, ...props }
         {texto}
       </span>
       <div className="relative">
+        {alCancelar && (
+          // Como el basurero de los audios de WhatsApp: a un lado del orbe, lejos del pulgar que va a tocar para enviar.
+          <button
+            type="button"
+            onClick={alCancelar}
+            className="vidrio-desenfocado pointer-events-auto absolute top-1/2 right-[calc(100%+20px)] grid size-14 -translate-y-1/2 animate-subir place-items-center rounded-full text-texto"
+          >
+            <X aria-hidden className="size-6" strokeWidth={2.4} />
+            <span className="sr-only">Cancelar sin enviar</span>
+          </button>
+        )}
         {/* El resplandor que respira en reposo, detrás del orbe. */}
         <span aria-hidden className="halo pointer-events-none absolute inset-0 rounded-full" />
         <span aria-hidden className="pointer-events-none absolute inset-0">
@@ -45,6 +60,7 @@ export function BotonVoz({ estado, texto, verTexto = true, className, ...props }
         <button
           type="button"
           data-estado={estado}
+          data-bloqueado={bloqueado || undefined}
           aria-describedby="voz-texto"
           className={cn(
             // Solo el orbe recibe toques: la etiqueta y el contenedor dejan pasar el dedo a la barra de abajo.

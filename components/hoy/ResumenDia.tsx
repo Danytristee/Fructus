@@ -40,7 +40,7 @@ export async function ResumenDia() {
     <div className="grid gap-2.5 lg:grid-cols-12 lg:items-start lg:gap-4">
       {dia.numeroVentas === 0 ? (
         <Vacio icono={<TrendingUp />} titulo="Todavía no vendiste hoy" className="animate-subir lg:col-span-7">
-          Mantén el botón de abajo y di la venta, por ejemplo: «10 cajas de mango a don Lucho».
+          Toca el botón de abajo y di la venta, por ejemplo: «10 cajas de mango a don Lucho».
         </Vacio>
       ) : (
         <Tarjeta protagonista className="grid animate-subir lg:col-span-7" aria-label="Lo vendido hoy">

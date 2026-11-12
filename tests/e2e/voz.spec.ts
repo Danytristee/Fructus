@@ -78,12 +78,56 @@ test("el botón de voz vive abajo al centro, mide 96 px o más, graba al mantene
   await expect(page.locator("button[data-estado]")).toHaveAttribute("data-estado", "listo");
 });
 
-test("un toque corto no envía nada y enseña a mantener el botón", async ({ page }) => {
+/** Un toque corto en el orbe (menos de TOQUE_MAXIMO_MS). */
+async function tocarOrbe(page: Page) {
+  const caja = (await page.locator("button[data-estado]").boundingBox())!;
+  await page.mouse.click(caja.x + caja.width / 2, caja.y + caja.height / 2, { delay: 60 });
+}
+
+test("un toque deja el botón escuchando sin el dedo, y otro toque envía", async ({ page }) => {
+  test.slow(); // la primera vez compila la hoja
+  await entrarComo(page, "duenio");
+  await simularVoz(page, { status: 200, body: { comandoId: 4, tarjeta: tarjetaVenta, latenciaMs: 900 } });
+  await page.waitForLoadState("networkidle");
+  const orbe = page.locator("button[data-estado]");
+  await tocarOrbe(page);
+  await expect(orbe).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
+  await expect(orbe).toHaveAttribute("data-bloqueado", "true");
+  await expect(page.locator("#voz-texto")).toContainText("toca para enviar");
+  await expect(page.getByRole("button", { name: "Cancelar sin enviar" })).toBeVisible();
+
+  const pedido = page.waitForRequest((r) => r.url().endsWith("/api/voz"));
+  await page.waitForTimeout(1500); // sigue escuchando sin el dedo encima
+  await expect(orbe).toHaveAttribute("data-estado", "escuchando");
+  await tocarOrbe(page);
+  const enviado = await pedido;
+  expect(Number(enviado.postDataBuffer()!.toString("latin1").match(/name="duracion_ms"\r\n\r\n(\d+)/)?.[1])).toBeGreaterThanOrEqual(1400);
+  await expect(page.getByRole("dialog", { name: "¿Así fue la venta?" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Cancelar sin enviar" })).toHaveCount(0);
+});
+
+test("escuchando sin el dedo, la X descarta sin enviar nada", async ({ page }) => {
   await entrarComo(page, "duenio");
   let llamadas = 0;
   await page.route("/api/voz", (r) => (llamadas++, r.abort()));
-  await dictar(page, 150);
-  await expect(page.locator("#voz-texto")).toHaveText("Mantén el botón mientras hablas");
+  await page.waitForLoadState("networkidle");
+  const orbe = page.locator("button[data-estado]");
+  await tocarOrbe(page);
+  await expect(orbe).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
+  await page.getByRole("button", { name: "Cancelar sin enviar" }).click();
+  await expect(orbe).toHaveAttribute("data-estado", "listo");
+  await expect(orbe).not.toHaveAttribute("data-bloqueado", "true");
+  await expect(page.locator("#voz-texto")).toHaveText("Cancelado. No se envió nada.");
+  await page.waitForTimeout(500);
+  expect(llamadas).toBe(0);
+});
+
+test("mantener un instante sin alcanzar a hablar no envía nada y dice por qué", async ({ page }) => {
+  await entrarComo(page, "duenio");
+  let llamadas = 0;
+  await page.route("/api/voz", (r) => (llamadas++, r.abort()));
+  await dictar(page, 400); // más que un toque, menos que lo mínimo para entender algo
+  await expect(page.locator("#voz-texto")).toHaveText("No alcancé a oírte. Habla después de «Te escucho».");
   expect(llamadas).toBe(0);
 });
 
@@ -136,17 +180,17 @@ test("si no entendió nada, lo pide otra vez sin guardar el audio", async ({ pag
 test("la etiqueta enseña la primera vez y, después de usarlo, deja de tapar «Lo último»", async ({ page }) => {
   await entrarComo(page, "duenio");
   const etiqueta = page.locator("#voz-texto");
-  await expect(etiqueta).toHaveText("Mantén para hablar");
+  await expect(etiqueta).toHaveText("Toca o mantén para hablar");
   await expect(etiqueta).toHaveCSS("opacity", "1");
 
-  await dictar(page, 100);
-  await expect(etiqueta).toHaveText("Mantén el botón mientras hablas");
+  await dictar(page, 400);
+  await expect(etiqueta).toHaveText("No alcancé a oírte. Habla después de «Te escucho».");
 
   await page.reload();
   await expect(page.getByText("Cobraste")).toBeVisible();
   await expect(etiqueta).toHaveCSS("opacity", "0");
   // Oculta a la vista, el lector de pantalla la sigue teniendo.
-  await expect(etiqueta).toHaveText("Mantén para hablar");
+  await expect(etiqueta).toHaveText("Toca o mantén para hablar");
 
   // Al bajar hasta el final, la última fila de «Lo último» queda por encima del orbe.
   const voz = page.getByRole("button", { name: "Botón de voz" });
