@@ -19,7 +19,16 @@
   - Un doble toque en «Confirmar pago» guardó un solo pago (`pagos_proveedor` 25, comando 164) y la deuda con Chao quedó en S/ 0.00.
   - Se creó y se editó un proveedor desde la hoja.
 - **Pendiente:**
-  - **Aplicar al proyecto** la migración y `proveedores-demo.sql`, con OK. La demo suma unas 3,800 cajas al stock.
+  - **Ya aplicado al proyecto** (2026-11-12, con OK):
+    - La migración, con `supabase db push` y la misma versión que el archivo.
+    - `proveedores-demo.sql`: 10 proveedores activos, 182 compras y 18 pagos.
+    - Sin tocar el stock, como se decidió: cada compra de prueba sale por un ajuste con el motivo «compra de prueba (demo de
+      proveedores)», 566 en total. Ningún producto cambió su stock.
+    - Invariantes limpias y `db lint` sin errores.
+    - Aviso nuevo del linter: `pagos_proveedor` tiene políticas permisivas múltiples. Es igual que en `abonos` y se deja
+      (CLAUDE.md).
+    - A Agrícola Chao y Transportes Piura Norte, que ya existían, se les pusieron datos de prueba: RUC 20999…, teléfonos
+      900 000 1xx, contacto y notas.
   - **`/formidable`** de Proveedores, la ficha y las dos hojas, y **`/chaos`** de la hoja de pago y de la de proveedor. Solo se probó
     el doble toque.
   - **Pago a proveedor por voz:** falta la herramienta en `docs/interprete-voz.md` y su tarjeta.
