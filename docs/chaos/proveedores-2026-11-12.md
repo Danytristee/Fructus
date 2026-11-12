@@ -3,7 +3,7 @@
 - **Rama:** `claude/suppliers-section-test-data-e7d687`.
 - **Semilla:** 1112.
 - **Base:** local, con `catalogo-real` y `proveedores-demo`. Se respaldó antes y se rehízo al terminar (`db reset` y las dos demos).
-- **Conteo:** 9 ataques, 8 resistieron, 1 hallazgo de gravedad 4.
+- **Conteo:** 9 ataques, 8 resistieron, 1 hallazgo de gravedad 4, ya arreglado.
 - **Invariantes:** limpias antes y después de cada ataque que escribió.
 - **Plan:**
   - El núcleo: doble toque, respuesta perdida, monto con coma y dos cuentas a la vez. La voz no aplica: estas hojas no se dictan.
@@ -25,6 +25,21 @@
 - **Arreglo propuesto:**
   - el aviso dice cuál es el campo: «Revisa el RUC: tiene 11 números.»;
   - y si el campo con error está dentro de «Más datos», el desplegable se abre solo.
+
+### Arreglo (con OK del 2026-11-12)
+
+- **Primero, la prueba que falla:** `lib/proveedor-reglas.test.ts`, en «avisoDeProveedor». Falló porque la función no existía.
+- **Después, el arreglo:**
+  - `avisoDeProveedor` devuelve el primer error con el nombre de su campo («El RUC tiene 11 números y empieza con 10 o 20.») y dice si
+    está dentro de «Más datos».
+  - `Desplegable` suma un modo controlado (`abierto`, `alCambiar`).
+  - La hoja mantiene «Más datos» abierto mientras adentro haya un error. No se vuelve a montar: con la primera versión, que cambiaba la
+    llave del desplegable, el RUC perdía el foco al primer dígito.
+- **Mismo ataque, misma semilla:**
+  - el RUC conserva el foco en las 10 teclas;
+  - el pie nombra el RUC;
+  - «Más datos» sigue abierto (`aria-expanded=true`, el campo no queda `inert`).
+  - **Resiste.**
 
 ## Resistió
 

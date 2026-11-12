@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  avisoDeProveedor,
   borradorDeProveedor,
   cambiosDeProveedor,
   despuesDelPago,
@@ -56,5 +57,21 @@ describe("leerPago y despuesDelPago", () => {
     expect(despuesDelPago(1331, 1000)).toEqual({ tipo: "debe", monto: 331 });
     expect(despuesDelPago(0.3, 0.1 + 0.2)).toEqual({ tipo: "al_dia", monto: 0 });
     expect(despuesDelPago(100, 150)).toEqual({ tipo: "a_favor", monto: 50 });
+  });
+});
+
+describe("avisoDeProveedor (/chaos 2026-11-12: «Revisa lo marcado en rojo» sin nada rojo)", () => {
+  it("nombra el campo que falla y dice si está dentro de «Más datos»", () => {
+    expect(avisoDeProveedor({ ...chao, ruc: "2099900010" }, null)).toEqual({
+      aviso: "El RUC tiene 11 números y empieza con 10 o 20.",
+      enMasDatos: true,
+    });
+    expect(avisoDeProveedor({ ...chao, contacto: "x".repeat(61) }, null)).toEqual({ aviso: "El contacto va hasta 60 letras.", enMasDatos: false });
+    expect(avisoDeProveedor({ ...chao, notas: "x".repeat(301) }, null)).toEqual({ aviso: "Las notas van hasta 300 letras.", enMasDatos: true });
+  });
+  it("sin nombre, lo pide; al editar sin cambios, lo dice; todo bien, nada", () => {
+    expect(avisoDeProveedor(PROVEEDOR_VACIO, null)).toEqual({ aviso: "Escribe el nombre del proveedor.", enMasDatos: false });
+    expect(avisoDeProveedor(chao, chao)).toEqual({ aviso: "Todavía no cambiaste nada.", enMasDatos: false });
+    expect(avisoDeProveedor(chao, null)).toEqual({ aviso: null, enMasDatos: false });
   });
 });
