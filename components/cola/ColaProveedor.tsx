@@ -14,8 +14,6 @@ type Cola = {
   encolar: (contenido: Contenido, resumen: string) => Promise<boolean>;
   /** Saca una entrada: una tarjeta que la persona ya confirmó o descartó, o un rechazo descartado. */
   quitar: (id: number) => Promise<void>;
-  /** Envía ya, sin esperar el próximo reintento. */
-  enviarAhora: () => void;
 };
 
 const Contexto = createContext<Cola | null>(null);
@@ -169,12 +167,6 @@ export function ColaProveedor({ usuarioId, children }: { usuarioId: string; chil
     [refrescar, drenar],
   );
 
-  const enviarAhora = useCallback(() => {
-    window.clearTimeout(reintento.current);
-    intentos.current = 0;
-    void drenar();
-  }, [drenar]);
-
   const valor = useMemo<Cola>(() => {
     const entradas = todas.filter((e) => e.usuarioId === usuarioId);
     const situacion: Situacion = {
@@ -186,8 +178,8 @@ export function ColaProveedor({ usuarioId, children }: { usuarioId: string; chil
       sinSesion,
       enviadas,
     };
-    return { entradas, situacion, encolar, quitar, enviarAhora };
-  }, [todas, usuarioId, enLinea, enviando, esperando, sinSesion, enviadas, encolar, quitar, enviarAhora]);
+    return { entradas, situacion, encolar, quitar };
+  }, [todas, usuarioId, enLinea, enviando, esperando, sinSesion, enviadas, encolar, quitar]);
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }

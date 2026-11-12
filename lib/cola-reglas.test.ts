@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { formatearCajas, formatearSoles } from "./formato";
-import { contarPorEnviar, desenlaceConfirmacion, esperaTras, franjaDe, resumenDe, siguiente, SIN_SENAL, type Entrada, type Operacion, type Situacion } from "./cola-reglas";
+import { queEsLaTarjeta, contarPorEnviar, desenlaceConfirmacion, esperaTras, franjaDe, resumenDe, siguiente, SIN_SENAL, type Entrada, type Operacion, type Situacion } from "./cola-reglas";
 
 const venta: Operacion = {
   tipo: "venta",
@@ -81,8 +81,8 @@ describe("siguiente", () => {
 });
 
 describe("esperaTras", () => {
-  it("dobla hasta un minuto", () => {
-    expect([1, 2, 3, 4, 5, 9].map(esperaTras)).toEqual([5_000, 10_000, 20_000, 40_000, 60_000, 60_000]);
+  it("dobla hasta 30 s: sin botón de «Enviar ahora», el reintento llega pronto", () => {
+    expect([1, 2, 3, 4, 9].map(esperaTras)).toEqual([5_000, 10_000, 20_000, 30_000, 30_000]);
   });
   it("sin fallas todavía, 5 s", () => expect(esperaTras(0)).toBe(5_000));
 });
@@ -122,21 +122,37 @@ describe("franjaDe", () => {
     expect(franjaDe({ ...base, porEnviar: [conf(venta)], enviando: true })).toMatchObject({ tono: "enviando" });
   });
 
-  it("si la señal está débil, ofrece enviar ahora", () => {
-    expect(franjaDe({ ...base, porEnviar: [conf(venta)], esperando: true })).toMatchObject({ tono: "sin_senal", accion: "enviar" });
+  it("si la señal está débil, lo dice sin botón que asuste («¿se manda dos veces?»)", () => {
+    const f = franjaDe({ ...base, porEnviar: [conf(venta)], esperando: true });
+    expect(f).toMatchObject({ tono: "sin_senal", titulo: "La señal está débil", accion: null });
+    expect(f?.detalle).toContain("sin repetir nada");
   });
 
   it("con la sesión vencida, pide entrar", () => {
     expect(franjaDe({ ...base, porEnviar: [conf(venta)], sinSesion: true })).toMatchObject({ accion: "entrar" });
   });
 
-  it("un rechazo manda sobre todo, y dice qué y por qué", () => {
+  it("un rechazo manda sobre todo: dice qué no entró y por qué, sin la orden de la tarjeta («Elige a otro»)", () => {
     const rechazada = conf(venta, { estado: "rechazada", resumen: "Venta a Don Lucho · 3 cajas", error: "Ese cliente ya no está en tu cuaderno. Elige a otro." });
     const f = franjaDe({ ...base, enLinea: false, rechazada });
-    expect(f).toMatchObject({ tono: "error", accion: "descartar" });
-    expect(f?.titulo).toContain("Don Lucho");
-    expect(f?.detalle).toContain("ya no está");
+    expect(f).toMatchObject({ tono: "error", accion: "quitar", titulo: "No entró: Venta a Don Lucho · 3 cajas" });
+    expect(f?.detalle).toBe("Ese cliente ya no está en tu cuaderno. Anótala otra vez con lo correcto y quítala de aquí.");
+  });
+
+  it("el rechazo de un abono habla en masculino", () => {
+    const rechazada = conf(abono, { estado: "rechazada", resumen: "Abono de Don Lucho", error: "Tu cuenta no puede registrar abonos." });
+    expect(franjaDe({ ...base, rechazada })?.detalle).toBe("Tu cuenta no puede registrar abonos. Anótalo otra vez con lo correcto y quítalo de aquí.");
   });
 
   it("al terminar, dice «Listo» un momento", () => expect(franjaDe({ ...base, enviadas: 3 })).toMatchObject({ tono: "listo" }));
+});
+
+describe("queEsLaTarjeta", () => {
+  const lucho = { dicho: "lucho", elegido: { id: 1, nombre: "Don Lucho" }, opciones: [] };
+  it("un abono dice de quién y cuánto", () => expect(queEsLaTarjeta({ tipo: "abono", cliente: lucho, monto: 50 })).toBe(`tu abono de Don Lucho · ${formatearSoles(50)}`));
+  it("una venta dice a quién y el total", () => expect(queEsLaTarjeta({ tipo: "venta", cliente: lucho, total: 120 })).toBe(`tu venta a Don Lucho · ${formatearSoles(120)}`));
+  it("sin elegir, usa lo que se dijo", () => expect(queEsLaTarjeta({ tipo: "abono", cliente: { dicho: "el flaco", elegido: null, opciones: [] }, monto: null })).toBe("tu abono del flaco"));
+  it("una merma dice la fruta y las cajas", () =>
+    expect(queEsLaTarjeta({ tipo: "merma", producto: { dicho: null, elegido: { id: 2, nombre: "Palta" }, opciones: [] }, cantidad: 2 })).toBe(`tu merma de Palta · ${formatearCajas(2)}`));
+  it("lo que no reconoce no rompe", () => expect(queEsLaTarjeta(null)).toBe("lo que dictaste"));
 });

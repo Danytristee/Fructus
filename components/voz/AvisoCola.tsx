@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Eye } from "lucide-react";
 
 import { useCola } from "@/components/cola/ColaProveedor";
+import { queEsLaTarjeta } from "@/lib/cola-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { AvisoVoz } from "./AvisoVoz";
 import type { ResultadoVoz } from "./VozHoy";
@@ -22,7 +23,7 @@ export function AvisoCola({ alAbrir }: Props) {
     return (
       <AvisoVoz
         tono="error"
-        mensaje={`Un dictado que guardé sin señal no se entendió: ${sinEntender.error ?? "dilo otra vez."}`}
+        mensaje="Un dictado que guardé sin señal no se entendió. Dilo otra vez."
         cerrar={{ etiqueta: "Borrar ese dictado", alTocar: () => void cola.quitar(sinEntender.id) }}
       />
     );
@@ -36,13 +37,13 @@ export function AvisoCola({ alAbrir }: Props) {
   return (
     <AvisoVoz
       tono="info"
-      mensaje={n === 1 ? "Volvió la señal: tienes 1 dictado listo para confirmar." : `Volvió la señal: tienes ${n} dictados listos para confirmar.`}
+      mensaje={`Volvió la señal. Confirma ${queEsLaTarjeta(tarjeta)}${n > 1 ? ` (y ${n - 1} más)` : ""}.`}
       accion={{
-        etiqueta: n === 1 ? "Verlo" : "Ver el primero",
+        etiqueta: "Verlo",
         icono: <Eye aria-hidden className="size-5" />,
         alTocar: () => alAbrir(primera.id, { comandoId, tarjeta: tarjeta as Tarjeta, latenciaMs }),
       }}
-      cerrar={{ etiqueta: "Verlo después", alTocar: () => setEscondidas(n) }}
+      cerrar={{ etiqueta: "Después (no se pierde)", alTocar: () => setEscondidas(n) }}
     />
   );
 }

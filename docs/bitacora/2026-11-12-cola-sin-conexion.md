@@ -6,5 +6,9 @@
 - **Cómo se verificó:** Vitest (550, con 26 de `lib/cola-reglas.test.ts`); e2e nuevo `tests/e2e/cola-sin-conexion.spec.ts` a 412 y 360 px
   (corta la red, confirma una venta, dicta, vuelve la señal y revisa en la base la venta, el saldo y el abono); se actualizaron las pruebas de
   «respuesta perdida» y «sin señal» al comportamiento nuevo. `medir:js` de «Hoy»: 149.7 KB. Invariantes: las 12 en orden.
-- **Pendiente:** la fecha de lo encolado es la del envío (ver ADR-0017); `/formidable` de la franja y `/chaos` de la cola; `voz-compra` y la merma
-  simultánea ya fallaban en `main` antes de este cambio.
+- **Después, `/chaos` y `/formidable`:** `/chaos` (semilla 1112) halló que una venta en cola cuyo cliente se borró se reintentaba para siempre
+  culpando a la señal: `confirmarVenta` ahora traduce el 23503 (prueba de regresión en `cola-sin-conexion.spec.ts`). `/formidable` (7.6): el
+  rechazo dice «No entró» con su motivo y «Quitar de la lista», la señal débil ya no tiene botón y reintenta cada 30 s como máximo, y el aviso del
+  dictado dice qué es. Informes en `docs/chaos/` y `docs/formidable/`.
+- **Pendiente:** la fecha de lo encolado es la del envío (ver ADR-0017); decidir si avisar el saldo a favor de un abono en cola cuya venta se
+  anuló; `voz-compra` y la merma simultánea ya fallaban en `main` antes de este cambio.

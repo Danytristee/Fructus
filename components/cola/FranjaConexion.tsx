@@ -43,16 +43,11 @@ export function FranjaConexion() {
       </div>
       {franja.accion && (
         <div className="col-span-2 flex flex-wrap justify-end gap-2">
-          {franja.accion === "enviar" && (
-            <BotonFranja onClick={cola.enviarAhora} claro>
-              Enviar ahora
-            </BotonFranja>
-          )}
           {franja.accion === "entrar" && (
             <BotonFranja onClick={() => router.push("/login")}>Entrar otra vez</BotonFranja>
           )}
-          {franja.accion === "descartar" && rechazada && (
-            <BotonFranja onClick={() => void cola.quitar(rechazada.id)}>Descartarla</BotonFranja>
+          {franja.accion === "quitar" && rechazada && (
+            <BotonFranja onClick={() => void cola.quitar(rechazada.id)}>Quitar de la lista</BotonFranja>
           )}
         </div>
       )}
@@ -60,15 +55,12 @@ export function FranjaConexion() {
   );
 }
 
-function BotonFranja({ onClick, claro = false, children }: { onClick: () => void; claro?: boolean; children: React.ReactNode }) {
+function BotonFranja({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "min-h-12 rounded-full px-5 font-extrabold transition-transform duration-150 active:scale-[0.97]",
-        claro ? "bg-lima text-sobre-lima" : "bg-acento text-sobre-acento",
-      )}
+      className="min-h-12 rounded-full bg-acento px-5 font-extrabold text-sobre-acento transition-transform duration-150 active:scale-[0.97]"
     >
       {children}
     </button>

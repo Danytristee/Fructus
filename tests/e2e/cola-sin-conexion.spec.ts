@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { baseLocal } from "./base";
+import { baseLocal, enSoles } from "./base";
 import { entrarComo } from "./cuentas";
 import { comando, crearComando, dictar, saldoDe } from "./dictar";
 
@@ -86,7 +86,8 @@ test("sin señal: la venta confirmada y lo dictado quedan en el celular, y al vo
   // Lo dictado nunca se guarda solo (principio 1): queda la tarjeta para confirmar.
   expect((await base.from("abonos").select("id").eq("cliente_id", cliente.id)).data).toHaveLength(0);
 
-  await expect(page.getByText("Volvió la señal: tienes 1 dictado listo para confirmar.")).toBeVisible();
+  // Dice qué es lo que hay que confirmar, no solo «1 dictado» (/formidable 2026-11-12).
+  await expect(page.getByText(`Volvió la señal. Confirma tu abono de ${cliente.nombre} · ${enSoles(60)}.`)).toBeVisible();
   await page.screenshot({ path: info.outputPath("volvio.png") });
   await page.getByRole("button", { name: "Verlo", exact: true }).click();
   const hojaAbono = page.getByRole("dialog", { name: "¿Así fue el abono?" });
@@ -96,7 +97,7 @@ test("sin señal: la venta confirmada y lo dictado quedan en el celular, y al vo
   await expect.poll(() => saldoDe(cliente.id)).toBe(40);
   expect(await comando(ventaCmd)).toMatchObject({ resultado: "confirmado" });
   // Ya no queda nada en la cola: el aviso se fue.
-  await expect(page.getByText(/dictado listo para confirmar/)).toHaveCount(0);
+  await expect(page.getByText(/Volvió la señal\. Confirma/)).toHaveCount(0);
   await expect(franja(page)).toHaveCount(0, { timeout: 8_000 });
 });
 
@@ -128,4 +129,27 @@ test("a mano sin señal: la hoja abre igual, el abono va a la cola y al volver s
   expect(guardado!.comando_voz_id).toBeGreaterThan(0);
   // A mano, el monto lo pone la persona: el comando queda «corregido», como cualquier abono a mano (nunca «pendiente»).
   expect(await comando(guardado!.comando_voz_id!)).toMatchObject({ resultado: "corregido" });
+});
+
+// ---- Lo que arregló /chaos el 2026-11-12 (falló antes del arreglo) ----
+
+test("regresión /chaos: una venta en cola cuyo cliente se borró no culpa a la señal ni se reintenta para siempre", async ({ page, context }) => {
+  const cliente = await clienteNuevo();
+  const ventaCmd = await crearComando();
+  const hoja = await dictar(page, ventaCmd, ventaAlCredito(cliente), "¿Así fue la venta?");
+  await context.setOffline(true);
+  await hoja.getByRole("button", { name: "Confirmar venta" }).click();
+  await expect(hoja).toBeHidden({ timeout: 5_000 });
+  await base.from("clientes").delete().eq("id", cliente.id);
+
+  await context.setOffline(false);
+  // Es un rechazo con su motivo, no «la señal está débil».
+  await expect(page.getByText(/No entró: Venta a/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/ya no está en tu cuaderno/)).toBeVisible();
+  await expect(page.getByText("La señal está débil")).toHaveCount(0);
+  expect((await base.from("ventas").select("id").eq("comando_voz_id", ventaCmd)).data).toHaveLength(0);
+
+  // Quitarla de la lista deja la cola limpia.
+  await page.getByRole("button", { name: "Quitar de la lista" }).click();
+  await expect(page.getByText(/No entró/)).toHaveCount(0);
 });

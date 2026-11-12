@@ -16,7 +16,7 @@ que siempre se vea cuándo no hay señal.
 2. **Se guardan datos, no funciones.** Tres clases de entrada (`lib/cola-reglas.ts`):
    - **confirmación**: una tarjeta (venta, abono, merma, gasto, compra) que la persona ya confirmó. **Se envía sola.**
    - **audio**: algo dictado sin señal. Se envía solo y **vuelve como tarjeta por confirmar**: nada se guarda sin que la persona vea lo que se
-     entendió (principio 1). En «Hoy» aparece «Volvió la señal: tienes N dictados listos para confirmar».
+     entendió (principio 1). En «Hoy» aparece qué es: «Volvió la señal. Confirma tu abono de Don Lucho · S/ 50.00».
    - **por confirmar**: esa tarjeta, esperando a la persona.
 3. **Reenviar es seguro porque el servidor ya era idempotente por comando** (`registrar_venta`, `registrar_compra` y el índice único de abonos,
    mermas y gastos). No hay un camino aparte: la cola llama a las mismas server actions y al mismo `POST /api/voz`. No hizo falta ninguna migración.
@@ -29,11 +29,12 @@ que siempre se vea cuándo no hay señal.
    marcada y **frena a las confirmaciones que vienen detrás**, hasta que la persona la descarte: el abono dado por una venta que no entró no puede
    entrar solo (principio 3). Los audios no se frenan (igual vuelven como tarjetas).
 7. **Cuándo se envía** (`components/cola/ColaProveedor.tsx`, montado una vez en el layout): al volver la señal (`online`), al volver a la app, al
-   cargar, y tras una falla con esperas de 5, 10, 20, 40 s y después cada minuto. Un solo envío a la vez, también entre pestañas (Web Locks). El
+   cargar, y tras una falla con esperas de 5, 10, 20 s y después cada 30 s. Un solo envío a la vez, también entre pestañas (Web Locks). El
    código que envía se baja recién cuando hay algo que enviar. Con la sesión vencida se pausa y pide entrar otra vez.
 8. **Siempre se ve** (`components/cola/FranjaConexion.tsx`): una franja pegada arriba, en todas las pantallas con sesión. «Sin señal» (bosque
-   profundo, 15:1, icono de wifi cortado) aunque no haya nada guardado; «Enviando lo guardado… Por enviar: 2 ventas»; «La señal está débil» con
-   «Enviar ahora»; «Tu sesión terminó» con «Entrar otra vez»; un rechazo en rojo con qué fue, por qué y «Descartarla»; y «Listo» unos segundos.
+   profundo, 15:1, icono de wifi cortado) aunque no haya nada guardado; «Enviando lo guardado… Por enviar: 2 ventas»; «La señal está débil… Lo reintento solo, sin repetir nada» (sin
+   botón: «Enviar ahora» hacía temer un envío doble, /formidable 2026-11-12); «Tu sesión terminó» con «Entrar otra vez»; un rechazo en rojo
+   («No entró: Abono de Don Lucho · S/ 20.00», el motivo y «Quitar de la lista»); y «Listo» unos segundos.
 9. **Nada optimista.** Confirmar sin señal no muestra el sello verde: muestra «Quedó en el celular» con un icono quieto, vibra y no suena. El
    «tin-tín» y el sello siguen siendo solo para lo que la base respondió.
 

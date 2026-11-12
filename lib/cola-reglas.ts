@@ -8,6 +8,7 @@
 import type { confirmarVenta } from "@/app/(app)/acciones-voz";
 import type { confirmarAbono, confirmarCompra, confirmarGasto, confirmarMerma } from "@/app/(app)/acciones-operaciones";
 import { formatearCajas, formatearSoles } from "./formato";
+import { nombreOperacion } from "./voz/nombre-operacion-reglas";
 
 /** Lo que dice el servidor cuando la base no respondió: no es un rechazo, se reintenta. */
 export const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra vez.";
@@ -95,9 +96,12 @@ export function siguiente(entradas: readonly Entrada[], usuarioId: string): Entr
   return null;
 }
 
-/** Cuánto esperar antes de reintentar tras `intentos` fallas seguidas: 5 s, 10 s, 20 s, 40 s y después cada minuto. */
+/**
+ * Cuánto esperar antes de reintentar tras `intentos` fallas seguidas: 5 s, 10 s, 20 s y después cada 30 s. Sin botón de «Enviar
+ * ahora» (asustaba: «¿se manda dos veces?», /formidable 2026-11-12), el reintento solo tiene que llegar pronto.
+ */
 export function esperaTras(intentos: number): number {
-  return Math.min(60_000, 5_000 * 2 ** Math.max(0, intentos - 1));
+  return Math.min(30_000, 5_000 * 2 ** Math.max(0, intentos - 1));
 }
 
 const nombres: Record<TipoOperacion, string> = { venta: "Venta", abono: "Abono", merma: "Merma", gasto: "Gasto", compra: "Compra" };
@@ -172,7 +176,7 @@ export type Franja =
       tono: "sin_senal" | "enviando" | "listo" | "error";
       titulo: string;
       detalle: string | null;
-      accion: "enviar" | "entrar" | "descartar" | null;
+      accion: "entrar" | "quitar" | null;
     };
 
 /**
@@ -182,11 +186,14 @@ export type Franja =
 export function franjaDe(s: Situacion): Franja {
   const cuantas = contarPorEnviar(s.porEnviar);
   if (s.rechazada) {
+    const c = s.rechazada.contenido;
+    const { lo } = nombreOperacion(c.clase === "confirmacion" ? c.operacion.tipo : "operación");
     return {
       tono: "error",
-      titulo: `No se pudo guardar: ${s.rechazada.resumen}`,
-      detalle: `${s.rechazada.error ?? "La base no la aceptó."} Descártala y regístrala otra vez.`,
-      accion: "descartar",
+      titulo: `No entró: ${s.rechazada.resumen}`,
+      // Solo el motivo: la frase de la tarjeta trae su propia orden («Elige a otro») y chocaba con la de aquí (/formidable 2026-11-12).
+      detalle: `${motivo(s.rechazada.error)} Anóta${lo} otra vez con lo correcto y quíta${lo} de aquí.`,
+      accion: "quitar",
     };
   }
   if (!s.enLinea) {
@@ -201,11 +208,65 @@ export function franjaDe(s: Situacion): Franja {
     return { tono: "error", titulo: "Tu sesión terminó", detalle: `Entra otra vez para enviar lo guardado (${cuantas}).`, accion: "entrar" };
   }
   if (cuantas && s.esperando && !s.enviando) {
-    return { tono: "sin_senal", titulo: "La señal está débil", detalle: `Por enviar: ${cuantas}. Lo reintento solo.`, accion: "enviar" };
+    return { tono: "sin_senal", titulo: "La señal está débil", detalle: `Por enviar: ${cuantas}. Lo reintento solo, sin repetir nada.`, accion: null };
   }
   if (cuantas) return { tono: "enviando", titulo: "Enviando lo guardado…", detalle: `Por enviar: ${cuantas}.`, accion: null };
   if (s.enviadas > 0) {
     return { tono: "listo", titulo: "Listo: se envió lo guardado", detalle: null, accion: null };
   }
   return null;
+}
+
+/** La primera frase del error: el porqué, sin la orden que la tarjeta agregaba para corregirlo ahí mismo. */
+function motivo(error: string | undefined): string {
+  if (!error) return "No se aceptó.";
+  const fin = error.indexOf(". ");
+  return fin === -1 ? error : error.slice(0, fin + 1);
+}
+
+type Eleccion = { elegido: { nombre: string } | null; dicho?: string | null } | null | undefined;
+const nombreDe = (e: Eleccion) => e?.elegido?.nombre ?? e?.dicho ?? null;
+// «de el flaco» → «del flaco», «a el gordo» → «al gordo»: lo dicho a veces trae el artículo.
+const de = (x: string) => (/^el /i.test(x) ? `del ${x.slice(3)}` : `de ${x}`);
+const a = (x: string) => (/^el /i.test(x) ? `al ${x.slice(3)}` : `a ${x}`);
+
+/**
+ * Qué es un dictado que volvió como tarjeta, en pocas palabras: «tu abono de Don Lucho · S/ 50.00». Para que el aviso diga qué hay
+ * que confirmar y no solo «1 dictado» (/formidable 2026-11-12). Se lee la tarjeta tal como la mandó el servidor.
+ */
+export function queEsLaTarjeta(tarjeta: unknown): string {
+  const t = (tarjeta ?? {}) as Record<string, unknown> & { tipo?: string };
+  const dinero = (n: unknown) => (typeof n === "number" && n > 0 ? formatearSoles(n) : null);
+  const partes: (string | null)[] = [];
+  switch (t.tipo) {
+    case "venta": {
+      const quien = nombreDe(t.cliente as Eleccion);
+      partes.push(quien ? `tu venta ${a(quien)}` : "tu venta", dinero(t.total));
+      break;
+    }
+    case "abono": {
+      const quien = nombreDe(t.cliente as Eleccion);
+      partes.push(quien ? `tu abono ${de(quien)}` : "tu abono", dinero(t.monto));
+      break;
+    }
+    case "merma": {
+      const que = nombreDe(t.producto as Eleccion);
+      partes.push(que ? `tu merma ${de(que)}` : "tu merma", typeof t.cantidad === "number" && t.cantidad > 0 ? formatearCajas(t.cantidad) : null);
+      break;
+    }
+    case "gasto":
+      partes.push("tu gasto", dinero(t.monto));
+      break;
+    case "compra": {
+      const quien = nombreDe(t.proveedor as Eleccion);
+      partes.push(quien ? `tu compra ${a(quien)}` : "tu compra");
+      break;
+    }
+    case "consulta":
+      partes.push("tu pregunta");
+      break;
+    default:
+      partes.push("lo que dictaste");
+  }
+  return partes.filter(Boolean).join(" · ");
 }
