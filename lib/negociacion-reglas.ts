@@ -52,6 +52,23 @@ export function porQue(a: AnalisisProveedor): string {
   }
 }
 
+/**
+ * El porqué de una fila de la lista, en una línea: lo que más pesa para negociar con él. Una fruta se dice por su nombre corto
+ * («la manzana»), sin calibre: la frase entera está en la ficha.
+ */
+export function razonCorta(a: AnalisisProveedor, nombreDe: (id: number) => string): string {
+  if (a.total === 0) return "Todavía no le compras nada";
+  if (a.posicion === "enfriado") return `Hace ${a.diasSinComprar} días que no le compras`;
+  const unicas = a.unicas.filter((u) => u.peso >= FRUTA_IMPORTANTE).map((u) => u.grupo.toLowerCase());
+  if (a.posicion === "riesgo" && unicas.length > 0) return `Solo él te trae ${listarFrutas(unicas)}`;
+  const cara = a.frutas.filter((f) => f.diferencia > 0 && f.mejorOtro).sort((x, y) => y.diferencia * y.cajas - x.diferencia * x.cajas)[0];
+  if (cara && a.ahorroMensual >= AHORRO_MINIMO) {
+    return `${nombreDe(cara.mejorOtro!.proveedorId)} te deja ${cara.grupo.toLowerCase()} a ${soles(cara.diferencia)} menos`;
+  }
+  if (a.posicion === "riesgo") return `Se lleva el ${porcentaje(a.participacion)} de tus compras`;
+  return `Le compras ${frecuencia(a.cadaDias)}`;
+}
+
 export type Palanca = { tipo: "ahorro" | "subio" | "unica" | "deuda"; texto: string };
 
 /** Lo que puedes usar para negociar con él, lo más fuerte primero. */
