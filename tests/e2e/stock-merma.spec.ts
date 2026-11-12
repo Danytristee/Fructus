@@ -203,10 +203,10 @@ test("el contador ve el stock pero no «Registrar merma» ni «Se malogró»", a
   await expect(page.getByRole("button", { name: "Se malogró" })).toHaveCount(0);
 });
 
-test("el dueño y el ayudante merman la misma fruta a la vez: el stock baja la suma, sin perder ninguna", async ({ page, browser }) => {
+test("el dueño y el ayudante merman la misma fruta a la vez: el stock baja la suma, sin perder ninguna", async ({ page, browser, baseURL }) => {
   const f = await fruta(10);
   const hojaA = await abrirDesdeLaFila(page, f.nombre, "duenio");
-  const ctx = await browser.newContext({ baseURL: "http://127.0.0.1:3000", viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
+  const ctx = await browser.newContext({ baseURL, viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
   const paginaB = await ctx.newPage();
   const hojaB = await abrirDesdeLaFila(paginaB, f.nombre, "ayudante");
   await ponerCajas(hojaA, 3);

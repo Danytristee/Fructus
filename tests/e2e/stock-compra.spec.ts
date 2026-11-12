@@ -238,10 +238,10 @@ test("regresión /chaos: si la fruta ya no existe, lo dice, y no manda a revisar
   await expect(hoja.getByRole("alert")).toHaveText("Una fruta o el proveedor de la compra ya no está. Vuelve a elegirlos.");
 });
 
-test("el dueño y el ayudante compran la misma fruta a la vez: el stock sube la suma, sin perder ninguna", async ({ page, browser }) => {
+test("el dueño y el ayudante compran la misma fruta a la vez: el stock sube la suma, sin perder ninguna", async ({ page, browser, baseURL }) => {
   const f = await fruta();
   const hojaA = await abrirCompra(page, "duenio");
-  const ctx = await browser.newContext({ baseURL: "http://127.0.0.1:3000", viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
+  const ctx = await browser.newContext({ baseURL, viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
   const paginaB = await ctx.newPage();
   const hojaB = await abrirCompra(paginaB, "ayudante");
   await llenarFruta(hojaA, f.nombre, 5, "20");
