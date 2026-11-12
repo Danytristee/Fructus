@@ -49,7 +49,7 @@ que siempre se vea cuándo no hay señal.
 
 ## Consecuencias
 
-- **La fecha de lo encolado es la del toque** (decidido el 2026-11-12, migración `fecha_del_celular`). La cola manda la hora en que se tocó
+- **La fecha de lo encolado es la del toque** (decidido el 2026-11-12, migración `20261112071132_fecha_del_celular`, aplicada al proyecto). La cola manda la hora en que se tocó
   Confirmar; `registrar_venta` y `registrar_compra` la usan para la operación y su stock, y los inserts directos (abonos, mermas, gastos) también.
   La base la acepta solo si es creíble: entre 48 h atrás y 5 min adelante. Si no (el celular con la hora mal, o más de dos días sin señal), usa la
   suya. Un trigger aplica la regla a las cinco tablas, así que nadie mete una fecha de otro mes. `creado_en` sigue siendo la hora real del servidor.
