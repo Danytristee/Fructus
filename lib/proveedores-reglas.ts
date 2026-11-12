@@ -7,12 +7,16 @@ import { diaDeLima } from "./formato";
 export const VENTANA_DIAS = 90;
 /** Ser la única fuente de una fruta pesa en la dependencia solo si esa fruta es al menos esta parte de tus compras. */
 export const FRUTA_IMPORTANTE = 0.05;
+/** Por debajo de esto al mes, un precio más alto no vale la conversación: no se marca «para negociar». */
+export const AHORRO_MINIMO = 100;
 
 export type CompraResumida = { proveedorId: number | null; fecha: string; total: number };
 export type FrutaComprada = {
   proveedorId: number | null;
   productoId: number;
   fruta: string;
+  /** La fruta sin variedad ni calibre («Kiwi»): ser la única fuente se mira por fruta, no por calibre. */
+  grupo: string;
   cajas: number;
   total: number;
   ultimoCosto: number;
@@ -34,10 +38,10 @@ export type FrutaDelProveedor = {
   diferencia: number;
   /** Cuánto subió su último costo sobre su promedio del periodo (0.05 = 5 %). */
   subio: number;
-  unicaFuente: boolean;
-  /** Qué parte de todas tus compras es esta fruta (de cualquier proveedor). */
-  pesoEnTusCompras: number;
 };
+
+/** Una fruta que solo te trae este proveedor, y qué parte de todas tus compras es esa fruta. */
+export type FrutaUnica = { grupo: string; peso: number };
 
 export type AnalisisProveedor = {
   id: number;
@@ -57,6 +61,7 @@ export type AnalisisProveedor = {
   clienteFijo: Nivel;
   posicion: Posicion;
   frutas: FrutaDelProveedor[];
+  unicas: FrutaUnica[];
   /** Lo que ahorrarías en un mes si le compraras al más barato lo que hoy le compras a él. */
   ahorroMensual: number;
 };
@@ -124,9 +129,16 @@ export function analizarProveedores(proveedores: ProveedorBase[], compras: Compr
   const enVentana = compras.filter((c) => dias(c.fecha, hoy) < VENTANA_DIAS);
   const totalGeneral = enVentana.reduce((s, c) => s + c.total, 0);
 
-  // Por fruta: quién te la trae y a qué costo.
+  // Por producto: quién te lo trae y a qué costo. Por fruta: quiénes te la traen y cuánto pesa en tus compras.
   const porFruta = new Map<number, FrutaComprada[]>();
-  for (const f of frutas) if (f.proveedorId !== null) porFruta.set(f.productoId, [...(porFruta.get(f.productoId) ?? []), f]);
+  const fuentes = new Map<string, Set<number>>();
+  const pesoGrupo = new Map<string, number>();
+  for (const f of frutas) {
+    pesoGrupo.set(f.grupo, (pesoGrupo.get(f.grupo) ?? 0) + f.total);
+    if (f.proveedorId === null) continue;
+    porFruta.set(f.productoId, [...(porFruta.get(f.productoId) ?? []), f]);
+    fuentes.set(f.grupo, (fuentes.get(f.grupo) ?? new Set()).add(f.proveedorId));
+  }
 
   return proveedores
     .map((p): AnalisisProveedor => {
@@ -154,14 +166,16 @@ export function analizarProveedores(proveedores: ProveedorBase[], compras: Compr
             mejorOtro: mejor ? { proveedorId: mejor.proveedorId!, costo: mejor.ultimoCosto } : null,
             diferencia: mejor ? f.ultimoCosto - mejor.ultimoCosto : 0,
             subio: f.costoPromedio > 0 ? f.ultimoCosto / f.costoPromedio - 1 : 0,
-            unicaFuente: otros.length === 0,
-            pesoEnTusCompras: totalGeneral > 0 ? (porFruta.get(f.productoId) ?? []).reduce((s, o) => s + o.total, 0) / totalGeneral : 0,
           };
         })
         .sort((a, b) => b.cajas - a.cajas);
 
+      const unicasTodas: FrutaUnica[] = [...new Set(frutas.filter((f) => f.proveedorId === p.id).map((f) => f.grupo))]
+        .filter((g) => fuentes.get(g)?.size === 1)
+        .map((g) => ({ grupo: g, peso: totalGeneral > 0 ? (pesoGrupo.get(g) ?? 0) / totalGeneral : 0 }))
+        .sort((a, b) => b.peso - a.peso);
       // Que solo él te traiga el tumbo no te ata; que solo él te traiga el kiwi que vendes todos los días, sí.
-      const unicas = lasSuyas.filter((f) => f.unicaFuente && f.pesoEnTusCompras >= FRUTA_IMPORTANTE).length;
+      const unicas = unicasTodas.filter((u) => u.peso >= FRUTA_IMPORTANTE).length;
       const participacion = totalGeneral > 0 ? total / totalGeneral : 0;
       const dependes = nivelDependencia(participacion, unicas);
       const clienteFijo = nivelClienteFijo(cadaDias, antiguedadDias, diasSinComprar);
@@ -183,6 +197,7 @@ export function analizarProveedores(proveedores: ProveedorBase[], compras: Compr
         clienteFijo,
         posicion: posicionDe(dependes, clienteFijo, unicas, diasSinComprar),
         frutas: lasSuyas,
+        unicas: unicasTodas,
         ahorroMensual: Math.round((ahorro * 30) / VENTANA_DIAS),
       };
     })
@@ -212,7 +227,7 @@ export function resumirProveedores(analisis: AnalisisProveedor[]): ResumenProvee
     top3: conCompras.slice(0, 3).reduce((s, a) => s + a.participacion, 0),
     deuda: deben.reduce((s, a) => s + a.saldo, 0),
     conDeuda: deben.length,
-    paraNegociar: analisis.filter((a) => a.posicion === "ventaja" || a.ahorroMensual > 0).length,
+    paraNegociar: analisis.filter((a) => a.posicion === "ventaja" || a.ahorroMensual >= AHORRO_MINIMO).length,
     enRiesgo: analisis.filter((a) => a.posicion === "riesgo").length,
   };
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ChevronRight, ClipboardCheck, LogOut, Menu, Settings } from "lucide-react";
+import { ChevronRight, ClipboardCheck, LogOut, Menu, Settings, Truck } from "lucide-react";
 
 import { salir } from "@/app/login/acciones";
 import { InstalarApp } from "./InstalarApp";
@@ -41,7 +41,7 @@ export function MenuMas({ nombre, rol, verCierre, verAjustes, clavePush }: Props
           setUsado(true);
           setAbierto(true);
         }}
-        aria-label="Menú: cierre del día, ajustes y salir"
+        aria-label="Menú: proveedores, cierre del día, ajustes y salir"
         className="grid size-[52px] shrink-0 place-items-center rounded-full border border-sobre-acento/20 bg-sobre-acento/10 text-sobre-acento transition-transform duration-200 ease-salida active:scale-90"
       >
         {/* Tres líneas, no una tuerca: la tuerca se lee «configuración» y escondía el cierre del día (/formidable 2026-10-28). */}
@@ -53,6 +53,13 @@ export function MenuMas({ nombre, rol, verCierre, verAjustes, clavePush }: Props
             Entraste como <strong className="text-texto">{nombre}</strong> ({rol})
           </p>
           <nav aria-label="Más opciones" className="grid gap-2">
+            <Link href="/proveedores" onClick={cerrar} className={fila}>
+              <span className={`${icono} bg-sol/12 text-sol`}>
+                <Truck aria-hidden className="size-6" />
+              </span>
+              Proveedores
+              <ChevronRight aria-hidden className="size-6 text-texto-suave" />
+            </Link>
             {verCierre && (
               <Link href="/cierre" onClick={cerrar} className={fila}>
                 <span className={`${icono} bg-exito-fondo text-exito`}>

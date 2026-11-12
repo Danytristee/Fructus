@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { listarFrutas, palancas, porQue, TITULOS } from "./negociacion-reglas";
+import { listarFrutas, palancas, porcentaje, porQue, TITULOS } from "./negociacion-reglas";
 import {
   analizarProveedores,
   nivelClienteFijo,
@@ -25,6 +25,7 @@ const fruta = (proveedorId: number, productoId: number, nombre: string, ultimoCo
   proveedorId,
   productoId,
   fruta: nombre,
+  grupo: nombre.split(" ")[0]!,
   cajas: 30,
   total: ultimoCosto * 30,
   ultimoCosto,
@@ -101,7 +102,7 @@ describe("analizarProveedores", () => {
   it("el Pacífico: dependes de él y es tu única fuente de kiwi → busca otra opción", () => {
     expect(pacifico!.dependes).toBe("alto");
     expect(pacifico!.cadaDias).toBe(3);
-    expect(pacifico!.frutas.find((f) => f.fruta === "Kiwi chileno")!.unicaFuente).toBe(true);
+    expect(pacifico!.unicas.map((u) => u.grupo)).toEqual(["Kiwi"]);
     expect(pacifico!.posicion).toBe("riesgo");
   });
 
@@ -114,7 +115,8 @@ describe("analizarProveedores", () => {
   });
 
   it("ser la única fuente del tumbo (menos del 5 % de tus compras) no te ata a Chao", () => {
-    expect(chao!.frutas.find((f) => f.fruta === "Tumbo")!.unicaFuente).toBe(true);
+    expect(chao!.unicas).toEqual([{ grupo: "Tumbo", peso: expect.any(Number) }]);
+    expect(chao!.unicas[0]!.peso).toBeLessThan(0.05);
     expect(chao!.dependes).not.toBe("alto");
   });
 
@@ -143,8 +145,8 @@ describe("analizarProveedores", () => {
   });
 
   it("los porqués y las palancas se dicen en lenguaje de puesto", () => {
-    expect(TITULOS[pacifico!.posicion]).toBe("Busca otra opción");
-    expect(porQue(pacifico!)).toBe("Es el único que te trae Kiwi chileno. Si te falla, te quedas sin eso.");
+    expect(TITULOS[pacifico!.posicion]).toBe("Dependes de él");
+    expect(porQue(pacifico!)).toBe("Es el único que te trae kiwi. Si te falla, te quedas sin eso.");
     expect(porQue(chao!)).toBe("Le compras cada 4 días desde hace 4 meses y tienes otras opciones: eres su cliente fijo.");
     const nombres = new Map([[2, "Andina"]]);
     expect(palancas(pacifico!, (id) => nombres.get(id) ?? "?").map((p) => p.texto)).toEqual([
@@ -153,6 +155,26 @@ describe("analizarProveedores", () => {
       "Te subió Manzana Roja americana: su último precio está 6 % sobre su promedio.",
       "Le debes S/ 2,800: pagar a tiempo te da pie para pedir rebaja.",
     ]);
+  });
+});
+
+describe("única fuente, por fruta", () => {
+  it("si otro te trae otro kiwi (otro calibre o variedad), ya no es tu única fuente de kiwi", () => {
+    const [pacifico] = analizarProveedores(
+      [PACIFICO, ANDINA],
+      [...compras(1, 3, 60, 1, 1000), ...compras(2, 9, 60, 1, 400)],
+      [fruta(1, 11, "Kiwi Cilíndrico", 196), fruta(2, 15, "Kiwi Riñón", 142)],
+      HOY,
+    );
+    expect(pacifico!.unicas).toEqual([]);
+  });
+});
+
+describe("porcentaje", () => {
+  it("lo que no llega a medio punto no es 0 %: sí le compras", () => {
+    expect(porcentaje(0.423)).toBe("42 %");
+    expect(porcentaje(0.003)).toBe("menos de 1 %");
+    expect(porcentaje(0)).toBe("0 %");
   });
 });
 
