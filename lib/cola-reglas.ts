@@ -59,7 +59,8 @@ export type Entrada = {
 
 /** Lo que pasó al enviar una entrada, ya leído. */
 export type Desenlace =
-  | { tipo: "hecho" }
+  /** `nota`: algo que la persona tiene que saber de lo que entró («Don Lucho quedó con S/ 60.00 a favor»). */
+  | { tipo: "hecho"; nota?: string }
   /** El audio volvió como tarjeta: queda esperando a la persona. */
   | { tipo: "tarjeta"; comandoId: number; tarjeta: unknown; latenciaMs: number }
   /** No hubo señal o el servidor no contestó: se reintenta más tarde. */
@@ -168,6 +169,8 @@ export type Situacion = {
   sinSesion: boolean;
   /** Cuántas se enviaron en la última tanda, para decir «Listo» un momento. */
   enviadas: number;
+  /** Lo que hay que saber de lo que entró; la franja no se va sola hasta que la persona lo lee. */
+  notas: readonly string[];
 };
 
 export type Franja =
@@ -176,7 +179,7 @@ export type Franja =
       tono: "sin_senal" | "enviando" | "listo" | "error";
       titulo: string;
       detalle: string | null;
-      accion: "entrar" | "quitar" | null;
+      accion: "entrar" | "anotar" | "entendido" | null;
     };
 
 /**
@@ -192,8 +195,8 @@ export function franjaDe(s: Situacion): Franja {
       tono: "error",
       titulo: `No entró: ${s.rechazada.resumen}`,
       // Solo el motivo: la frase de la tarjeta trae su propia orden («Elige a otro») y chocaba con la de aquí (/formidable 2026-11-12).
-      detalle: `${motivo(s.rechazada.error)} Anóta${lo} otra vez con lo correcto y quíta${lo} de aquí.`,
-      accion: "quitar",
+      detalle: `${motivo(s.rechazada.error)} Anóta${lo} otra vez con lo correcto.`,
+      accion: "anotar",
     };
   }
   if (!s.enLinea) {
@@ -211,6 +214,7 @@ export function franjaDe(s: Situacion): Franja {
     return { tono: "sin_senal", titulo: "La señal está débil", detalle: `Por enviar: ${cuantas}. Lo reintento solo, sin repetir nada.`, accion: null };
   }
   if (cuantas) return { tono: "enviando", titulo: "Enviando lo guardado…", detalle: `Por enviar: ${cuantas}.`, accion: null };
+  if (s.notas.length > 0) return { tono: "listo", titulo: "Listo: se envió lo guardado", detalle: s.notas.join(" "), accion: "entendido" };
   if (s.enviadas > 0) {
     return { tono: "listo", titulo: "Listo: se envió lo guardado", detalle: null, accion: null };
   }
@@ -222,51 +226,4 @@ function motivo(error: string | undefined): string {
   if (!error) return "No se aceptó.";
   const fin = error.indexOf(". ");
   return fin === -1 ? error : error.slice(0, fin + 1);
-}
-
-type Eleccion = { elegido: { nombre: string } | null; dicho?: string | null } | null | undefined;
-const nombreDe = (e: Eleccion) => e?.elegido?.nombre ?? e?.dicho ?? null;
-// «de el flaco» → «del flaco», «a el gordo» → «al gordo»: lo dicho a veces trae el artículo.
-const de = (x: string) => (/^el /i.test(x) ? `del ${x.slice(3)}` : `de ${x}`);
-const a = (x: string) => (/^el /i.test(x) ? `al ${x.slice(3)}` : `a ${x}`);
-
-/**
- * Qué es un dictado que volvió como tarjeta, en pocas palabras: «tu abono de Don Lucho · S/ 50.00». Para que el aviso diga qué hay
- * que confirmar y no solo «1 dictado» (/formidable 2026-11-12). Se lee la tarjeta tal como la mandó el servidor.
- */
-export function queEsLaTarjeta(tarjeta: unknown): string {
-  const t = (tarjeta ?? {}) as Record<string, unknown> & { tipo?: string };
-  const dinero = (n: unknown) => (typeof n === "number" && n > 0 ? formatearSoles(n) : null);
-  const partes: (string | null)[] = [];
-  switch (t.tipo) {
-    case "venta": {
-      const quien = nombreDe(t.cliente as Eleccion);
-      partes.push(quien ? `tu venta ${a(quien)}` : "tu venta", dinero(t.total));
-      break;
-    }
-    case "abono": {
-      const quien = nombreDe(t.cliente as Eleccion);
-      partes.push(quien ? `tu abono ${de(quien)}` : "tu abono", dinero(t.monto));
-      break;
-    }
-    case "merma": {
-      const que = nombreDe(t.producto as Eleccion);
-      partes.push(que ? `tu merma ${de(que)}` : "tu merma", typeof t.cantidad === "number" && t.cantidad > 0 ? formatearCajas(t.cantidad) : null);
-      break;
-    }
-    case "gasto":
-      partes.push("tu gasto", dinero(t.monto));
-      break;
-    case "compra": {
-      const quien = nombreDe(t.proveedor as Eleccion);
-      partes.push(quien ? `tu compra ${a(quien)}` : "tu compra");
-      break;
-    }
-    case "consulta":
-      partes.push("tu pregunta");
-      break;
-    default:
-      partes.push("lo que dictaste");
-  }
-  return partes.filter(Boolean).join(" · ");
 }

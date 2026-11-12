@@ -5,6 +5,7 @@ import { CircleCheck, CloudUpload, TriangleAlert, WifiOff } from "lucide-react";
 import { cn } from "cn";
 
 import { franjaDe } from "@/lib/cola-reglas";
+import { AnotarOtraVez } from "./AnotarOtraVez";
 import { useCola } from "./ColaProveedor";
 
 const TONOS = {
@@ -46,9 +47,8 @@ export function FranjaConexion() {
           {franja.accion === "entrar" && (
             <BotonFranja onClick={() => router.push("/login")}>Entrar otra vez</BotonFranja>
           )}
-          {franja.accion === "quitar" && rechazada && (
-            <BotonFranja onClick={() => void cola.quitar(rechazada.id)}>Quitar de la lista</BotonFranja>
-          )}
+          {franja.accion === "anotar" && rechazada && <AnotarOtraVez entrada={rechazada} />}
+          {franja.accion === "entendido" && <BotonFranja onClick={cola.leerNotas}>Entendido</BotonFranja>}
         </div>
       )}
     </div>

@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { notaDeComprobante } from "@/lib/comprobantes/comprobante-reglas";
 import { emitirComprobanteDeVenta } from "@/lib/comprobantes/emitir";
-import { CLIENTE_YA_NO_ESTA, leerSaldo, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
+import { CLIENTE_YA_NO_ESTA, conFecha, leerSaldo, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import { PRECIO_MAXIMO, pedidoVenta } from "@/lib/voz/confirmar-venta-reglas";
 import { preciosSugeridos } from "@/lib/voz/resolver";
 import { nombreProducto } from "@/lib/productos-reglas";
@@ -41,6 +41,8 @@ const confirmacion = z.object({
   borrador,
   corregido: z.boolean(),
   latenciaMs: z.number().int().min(0).max(120_000),
+  /** La hora del toque, si viene de la cola sin conexión (ADR-0019). */
+  fecha: z.iso.datetime({ offset: true }).optional(),
 });
 
 /** Al confirmar la voz no se hace esperar la venta: si el proveedor tarda más que esto, el comprobante queda «en proceso» y se termina desde la venta. */
@@ -53,7 +55,7 @@ export type ResultadoConfirmar = { ok: true; ventaId: number; saldo: number | nu
 export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Promise<ResultadoConfirmar> {
   const leido = confirmacion.safeParse(entrada);
   if (!leido.success) return { ok: false, error: REVISA };
-  const { comandoId, borrador: b, corregido, latenciaMs } = leido.data;
+  const { comandoId, borrador: b, corregido, latenciaMs, fecha } = leido.data;
   const pedido = pedidoVenta(b, comandoId, corregido);
   if (!pedido) return { ok: false, error: REVISA };
 
@@ -62,7 +64,7 @@ export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Pro
   const { supabase, permisos } = s;
   if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar ventas." };
 
-  const { data: ventaId, error } = await supabase.rpc("registrar_venta", { p: pedido });
+  const { data: ventaId, error } = await supabase.rpc("registrar_venta", { p: conFecha(pedido, fecha) });
   if (error || ventaId === null) {
     console.error("voz: no se pudo registrar la venta", { comandoId, codigo: error?.code });
     if (error?.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar ventas." };

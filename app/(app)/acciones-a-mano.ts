@@ -10,7 +10,8 @@ import { sesion } from "@/lib/voz/accion-servidor";
 // mano» al abrirse: un doble toque, o un reintento tras una respuesta perdida, vuelve al mismo comando y no guarda dos
 // veces. Se reconoce porque modelo_stt es «manual»: la precisión de la voz se mide sin ellos.
 
-const INTENCIONES = ["registrar_abono", "registrar_merma", "registrar_compra", "registrar_gasto", "registrar_pago_proveedor"] as const;
+// registrar_venta: para volver a anotar una venta que la base rechazó desde la cola sin conexión (ADR-0019).
+const INTENCIONES = ["registrar_venta", "registrar_abono", "registrar_merma", "registrar_compra", "registrar_gasto", "registrar_pago_proveedor"] as const;
 export type IntencionAMano = (typeof INTENCIONES)[number];
 
 export type ResultadoComandoAMano = { ok: true; comandoId: number } | { ok: false; error: string; sinSesion?: true };

@@ -233,6 +233,7 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
       </div>
 
       <PieConfirmar
+          guardaSinSenal
         style={pieza(borrador.items.length + 3)}
         aviso={aviso}
         avisoNeutro={aMano}

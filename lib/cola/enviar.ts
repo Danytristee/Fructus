@@ -5,6 +5,7 @@ import { confirmarAbono, confirmarCompra, confirmarGasto, confirmarMerma } from 
 import { confirmarVenta } from "@/app/(app)/acciones-voz";
 import { NO_ABRIO } from "@/lib/a-mano-reglas";
 import { desenlaceConfirmacion, sinComando, type Desenlace, type Entrada, type Operacion } from "@/lib/cola-reglas";
+import { formatearSoles } from "@/lib/formato";
 import { desenlaceDeRespuesta } from "@/lib/voz/envio-reglas";
 import { actualizar } from "./almacen";
 
@@ -54,11 +55,20 @@ async function conComando(entrada: Entrada, op: Operacion): Promise<Operacion | 
 }
 
 async function enviarConfirmacion(entrada: Entrada, op: Operacion): Promise<Desenlace> {
-  const lista = await conComando(entrada, op);
-  if (!("entrada" in lista)) return lista;
+  const conNumero = await conComando(entrada, op);
+  if (!("entrada" in conNumero)) return conNumero;
+  // La hora del toque, no la del envío: una venta de anoche cuenta para anoche (ADR-0019). La base decide si es creíble.
+  const lista = { ...conNumero, entrada: { ...conNumero.entrada, fecha: new Date(entrada.creadoEn).toISOString() } } as Operacion;
   const r = await conTope(confirmar(lista).catch(() => "tope" as const), TOPE_CONFIRMAR_MS);
   // Sin respuesta no se sabe si llegó: se reintenta, y la base devuelve lo mismo si ya estaba guardado.
   if (r === "tope") return { tipo: "reintentar" };
+  // Un abono que esperaba en la cola puede entrar después de que se anuló la venta que pagaba: el cliente queda a favor.
+  // Pagar de más se permite (decisión del 31-10), pero nadie lo vio en la tarjeta: se dice (/chaos 2026-11-12, A4).
+  const saldo = r.ok && lista.tipo === "abono" && "saldo" in r ? (r.saldo as number | null) : null;
+  if (saldo !== null && saldo < 0 && lista.tipo === "abono") {
+    const quien = lista.entrada.borrador.cliente?.nombre ?? "El cliente";
+    return { tipo: "hecho", nota: `${quien} quedó con ${formatearSoles(-saldo)} a favor.` };
+  }
   return desenlaceConfirmacion(r);
 }
 

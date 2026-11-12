@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight, HandCoins, TrendingUp, Wallet } from "lucide-react";
 
+import { VentasPorEnviar } from "@/components/cola/VentasPorEnviar";
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { MontoVivo } from "@/components/ui/MontoVivo";
@@ -41,6 +42,7 @@ export async function ResumenDia() {
       {dia.numeroVentas === 0 ? (
         <Vacio icono={<TrendingUp />} titulo="Todavía no vendiste hoy" className="animate-subir lg:col-span-7">
           Toca el botón de abajo y di la venta, por ejemplo: «10 cajas de mango a don Lucho».
+          <VentasPorEnviar />
         </Vacio>
       ) : (
         <Tarjeta protagonista className="grid animate-subir lg:col-span-7" aria-label="Lo vendido hoy">
@@ -54,6 +56,8 @@ export async function ResumenDia() {
             <strong className="cifra font-extrabold text-texto">{formatearSoles(dia.credito)}</strong> al crédito
           </span>
           <span className="text-texto-suave">{textoVentas(dia.numeroVentas, dia.cajas)}</span>
+          {/* Lo confirmado sin señal todavía no está en la base: se dice aparte (ADR-0019). */}
+          <VentasPorEnviar />
           <GraficoDia horas={horas} />
         </Tarjeta>
       )}

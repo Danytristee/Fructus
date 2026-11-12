@@ -12,6 +12,8 @@ type Cola = {
   situacion: Situacion;
   /** Guarda en el celular y, si hay señal, empieza a enviar. false si el celular no pudo guardarlo. */
   encolar: (contenido: Contenido, resumen: string) => Promise<boolean>;
+  /** La persona leyó lo que había que saber de lo enviado («quedó a favor»): la franja se va. */
+  leerNotas: () => void;
   /** Saca una entrada: una tarjeta que la persona ya confirmó o descartó, o un rechazo descartado. */
   quitar: (id: number) => Promise<void>;
 };
@@ -40,6 +42,7 @@ export function ColaProveedor({ usuarioId, children }: { usuarioId: string; chil
   const [esperando, setEsperando] = useState(false);
   const [sinSesion, setSinSesion] = useState(false);
   const [enviadas, setEnviadas] = useState(0);
+  const [notas, setNotas] = useState<string[]>([]);
   const corriendo = useRef(false);
   const intentos = useRef(0);
   const reintento = useRef(0);
@@ -78,6 +81,8 @@ export function ColaProveedor({ usuarioId, children }: { usuarioId: string; chil
       if (d.tipo === "hecho") {
         await quitarDelCelular(e.id);
         enviadasAhora += 1;
+        const nota = d.nota;
+        if (nota) setNotas((n) => [...n, nota]);
       } else if (d.tipo === "tarjeta") {
         await actualizar({ ...e, contenido: { clase: "por_confirmar", comandoId: d.comandoId, tarjeta: d.tarjeta, latenciaMs: d.latenciaMs } });
         enviadasAhora += 1;
@@ -158,6 +163,11 @@ export function ColaProveedor({ usuarioId, children }: { usuarioId: string; chil
     [usuarioId, refrescar, drenar],
   );
 
+  const leerNotas = useCallback(() => {
+    setNotas([]);
+    setEnviadas(0);
+  }, []);
+
   const quitar = useCallback(
     async (id: number) => {
       await quitarDelCelular(id);
@@ -177,9 +187,10 @@ export function ColaProveedor({ usuarioId, children }: { usuarioId: string; chil
       esperando,
       sinSesion,
       enviadas,
+      notas,
     };
-    return { entradas, situacion, encolar, quitar };
-  }, [todas, usuarioId, enLinea, enviando, esperando, sinSesion, enviadas, encolar, quitar]);
+    return { entradas, situacion, encolar, quitar, leerNotas };
+  }, [todas, usuarioId, enLinea, enviando, esperando, sinSesion, enviadas, notas, encolar, quitar, leerNotas]);
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
