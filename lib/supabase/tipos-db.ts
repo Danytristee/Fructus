@@ -201,14 +201,14 @@ isOneToOne: false
                   ]
                 },"movimientos_stock": {
                   Row: {
-                    "cantidad": number,"comando_voz_id": number | null,"compra_id": number | null,"fecha": string,"id": number,"motivo": string | null,"producto_id": number,"registrado_por": string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id": number | null
+                    "cantidad": number,"comando_voz_id": number | null,"compra_id": number | null,"estado_llegada": Database["public"]['Enums']["estado_llegada"] | null,"fecha": string,"id": number,"motivo": string | null,"producto_id": number,"registrado_por": string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "cantidad": number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id": number,"registrado_por"?: string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
+                    "cantidad": number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"estado_llegada"?: Database["public"]['Enums']["estado_llegada"] | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id": number,"registrado_por"?: string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
                   }
                   Update: {
-                    "cantidad"?: number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id"?: number,"registrado_por"?: string,"tipo"?: Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
+                    "cantidad"?: number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"estado_llegada"?: Database["public"]['Enums']["estado_llegada"] | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id"?: number,"registrado_por"?: string,"tipo"?: Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
                   }
                   Relationships: [
                     {
@@ -547,7 +547,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "condicion_pago": "contado"|"credito","estado_comprobante": "pendiente"|"enviado"|"aceptado"|"rechazado"|"anulado","medio_pago": "efectivo"|"yape"|"plin"|"transferencia"|"otro","rol_usuario": "duenio"|"administrador"|"ayudante"|"contador","tipo_movimiento": "entrada_compra"|"salida_venta"|"merma"|"ajuste"|"devolucion"
+            "condicion_pago": "contado"|"credito","estado_comprobante": "pendiente"|"enviado"|"aceptado"|"rechazado"|"anulado","estado_llegada": "verde"|"pinton"|"maduro","medio_pago": "efectivo"|"yape"|"plin"|"transferencia"|"otro","rol_usuario": "duenio"|"administrador"|"ayudante"|"contador","tipo_movimiento": "entrada_compra"|"salida_venta"|"merma"|"ajuste"|"devolucion"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -663,7 +663,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "condicion_pago": ["contado", "credito"],"estado_comprobante": ["pendiente", "enviado", "aceptado", "rechazado", "anulado"],"medio_pago": ["efectivo", "yape", "plin", "transferencia", "otro"],"rol_usuario": ["duenio", "administrador", "ayudante", "contador"],"tipo_movimiento": ["entrada_compra", "salida_venta", "merma", "ajuste", "devolucion"]
+            "condicion_pago": ["contado", "credito"],"estado_comprobante": ["pendiente", "enviado", "aceptado", "rechazado", "anulado"],"estado_llegada": ["verde", "pinton", "maduro"],"medio_pago": ["efectivo", "yape", "plin", "transferencia", "otro"],"rol_usuario": ["duenio", "administrador", "ayudante", "contador"],"tipo_movimiento": ["entrada_compra", "salida_venta", "merma", "ajuste", "devolucion"]
           }
         }
 } as const

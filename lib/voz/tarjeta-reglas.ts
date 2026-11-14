@@ -3,6 +3,7 @@
 // contado (si no lo dijo, se pregunta), y el total solo existe si todos los precios existen. Lógica pura: no importa React
 // ni Supabase; las búsquedas en la base las hace lib/voz/resolver.ts y llegan aquí como datos.
 import type { Respuesta } from "./consultas-reglas";
+import type { EstadoLlegada } from "../vida-util-reglas";
 import type { Interpretacion } from "./esquemas";
 
 /** Desde esta similitud (pg_trgm) un nombre se elige solo; por debajo, la persona elige entre las 3 mejores (CLAUDE.md, «La voz»). */
@@ -48,8 +49,13 @@ export type Tarjeta =
   | {
       tipo: "compra";
       proveedor: Eleccion;
-      /** costo por caja: el dicho, o el último que se pagó por esa fruta (marcado «sugerido»). null si no hay ninguno. */
-      items: { producto: Eleccion; cantidad: number; costo: { valor: number | null; sugerido: boolean } }[];
+      /**
+       * costo por caja: el dicho, o el último que se pagó por esa fruta (marcado «sugerido»). null si no hay ninguno.
+       * estado: cómo llegó la fruta (verde, pintón, maduro), si se dijo. Es opcional: no es dinero ni stock.
+       */
+      items: { producto: Eleccion; cantidad: number; costo: { valor: number | null; sugerido: boolean }; estado?: EstadoLlegada | null }[];
+      /** La temperatura con la que se cuenta hoy, para decir cuánto va a aguantar lo que llegó. null si no se anotó ninguna. */
+      temperatura?: number | null;
       /** null: se pregunta con dos botones. Nunca se asume contado (20261031211551_compra_por_voz). */
       condicion: "contado" | "credito" | null;
       dudas: string[];
@@ -79,6 +85,8 @@ export type Resolucion = {
   precios: (number | null)[];
   /** La temperatura de ayer, solo para la tarjeta de la temperatura. */
   temperaturaAyer?: number | null;
+  /** La temperatura con la que se cuenta hoy, solo para la tarjeta de la compra. */
+  temperaturaHoy?: number | null;
 };
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
@@ -138,7 +146,7 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
         const producto = elegir(it.producto_texto, r.productos[n] ?? []);
         const sugerido = producto.elegido ? (r.precios[n] ?? null) : null;
         const costo = it.costo_unitario !== null ? { valor: it.costo_unitario, sugerido: false } : { valor: sugerido, sugerido: sugerido !== null };
-        return { producto, cantidad: it.cantidad, costo };
+        return { producto, cantidad: it.cantidad, costo, estado: it.estado };
       });
       const falta: Extract<Tarjeta, { tipo: "compra" }>["falta"] = [];
       // Al crédito hay que saber a quién se le debe (la base también lo exige: compra_credito_requiere_proveedor).
@@ -146,7 +154,7 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
       if (items.some((x) => !x.producto.elegido)) falta.push("producto");
       if (items.some((x) => x.costo.valor === null)) falta.push("costo");
       if (i.datos.condicion === null) falta.push("condicion");
-      return { tipo: "compra", proveedor, items, condicion: i.datos.condicion, dudas: i.datos.dudas, falta };
+      return { tipo: "compra", proveedor, items, condicion: i.datos.condicion, dudas: i.datos.dudas, falta, temperatura: r.temperaturaHoy ?? null };
     }
     case "registrar_merma": {
       const producto = elegir(i.datos.producto_texto, r.productos[0] ?? []);

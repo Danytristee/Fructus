@@ -3,6 +3,8 @@
 // Así nunca hay dos versiones distintas de una herramienta. Lógica pura: no importa React ni Supabase.
 import { z } from "zod";
 
+import { ESTADOS_LLEGADA } from "../vida-util-reglas";
+
 const medio = z.enum(["efectivo", "yape", "plin", "transferencia"]);
 const condicion = z.enum(["contado", "credito"]);
 const dudas = z.array(z.string()).default([]).describe("Dudas cortas, en español, para mostrar en la tarjeta.");
@@ -44,7 +46,14 @@ const herramientasVoz = {
     esquema: z.object({
       proveedor_texto: z.string().nullable(),
       items: z
-        .array(z.object({ producto_texto: z.string().min(1), cantidad, costo_unitario: dinero.nullable() }))
+        .array(
+          z.object({
+            producto_texto: z.string().min(1),
+            cantidad,
+            costo_unitario: dinero.nullable(),
+            estado: z.enum(ESTADOS_LLEGADA).nullable().default(null).describe("Cómo llegó la fruta: verde, pintón o maduro. null si no lo dijo."),
+          }),
+        )
         .min(1),
       condicion: condicion.nullable(),
       dudas,

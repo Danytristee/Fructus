@@ -21,7 +21,7 @@ export async function leerInventario(supabase: SupabaseClient<Database>, hoy = n
     supabase.from("v_stock").select("producto_id, stock"),
     supabase.from("venta_items").select("producto_id, cantidad, venta:ventas!inner(fecha, estado)").gte("venta.fecha", hace7).eq("venta.estado", "registrada"),
     // Las cajas entran por compra o por un ajuste a favor (un conteo, el stock inicial): las dos dicen cuándo llegó el lote.
-    supabase.from("movimientos_stock").select("producto_id, cantidad, fecha").in("tipo", ["entrada_compra", "ajuste"]).gt("cantidad", 0).gte("fecha", hace45),
+    supabase.from("movimientos_stock").select("producto_id, cantidad, fecha, estado_llegada").in("tipo", ["entrada_compra", "ajuste"]).gt("cantidad", 0).gte("fecha", hace45),
     leerTemperaturas(supabase, hoy, 46).catch((e: unknown) => {
       console.error("inventario: no se pudo leer la temperatura", { error: e instanceof Error ? e.message : "desconocido" });
       return [];
@@ -33,8 +33,8 @@ export async function leerInventario(supabase: SupabaseClient<Database>, hoy = n
   const stockDe = new Map((stock.data ?? []).map((s) => [s.producto_id, Number(s.stock ?? 0)]));
   const vendidoDe = new Map<number, number>();
   for (const v of vendidos.data ?? []) vendidoDe.set(v.producto_id, (vendidoDe.get(v.producto_id) ?? 0) + Number(v.cantidad));
-  const entradasDe = new Map<number, { fecha: string; cantidad: number }[]>();
-  for (const e of entradas.data ?? []) entradasDe.set(e.producto_id, [...(entradasDe.get(e.producto_id) ?? []), { fecha: e.fecha, cantidad: Number(e.cantidad) }]);
+  const entradasDe = new Map<number, ProductoInventario["entradas"]>();
+  for (const e of entradas.data ?? []) entradasDe.set(e.producto_id, [...(entradasDe.get(e.producto_id) ?? []), { fecha: e.fecha, cantidad: Number(e.cantidad), estado: e.estado_llegada }]);
 
   const lista: ProductoInventario[] = (productos.data ?? []).map((p) => ({
     id: p.id,

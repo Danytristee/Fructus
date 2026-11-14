@@ -1,6 +1,7 @@
 // De la tarjeta de compra (lo que se entendió) al borrador que la persona corrige, y del borrador a lo que recibe
 // registrar_compra. Reglas de dinero (principio 2): no se guarda sin costo, sin saber si se pagó (nunca se asume
 // contado), ni al crédito sin proveedor. Lógica pura.
+import { maduraEnLaCaja, type EstadoLlegada } from "../vida-util-reglas";
 import { PRECIO_MAXIMO, type ItemBorrador, type Medio } from "./confirmar-venta-reglas";
 import { leerMonto } from "./monto-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
@@ -30,6 +31,7 @@ export function borradorCompra(t: Compra): BorradorCompra {
       cantidad: it.cantidad,
       precio: it.costo.valor,
       sugerido: it.costo.sugerido,
+      estado: it.estado ?? null,
     })),
     condicion: t.condicion,
     medio: t.condicion === "contado" ? "efectivo" : null,
@@ -78,6 +80,8 @@ export function fueCorregidaCompra(t: Compra, b: BorradorCompra): boolean {
   if (original.items.some((it, n) => (it.productoId !== null && it.productoId !== b.items[n]!.productoId) || it.cantidad !== b.items[n]!.cantidad))
     return true;
   if (original.items.some((it, n) => !it.sugerido && it.precio !== null && it.precio !== b.items[n]!.precio)) return true;
+  // Cambiar cómo llegó lo que se dijo es corregir; elegirlo cuando no se dijo, no.
+  if (original.items.some((it, n) => it.estado != null && it.estado !== (b.items[n]!.estado ?? null))) return true;
   if (original.condicion !== null && original.condicion !== b.condicion) return true;
   return original.condicion === "contado" && original.medio !== b.medio;
 }
@@ -88,7 +92,7 @@ export type PedidoCompra = {
   medio_pago: Medio | null;
   comando_voz_id: number;
   corregido: boolean;
-  items: { producto_id: number; cantidad: number; costo_unitario: number }[];
+  items: { producto_id: number; cantidad: number; costo_unitario: number; estado_llegada: EstadoLlegada | null }[];
 };
 
 /** Lo que recibe registrar_compra. null si todavía falta algo: nunca se guarda una compra a medias. */
@@ -100,6 +104,7 @@ export function pedidoCompra(b: BorradorCompra, comandoId: number, corregido: bo
     medio_pago: b.condicion === "contado" ? (b.medio ?? "efectivo") : null,
     comando_voz_id: comandoId,
     corregido,
-    items: b.items.map((it) => ({ producto_id: it.productoId!, cantidad: it.cantidad, costo_unitario: it.precio! })),
+    // Cómo llegó solo se guarda en la fruta que madura en la caja: en las demás no cambia nada.
+    items: b.items.map((it) => ({ producto_id: it.productoId!, cantidad: it.cantidad, costo_unitario: it.precio!, estado_llegada: maduraEnLaCaja(it.producto) ? (it.estado ?? null) : null })),
   };
 }

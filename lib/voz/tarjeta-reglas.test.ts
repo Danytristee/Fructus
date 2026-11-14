@@ -153,6 +153,14 @@ describe("armarTarjeta · lo demás", () => {
     expect(t).toMatchObject({ tipo: "compra", items: [{ costo: { valor: 95, sugerido: true } }], condicion: null, falta: ["condicion"] });
   });
 
+  it("una compra trae cómo llegó cada fruta y la temperatura con la que se cuenta hoy", () => {
+    const t = armarTarjeta(
+      interpretar("registrar_compra", { proveedor_texto: null, items: [{ producto_texto: "manzana royal", cantidad: 40, costo_unitario: 90, estado: "verde" }], condicion: "contado" }),
+      { ...nada, productos: [[royal]], temperaturaHoy: 30 },
+    );
+    expect(t).toMatchObject({ tipo: "compra", items: [{ estado: "verde" }], temperatura: 30 });
+  });
+
   it("una compra al crédito pide a quién se le debe", () => {
     const t = armarTarjeta(
       interpretar("registrar_compra", { proveedor_texto: null, items: [{ producto_texto: "manzana royal", cantidad: 40, costo_unitario: 90 }], condicion: "credito" }),

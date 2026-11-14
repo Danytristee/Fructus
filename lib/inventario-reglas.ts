@@ -5,48 +5,7 @@ import { diaDeLima } from "./formato";
 import { cuandoLlego, deCuando, estimarLlegada, llegadasEnStock, type Estimacion, type Llegada } from "./frescura-reglas";
 import { agruparPorFruta, detalleProducto, nombreProducto, tituloEnGrupo, type PartesProducto } from "./productos-reglas";
 import type { TemperaturaDia } from "./temperatura-reglas";
-
-/**
- * Días que aguanta una caja en buen estado en el puesto (sin cámara de frío) a temperatura normal (24°). Valores de referencia
- * para la demo, por familia de fruta. El calor de cada día los acorta (lib/frescura-reglas.ts).
- */
-const VIDA_UTIL_DIAS: Record<string, number> = {
-  manzana: 30,
-  pera: 20,
-  kiwi: 25,
-  uva: 10,
-  ciruela: 10,
-  naranja: 15,
-  tangelo: 15,
-  lima: 15,
-  pina: 7,
-  platano: 6,
-  mango: 7,
-  papaya: 5,
-  chirimoya: 5,
-  granadilla: 12,
-  nispero: 7,
-  tuna: 7,
-  kaki: 10,
-  caqui: 10,
-  membrillo: 20,
-  albaricoque: 7,
-  cereza: 7,
-  durazno: 7,
-  tumbo: 7,
-  pepino: 7,
-  arandano: 10,
-  sandia: 10,
-  aguaymanto: 10,
-  cocona: 6,
-  carambola: 7,
-};
-
-const clave = (nombre: string) => nombre.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "").split(" ")[0] ?? "";
-
-export function vidaUtilDias(nombre: string): number {
-  return VIDA_UTIL_DIAS[clave(nombre)] ?? 10;
-}
+import { NOMBRE_ESTADO, vidaDeLlegada, vidaUtilDias, type EstadoLlegada } from "./vida-util-reglas";
 
 const DIA_MS = 86_400_000;
 
@@ -91,8 +50,8 @@ export type ProductoInventario = PartesProducto & {
   stock: number;
   /** Cajas vendidas en los últimos 7 días. */
   vendido7: number;
-  /** Entradas de compra o de ajuste a favor (fecha y cajas), para la edad del lote. */
-  entradas: { fecha: string; cantidad: number }[];
+  /** Entradas de compra o de ajuste a favor (fecha, cajas y cómo llegó la fruta, si se dijo), para la cuenta de cada llegada. */
+  entradas: { fecha: string; cantidad: number; estado?: EstadoLlegada | null }[];
   precioReferencia: number | null;
 };
 
@@ -157,7 +116,10 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date, lecturas: read
   const coberturaDias = demandaDiaria > 0 ? Math.max(0, p.stock) / demandaDiaria : null;
   const edadDias = edadLoteMasViejo(p.stock, p.entradas, hoy);
   const hoyDia = diaDeLima(hoy);
-  const lotes: LoteEstimado[] = llegadasEnStock(p.stock, p.entradas).map((l) => ({ ...l, ...estimarLlegada(l.dia, vidaUtil, lecturas, hoyDia) }));
+  // Cada llegada con su cuenta, primero la que se acaba antes: una que llegó madura ayer puede salir antes que una verde del lunes.
+  const lotes: LoteEstimado[] = llegadasEnStock(p.stock, p.entradas)
+    .map((l) => ({ ...l, ...estimarLlegada(l.dia, vidaDeLlegada(p.nombre, l.estado), lecturas, hoyDia) }))
+    .sort((a, b) => (a.fin === b.fin ? 0 : a.fin < b.fin ? -1 : 1));
   const viejo = lotes[0] ?? null;
   const desgaste = viejo ? viejo.gastado : 0;
   const alertas: Alerta[] = [];
@@ -168,16 +130,16 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date, lecturas: read
   const porSalir = deHoy.length > 0 ? deHoy : lotes.filter((l) => l.restan === 1);
   if (porSalir.length > 0) {
     const alta = deHoy.length > 0;
-    const primero = porSalir[0]!; // la más vieja
+    const primero = porSalir[0]!; // la que se acaba antes
     const n = porSalir.reduce((s, l) => s + l.cajas, 0);
     alertas.push({
       ...base,
       tipo: "deterioro",
       gravedad: alta ? "alta" : "media",
       titulo: alta ? `${nombre} tiene que salir hoy` : `${nombre} sale mañana`,
-      detalle: `${cajas(n)} que ${Math.round(n) === 1 ? "llegó" : "llegaron"} ${cuandoLlego(primero.dia, hoyDia)}. ${porQueSale(primero, alta)}`,
+      detalle: `${cajas(n)} que ${Math.round(n) === 1 ? "llegó" : "llegaron"} ${cuandoLlego(primero.dia, hoyDia)}${primero.estado ? `, ${NOMBRE_ESTADO[primero.estado].cajas}` : ""}. ${porQueSale(primero, alta)}`,
       recomendacion: alta ? "Véndelo hoy, antes que lo nuevo. Si no sale, ofrécelo con rebaja." : "Ponlo adelante y véndelo primero.",
-      corto: `${cajas(n)} ${deCuando(primero.dia, hoyDia)}`,
+      corto: `${cajas(n)} ${deCuando(primero.dia, hoyDia)}${primero.estado ? `, ${NOMBRE_ESTADO[primero.estado].cajas}` : ""}`,
     });
   }
 

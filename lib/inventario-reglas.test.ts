@@ -9,9 +9,9 @@ import {
   priorizarAlertas,
   resumirInventario,
   veredictoDelStock,
-  vidaUtilDias,
   type ProductoInventario,
 } from "./inventario-reglas";
+import { vidaUtilDias } from "./vida-util-reglas";
 
 const hoy = new Date("2026-10-28T15:00:00Z");
 const haceDias = (n: number) => new Date(hoy.getTime() - n * 86_400_000).toISOString();
@@ -89,6 +89,23 @@ describe("evaluarProducto", () => {
       expect(e.lotes.map((l) => [l.cajas, l.restan])).toEqual([[12, 0], [30, 3]]);
       // El aviso habla solo de las 12 que salen hoy, no de las 42.
       expect(e.alertas.find((x) => x.tipo === "deterioro")?.corto).toBe("12 cajas del sábado");
+    });
+
+    it("cómo llegó cambia cuánto aguanta: la madura del lunes sale antes que la verde del sábado", () => {
+      const dos = producto({
+        nombre: "Mango",
+        variedad: "Kent",
+        stock: 30,
+        vendido7: 63,
+        entradas: [
+          { fecha: haceDias(4), cantidad: 20, estado: "verde" },
+          { fecha: haceDias(2), cantidad: 10, estado: "maduro" },
+        ],
+      });
+      const e = evaluarProducto(dos, hoy, semana(31));
+      // Primero la que se acaba antes, no la que llegó antes.
+      expect(e.lotes.map((l) => [l.estado, l.cajas, l.restan])).toEqual([["maduro", 10, 0], ["verde", 20, 2]]);
+      expect(e.alertas.find((x) => x.tipo === "deterioro")).toMatchObject({ titulo: "Mango Kent tiene que salir hoy", corto: "10 cajas del lunes, maduras" });
     });
 
     it("una sola caja se dice en singular", () => {

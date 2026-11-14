@@ -65,6 +65,15 @@ describe("leerInterpretacion", () => {
     expect(leerInterpretacion("registrar_venta", "{no es json").ok).toBe(false);
   });
 
+  it("en una compra, cómo llegó la fruta es opcional: sin decirlo queda null, y una palabra que no es un estado no se usa", () => {
+    const compra = (estado?: unknown) => leerInterpretacion("registrar_compra", { proveedor_texto: null, items: [{ producto_texto: "mango", cantidad: 30, costo_unitario: 32, ...(estado === undefined ? {} : { estado }) }], condicion: null });
+    const sinDecir = compra();
+    expect(sinDecir.ok && sinDecir.interpretacion.herramienta === "registrar_compra" && sinDecir.interpretacion.datos.items[0]!.estado).toBeNull();
+    const verde = compra("verde");
+    expect(verde.ok && verde.interpretacion.herramienta === "registrar_compra" && verde.interpretacion.datos.items[0]!.estado).toBe("verde");
+    expect(compra("podrido").ok).toBe(false);
+  });
+
   it("la temperatura es un número de grados; sin número no se usa", () => {
     const r = leerInterpretacion("registrar_temperatura", { grados: 29 });
     expect(r.ok && r.interpretacion.herramienta === "registrar_temperatura" && r.interpretacion.datos.grados).toBe(29);

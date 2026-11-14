@@ -48,6 +48,10 @@ Cómo habla el negocio:
   en que lo dijeron en cliente_texto ("don Lucho", "la del puesto 12"). Escribe los
   números en cifras ("puesto doce" → "puesto 12").
 - "Malograda", "podrida", "se pasó", "se echó a perder" = merma.
+- En una compra, "verde", "pintón" o "pintona", "maduro" o "madura" dicen cómo llegó esa
+  fruta: va en estado del ítem ("verde", "pinton", "maduro"). Si no lo dijo, estado = null.
+  Ojo: en "manzana verde" o "plátano verde", verde es parte del nombre de la fruta, no
+  cómo llegó: va en producto_texto y estado = null.
 - "Hoy hizo 29 grados", "el termómetro marca 31", "estamos a 28 grados" = registrar_temperatura
   (la temperatura del puesto, en grados).
 
@@ -155,7 +159,8 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
               "properties": {
                 "producto_texto": { "type": "string" },
                 "cantidad": { "type": "number" },
-                "costo_unitario": { "type": ["number", "null"] }
+                "costo_unitario": { "type": ["number", "null"] },
+                "estado": { "type": ["string", "null"], "enum": ["verde", "pinton", "maduro", null], "default": null, "description": "Cómo llegó la fruta: verde, pintón o maduro. null si no lo dijo." }
               },
               "required": ["producto_texto", "cantidad", "costo_unitario"]
             }
@@ -263,6 +268,8 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 | "Se malograron 3 jabas de papaya" | registrar_merma | 3 |
 | "Pagué 80 de flete" | registrar_gasto | flete, 80 |
 | "Hoy hizo 29 grados" | registrar_temperatura | 29 |
+| "Llegaron 30 cajas de mango kent verde a 32, lo pagué" | registrar_compra | 30 × 32, estado verde, contado |
+| "Llegaron 20 cajas de manzana verde a 90" | registrar_compra | producto "manzana verde", estado null |
 | "¿Quién me debe?" | consultar | quien_me_debe |
 | "¿Cuánto me debe el flaco?" | consultar | deuda_cliente, "el flaco" |
 | "¿Cuántas cajas de mango me quedan?" | consultar | stock_producto, "mango" |

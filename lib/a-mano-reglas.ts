@@ -60,14 +60,15 @@ export const itemCompraVacio = (): ItemBorrador => ({ productoId: null, producto
  * La tarjeta de una compra a mano: una fruta vacía, sin proveedor (se puede dejar así si fue en el mercado) y **sin saber si se
  * pagó**: nunca se asume contado (principio 2). Ofrece primero a los proveedores y a las frutas que más conviene reponer.
  */
-export function tarjetaCompraAMano(proveedores: Persona[] = [], frutas: Persona[] = []): Extract<Tarjeta, { tipo: "compra" }> {
+export function tarjetaCompraAMano(proveedores: Persona[] = [], frutas: Persona[] = [], temperatura: number | null = null): Extract<Tarjeta, { tipo: "compra" }> {
   return {
     tipo: "compra",
     proveedor: { dicho: null, elegido: null, opciones: proveedores },
-    items: [{ producto: { dicho: null, elegido: null, opciones: frutas }, cantidad: 0, costo: { valor: null, sugerido: false } }],
+    items: [{ producto: { dicho: null, elegido: null, opciones: frutas }, cantidad: 0, costo: { valor: null, sugerido: false }, estado: null }],
     condicion: null,
     dudas: [],
     falta: ["producto", "costo", "condicion"],
+    temperatura,
   };
 }
 

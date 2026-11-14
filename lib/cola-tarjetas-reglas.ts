@@ -121,6 +121,7 @@ export function tarjetaParaAnotar(op: Operacion, error: string | undefined): Tar
         producto: eleccion(it.productoId === null ? null : { id: it.productoId, nombre: it.producto }, quitarFruta || it.productoId === null),
         cantidad: it.cantidad,
         costo: { valor: it.precio, sugerido: it.sugerido },
+        estado: it.estado ?? null,
       }));
       const falta: ("proveedor" | "producto" | "costo" | "condicion")[] = [];
       if (b.condicion === "credito" && !proveedor.elegido) falta.push("proveedor");

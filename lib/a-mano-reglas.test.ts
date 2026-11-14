@@ -158,7 +158,7 @@ describe("tarjetaCompraAMano", () => {
       medio_pago: "efectivo",
       comando_voz_id: 9,
       corregido: true,
-      items: [{ producto_id: 1, cantidad: 5, costo_unitario: 20 }],
+      items: [{ producto_id: 1, cantidad: 5, costo_unitario: 20, estado_llegada: null }],
     });
   });
 

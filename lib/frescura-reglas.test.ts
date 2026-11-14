@@ -39,24 +39,30 @@ describe("llegadasEnStock", () => {
   it("lo primero que entra es lo primero que sale: lo nuevo cubre el stock y lo más viejo queda a medias", () => {
     const entradas = [entrada("2026-11-09", 40), entrada("2026-11-12", 30)];
     expect(llegadasEnStock(42, entradas)).toEqual([
-      { dia: "2026-11-09", cajas: 12 },
-      { dia: "2026-11-12", cajas: 30 },
+      { dia: "2026-11-09", cajas: 12, estado: null },
+      { dia: "2026-11-12", cajas: 30, estado: null },
     ]);
   });
 
-  it("si lo nuevo alcanza, lo viejo ya se vendió", () => expect(llegadasEnStock(20, [entrada("2026-11-09", 40), entrada("2026-11-12", 30)])).toEqual([{ dia: "2026-11-12", cajas: 20 }]));
+  it("si lo nuevo alcanza, lo viejo ya se vendió", () => expect(llegadasEnStock(20, [entrada("2026-11-09", 40), entrada("2026-11-12", 30)])).toEqual([{ dia: "2026-11-12", cajas: 20, estado: null }]));
 
   it("dos entradas del mismo día son una sola llegada", () => {
-    expect(llegadasEnStock(25, [entrada("2026-11-12", 10), { fecha: "2026-11-12T20:00:00Z", cantidad: 15 }])).toEqual([{ dia: "2026-11-12", cajas: 25 }]);
+    expect(llegadasEnStock(25, [entrada("2026-11-12", 10), { fecha: "2026-11-12T20:00:00Z", cantidad: 15 }])).toEqual([{ dia: "2026-11-12", cajas: 25, estado: null }]);
+
+    // Si una llegó verde y otra madura, son dos llegadas: no duran lo mismo.
+    expect(llegadasEnStock(25, [{ ...entrada("2026-11-12", 10), estado: "verde" }, { fecha: "2026-11-12T20:00:00Z", cantidad: 15, estado: "maduro" }])).toEqual([
+      { dia: "2026-11-12", cajas: 15, estado: "maduro" },
+      { dia: "2026-11-12", cajas: 10, estado: "verde" },
+    ]);
   });
 
   it("el día es el de Lima: una entrada de las 9 p. m. no cuenta para el día siguiente", () => {
-    expect(llegadasEnStock(5, [{ fecha: "2026-11-13T02:00:00Z", cantidad: 5 }])).toEqual([{ dia: "2026-11-12", cajas: 5 }]);
+    expect(llegadasEnStock(5, [{ fecha: "2026-11-13T02:00:00Z", cantidad: 5 }])).toEqual([{ dia: "2026-11-12", cajas: 5, estado: null }]);
   });
 
   it("sin stock no hay llegadas; con más stock que entradas conocidas no se inventa una fecha", () => {
     expect(llegadasEnStock(0, [entrada("2026-11-12", 30)])).toEqual([]);
-    expect(llegadasEnStock(50, [entrada("2026-11-12", 30)])).toEqual([{ dia: "2026-11-12", cajas: 30 }]);
+    expect(llegadasEnStock(50, [entrada("2026-11-12", 30)])).toEqual([{ dia: "2026-11-12", cajas: 30, estado: null }]);
   });
 });
 

@@ -8,6 +8,7 @@
 // sin decirlo.
 import { diaDeLima } from "./formato";
 import { diaAnterior, type TemperaturaDia } from "./temperatura-reglas";
+import type { EstadoLlegada } from "./vida-util-reglas";
 
 /** A esta temperatura la fruta dura lo que dice su vida útil. */
 const TEMPERATURA_NORMAL = 24;
@@ -38,26 +39,29 @@ export function temperaturaParaContar(lecturas: readonly TemperaturaDia[], dia: 
   return { grados: ultima.grados, anotada: ultima.dia === dia };
 }
 
-/** Una llegada que todavía tiene cajas en el puesto: qué día de Lima llegó y cuántas quedan de ella. */
-export type Llegada = { dia: string; cajas: number };
+/** Una llegada que todavía tiene cajas en el puesto: qué día de Lima llegó, cuántas quedan de ella y cómo llegó (si se dijo). */
+export type Llegada = { dia: string; cajas: number; estado: EstadoLlegada | null };
 
 /**
  * Las llegadas que todavía están en stock, de la más vieja a la más nueva. Lo primero que entra es lo primero que sale: las
- * entradas más nuevas cubren el stock y la más vieja que hace falta queda a medias. Dos entradas del mismo día son una llegada.
+ * entradas más nuevas cubren el stock y la más vieja que hace falta queda a medias. Dos entradas del mismo día que llegaron
+ * igual son una llegada; si una llegó verde y otra madura, son dos: no duran lo mismo.
  * Si las entradas conocidas no alcanzan a cubrir el stock, lo que sobra es más viejo de lo que se leyó y no se adivina su fecha.
  */
-export function llegadasEnStock(stock: number, entradas: readonly { fecha: string; cantidad: number }[]): Llegada[] {
+export function llegadasEnStock(stock: number, entradas: readonly { fecha: string; cantidad: number; estado?: EstadoLlegada | null }[]): Llegada[] {
   if (stock <= 0) return [];
-  const porDia = new Map<string, number>();
+  const juntas = new Map<string, Llegada>();
   let falta = stock;
   for (const e of [...entradas].sort((a, b) => Date.parse(b.fecha) - Date.parse(a.fecha))) {
     if (falta <= 0) break;
     const cajas = Math.min(falta, e.cantidad);
     const dia = diaDeLima(new Date(e.fecha));
-    porDia.set(dia, (porDia.get(dia) ?? 0) + cajas);
+    const estado = e.estado ?? null;
+    const llave = `${dia} ${estado ?? ""}`;
+    juntas.set(llave, { dia, estado, cajas: (juntas.get(llave)?.cajas ?? 0) + cajas });
     falta -= cajas;
   }
-  return [...porDia].map(([dia, cajas]) => ({ dia, cajas })).sort((a, b) => (a.dia < b.dia ? -1 : 1));
+  return [...juntas.values()].sort((a, b) => (a.dia === b.dia ? 0 : a.dia < b.dia ? -1 : 1));
 }
 
 /** Lo que gastó la caja un día: con qué temperatura se contó y qué parte de su vida se fue. */

@@ -12,6 +12,8 @@ import { BarraFlotante } from "@/components/ui/BarraFlotante";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
 import { sugeridosParaCompra, sugeridosParaMerma } from "@/lib/a-mano-reglas";
+import { diaDeLima } from "@/lib/formato";
+import { temperaturaParaContar } from "@/lib/frescura-reglas";
 import { leerInventario } from "@/lib/inventario";
 import { exigirSesion } from "@/lib/sesion";
 
@@ -42,7 +44,11 @@ async function Tablero() {
       <TableroStock alertas={inventario.alertas} estados={inventario.estados} puedeRegistrar={permisos.registrar} />
       {permisos.registrar && (
         <BarraFlotante>
-          <CompraAMano proveedores={proveedores} frutas={sugeridosParaCompra(inventario.estados)} />
+          <CompraAMano
+            proveedores={proveedores}
+            frutas={sugeridosParaCompra(inventario.estados)}
+            temperatura={inventario.lecturas.length > 0 ? temperaturaParaContar(inventario.lecturas, diaDeLima(new Date())).grados : null}
+          />
           <MermaAMano producto={null} sugeridos={sugeridosParaMerma(inventario.estados)} variante="flotante" />
         </BarraFlotante>
       )}
