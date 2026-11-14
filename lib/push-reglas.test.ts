@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { ResumenHoy } from "./hoy-reglas";
 import {
   avisoDeActivacion,
+  avisoDeFrescura,
   avisoDelDia,
   clasificarRespuesta,
   claveParaElNavegador,
@@ -209,5 +210,30 @@ describe("claveParaElNavegador", () => {
     expect(bytes).toHaveLength(65);
     expect(bytes[0]).toBe(4); // punto sin comprimir
     expect(Buffer.from(bytes).toString("base64url")).toBe(clave);
+  });
+});
+
+describe("avisoDeFrescura", () => {
+  it("dice cuántas cajas tienen que salir mañana, de qué frutas y cuánto calor hizo, y al tocarlo abre Stock", () => {
+    const aviso = avisoDeFrescura({ frutas: [{ nombre: "Papaya", cajas: 6 }, { nombre: "Mango Kent", cajas: 12 }], gradosHoy: 30 }, "2026-11-13");
+    expect(aviso).toEqual({ titulo: "Mañana tienen que salir 18 cajas", cuerpo: "Mango Kent (12) y Papaya (6). Hoy hizo 30°.", url: "/stock", tag: "frescura-2026-11-13" });
+  });
+
+  it("sin fruta por salir no avisa nada: un aviso vacío enseña a ignorarlo", () => {
+    expect(avisoDeFrescura({ frutas: [], gradosHoy: 30 }, "2026-11-13")).toBeNull();
+    expect(avisoDeFrescura({ frutas: [{ nombre: "Limón", cajas: 0 }], gradosHoy: null }, "2026-11-13")).toBeNull();
+  });
+
+  it("una sola caja va en singular, y sin temperatura anotada no la inventa", () => {
+    expect(avisoDeFrescura({ frutas: [{ nombre: "Papaya", cajas: 1 }], gradosHoy: null }, "2026-11-13")).toMatchObject({ titulo: "Mañana tiene que salir 1 caja", cuerpo: "Papaya (1)." });
+  });
+
+  it("con muchas frutas nombra las tres que más cajas tienen y cuenta las demás", () => {
+    const frutas = [["Mango Kent", 12], ["Papaya", 6], ["Plátano de seda", 20], ["Palta", 3], ["Chirimoya", 2]].map(([nombre, cajas]) => ({ nombre: nombre as string, cajas: cajas as number }));
+    expect(avisoDeFrescura({ frutas, gradosHoy: null }, "2026-11-13")?.cuerpo).toBe("Plátano de seda (20), Mango Kent (12), Papaya (6) y 2 más.");
+  });
+
+  it("su etiqueta es distinta de la del resumen del día: los dos avisos se ven, uno no reemplaza al otro", () => {
+    expect(avisoDeFrescura({ frutas: [{ nombre: "Papaya", cajas: 6 }], gradosHoy: null }, "2026-11-13")?.tag).not.toBe(avisoDelDia(dia(), "2026-11-13")?.tag);
   });
 });

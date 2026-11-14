@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { formatearCajas, formatearSoles } from "../formato";
 import { textoVentas, type ResumenHoy } from "../hoy-reglas";
-import { respuestaDeudaCliente, respuestaGastosHoy, respuestaQuienMeDebe, respuestaResumenDia, respuestaStock, respuestaStockProducto, respuestaVentasHoy } from "./consultas-reglas";
+import {
+  respuestaDeudaCliente,
+  respuestaGastosHoy,
+  respuestaQueSaleHoy,
+  respuestaQuienMeDebe,
+  respuestaResumenDia,
+  respuestaStock,
+  respuestaStockProducto,
+  respuestaVentasHoy,
+} from "./consultas-reglas";
 
 const deudores = [
   { id: 2, nombre: "Rosa Quispe", saldo: 100 },
@@ -173,5 +182,42 @@ describe("respuestaStock", () => {
 
   it("sin fruta, lo dice", () => {
     expect(respuestaStock([{ id: 7, nombre: "Mandarina", stock: 0 }])).toMatchObject({ etiqueta: "No te queda fruta", cifra: null, hablado: "No te queda fruta." });
+  });
+});
+
+describe("respuestaQueSaleHoy", () => {
+  const mango = { id: 1, nombre: "Mango Kent", hoy: 12, manana: 0 };
+  const papaya = { id: 5, nombre: "Papaya", hoy: 6, manana: 0 };
+  const platano = { id: 3, nombre: "Plátano de seda", hoy: 0, manana: 20 };
+  const limon = { id: 9, nombre: "Limón", hoy: 0, manana: 0 };
+
+  it("dice cuántas cajas salen hoy, fruta por fruta, y aparte lo de mañana", () => {
+    const r = respuestaQueSaleHoy([papaya, limon, platano, mango]);
+    expect(r).toMatchObject({ titulo: "Qué tiene que salir", etiqueta: "Hoy tienen que salir", cifra: { tipo: "cajas", valor: 18 }, detalle: `Mañana: ${formatearCajas(20)} de Plátano de seda` });
+    // La que más cajas tiene, primero. Lo que aguanta no aparece.
+    expect(r.filas.map((f) => [f.nombre, f.valor])).toEqual([["Mango Kent", formatearCajas(12)], ["Papaya", formatearCajas(6)]]);
+    expect(r.enlace).toEqual({ texto: "Ver qué hacer en Stock", href: "/stock" });
+    expect(r.hablado).toBe("Hoy tienen que salir dieciocho cajas: doce cajas de Mango Kent y seis cajas de Papaya. Mañana, veinte cajas de Plátano de seda.");
+  });
+
+  it("sin nada para mañana dice de cuántas frutas son", () => {
+    expect(respuestaQueSaleHoy([mango, papaya]).detalle).toBe("de 2 frutas");
+    expect(respuestaQueSaleHoy([mango]).detalle).toBe("de 1 fruta");
+  });
+
+  it("una sola caja se dice en singular", () => {
+    const r = respuestaQueSaleHoy([{ id: 1, nombre: "Mango Kent", hoy: 1, manana: 0 }]);
+    expect(r.etiqueta).toBe("Hoy tiene que salir");
+    expect(r.hablado).toBe("Hoy tiene que salir una caja: una caja de Mango Kent.");
+  });
+
+  it("si hoy no sale nada lo dice, sin una cifra en cero, y avisa lo de mañana", () => {
+    const r = respuestaQueSaleHoy([platano, limon]);
+    expect(r).toMatchObject({ etiqueta: "Hoy no tiene que salir nada", cifra: null, detalle: `Mañana: ${formatearCajas(20)} de Plátano de seda`, filas: [] });
+    expect(r.hablado).toBe("Hoy no tiene que salir nada. Mañana, veinte cajas de Plátano de seda.");
+  });
+
+  it("si no sale nada ni hoy ni mañana, lo dice tranquilo", () => {
+    expect(respuestaQueSaleHoy([limon])).toMatchObject({ etiqueta: "Hoy no tiene que salir nada", detalle: "Tu fruta aguanta", hablado: "Hoy no tiene que salir nada. Tu fruta aguanta." });
   });
 });

@@ -79,7 +79,7 @@ const herramientasVoz = {
   consultar: {
     descripcion: "Una pregunta sobre el negocio.",
     esquema: z.object({
-      consulta: z.enum(["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia"]),
+      consulta: z.enum(["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia", "que_sale_hoy"]),
       cliente_texto: z.string().nullable(),
       producto_texto: z.string().nullable(),
     }),

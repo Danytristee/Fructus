@@ -48,6 +48,8 @@ Cómo habla el negocio:
   en que lo dijeron en cliente_texto ("don Lucho", "la del puesto 12"). Escribe los
   números en cifras ("puesto doce" → "puesto 12").
 - "Malograda", "podrida", "se pasó", "se echó a perder" = merma.
+- "¿Qué tiene que salir hoy?", "¿qué se me va a malograr?", "¿qué vendo primero?" =
+  consultar con consulta "que_sale_hoy".
 - En una compra, "verde", "pintón" o "pintona", "maduro" o "madura" dicen cómo llegó esa
   fruta: va en estado del ítem ("verde", "pinton", "maduro"). Si no lo dijo, estado = null.
   Ojo: en "manzana verde" o "plátano verde", verde es parte del nombre de la fruta, no
@@ -229,7 +231,7 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
         "properties": {
           "consulta": {
             "type": "string",
-            "enum": ["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia"]
+            "enum": ["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia", "que_sale_hoy"]
           },
           "cliente_texto": { "type": ["string", "null"] },
           "producto_texto": { "type": ["string", "null"] }
@@ -273,6 +275,7 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 | "¿Quién me debe?" | consultar | quien_me_debe |
 | "¿Cuánto me debe el flaco?" | consultar | deuda_cliente, "el flaco" |
 | "¿Cuántas cajas de mango me quedan?" | consultar | stock_producto, "mango" |
+| "¿Qué tiene que salir hoy?" | consultar | que_sale_hoy |
 | "Oye, ¿ya almorzaste?" | no_entendido | — |
 
 Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre contra el modelo real. La tasa de acierto es una métrica del proyecto universitario. Un caso que falla nunca se borra para mejorar el número.

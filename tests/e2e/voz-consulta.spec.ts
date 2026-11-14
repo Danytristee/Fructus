@@ -163,6 +163,29 @@ test("«¿qué me queda?»: las cajas que hay y de qué frutas, la que más prim
   if ((data ?? []).length > 0) await expect(hoja.getByText(/^de \d+ frutas?$/)).toBeVisible();
 });
 
+test("«¿qué tiene que salir hoy?»: las cajas que salen hoy, de qué frutas, dicho en voz alta y con el camino a Stock", async ({ page }) => {
+  test.slow();
+  // Una papaya que llegó hace 5 días (dura 5 a temperatura normal): con o sin calor, hoy tiene que salir.
+  const { data: duenio } = await base.from("perfiles").select("id").eq("rol", "duenio").limit(1).single();
+  const marca = `E2E${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  const { data: papaya } = await base.from("productos").insert({ nombre: "Papaya", calibre: marca, unidad: "caja" }).select("id").single();
+  const { data: cajas } = await base.from("movimientos_stock").insert({ producto_id: papaya!.id, tipo: "ajuste", cantidad: 7, motivo: "prueba e2e", registrado_por: duenio!.id }).select("id").single();
+  // La base no acepta fechas de hace más de 48 horas al insertar: entra hoy y se mueve.
+  await base.from("movimientos_stock").update({ fecha: new Date(Date.now() - 5 * 86_400_000).toISOString() }).eq("id", cajas!.id);
+  try {
+    await grabarLoDicho(page);
+    const hoja = await dictar(page, await crearComando("consultar"), consulta("que_sale_hoy"), "Qué tiene que salir");
+    await expect(hoja.getByText(/^Hoy tienen? que salir$/)).toBeVisible({ timeout: 15_000 });
+    // La fruta de la prueba está entre las que salen, con sus cajas.
+    const fila = hoja.getByRole("listitem").filter({ hasText: marca });
+    await expect(fila).toContainText("7 cajas");
+    await expect(hoja.getByRole("link", { name: "Ver qué hacer en Stock" })).toHaveAttribute("href", "/stock");
+    await expect.poll(async () => (await loDicho(page)).join(" ")).toMatch(/^Hoy tienen? que salir .+ cajas?: /);
+  } finally {
+    await base.from("productos").update({ activo: false }).eq("id", papaya!.id);
+  }
+});
+
 test("si la señal se cuelga al pedir la respuesta, a los 15 s lo dice y deja intentar otra vez", async ({ page }) => {
   test.slow();
   // Solo se cuelga el pedido de esta pregunta (entrar también usa una acción y tiene que pasar): no responde en 18 s y

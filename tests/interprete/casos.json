@@ -985,6 +985,26 @@
           "condicion": "credito"
         }
       }
+    },
+    {
+      "id": "consulta-que-sale-hoy",
+      "transcripcion": "¿Qué tiene que salir hoy?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "que_sale_hoy"
+        }
+      }
+    },
+    {
+      "id": "consulta-que-se-me-va-a-malograr",
+      "transcripcion": "¿Qué se me va a malograr?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "que_sale_hoy"
+        }
+      }
     }
   ]
 }

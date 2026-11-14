@@ -26,10 +26,24 @@ Obra de varias actividades (`/construir`), sobre la maqueta aprobada en `docs/ma
 - **Cómo se verificó:** Vitest 701. Playwright a 412 y 360 px: `stock-frescura.spec.ts` (el porqué desde el aviso y desde la llegada, las dos pestañas, el clima al final y su botón), `stock-tablero.spec.ts` (la cuenta de la pestaña cuadra con las etiquetas «Hoy»), `stock-merma.spec.ts` y `stock-compra.spec.ts` adaptadas a las pestañas. Sin scroll horizontal y sin controles de menos de 48 px en las dos pestañas. Tipos, lint y Knip limpios. Capturas en `docs/formidable/capturas/stock-dos-pestanas-2026-11-14/`.
 - **Sin probar:** el escritorio (1280 px) no se revisó en el navegador en esta actividad; la estructura de dos columnas es la misma que había.
 
+## Actividad 6 · El aviso de la noche y la pregunta por voz (se adelantó a la 5)
+
+- **Por qué se adelantó:** la actividad 5 (que Claude Sonnet estime cuánto aguanta cada fruta) no se puede probar todavía: en esta máquina no hay clave de Anthropic. La 6 no depende de ella.
+- **Qué cambió:** el cron de las 7 p. m. manda, después del resumen del día, un segundo aviso si hay fruta que tiene que salir mañana: «Mañana tienen que salir 18 cajas · Mango Kent (12) y Papaya (6). Hoy hizo 30°.», que abre Stock (`avisoDeFrescura` en `lib/push-reglas.ts`). Lleva su propia etiqueta para no reemplazar al resumen, sale aunque el día no haya tenido ventas, y no sale si no hay nada por salir. Por voz se puede preguntar «¿qué tiene que salir hoy?» (consulta `que_sale_hoy`): responde con las cajas de hoy, fruta por fruta, lo de mañana aparte, y lo dice en voz alta.
+- **Cómo se verificó:** Vitest 716 (`push-reglas`, `resumen-diario`, `consultas-reglas`). Playwright: `voz-consulta.spec.ts` a 412 y 360 px (la respuesta sale de la base por la misma cuenta que Stock) y `push-cron.spec.ts` contra el servicio de avisos simulado (cada teléfono recibe el resumen y después el de frescura, cifrados y con temas distintos; al que caducó o falló no se le manda el segundo). Tipos, lint y Knip limpios; invariantes en orden.
+- **Caída externa:** si no se puede leer lo que tiene que salir, el resumen del día sale igual y queda registrado.
+
+## Actividad 5 · Claude Sonnet estima cuánto aguanta cada fruta — sin hacer
+
+- Falta la clave de Anthropic (`ANTHROPIC_API_KEY`) en `.env.development.local` de este worktree, y después en Vercel. Sin ella no se puede probar ni una llamada real, y una integración de pago no se da por hecha sin verla responder.
+- Hasta entonces el aviso funciona con la tabla de referencia de `lib/vida-util-reglas.ts`.
+- Tampoco está «Sigue buena» (la maqueta lo mostraba junto a «Se malogró»): es la señal que le falta a la estimación para corregirse cuando avisa antes de tiempo.
+
 ## Pendiente
 
-- **Sin probar: `/voz-precision`.** El prompt ganó dos reglas (la temperatura y cómo llegó la fruta), una herramienta y un campo en la compra, y hay 6 casos nuevos en `tests/interprete/casos.json` (68 en total). No se pudo medir contra el modelo real porque este worktree no tiene la clave de Groq en `.env.local`. Hay que correrlo antes de fusionar.
-- **`/formidable` y `/chaos`** de la tarjeta de la temperatura y del pedido en «Hoy»: se corren al cerrar la obra, con Stock ya en dos pestañas.
+- **Sin probar: `/voz-precision`.** El prompt ganó tres reglas (la temperatura, cómo llegó la fruta y la pregunta de qué sale hoy), una herramienta, un campo en la compra y la consulta `que_sale_hoy`; hay 8 casos nuevos en `tests/interprete/casos.json` (70 en total). No se pudo medir contra el modelo real porque este worktree no tiene la clave de Groq en `.env.local`. Hay que correrlo antes de fusionar.
+- **`/formidable` y `/chaos`** no se corrieron: faltan sobre Stock en dos pestañas, la hoja «¿por qué?», la tarjeta de la temperatura, el pedido en «Hoy» y «¿Cómo llegó?» en la compra. Son obligatorias antes de dar la obra por cerrada.
+- Este worktree no tenía las claves locales del aviso (VAPID y el secreto del cron): se generaron con `scripts/generar-claves-push.mjs --archivo .env.development.local` solo para probar. No se versionan.
 - **Las dos migraciones no están aplicadas al proyecto de Supabase:** se pregunta antes, y al aplicarlas cada archivo toma la versión que asigne.
 - Los factores de «cómo llegó» (verde 1.4, maduro 0.5) y la lista de frutas que maduran en la caja (`lib/vida-util-reglas.ts`) son valores de referencia, no medidos en el puesto.
 - La base local es una sola para todos los worktrees. Para correr pgTAP hubo que hacer `db reset`, que quita el catálogo real y la historia de demo: se vuelven a cargar con `scripts/demo/*.sql`.

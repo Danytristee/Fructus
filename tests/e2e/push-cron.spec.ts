@@ -41,6 +41,7 @@ const guardar = async (usuarioId: string, t: TelefonoDePrueba) => {
 const estadoDe = async (t: TelefonoDePrueba) => (await base.from("suscripciones_push").select("activa, desactivada_en, ultimo_aviso_en, ultimo_error").eq("endpoint", t.destino.endpoint).single()).data!;
 
 let usuarioInactivo: string;
+let frutaPorSalir: number;
 
 test.beforeAll(async () => {
   // Un día con ventas: si la base local está limpia, se registra una.
@@ -56,6 +57,13 @@ test.beforeAll(async () => {
   usuarioInactivo = creado.user.id;
   await base.from("perfiles").insert({ id: usuarioInactivo, nombre: "Cuenta desactivada de prueba", rol: "ayudante", activo: false });
 
+  // Fruta que tiene que salir: una papaya que llegó hace 5 días (dura 5 a temperatura normal). La base no acepta fechas de hace más
+  // de 48 horas al insertar: entra hoy y se mueve.
+  const { data: papaya } = await base.from("productos").insert({ nombre: "Papaya", calibre: MARCA, unidad: "caja" }).select("id").single();
+  frutaPorSalir = papaya!.id;
+  const { data: cajas } = await base.from("movimientos_stock").insert({ producto_id: frutaPorSalir, tipo: "ajuste", cantidad: 4, motivo: "prueba e2e", registrado_por: id(cuentas.duenio) }).select("id").single();
+  await base.from("movimientos_stock").update({ fecha: new Date(Date.now() - 5 * 86_400_000).toISOString() }).eq("id", cajas!.id);
+
   await guardar(id(cuentas.duenio), telefonos.duenio);
   await guardar(id(cuentas.contador), telefonos.contador);
   await guardar(id(cuentas.duenio), telefonos.caducado);
@@ -68,6 +76,8 @@ test.afterAll(async () => {
   // Datos de prueba de la base local: se limpian para que la tabla no acumule teléfonos de mentira que el cron del día siguiente recorra.
   await base.from("suscripciones_push").delete().like("endpoint", `%${MARCA}%`);
   if (usuarioInactivo) await base.auth.admin.deleteUser(usuarioInactivo);
+  // La fruta de prueba no se borra (CLAUDE.md): queda inactiva.
+  if (frutaPorSalir) await base.from("productos").update({ activo: false }).eq("id", frutaPorSalir);
 });
 
 test("el cron no responde a quien no trae el secreto, ni a quien trae otro", async ({ request }) => {
@@ -95,22 +105,35 @@ test("con el secreto manda el resumen del día a cada teléfono que lo pidió: c
   expect(informe.fallos).toBeGreaterThanOrEqual(1);
 
   // A quién llegó: los de personas con cierre y cuenta activa (incluidos los que luego fallan), no el de la cuenta desactivada.
+  // Un teléfono puede recibir dos avisos (el resumen y el de frescura): se miran los teléfonos, no los avisos.
   const llegados = await recibidos();
-  expect(llegados.map((r) => r.endpoint).sort()).toEqual(
+  expect([...new Set(llegados.map((r) => r.endpoint))].sort()).toEqual(
     [telefonos.duenio, telefonos.contador, telefonos.caducado, telefonos.fallando].map((t) => t.destino.endpoint).sort(),
   );
 
   // Cómo salió: firmado por el servidor, vence en 6 horas, y el tema es del día (un aviso repetido reemplaza al anterior).
-  const delDueno = llegados.find((r) => r.endpoint === telefonos.duenio.destino.endpoint)!;
+  const delDueno = llegados.find((r) => r.endpoint === telefonos.duenio.destino.endpoint && r.topic === `resumen-${hoy}`)!;
   expect(delDueno).toMatchObject({ ttl: "21600", topic: `resumen-${hoy}`, urgency: "normal", contentEncoding: "aes128gcm" });
   expect(delDueno.autorizacion).toMatch(/^vapid t=\S+, k=\S+$/);
 
   // Lo que descifra cada teléfono es el aviso del día con las cifras de la base (de antes o de después del cron, por si entró una venta).
   for (const t of [telefonos.duenio, telefonos.contador]) {
-    const aviso = JSON.parse(descifrar(Buffer.from(llegados.find((r) => r.endpoint === t.destino.endpoint)!.cuerpo, "base64"), t)) as unknown;
+    const aviso = JSON.parse(descifrar(Buffer.from(llegados.find((r) => r.endpoint === t.destino.endpoint && r.topic === `resumen-${hoy}`)!.cuerpo, "base64"), t)) as unknown;
     expect([antes, despues]).toContainEqual(aviso);
     expect(aviso).toMatchObject({ url: "/cierre", tag: `resumen-${hoy}` });
   }
+
+  // El aviso de frescura: después del resumen, con su propio tema (no lo reemplaza), dice cuántas cajas tienen que salir mañana
+  // y abre Stock. La papaya de la prueba está entre ellas.
+  for (const t of [telefonos.duenio, telefonos.contador]) {
+    const deEse = llegados.filter((r) => r.endpoint === t.destino.endpoint);
+    expect(deEse.map((r) => r.topic)).toEqual([`resumen-${hoy}`, `frescura-${hoy}`]);
+    const frescura = JSON.parse(descifrar(Buffer.from(deEse[1]!.cuerpo, "base64"), t)) as { titulo: string; cuerpo: string };
+    expect(frescura).toMatchObject({ url: "/stock", tag: `frescura-${hoy}` });
+    expect(frescura.titulo).toMatch(/^Mañana tienen? que salir [\d.]+ cajas?$/);
+  }
+  // Al que ya falló o caducó con el primero no se le manda el segundo.
+  for (const t of [telefonos.caducado, telefonos.fallando]) expect(llegados.filter((r) => r.endpoint === t.destino.endpoint)).toHaveLength(1);
 
   // Lo que quedó anotado en la base.
   expect(await estadoDe(telefonos.duenio)).toMatchObject({ activa: true, ultimo_error: null });

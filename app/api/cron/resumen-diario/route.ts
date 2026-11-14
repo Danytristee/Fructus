@@ -3,11 +3,12 @@ import { NextResponse } from "next/server";
 import { cronAutorizado } from "@/lib/push/cron";
 import { enviarAviso } from "@/lib/push/enviar";
 import { enviarElResumenDelDia, estadoHttpDelInforme } from "@/lib/push/resumen-diario";
-import { anotarEnLaBase, leerConfiguracionPush, leerDestinatariosDeLaBase, leerResumenDeLaBase } from "@/lib/push/servidor";
+import { anotarEnLaBase, leerConfiguracionPush, leerDestinatariosDeLaBase, leerPorSalirDeLaBase, leerResumenDeLaBase } from "@/lib/push/servidor";
 import { crearClienteServicio } from "@/lib/supabase/servicio";
 
 // El aviso del día: Vercel llama a esta ruta una vez al día (vercel.json, «0 0 * * *» = las 7 p. m. de Lima; en el plan Hobby corre
-// dentro de esa hora). Lee el día, y si hubo ventas o abonos, se lo manda a cada teléfono que lo pidió. Ver ADR-0013.
+// dentro de esa hora). Lee el día, y si hubo ventas o abonos, se lo manda a cada teléfono que lo pidió. Ver ADR-0013. Después, si hay
+// fruta que tiene que salir mañana, manda otro aviso con cuál (aviso de frescura).
 // Solo la llama el cron: sin el secreto no hace nada. Los registros llevan conteos e ids, nunca direcciones, nombres ni montos.
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -33,6 +34,8 @@ export async function GET(request: Request) {
     const informe = await enviarElResumenDelDia(
       {
         leerResumen: (fecha) => leerResumenDeLaBase(db, fecha),
+        // El aviso de frescura: qué tiene que salir mañana. Va aparte del resumen y, si no se puede leer, el resumen sale igual.
+        leerPorSalir: (ahora) => leerPorSalirDeLaBase(db, ahora),
         leerDestinatarios: () => leerDestinatariosDeLaBase(db),
         enviar: (destino, aviso, opciones) => enviarAviso(vapid, destino, aviso, { ...opciones, simulador }),
         anotar: (id, resultado, ahora) => anotarEnLaBase(db, id, resultado, ahora),
