@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fructus · Aviso de frescura · Visor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../bosque/tokens.css">
+<style>
+  /* El visor: la maqueta dentro de un teléfono, con el ancho y el estado que quieras ver. En un celular real, abre app.html directo. */
+  body { margin: 0; font: 500 16px/1.45 "Manrope", system-ui; color: var(--texto); background: var(--marfil-calido); }
+  .visor { display: grid; grid-template-columns: 360px 1fr; min-height: 100vh; }
+  .panel { padding: 22px 20px; background: var(--tarjeta); border-right: 1px solid var(--borde); overflow: auto; max-height: 100vh; position: sticky; top: 0; }
+  .panel h1 { font-size: 22px; margin: 10px 0 2px; } .panel p { margin: 0 0 12px; color: #4A554E; font-size: 15px; }
+  .panel h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #4A554E; margin: 18px 0 8px; }
+  .panel ul { margin: 0 0 12px; padding-left: 18px; font-size: 15px; color: #4A554E; } .panel li { margin-bottom: 4px; } .panel li b { color: var(--texto); }
+  .opciones { display: flex; flex-wrap: wrap; gap: 6px; }
+  .opciones button, .opciones a { min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--borde); background: var(--marfil); font: 700 14px "Manrope"; color: var(--texto); cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; }
+  .opciones [aria-pressed="true"] { background: var(--bosque); color: var(--sobre-bosque); border-color: var(--bosque); }
+  .escenario { display: grid; place-items: center; padding: 28px; }
+  .telefono { position: relative; padding: 12px; border-radius: 56px; background: #1b1f1d; box-shadow: 0 30px 70px rgb(16 40 26 / .35), inset 0 0 0 2px #3a403c; }
+  .telefono iframe { display: block; border: 0; border-radius: 44px; background: var(--marfil); }
+  .isla { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); width: 110px; height: 30px; border-radius: 20px; background: #000; z-index: 2; pointer-events: none; }
+  .medida { text-align: center; margin-top: 12px; font-weight: 700; color: #4A554E; }
+  .marca { display: flex; align-items: center; gap: 10px; } .marca img { width: 44px; height: 44px; border-radius: 11px; }
+  @media (max-width: 860px) { .visor { grid-template-columns: 1fr; } .panel { position: static; max-height: none; } }
+</style>
+</head>
+<body>
+<div class="visor">
+  <aside class="panel">
+    <div class="marca"><img src="../../../public/icons/icon-192.png" alt=""><strong style="font-size:22px">Fructus · Frescura</strong></div>
+    <h1>Qué tiene que salir ya</h1>
+    <p>Datos de demostración de un sábado de calor. Nada se guarda ni llama a la IA: todo vive en la página.</p>
+    <div class="opciones"><a href="tres.html">Ver los tres órdenes juntos</a><a href="app.html" target="_blank">Abrir a pantalla completa</a></div>
+
+    <h2>Cómo se ordena Stock</h2>
+    <p>Se eligió la B. A y C quedan para comparar.</p>
+    <div class="opciones" data-grupo="orden"><button data-v="b">B · Dos pestañas (elegida)</button><button data-v="a">A · Lo urgente arriba</button><button data-v="c">C · En orden de salida</button></div>
+
+    <h2>Pantalla</h2>
+    <div class="opciones" data-grupo="ruta"><button data-v="hoy">Hoy</button><button data-v="stock">Stock</button><button data-v="aviso">Aviso de la noche</button></div>
+
+    <h2>Abrir una hoja</h2>
+    <div class="opciones" data-grupo="abrir"><button data-v="">Ninguna</button><button data-v="lote-0">¿Por qué sale hoy?</button><button data-v="lote-1">Una que aguanta</button><button data-v="temp">Temperatura</button><button data-v="compra">Compra</button><button data-v="consulta">Consulta</button></div>
+
+    <h2>Ancho del teléfono</h2>
+    <div class="opciones" data-grupo="ancho"><button data-v="360x800">360 Android</button><button data-v="390x844">390</button><button data-v="412x915">412 S25 Ultra</button></div>
+
+    <h2>Estado</h2>
+    <div class="opciones" data-grupo="estado"><button data-v="normal">Semana de calor</button><button data-v="sin-temp">Falta la de hoy</button><button data-v="en-orden">Semana fresca</button><button data-v="sin-ia">La IA no respondió</button></div>
+
+    <h2>Qué entiende la voz</h2>
+    <p>En «Hoy», toca o mantén el micrófono de abajo.</p>
+    <div class="opciones" data-grupo="voz"><button data-v="temp">«Hoy hizo 29 grados»</button><button data-v="compra">«Llegaron 30 de mango, verde»</button><button data-v="consulta">«¿Qué tiene que salir?»</button></div>
+
+    <h2>Qué cambia</h2>
+    <ul>
+      <li><b>Hoy:</b> el aviso de inventario dice qué fruta tiene que salir. Si falta la temperatura, la pide.</li>
+      <li><b>Stock:</b> lo que sale hoy va primero, por llegada; la temperatura deja de ocupar el inicio.</li>
+      <li><b>Compra:</b> un dato nuevo, «¿Cómo llegó?».</li>
+      <li><b>Voz:</b> la temperatura y la pregunta «¿qué tiene que salir hoy?».</li>
+      <li><b>Aviso:</b> la noche anterior, junto al resumen del día.</li>
+    </ul>
+    <p>Prueba: en Stock toca la temperatura, sube a 35° y confirma. Cambia lo que tiene que salir.</p>
+  </aside>
+  <main class="escenario">
+    <div><div class="telefono"><span class="isla"></span><iframe id="marco" title="Maqueta del aviso de frescura" width="412" height="915"></iframe></div><p class="medida" id="medida"></p></div>
+  </main>
+</div>
+<script>
+  const s = { ruta: "stock", orden: "b", abrir: "", ancho: "412x915", estado: "normal", voz: "temp" };
+  try { Object.assign(s, JSON.parse(localStorage.getItem("visor-frescura-3") || "{}")); } catch {}
+  const marco = document.getElementById("marco");
+  function aplicar(recargar = true) {
+    try { localStorage.setItem("visor-frescura-3", JSON.stringify(s)); } catch {}
+    const [w, h] = s.ancho.split("x").map(Number);
+    const escala = Math.min(1, (innerHeight - 110) / (h + 24), (innerWidth - 40) / (w + 24));
+    marco.width = w; marco.height = h; marco.parentElement.style.transform = `scale(${escala})`; marco.parentElement.style.transformOrigin = "top center";
+    marco.parentElement.parentElement.style.height = `${(h + 24) * escala + 40}px`;
+    document.getElementById("medida").textContent = `${w} × ${h} px${escala < 1 ? ` · se ve al ${Math.round(escala * 100)} %` : ""}`;
+    // Una hoja se abre sobre Stock; el aviso de la noche no lleva hoja.
+    const ruta = s.abrir && s.ruta === "aviso" ? "stock" : s.ruta;
+    if (recargar) marco.src = `app.html?marco=1&orden=${s.orden}&estado=${s.estado}&voz=${s.voz}${s.abrir ? `&abrir=${s.abrir}` : ""}&v=${Date.now()}#${ruta}`;
+    document.querySelectorAll("[data-grupo]").forEach((g) => g.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(s[g.dataset.grupo] === b.dataset.v))));
+  }
+  document.querySelectorAll("[data-grupo] button").forEach((b) => b.addEventListener("click", () => {
+    const grupo = b.closest("[data-grupo]").dataset.grupo;
+    s[grupo] = b.dataset.v;
+    if (grupo === "ruta") s.abrir = "";
+    if (grupo === "orden") { s.ruta = "stock"; s.abrir = ""; }
+    aplicar();
+  }));
+  addEventListener("resize", () => aplicar(false));
+  aplicar();
+</script>
+</body>
+</html>
