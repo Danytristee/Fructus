@@ -36,6 +36,22 @@ export const formatearGrados = (grados: number) => `${Number.isInteger(grados) ?
 /** La temperatura de ese día; null si ese día no se anotó. */
 export const temperaturaDe = (lecturas: readonly TemperaturaDia[], dia: string): number | null => lecturas.find((l) => l.dia === dia)?.grados ?? null;
 
+/** Qué le hace esa temperatura a la fruta, en una frase de puesto. `nivel` elige el color; el texto siempre lo dice. */
+export function veredictoClima(grados: number): { nivel: "fuerte" | "calor" | "normal" | "fresco"; titulo: string; efecto: string } {
+  if (grados >= 30) return { nivel: "fuerte", titulo: "Calor fuerte", efecto: "la fruta dura bastante menos." };
+  if (grados >= 27) return { nivel: "calor", titulo: "Hace calor", efecto: "la fruta dura menos." };
+  if (grados >= 22) return { nivel: "normal", titulo: "Clima normal", efecto: "la fruta aguanta lo de siempre." };
+  return { nivel: "fresco", titulo: "Está fresco", efecto: "la fruta aguanta más." };
+}
+
+/** Los últimos `dias` días, hoy al final, cada uno con su temperatura o null si no se anotó: para dibujar la semana. */
+export function semanaDeTemperaturas(lecturas: readonly TemperaturaDia[], hoy: string, dias = 7): { dia: string; grados: number | null }[] {
+  return Array.from({ length: dias }, (_, n) => {
+    const dia = diaAnterior(hoy, dias - 1 - n);
+    return { dia, grados: temperaturaDe(lecturas, dia) };
+  });
+}
+
 /**
  * ¿«Hoy» tiene que pedir la temperatura? Solo si hoy no se anotó y sí se anotó algún día de la semana: es un recordatorio para
  * quien ya tiene la costumbre (y el termómetro), no un aviso que persigue a quien todavía no lo usa.

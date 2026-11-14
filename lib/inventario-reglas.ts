@@ -77,7 +77,7 @@ export type EstadoProducto = {
 };
 
 /** Una llegada con su cuenta: cuántas cajas quedan de ella y cuánto le falta para su último día bueno. */
-type LoteEstimado = Llegada & Estimacion;
+export type LoteEstimado = Llegada & Estimacion;
 
 // Cajas y días enteros, como se dice en el puesto: «unas 136 cajas», no «136.3» («no vendo media caja», prueba a ciegas de /formidable
 // 2026-11-09). Lo que no llega a uno se dice en palabras.

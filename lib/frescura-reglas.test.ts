@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cuandoLlego, deCuando, diasEntre, estimarLlegada, factorCalor, hastaCuando, llegadasEnStock, temperaturaParaContar } from "./frescura-reglas";
+import { cuandoLlego, deCuando, diaCorto, diasEntre, estimarLlegada, factorCalor, hastaCuando, llegadasEnStock, temperaturaParaContar, ultimaAnotada } from "./frescura-reglas";
 
 // La semana de la maqueta: lunes 9 a sábado 14 de noviembre de 2026, con calor.
 const HOY = "2026-11-14";
@@ -128,6 +128,16 @@ describe("cómo se dice en el puesto", () => {
     expect(hastaCuando(HOY, HOY)).toBe("hoy");
     expect(hastaCuando("2026-11-15", HOY)).toBe("mañana");
     expect(hastaCuando("2026-11-16", HOY)).toBe("el lunes 16");
+  });
+
+  it("el día en tres letras, para el pie del gráfico", () => {
+    expect(["2026-11-09", "2026-11-11", "2026-11-14"].map(diaCorto)).toEqual(["lun", "mié", "sáb"]);
+  });
+
+  it("ultimaAnotada dice de qué día salió la temperatura con la que se cuenta", () => {
+    expect(ultimaAnotada([{ dia: "2026-11-12", grados: 30 }], HOY)).toEqual({ dia: "2026-11-12", grados: 30 });
+    expect(ultimaAnotada([{ dia: "2026-11-01", grados: 33 }], HOY)).toBeNull();
+    expect(ultimaAnotada([], HOY)).toBeNull();
   });
 
   it("diasEntre cuenta días enteros", () => {

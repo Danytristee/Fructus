@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { diaAnterior, formatearGrados, hayQuePedirla, redondearGrados, saltoRaro, temperaturaDe, temperaturaValida } from "./temperatura-reglas";
+import { diaAnterior, formatearGrados, hayQuePedirla, redondearGrados, saltoRaro, semanaDeTemperaturas, temperaturaDe, temperaturaValida, veredictoClima } from "./temperatura-reglas";
 
 describe("diaAnterior", () => {
   it("retrocede un día, también al cruzar el mes y el año", () => {
@@ -48,6 +48,23 @@ describe("temperaturaDe", () => {
 
   it("da la del día pedido", () => expect(temperaturaDe(lecturas, "2026-11-13")).toBe(30));
   it("null si ese día no se anotó: no se inventa", () => expect(temperaturaDe(lecturas, "2026-11-12")).toBeNull());
+});
+
+describe("veredictoClima", () => {
+  it("dice qué le hace esa temperatura a la fruta", () => {
+    expect(veredictoClima(31)).toMatchObject({ nivel: "fuerte", titulo: "Calor fuerte" });
+    expect(veredictoClima(29)).toMatchObject({ nivel: "calor", titulo: "Hace calor", efecto: "la fruta dura menos." });
+    expect(veredictoClima(24)).toMatchObject({ nivel: "normal" });
+    expect(veredictoClima(18)).toMatchObject({ nivel: "fresco", efecto: "la fruta aguanta más." });
+  });
+});
+
+describe("semanaDeTemperaturas", () => {
+  it("siete días con hoy al final; el que no se anotó queda vacío, no inventado", () => {
+    const semana = semanaDeTemperaturas([{ dia: "2026-11-12", grados: 30 }, { dia: "2026-11-14", grados: 29 }], "2026-11-14");
+    expect(semana.map((d) => d.dia)).toEqual(["2026-11-08", "2026-11-09", "2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14"]);
+    expect(semana.map((d) => d.grados)).toEqual([null, null, null, null, 30, null, 29]);
+  });
 });
 
 describe("hayQuePedirla", () => {

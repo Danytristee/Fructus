@@ -20,13 +20,23 @@ export const tipos: Record<TipoAlerta, { etiqueta: string; Icono: typeof Clock; 
 // nombrar 58 frutas y ocupaba ocho pantallas (2026-11-10).
 const FRUTAS_A_LA_VISTA = 3;
 
+type Props = {
+  g: GrupoAlertas;
+  nombreDe: Map<number, string>;
+  i: number;
+  /** En lo que tiene que salir: abre el porqué de esa fruta (qué gastó cada día y cuánto le quitó el calor). */
+  alVerFruta?: (productoId: number) => void;
+};
+
 /** Una tarjeta de «Qué hacer hoy»: una alerta sola, o varias del mismo tipo juntas con una sola recomendación. */
-export function TarjetaAlerta({ g, nombreDe, i }: { g: GrupoAlertas; nombreDe: Map<number, string>; i: number }) {
+export function TarjetaAlerta({ g, nombreDe, i, alVerFruta }: Props) {
   const [abierta, setAbierta] = useState(false);
   const { Icono, clase } = tipos[g.tipo];
   const sola = g.alertas.length === 1 ? g.alertas[0]! : null;
   const aLaVista = g.alertas.slice(0, FRUTAS_A_LA_VISTA);
   const resto = g.alertas.length - aLaVista.length;
+  // Solo lo que tiene que salir tiene un porqué que mostrar: las demás alertas ya dicen su número en la frase.
+  const verPorQue = g.tipo === "deterioro" ? alVerFruta : undefined;
   return (
     <li
       data-productos={g.alertas.map((a) => a.productoId).join(" ")}
@@ -49,15 +59,35 @@ export function TarjetaAlerta({ g, nombreDe, i }: { g: GrupoAlertas; nombreDe: M
         <span className="grid min-w-0 gap-0.5 wrap-anywhere">
           <span className="leading-tight font-extrabold">{g.titulo}</span>
           {sola ? (
-            <span className="text-base leading-snug text-texto-suave">{g.detalle}</span>
+            <>
+              <span className="text-base leading-snug text-texto-suave">{g.detalle}</span>
+              {verPorQue && (
+                <button type="button" onClick={() => verPorQue(sola.productoId)} className="-mb-2 flex min-h-12 items-center gap-0.5 justify-self-start font-extrabold text-acento-texto">
+                  ¿Por qué?
+                  <ChevronRight aria-hidden className="size-5" />
+                </button>
+              )}
+            </>
           ) : (
             <ul className="mt-1 grid gap-1 text-base leading-snug">
-              {aLaVista.map((a) => (
-                <li key={a.productoId}>
-                  <span className="font-bold">{a.producto}</span>
-                  <span className="text-texto-suave"> · {a.corto}</span>
-                </li>
-              ))}
+              {aLaVista.map((a) =>
+                verPorQue ? (
+                  <li key={a.productoId}>
+                    <button type="button" onClick={() => verPorQue(a.productoId)} className="flex min-h-12 w-full items-center gap-1 text-left">
+                      <span className="min-w-0 flex-1">
+                        <span className="font-bold">{a.producto}</span>
+                        <span className="text-texto-suave"> · {a.corto}</span>
+                      </span>
+                      <ChevronRight aria-hidden className="size-5 shrink-0 text-texto-suave" />
+                    </button>
+                  </li>
+                ) : (
+                  <li key={a.productoId}>
+                    <span className="font-bold">{a.producto}</span>
+                    <span className="text-texto-suave"> · {a.corto}</span>
+                  </li>
+                ),
+              )}
             </ul>
           )}
         </span>

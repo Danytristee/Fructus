@@ -4,27 +4,25 @@ import { baseLocal } from "./base";
 import { entrarComo } from "./cuentas";
 import { filtrosSinCortes, medir } from "./medir";
 
-// El tablero de Stock (A8, /formidable del 5-11): el anillo dice de qué es, las palabras son de puesto y los filtros no se esconden.
+// El tablero de Stock (A8, /formidable del 5-11; en dos pestañas desde el 14-11): la cuenta de «Qué hacer» dice lo mismo que las
+// etiquetas «Hoy», las palabras son de puesto y los filtros no se esconden.
 // Lee lo que haya en la base local; solo la última prueba crea frutas de prueba, y las deja inactivas.
 
 test.setTimeout(60_000);
 
-test("el anillo dice cuántas frutas piden algo hoy («X de Y frutas» / «urgente»), sin un porcentaje suelto, y cuenta lo mismo que las etiquetas «Hoy» de la lista", async ({ page }) => {
+test("la pestaña «Qué hacer» dice cuántas frutas piden algo hoy, y cuenta lo mismo que las etiquetas «Hoy» de la lista", async ({ page }) => {
   await entrarComo(page, "duenio");
   await page.goto("/stock");
-  await expect(page.getByRole("heading", { name: "Tu stock" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
 
-  // El veredicto al derecho. Antes contaba las frutas SIN aviso y decía «0 de 7 frutas · sin avisos» justo cuando las siete tenían uno: en
-  // la prueba a ciegas se leyó como «no hay avisos» al lado de «Se acabó Mango Kent» (/formidable 2026-11-09).
-  const anillo = page.getByRole("figure", { name: /frutas urgentes hoy|es urgente hoy/ });
-  await expect(anillo).toBeVisible();
-  await expect(anillo).toHaveAttribute("aria-label", /^(\d+ de \d+ frutas urgentes hoy|Ninguna de tus \d+ frutas es urgente hoy)$/);
-  await expect(anillo).toContainText(/^(\d+ de )?\d+\s*frutas$/);
-  await expect(anillo).not.toContainText("%");
-  await expect(page.getByText(/^(urgentes?|nada urgente)$/)).toBeVisible();
-  // El anillo cuenta lo mismo que la lista: las frutas con la etiqueta roja «Hoy». Una tarjeta puede juntar varias frutas, y en «Todas»
+  // La cuenta va en la pestaña (antes, en un anillo «X de Y frutas urgentes»). Sin nada urgente no lleva número: no dice «0».
+  const pestana = page.getByRole("button", { name: /^Qué hacer/ });
+  await expect(pestana).toHaveAttribute("aria-pressed", "true");
+  await expect(pestana).toHaveText(/^Qué hacer(\d+)?$/);
+  await expect(pestana).not.toContainText("%");
+  // Cuenta lo mismo que la lista: las frutas con la etiqueta roja «Hoy». Una tarjeta puede juntar varias frutas, y en «Todas»
   // se ven las primeras y el resto a un toque (/formidable 2026-11-10): se abren todas y se cuentan frutas, no tarjetas.
-  const urgentes = Number((await anillo.getAttribute("aria-label"))!.match(/^(\d+) de/)?.[1] ?? 0);
+  const urgentes = Number((await pestana.innerText()).match(/(\d+)$/)?.[1] ?? 0);
   await page.getByRole("button", { name: /^Todas/ }).click();
   const verMas = page.getByRole("button", { name: /^Ver \d+ avisos? más/ });
   if (await verMas.isVisible()) await verMas.click();
@@ -37,11 +35,12 @@ test("el anillo dice cuántas frutas piden algo hoy («X de Y frutas» / «urgen
   await expect(page.getByText(/están bien/)).toHaveCount(0);
 });
 
-test("Stock habla como el puesto: «te sobran», no «sobrestock»", async ({ page }) => {
+test("Stock habla como el puesto: «te sobra», no «sobrestock»", async ({ page }) => {
   await entrarComo(page, "duenio");
   await page.goto("/stock");
-  await expect(page.getByRole("heading", { name: "Tu stock" })).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText("te sobran", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
+  // La semilla trae fruta de más: el filtro lo dice con palabras de puesto.
+  await expect(page.getByRole("button", { name: /^Te sobra/ })).toBeVisible();
   await expect(page.getByText(/sobrestock/i)).toHaveCount(0);
 });
 

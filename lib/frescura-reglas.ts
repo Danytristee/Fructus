@@ -11,7 +11,7 @@ import { diaAnterior, type TemperaturaDia } from "./temperatura-reglas";
 import type { EstadoLlegada } from "./vida-util-reglas";
 
 /** A esta temperatura la fruta dura lo que dice su vida útil. */
-const TEMPERATURA_NORMAL = 24;
+export const TEMPERATURA_NORMAL = 24;
 /** Cada cuántos grados de más la fruta se gasta el doble de rápido. */
 const DOBLE_CADA = 10;
 /** Un día sin lectura se cuenta con la última anotada, si no tiene más de una semana; si no, con la normal. */
@@ -33,10 +33,15 @@ export const diasEntre = (desde: string, hasta: string): number => Math.round((D
  * tampoco hay, la normal. `anotada` dice si es de ese mismo día, para que la pantalla no la muestre como si se hubiera medido.
  */
 export function temperaturaParaContar(lecturas: readonly TemperaturaDia[], dia: string): { grados: number; anotada: boolean } {
+  const ultima = ultimaAnotada(lecturas, dia);
+  return ultima === null ? { grados: TEMPERATURA_NORMAL, anotada: false } : { grados: ultima.grados, anotada: ultima.dia === dia };
+}
+
+/** La lectura con la que se cuenta ese día: la suya o la última anterior, si no tiene más de una semana. null si no hay ninguna que sirva. */
+export function ultimaAnotada(lecturas: readonly TemperaturaDia[], dia: string): TemperaturaDia | null {
   let ultima: TemperaturaDia | null = null;
   for (const l of lecturas) if (l.dia <= dia && (ultima === null || l.dia > ultima.dia)) ultima = l;
-  if (ultima === null || diasEntre(ultima.dia, dia) > ARRASTRE_MAXIMO_DIAS) return { grados: TEMPERATURA_NORMAL, anotada: false };
-  return { grados: ultima.grados, anotada: ultima.dia === dia };
+  return ultima === null || diasEntre(ultima.dia, dia) > ARRASTRE_MAXIMO_DIAS ? null : ultima;
 }
 
 /** Una llegada que todavía tiene cajas en el puesto: qué día de Lima llegó, cuántas quedan de ella y cómo llegó (si se dijo). */
@@ -112,6 +117,9 @@ export function estimarLlegada(diaLlegada: string, vida: number, lecturas: reado
 
 const NOMBRE_DEL_DIA = new Intl.DateTimeFormat("es-PE", { weekday: "long", timeZone: "UTC" });
 const diaDeSemana = (dia: string) => NOMBRE_DEL_DIA.format(new Date(`${dia}T12:00:00Z`));
+
+/** El día en tres letras, para el pie de un gráfico: «lun», «mié», «sáb». */
+export const diaCorto = (dia: string): string => diaDeSemana(dia).slice(0, 3);
 
 /** Cuándo llegó, como se dice en el puesto: «hoy», «ayer», «el lunes» o, si ya pasó una semana, «hace 9 días». */
 export function cuandoLlego(dia: string, hoy: string): string {

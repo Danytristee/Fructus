@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { baseLocal } from "./base";
 import { entrarComo } from "./cuentas";
+import { verTuStock } from "./stock";
 
 // El aviso de frescura en Stock y en «Hoy»: con el calor de cada día, lo que tiene que salir hoy. Contra la base local.
 // Cada prueba crea sus frutas (con su calibre de marca) y las deja inactivas.
@@ -69,8 +70,55 @@ test("con calor, la papaya que llegó hace 3 días tiene que salir hoy; la manza
     await expect(dePapaya).toContainText("Véndel"); // «Véndelo hoy…» o «Véndelas hoy…», si va junto a otras
     // La manzana (dura 30) llegó el mismo día y con el mismo calor: no tiene nada que avisar.
     await expect(con(manzana)).toHaveCount(0);
+
+    // El porqué, a un toque desde el aviso: qué gastó cada día y qué hacer.
+    await dePapaya.getByRole("button").filter({ hasText: new RegExp(`${marca}|¿Por qué\\?`) }).first().click();
+    const hoja = page.getByRole("dialog", { name: new RegExp(marca) });
+    await expect(hoja).toBeVisible({ timeout: 15_000 });
+    await expect(hoja.getByText("Tiene que salir hoy")).toBeVisible();
+    await expect(hoja.getByText(/8 cajas · llegaron el /)).toBeVisible();
+    await expect(hoja.getByRole("heading", { name: "Lo que gastó cada día" })).toBeVisible();
+    await expect(hoja.getByText(/El calor le quitó \d+ días?\.|no le quitó ningún día/)).toBeVisible();
+    await expect(hoja.getByRole("button", { name: "Se malogró" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(hoja).toBeHidden();
+
+    // «Tu stock»: los totales y la lista; la fila de la papaya dice lo mismo con palabras y abre el mismo porqué desde su llegada.
+    await verTuStock(page);
+    const fila = page.getByRole("listitem").filter({ hasText: marca }).filter({ hasText: "Sale hoy" }).first();
+    await fila.getByRole("button").first().click();
+    const llegada = fila.getByRole("list", { name: /^Llegadas de Papaya/ }).getByRole("button");
+    await expect(llegada).toHaveCount(1);
+    await expect(llegada).toContainText(/8 cajas de/);
+    await expect(llegada).toContainText("Sale hoy");
+    await llegada.click();
+    await expect(hoja).toBeVisible();
+    await expect(hoja.getByText("Tiene que salir hoy")).toBeVisible();
   } finally {
     // No se borra (CLAUDE.md): las frutas de prueba quedan inactivas.
     await base.from("productos").update({ activo: false }).in("id", [papaya, manzana]);
   }
+});
+
+test("el clima del puesto está al final de «Qué hacer», y desde ahí se anota o se corrige la de hoy", async ({ page }) => {
+  await calorEstosDias(await idDelDuenio());
+  await entrarComo(page, "duenio");
+  await page.goto("/stock");
+  await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
+
+  const clima = page.getByRole("region", { name: "El clima del puesto" });
+  await expect(clima.getByText("En el puesto hoy")).toBeVisible();
+  // La semana en barras, con cada día dicho también para el lector de pantalla.
+  await expect(clima.getByRole("img", { name: /^Temperatura de la semana: / })).toBeVisible();
+  // Va después de lo que hay que hacer: lo principal no queda debajo de la temperatura.
+  const avisos = (await page.getByRole("group", { name: "Filtrar alertas" }).boundingBox())!;
+  expect((await clima.boundingBox())!.y).toBeGreaterThan(avisos.y);
+
+  // Otras pruebas anotan la de hoy en paralelo: el botón dice «Anotar» o «Corregir» según el caso, y abre la misma hoja.
+  await clima.getByRole("button", { name: /^(Anotar la temperatura|Corregir la de hoy)$/ }).click();
+  const hoja = page.getByRole("dialog", { name: "Anotar la temperatura" });
+  await expect(hoja).toBeVisible({ timeout: 15_000 });
+  await expect(hoja.getByText("¿Cuánto marca el termómetro?")).toBeVisible();
+  await hoja.getByRole("button", { name: "Descartar" }).click();
+  await expect(hoja).toBeHidden();
 });
