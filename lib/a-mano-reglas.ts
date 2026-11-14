@@ -1,6 +1,7 @@
 // Registrar a mano lo mismo que se registra por voz (A8): la misma tarjeta de confirmación, pero llenada con lo que la
 // persona toca en vez de con lo que oyó el intérprete. Una sola tarjeta por operación (una función, una pieza), así el
 // guardado, el doble toque y los errores se comportan igual con la voz y sin ella. Lógica pura.
+import { GRADOS_DE_PARTIDA } from "./temperatura-reglas";
 import type { ItemBorrador } from "./voz/confirmar-venta-reglas";
 import type { Tarjeta } from "./voz/tarjeta-reglas";
 
@@ -33,6 +34,14 @@ export function tarjetaMermaAMano(producto: Persona | null, sugeridos: Persona[]
     motivo: null,
     falta: producto ? [] : ["producto"],
   };
+}
+
+/**
+ * La tarjeta de la temperatura a mano. El botón necesita un número desde donde moverse: parte de la de hoy si se está
+ * corrigiendo, o de la de ayer (de un día a otro cambia poco), y la tarjeta dice de dónde salió para que no se confirme sin mirar.
+ */
+export function tarjetaTemperaturaAMano(hoy: number | null, ayer: number | null): Extract<Tarjeta, { tipo: "temperatura" }> {
+  return { tipo: "temperatura", grados: hoy ?? ayer ?? GRADOS_DE_PARTIDA, ayer };
 }
 
 /** Qué fruta ofrecer primero al registrar una merma: las que más se están gastando, de más a menos, y que tengan stock. */

@@ -2,6 +2,7 @@
 // la base rechazó y cuánto vendido falta enviar. Lógica pura.
 import type { Entrada, Operacion } from "./cola-reglas";
 import { formatearCajas, formatearSoles } from "./formato";
+import { formatearGrados } from "./temperatura-reglas";
 import type { Tarjeta } from "./voz/tarjeta-reglas";
 
 type Opcion = { id: number; nombre: string };
@@ -44,6 +45,9 @@ export function queEsLaTarjeta(tarjeta: unknown): string {
       partes.push(quien ? `tu compra ${a(quien)}` : "tu compra");
       break;
     }
+    case "temperatura":
+      partes.push("la temperatura", typeof t.grados === "number" ? formatearGrados(t.grados) : null);
+      break;
     case "consulta":
       partes.push("tu pregunta");
       break;
@@ -125,6 +129,9 @@ export function tarjetaParaAnotar(op: Operacion, error: string | undefined): Tar
       if (b.condicion === null) falta.push("condicion");
       return { tipo: "compra", proveedor, items, condicion: b.condicion, dudas: [], falta };
     }
+    case "temperatura":
+      // Sin la de ayer: al volver a anotarla no hay con qué comparar, y la tarjeta no avisa de un salto que no puede medir.
+      return { tipo: "temperatura", grados: op.entrada.borrador.grados, ayer: null };
   }
 }
 

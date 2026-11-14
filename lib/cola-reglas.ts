@@ -6,8 +6,10 @@
 // (registrar_venta, registrar_compra y el índice único de abonos, mermas y gastos). Si la respuesta se perdió y se
 // reenvía, la base devuelve lo mismo y no guarda dos veces.
 import type { confirmarVenta } from "@/app/(app)/acciones-voz";
+import type { confirmarTemperatura } from "@/app/(app)/acciones-frescura";
 import type { confirmarAbono, confirmarCompra, confirmarGasto, confirmarMerma } from "@/app/(app)/acciones-operaciones";
 import { formatearCajas, formatearSoles } from "./formato";
+import { formatearGrados } from "./temperatura-reglas";
 import { nombreOperacion } from "./voz/nombre-operacion-reglas";
 
 /** Lo que dice el servidor cuando la base no respondió: no es un rechazo, se reintenta. */
@@ -26,7 +28,8 @@ export type Operacion =
   | { tipo: "abono"; entrada: Parameters<typeof confirmarAbono>[0] }
   | { tipo: "merma"; entrada: Parameters<typeof confirmarMerma>[0] }
   | { tipo: "gasto"; entrada: Parameters<typeof confirmarGasto>[0] }
-  | { tipo: "compra"; entrada: Parameters<typeof confirmarCompra>[0] };
+  | { tipo: "compra"; entrada: Parameters<typeof confirmarCompra>[0] }
+  | { tipo: "temperatura"; entrada: Parameters<typeof confirmarTemperatura>[0] };
 
 type TipoOperacion = Operacion["tipo"];
 
@@ -105,7 +108,7 @@ export function esperaTras(intentos: number): number {
   return Math.min(30_000, 5_000 * 2 ** Math.max(0, intentos - 1));
 }
 
-const nombres: Record<TipoOperacion, string> = { venta: "Venta", abono: "Abono", merma: "Merma", gasto: "Gasto", compra: "Compra" };
+const nombres: Record<TipoOperacion, string> = { venta: "Venta", abono: "Abono", merma: "Merma", gasto: "Gasto", compra: "Compra", temperatura: "Temperatura" };
 
 /** «Venta a Don Lucho · 3 cajas · S/ 120.00»: lo justo para reconocerla en la franja. */
 export function resumenDe(op: Operacion): string {
@@ -141,6 +144,9 @@ export function resumenDe(op: Operacion): string {
       partes.push(b.proveedor ? `Compra a ${b.proveedor.nombre}` : "Compra", formatearCajas(b.items.reduce((s, it) => s + it.cantidad, 0)));
       break;
     }
+    case "temperatura":
+      partes.push("Temperatura", formatearGrados(op.entrada.borrador.grados));
+      break;
   }
   return partes.join(" · ") || nombres[op.tipo];
 }

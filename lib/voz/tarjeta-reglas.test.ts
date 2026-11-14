@@ -161,6 +161,14 @@ describe("armarTarjeta · lo demás", () => {
     expect(t).toMatchObject({ tipo: "compra", items: [{ costo: { valor: 90, sugerido: false } }], falta: ["proveedor"] });
   });
 
+  it("la temperatura trae los grados dichos y la de ayer para comparar", () => {
+    expect(armarTarjeta(interpretar("registrar_temperatura", { grados: 29 }), { ...nada, temperaturaAyer: 30 })).toEqual({ tipo: "temperatura", grados: 29, ayer: 30 });
+  });
+
+  it("sin lectura de ayer no se inventa una: la tarjeta no compara", () => {
+    expect(armarTarjeta(interpretar("registrar_temperatura", { grados: 29 }), nada)).toEqual({ tipo: "temperatura", grados: 29, ayer: null });
+  });
+
   it("no entendido dice qué hacer, en lenguaje de puesto", () => {
     expect(armarTarjeta(interpretar("no_entendido", { motivo: "x" }), nada)).toEqual({ tipo: "no_entendido", mensaje: "No te entendí, inténtalo otra vez." });
   });

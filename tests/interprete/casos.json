@@ -900,6 +900,36 @@
           "producto_texto": "ciruela pink lady"
         }
       }
+    },
+    {
+      "id": "temperatura-hoy-hizo",
+      "transcripcion": "Hoy hizo 29 grados",
+      "esperado": {
+        "herramienta": "registrar_temperatura",
+        "datos": {
+          "grados": 29
+        }
+      }
+    },
+    {
+      "id": "temperatura-termometro-en-letras",
+      "transcripcion": "El termómetro marca treinta y uno",
+      "esperado": {
+        "herramienta": "registrar_temperatura",
+        "datos": {
+          "grados": 31
+        }
+      }
+    },
+    {
+      "id": "temperatura-con-medio-grado",
+      "transcripcion": "Anota la temperatura, estamos a 28 grados y medio",
+      "esperado": {
+        "herramienta": "registrar_temperatura",
+        "datos": {
+          "grados": 28.5
+        }
+      }
     }
   ]
 }

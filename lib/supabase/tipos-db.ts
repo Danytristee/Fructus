@@ -363,6 +363,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"temperaturas": {
+                  Row: {
+                    "comando_voz_id": number | null,"creado_en": string,"fecha": string,"grados": number,"id": number,"registrado_por": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "comando_voz_id"?: number | null,"creado_en"?: string,"fecha"?: string,"grados": number,"id"?: never,"registrado_por"?: string
+                  }
+                  Update: {
+                    "comando_voz_id"?: number | null,"creado_en"?: string,"fecha"?: string,"grados"?: number,"id"?: never,"registrado_por"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "temperaturas_comando_voz_id_fkey"
+      columns: ["comando_voz_id"]
+isOneToOne: false
+      referencedRelation: "comandos_voz"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "temperaturas_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "perfiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"venta_items": {
                   Row: {
                     "cantidad": number,"descuento": number,"id": number,"precio_unitario": number,"producto_id": number,"subtotal": number | null,"venta_id": number
@@ -461,6 +487,14 @@ isOneToOne: false
                 },"v_stock": {
                   Row: {
                     "calibre": string | null,"marca": string | null,"nombre": string,"producto_id": number,"seleccion": string | null,"stock": number | null,"unidad": string,"variedad": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    
+                  ]
+                },"v_temperatura_dia": {
+                  Row: {
+                    "dia": string | null,"fecha": string,"grados": number
                   }
                   ComputedFields: never
                   Relationships: [

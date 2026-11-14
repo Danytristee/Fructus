@@ -9,6 +9,7 @@ import {
   tarjetaAbonoAMano,
   tarjetaCompraAMano,
   tarjetaMermaAMano,
+  tarjetaTemperaturaAMano,
 } from "./a-mano-reglas";
 import { borradorAbono, faltaAbono, fueCorregidoAbono } from "./voz/confirmar-abono-reglas";
 import { borradorCompra, faltaCompra, frasesFaltaCompra, pedidoCompra, totalCompra } from "./voz/confirmar-compra-reglas";
@@ -207,4 +208,10 @@ describe("sugeridosParaCompra", () => {
     expect(sugeridosParaCompra(frutas, 1).map((f) => f.id)).toEqual([2]);
     expect(frutas).toEqual(copia);
   });
+});
+
+describe("tarjetaTemperaturaAMano", () => {
+  it("al corregir parte de la de hoy", () => expect(tarjetaTemperaturaAMano(29, 30)).toEqual({ tipo: "temperatura", grados: 29, ayer: 30 }));
+  it("sin la de hoy parte de la de ayer, que es la más parecida", () => expect(tarjetaTemperaturaAMano(null, 30)).toEqual({ tipo: "temperatura", grados: 30, ayer: 30 }));
+  it("sin ninguna parte de un número del medio y no compara", () => expect(tarjetaTemperaturaAMano(null, null)).toEqual({ tipo: "temperatura", grados: 25, ayer: null }));
 });

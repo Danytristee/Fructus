@@ -9,7 +9,10 @@ import type { Database } from "../supabase/tipos-db";
 import type { Interpretacion } from "./esquemas";
 import { similitud } from "./similitud-reglas";
 import { elegir, type Resolucion } from "./tarjeta-reglas";
+import { diaDeLima } from "../formato";
 import { nombreProducto } from "../productos-reglas";
+import { leerTemperaturas } from "../temperatura";
+import { diaAnterior, temperaturaDe } from "../temperatura-reglas";
 
 type Cliente = SupabaseClient<Database>;
 type Candidato = Resolucion["clientes"][number];
@@ -96,6 +99,11 @@ export async function resolver(supabase: Cliente, i: Interpretacion): Promise<Re
     }
     case "registrar_merma":
       return { ...vacia, productos: [await buscarProductos(supabase, i.datos.producto_texto)] };
+    case "registrar_temperatura": {
+      // La de ayer, para que la tarjeta avise si la de hoy se aleja mucho. Con dos días basta.
+      const ayer = diaAnterior(diaDeLima(new Date()));
+      return { ...vacia, temperaturaAyer: temperaturaDe(await leerTemperaturas(supabase, new Date(), 2), ayer) };
+    }
     case "consultar": {
       const [clientes, productos] = await Promise.all([
         buscarClientes(supabase, i.datos.cliente_texto),

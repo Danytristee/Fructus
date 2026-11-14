@@ -8,6 +8,7 @@ describe("nombreOperacion", () => {
     expect(nombreOperacion("abono")).toEqual({ uno: "un abono", ese: "ese abono", lo: "lo" });
     expect(nombreOperacion("gasto").ese).toBe("ese gasto");
     expect(nombreOperacion("merma").uno).toBe("una merma");
+    expect(nombreOperacion("temperatura")).toEqual({ uno: "una temperatura", ese: "esa temperatura", lo: "la" });
   });
 
   it("lo que no es una operación que se guarda se llama «operación»", () => {

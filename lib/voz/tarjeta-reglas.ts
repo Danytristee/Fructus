@@ -57,6 +57,8 @@ export type Tarjeta =
     }
   | { tipo: "merma"; producto: Eleccion; cantidad: number; motivo: string | null; falta: "producto"[] }
   | { tipo: "gasto"; categoria: string; monto: number; descripcion: string | null; medio: Medio }
+  /** `ayer`: la temperatura del día anterior, para avisar si la de hoy se aleja mucho (un «39» por «29»). null si no se anotó. */
+  | { tipo: "temperatura"; grados: number; ayer: number | null }
   | {
       tipo: "consulta";
       consulta: Extract<Interpretacion, { herramienta: "consultar" }>["datos"]["consulta"];
@@ -75,6 +77,8 @@ export type Resolucion = {
   productos: Candidato[][];
   /** El precio (venta) o costo (compra) sugerido de cada ítem; null si no hay producto elegido o no hay ninguno. */
   precios: (number | null)[];
+  /** La temperatura de ayer, solo para la tarjeta de la temperatura. */
+  temperaturaAyer?: number | null;
 };
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
@@ -150,6 +154,8 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
     }
     case "registrar_gasto":
       return { tipo: "gasto", categoria: i.datos.categoria, monto: i.datos.monto, descripcion: i.datos.descripcion, medio: i.datos.medio_pago };
+    case "registrar_temperatura":
+      return { tipo: "temperatura", grados: i.datos.grados, ayer: r.temperaturaAyer ?? null };
     case "consultar":
       return {
         tipo: "consulta",

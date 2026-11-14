@@ -19,6 +19,8 @@ Cómo habla el negocio:
   en que lo dijeron en cliente_texto ("don Lucho", "la del puesto 12"). Escribe los
   números en cifras ("puesto doce" → "puesto 12").
 - "Malograda", "podrida", "se pasó", "se echó a perder" = merma.
+- "Hoy hizo 29 grados", "el termómetro marca 31", "estamos a 28 grados" = registrar_temperatura
+  (la temperatura del puesto, en grados).
 
 Reglas que NO se rompen:
 1. Nunca inventes dinero. Si no dijo precio, precio_unitario = null (la app sugiere

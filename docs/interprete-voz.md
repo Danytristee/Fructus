@@ -48,6 +48,8 @@ Cómo habla el negocio:
   en que lo dijeron en cliente_texto ("don Lucho", "la del puesto 12"). Escribe los
   números en cifras ("puesto doce" → "puesto 12").
 - "Malograda", "podrida", "se pasó", "se echó a perder" = merma.
+- "Hoy hizo 29 grados", "el termómetro marca 31", "estamos a 28 grados" = registrar_temperatura
+  (la temperatura del puesto, en grados).
 
 Reglas que NO se rompen:
 1. Nunca inventes dinero. Si no dijo precio, precio_unitario = null (la app sugiere
@@ -201,6 +203,20 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
   {
     "type": "function",
     "function": {
+      "name": "registrar_temperatura",
+      "description": "La temperatura que marca el termómetro del puesto.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "grados": { "type": "number", "description": "Grados Celsius que marca el termómetro." }
+        },
+        "required": ["grados"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "consultar",
       "description": "Una pregunta sobre el negocio.",
       "parameters": {
@@ -246,6 +262,7 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 | "Llegaron 50 cajas de plátano isla del de Chao a 25" | registrar_compra | 50 × 25 |
 | "Se malograron 3 jabas de papaya" | registrar_merma | 3 |
 | "Pagué 80 de flete" | registrar_gasto | flete, 80 |
+| "Hoy hizo 29 grados" | registrar_temperatura | 29 |
 | "¿Quién me debe?" | consultar | quien_me_debe |
 | "¿Cuánto me debe el flaco?" | consultar | deuda_cliente, "el flaco" |
 | "¿Cuántas cajas de mango me quedan?" | consultar | stock_producto, "mango" |

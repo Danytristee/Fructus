@@ -4,6 +4,7 @@ import { Encabezado } from "@/components/marco/Encabezado";
 import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { AvisoInventario } from "@/components/hoy/AvisoInventario";
 import { EsqueletoResumen, EsqueletoUltimas } from "@/components/hoy/EsqueletoResumen";
+import { PedirTemperatura } from "@/components/hoy/PedirTemperatura";
 import { ResumenDia } from "@/components/hoy/ResumenDia";
 import { UltimasOperaciones } from "@/components/hoy/UltimasOperaciones";
 import { VozHoy } from "@/components/voz/VozHoy";
@@ -37,6 +38,12 @@ export default async function Hoy() {
           <Suspense fallback={null}>
             <AvisoInventario />
           </Suspense>
+          {/* Después del aviso: lo que tiene que salir va primero, y la temperatura se pide solo si falta la de hoy. */}
+          {permisos.registrar && (
+            <Suspense fallback={null}>
+              <PedirTemperatura />
+            </Suspense>
+          )}
         </div>
         <div className="lg:col-span-7 lg:col-start-1 lg:row-start-1">
           <Suspense fallback={<EsqueletoUltimas />}>

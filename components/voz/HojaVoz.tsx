@@ -11,6 +11,7 @@ import { TarjetaCompra } from "./TarjetaCompra";
 import { TarjetaConsulta } from "./TarjetaConsulta";
 import { TarjetaGasto } from "./TarjetaGasto";
 import { TarjetaMerma } from "./TarjetaMerma";
+import { TarjetaTemperatura } from "./TarjetaTemperatura";
 import { TarjetaVenta } from "./TarjetaVenta";
 import type { ResultadoVoz } from "./VozHoy";
 
@@ -31,6 +32,7 @@ const TITULOS: Partial<Record<ResultadoVoz["tarjeta"]["tipo"], string>> = {
   merma: "¿Así fue la merma?",
   gasto: "¿Así fue el gasto?",
   compra: "¿Así fue la compra?",
+  temperatura: "¿Esto marca el termómetro?",
 };
 
 type Comunes = {
@@ -54,6 +56,8 @@ function TarjetaDe({ tarjeta, comunes, aMano }: { tarjeta: ResultadoVoz["tarjeta
       return <TarjetaGasto tarjeta={tarjeta} {...comunes} />;
     case "compra":
       return <TarjetaCompra tarjeta={tarjeta} {...comunes} aMano={aMano} />;
+    case "temperatura":
+      return <TarjetaTemperatura tarjeta={tarjeta} {...comunes} aMano={aMano} />;
     case "consulta":
       return <TarjetaConsulta tarjeta={tarjeta} comandoId={comunes.comandoId} latenciaMs={comunes.latenciaMs} alListo={() => comunes.alDescartar(false)} />;
     default:
@@ -61,7 +65,7 @@ function TarjetaDe({ tarjeta, comunes, aMano }: { tarjeta: ResultadoVoz["tarjeta
   }
 }
 
-// La hoja de lo que se entendió: las tarjetas que guardan (venta, abono, compra, merma, gasto) y las respuestas a lo que se
+// La hoja de lo que se entendió: las tarjetas que guardan (venta, abono, compra, merma, gasto, temperatura) y las respuestas a lo que se
 // pregunta (A7).
 export function HojaVoz({ resultado, abierta, alCerrar, titulo: tituloPropio, icono, aMano = false }: Props) {
   const { tarjeta } = resultado;

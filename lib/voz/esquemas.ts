@@ -1,4 +1,4 @@
-// Las 7 herramientas del intérprete (docs/interprete-voz.md, sección 3), escritas una sola vez en Zod.
+// Las 8 herramientas del intérprete (docs/interprete-voz.md, sección 3), escritas una sola vez en Zod.
 // De aquí salen dos cosas: la validación de lo que devuelve el modelo y el JSON Schema que se le manda a Groq.
 // Así nunca hay dos versiones distintas de una herramienta. Lógica pura: no importa React ni Supabase.
 import { z } from "zod";
@@ -62,6 +62,10 @@ const herramientasVoz = {
       descripcion: z.string().nullable(),
       medio_pago: medio.default("efectivo"),
     }),
+  },
+  registrar_temperatura: {
+    descripcion: "La temperatura que marca el termómetro del puesto.",
+    esquema: z.object({ grados: z.number().describe("Grados Celsius que marca el termómetro.") }),
   },
   consultar: {
     descripcion: "Una pregunta sobre el negocio.",
