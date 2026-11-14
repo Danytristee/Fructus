@@ -105,7 +105,7 @@ test("desde el cuaderno: se elige a quién pagó y, pagando todo, queda al día"
   expect(await saldoDe(c.id)).toBe(0);
 });
 
-test("respuesta perdida al confirmar: no dice que no se guardó, y al reintentar no se repite el abono", async ({ page }) => {
+test("respuesta perdida al confirmar: queda en el celular, se reintenta solo y el abono no se repite (ADR-0019)", async ({ page }) => {
   const c = await clienteConDeuda(100);
   const hoja = await abrirDesdeLaFicha(page, c.id);
   await escribirMonto(hoja, "25");
@@ -113,34 +113,38 @@ test("respuesta perdida al confirmar: no dice que no se guardó, y al reintentar
   // El pedido llega al servidor y se guarda, pero la respuesta se pierde en el camino.
   await page.route("**/*", async (r) => (r.request().method() === "POST" && r.request().headers()["next-action"] ? (await r.fetch(), r.abort()) : r.fallback()));
   await hoja.getByRole("button", { name: "Confirmar abono" }).click();
-  await expect(hoja.getByRole("alert")).toHaveText("La señal no respondió y no sé si se guardó. Toca Confirmar otra vez: no se va a repetir.");
+  // No dice «no se pudo guardar» de lo que pudo guardarse: lo deja en el celular y lo reintenta solo.
+  await expect(page.getByText("Quedó en el celular")).toBeVisible({ timeout: 20_000 });
   expect(await abonosDe(c.id)).toHaveLength(1);
 
-  // La persona toca Confirmar otra vez, como le dice la hoja: el abono sigue siendo uno.
-  await page.unrouteAll();
-  await hoja.getByRole("button", { name: "Confirmar abono" }).click();
-  await expect(page.getByText("Abono guardado")).toBeVisible();
+  // Vuelve la señal: el reintento devuelve el mismo abono (idempotente por comando), no otro.
+  // La cola puede estar reintentando justo ahora: ese pedido en vuelo se deja terminar.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await expect(page.getByText("Listo: se envió lo guardado")).toBeVisible({ timeout: 30_000 });
   expect(await abonosDe(c.id)).toHaveLength(1);
   expect(await saldoDe(c.id)).toBe(75);
 });
 
-test("sin señal al abrir: lo dice y no deja el botón girando; con señal, abre", async ({ page }) => {
+test("la señal no responde al abrir: la hoja abre igual, el abono va a la cola y entra una vez (ADR-0019)", async ({ page }) => {
   const c = await clienteConDeuda(100);
   await entrarComo(page, "duenio");
   await page.goto(`/clientes/${c.id}`);
   await page.waitForLoadState("networkidle");
 
   await page.route("**/*", (r) => (r.request().method() === "POST" && r.request().headers()["next-action"] ? r.abort() : r.fallback()));
-  const boton = page.getByRole("button", { name: "Registrar abono" });
-  await boton.click();
-  await expect(page.getByRole("alert").filter({ hasText: "No pude abrirlo" })).toBeVisible();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(boton).toBeEnabled();
+  await page.getByRole("button", { name: "Registrar abono" }).click();
+  // No se queda girando ni pide reintentar: abre la hoja con un comando solo del celular.
+  const hoja = page.getByRole("dialog", { name: "Registrar abono" });
+  await expect(hoja).toBeVisible({ timeout: 15_000 });
+  await escribirMonto(hoja, "20");
+  await hoja.getByRole("button", { name: "Confirmar abono" }).click();
+  await expect(page.getByText("Quedó en el celular")).toBeVisible();
+  expect(await abonosDe(c.id)).toHaveLength(0);
 
+  // Con señal, la cola abre el comando de verdad y guarda el abono una vez.
   await page.unrouteAll();
-  await boton.click();
-  await expect(page.getByRole("dialog", { name: "Registrar abono" })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole("alert").filter({ hasText: "No pude abrirlo" })).toHaveCount(0);
+  await expect.poll(() => abonosDe(c.id), { timeout: 30_000 }).toHaveLength(1);
+  expect(await saldoDe(c.id)).toBe(80);
 });
 
 test("descartar cierra la hoja sin guardar nada y deja el comando descartado", async ({ page }) => {

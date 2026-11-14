@@ -12,14 +12,18 @@ test.setTimeout(90_000);
 const base = baseLocal();
 const PREFIJO = "Fruta de merma";
 
+// Solo las de este worker: con dos en paralelo, desactivar todas las del prefijo le quitaba la fruta a la prueba que el otro
+// todavía estaba corriendo (v_stock deja de mostrarla y su stock sale nulo).
+const creadas: number[] = [];
 test.afterAll(async () => {
-  await base.from("productos").update({ activo: false }).like("nombre", `${PREFIJO}%`);
+  if (creadas.length) await base.from("productos").update({ activo: false }).in("id", creadas);
 });
 
 async function fruta(cajas: number | null = 10) {
   const nombre = `${PREFIJO} ${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
   const { data, error } = await base.from("productos").insert({ nombre, unidad: "caja" }).select("id, nombre").single();
   if (error || !data) throw new Error(`No se pudo crear la fruta de prueba: ${error?.message}`);
+  creadas.push(data.id);
   if (cajas !== null) await abastecer(data.id, cajas);
   return data;
 }
@@ -105,19 +109,19 @@ test("desde el botón flotante de Stock: se elige la fruta por su nombre y se po
   expect(await stockDe(f.id)).toBe(antes - 2);
 });
 
-test("respuesta perdida al confirmar: no dice que no se guardó, y al reintentar no se repite la merma", async ({ page }) => {
+test("respuesta perdida al confirmar: queda en el celular, se reintenta solo y la merma no se repite (ADR-0019)", async ({ page }) => {
   const f = await fruta(10);
   const hoja = await abrirDesdeLaFila(page, f.nombre);
   await ponerCajas(hoja, 2);
 
   await page.route("**/*", async (r) => (r.request().method() === "POST" && r.request().headers()["next-action"] ? (await r.fetch(), r.abort()) : r.fallback()));
   await hoja.getByRole("button", { name: "Confirmar merma" }).click();
-  await expect(hoja.getByRole("alert")).toHaveText("La señal no respondió y no sé si se guardó. Toca Confirmar otra vez: no se va a repetir.");
+  await expect(page.getByText("Quedó en el celular")).toBeVisible({ timeout: 20_000 });
   expect(await mermasDe(f.id)).toHaveLength(1);
 
-  await page.unrouteAll();
-  await hoja.getByRole("button", { name: "Confirmar merma" }).click();
-  await expect(page.getByText("Merma guardada")).toBeVisible();
+  // La cola puede estar reintentando justo ahora: ese pedido en vuelo se deja terminar.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await expect(page.getByText("Listo: se envió lo guardado")).toBeVisible({ timeout: 30_000 });
   expect(await mermasDe(f.id)).toHaveLength(1);
   expect(await stockDe(f.id)).toBe(8);
 });
@@ -203,10 +207,10 @@ test("el contador ve el stock pero no «Registrar merma» ni «Se malogró»", a
   await expect(page.getByRole("button", { name: "Se malogró" })).toHaveCount(0);
 });
 
-test("el dueño y el ayudante merman la misma fruta a la vez: el stock baja la suma, sin perder ninguna", async ({ page, browser }) => {
+test("el dueño y el ayudante merman la misma fruta a la vez: el stock baja la suma, sin perder ninguna", async ({ page, browser, baseURL }) => {
   const f = await fruta(10);
   const hojaA = await abrirDesdeLaFila(page, f.nombre, "duenio");
-  const ctx = await browser.newContext({ baseURL: "http://127.0.0.1:3000", viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
+  const ctx = await browser.newContext({ baseURL, viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
   const paginaB = await ctx.newPage();
   const hojaB = await abrirDesdeLaFila(paginaB, f.nombre, "ayudante");
   await ponerCajas(hojaA, 3);

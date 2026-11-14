@@ -3,7 +3,9 @@
 import { startTransition, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useCola } from "@/components/cola/ColaProveedor";
 import { useEspera } from "@/components/ui/Espera";
+import { resumenDe, sinComando, SIN_SENAL, type Operacion } from "@/lib/cola-reglas";
 import { sonarGuardado, vibrar } from "./senales";
 
 type Fallo = { ok: false; error: string; sinSesion?: true };
@@ -12,6 +14,9 @@ type Fallo = { ok: false; error: string; sinSesion?: true };
 const TOPE_CONFIRMAR_MS = 15_000;
 // Dice el nombre del botón que la persona ve: «Confirmar» en las tarjetas, «Guardar cliente» o «Anular la venta» en otras hojas.
 const sinRespuesta = (boton: string) => `La señal no respondió y no sé si se guardó. Toca ${boton} otra vez: no se va a repetir.`;
+// Lo que no se puede guardar en el celular (anular, emitir, guardar un cliente) necesita señal en el momento.
+const NECESITA_SENAL = "Sin señal: esto necesita señal para guardarse. Inténtalo cuando vuelva.";
+const NO_SE_GUARDO_EN_EL_CELULAR = "Sin señal, y el celular no pudo guardarlo. Inténtalo cuando vuelva la señal.";
 
 type Opciones = {
   /** La base respondió que se guardó (la hoja muestra el sello y se cierra sola). */
@@ -33,18 +38,48 @@ export function useConfirmar<R extends { ok: true }>({ alGuardar, alCambiarGuard
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<{ mensaje: string; sinSesion: boolean } | null>(null);
   const [guardado, setGuardado] = useState<R | null>(null);
+  /** Quedó guardado en el celular, no en la base: se envía solo cuando vuelva la señal (ADR-0019). No es un éxito. */
+  const [encolado, setEncolado] = useState(false);
+  const cola = useCola();
   const enviando = useRef(false);
   /** El último Confirmar no tuvo respuesta: pudo haberse guardado y el aviso al descartar no puede decir «no guardé». */
   const incierto = useRef(false);
   const esperar = useEspera();
   const router = useRouter();
 
-  async function confirmar(guardar: () => Promise<R | Fallo>) {
+  /** Lo guarda en la cola del celular y la hoja lo dice. false si el celular no pudo. */
+  async function aLaCola(op: Operacion): Promise<boolean> {
+    if (!cola || !(await cola.encolar({ clase: "confirmacion", operacion: op }, resumenDe(op)))) return false;
+    setEncolado(true);
+    vibrar(30); // sin el «tin-tín»: ese es solo para lo que la base ya guardó
+    alGuardar();
+    return true;
+  }
+
+  /**
+   * `encolable`: los datos de lo que se guarda, para la cola sin conexión. Con él, sin señal (o si la señal no respondió)
+   * se guarda en el celular y se envía solo después; reenviarlo no duplica porque cada acción es idempotente por comando.
+   * Sin él (anular, emitir, un cliente), sin señal se dice que hace falta señal.
+   */
+  async function confirmar(guardar: () => Promise<R | Fallo>, encolable?: Operacion) {
     if (enviando.current) return;
     enviando.current = true;
+    setError(null);
+    const sinSenal = typeof navigator !== "undefined" && !navigator.onLine;
+    // Sin señal, o una tarjeta «a mano» abierta sin señal (todavía sin comando): directo al celular, sin esperar.
+    if (encolable && (sinSenal || sinComando(encolable.entrada.comandoId))) {
+      if (await aLaCola(encolable)) return;
+      enviando.current = false;
+      setError({ mensaje: NO_SE_GUARDO_EN_EL_CELULAR, sinSesion: false });
+      return;
+    }
+    if (sinSenal) {
+      enviando.current = false;
+      setError({ mensaje: NECESITA_SENAL, sinSesion: false });
+      return;
+    }
     setGuardando(true);
     alCambiarGuardando(true);
-    setError(null);
     let reloj = 0;
     const tope = new Promise<Fallo>((resolve) => {
       reloj = window.setTimeout(() => resolve({ ok: false, error: SIN_RESPUESTA }), TOPE_CONFIRMAR_MS);
@@ -55,6 +90,8 @@ export function useConfirmar<R extends { ok: true }>({ alGuardar, alCambiarGuard
     window.clearTimeout(reloj);
     setGuardando(false);
     alCambiarGuardando(false);
+    // La señal no respondió (o la base no contestó): se guarda en el celular y se reintenta solo, en vez de pedir otro toque.
+    if (!r.ok && encolable && (r.error === SIN_RESPUESTA || r.error === SIN_SENAL) && (await aLaCola(encolable))) return;
     if (!r.ok) {
       enviando.current = false;
       incierto.current = r.error === SIN_RESPUESTA;
@@ -78,8 +115,9 @@ export function useConfirmar<R extends { ok: true }>({ alGuardar, alCambiarGuard
     enviando.current = false;
     incierto.current = false;
     setGuardado(null);
+    setEncolado(false);
     setError(null);
   }
 
-  return { confirmar, guardando, error, guardado, incierto, reiniciar };
+  return { confirmar, guardando, error, guardado, encolado, incierto, reiniciar };
 }

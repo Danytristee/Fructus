@@ -5,12 +5,14 @@ import { useEffect, useRef, useState } from "react";
 import { Eye, RotateCcw, Undo2 } from "lucide-react";
 
 import { descartarComando } from "@/app/(app)/acciones-voz";
+import { useCola } from "@/components/cola/ColaProveedor";
 
 import { borrarPendiente, guardarPendiente, leerPendiente } from "@/lib/voz/audio-pendiente";
 import { avisoDescarte, nombreOperacion } from "@/lib/voz/nombre-operacion-reglas";
 import { DURACION_MINIMA_MS, desenlaceDeRespuesta, desenlaceSinRed, type Desenlace } from "@/lib/voz/envio-reglas";
 import { REPOSO, TOPE_ESCUCHA_MS, avanceAlCandado, siguienteGesto, textoEscuchando, type EventoGesto, type Gesto } from "@/lib/voz/gesto-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
+import { AvisoCola } from "./AvisoCola";
 import { AvisoVoz } from "./AvisoVoz";
 import { BotonVoz, type EstadoVoz } from "./BotonVoz";
 import { useGrabadora, type FallaGrabadora, type Grabacion } from "./useGrabadora";
@@ -56,10 +58,14 @@ const POR_FALLA: Record<FallaGrabadora, string> = {
 };
 
 export type ResultadoVoz = { comandoId: number; tarjeta: Tarjeta; latenciaMs: number };
-type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "descartada"; incierto: boolean; que: string } | { tipo: "sin_confirmar"; resultado: ResultadoVoz };
+type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "en_cola" } | { tipo: "descartada"; incierto: boolean; que: string } | { tipo: "sin_confirmar"; resultado: ResultadoVoz };
 
-async function enviarAudio({ audio, duracionMs }: Grabacion): Promise<Desenlace> {
-  if (!navigator.onLine) return desenlaceSinRed();
+// Un audio dictado sin señal va a la cola del celular (ADR-0019): vuelve como tarjeta cuando haya señal.
+const EN_COLA = "Sin señal: guardé lo que dijiste. Cuando vuelva, te muestro la tarjeta para que la confirmes.";
+
+/** «sin_red»: no salió del celular (o no hubo respuesta). Lo demás, lo que contestó el servidor. */
+async function enviarAudio({ audio, duracionMs }: Grabacion): Promise<Desenlace | "sin_red"> {
+  if (!navigator.onLine) return "sin_red";
   const formulario = new FormData();
   formulario.append("audio", audio, audio.type.includes("mp4") ? "voz.m4a" : "voz.webm");
   formulario.append("duracion_ms", String(duracionMs));
@@ -68,7 +74,7 @@ async function enviarAudio({ audio, duracionMs }: Grabacion): Promise<Desenlace>
     return desenlaceDeRespuesta(r.status, await r.json().catch(() => null));
   } catch (e) {
     console.error("voz: no se pudo enviar el audio", { error: e instanceof Error ? e.name : "desconocido" });
-    return desenlaceSinRed();
+    return "sin_red";
   }
 }
 
@@ -90,6 +96,10 @@ export function VozHoy() {
   const [avance, setAvance] = useState(0);
   const inicioY = useRef(0);
   const grabadora = useGrabadora();
+  const cola = useCola();
+  // La tarjeta abierta vino de la cola (un dictado sin señal que ya volvió): se saca de la cola al guardarla o descartarla.
+  const desdeCola = useRef<number | null>(null);
+  const audiosEnCola = cola?.entradas.filter((e) => e.contenido.clase === "audio" && e.estado === "pendiente").length ?? 0;
   const gesto = useRef<Gesto>(REPOSO);
   // Mientras se envía un audio el orbe no acepta otro (antes lo decía `estado`, pero el tope llama desde un reloj viejo).
   const enviando = useRef(false);
@@ -97,7 +107,7 @@ export function VozHoy() {
   const tope = useRef(0);
   const vuelta = useRef(0);
   // El comando cerrado sin guardar: se marca descartado cuando vence el «Deshacer» (o antes, si se dicta otro).
-  const descarte = useRef<{ comandoId: number; latenciaMs: number; reloj: number } | null>(null);
+  const descarte = useRef<{ comandoId: number; latenciaMs: number; reloj: number; colaId: number | null } | null>(null);
 
   useEffect(() => {
     const cuadro = requestAnimationFrame(() => {
@@ -125,7 +135,8 @@ export function VozHoy() {
     if (!d) return;
     descarte.current = null;
     window.clearTimeout(d.reloj);
-    recordarTarjeta(null);
+    if (d.colaId !== null) void cola?.quitar(d.colaId);
+    else recordarTarjeta(null);
     void descartarComando(d.comandoId, d.latenciaMs).catch(() => {
       // Sin red el comando queda «pendiente»: no guarda nada y solo cuenta distinto en la precisión.
     });
@@ -133,14 +144,19 @@ export function VozHoy() {
 
   function alCerrarHoja(motivo: "guardada" | "descartada", incierto = false) {
     setHojaAbierta(false);
-    if (motivo === "guardada") recordarTarjeta(null);
+    const colaId = desdeCola.current;
+    desdeCola.current = null;
+    if (motivo === "guardada") {
+      if (colaId !== null) void cola?.quitar(colaId);
+      else recordarTarjeta(null);
+    }
     if (motivo === "guardada" || !resultado || descarte.current) return;
     const { comandoId, latenciaMs } = resultado;
     const reloj = window.setTimeout(() => {
       cerrarDescarte();
       setAviso((a) => (a?.tipo === "descartada" ? null : a));
     }, DESHACER_MS);
-    descarte.current = { comandoId, latenciaMs, reloj };
+    descarte.current = { comandoId, latenciaMs, reloj, colaId };
     setAviso({ tipo: "descartada", incierto, que: resultado.tarjeta.tipo });
   }
 
@@ -148,6 +164,16 @@ export function VozHoy() {
     const d = descarte.current;
     if (d) window.clearTimeout(d.reloj);
     descarte.current = null;
+    desdeCola.current = d?.colaId ?? null;
+    setAviso(null);
+    setHojaAbierta(true);
+  }
+
+  /** Abre la tarjeta de un dictado que se envió desde la cola. */
+  function abrirDeLaCola(id: number, r: ResultadoVoz) {
+    cerrarDescarte();
+    desdeCola.current = id;
+    setResultado(r);
     setAviso(null);
     setHojaAbierta(true);
   }
@@ -236,8 +262,15 @@ export function VozHoy() {
     window.clearTimeout(vuelta.current);
     setTexto("Entendiendo…");
     const desde = performance.now();
-    const desenlace = await enviarAudio(grabacion);
+    const respuesta = await enviarAudio(grabacion);
     setEstado("listo");
+    if (respuesta === "sin_red" && cola && (await cola.encolar({ clase: "audio", ...grabacion }, "Un dictado"))) {
+      void borrarPendiente();
+      setTexto(TEXTO_LISTO);
+      setAviso({ tipo: "en_cola" });
+      return;
+    }
+    const desenlace = respuesta === "sin_red" ? desenlaceSinRed() : respuesta;
     if (desenlace.tipo === "tarjeta") {
       void borrarPendiente();
       // De soltar el botón a ver la tarjeta (CLAUDE.md, regla 9): se guarda al confirmar o descartar.
@@ -282,6 +315,11 @@ export function VozHoy() {
           }}
         />
       )}
+      {/* Mientras el dictado siga esperando señal; cuando vuelve como tarjeta, lo reemplaza el aviso de la cola. */}
+      {aviso?.tipo === "en_cola" && audiosEnCola > 0 && (
+        <AvisoVoz tono="info" mensaje={EN_COLA} cerrar={{ etiqueta: "Cerrar el aviso", alTocar: () => setAviso(null) }} />
+      )}
+      {(!aviso || (aviso.tipo === "en_cola" && audiosEnCola === 0)) && !hojaAbierta && <AvisoCola alAbrir={abrirDeLaCola} />}
       {aviso?.tipo === "sin_confirmar" && (
         <AvisoVoz
           tono="info"

@@ -13,8 +13,11 @@ test.setTimeout(90_000);
 const base = baseLocal();
 const PREFIJO = "Fruta de compra";
 
+// Solo las de este worker: con dos en paralelo, desactivar todas las del prefijo le quitaba la fruta a la prueba que el otro
+// todavía estaba corriendo (v_stock deja de mostrarla y su stock sale nulo).
+const creadas: number[] = [];
 test.afterAll(async () => {
-  await base.from("productos").update({ activo: false }).like("nombre", `${PREFIJO}%`);
+  if (creadas.length) await base.from("productos").update({ activo: false }).in("id", creadas);
 });
 
 /** Una fruta de prueba. Con `cajas`, ya tiene una compra anterior a S/ 20 la caja (de ahí sale el costo «sugerido»). */
@@ -22,6 +25,7 @@ async function fruta(cajas: number | null = null) {
   const nombre = `${PREFIJO} ${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
   const { data, error } = await base.from("productos").insert({ nombre, unidad: "caja" }).select("id, nombre").single();
   if (error || !data) throw new Error(`No se pudo crear la fruta de prueba: ${error?.message}`);
+  creadas.push(data.id);
   if (cajas !== null) await abastecer(data.id, cajas);
   return data;
 }
@@ -238,10 +242,10 @@ test("regresión /chaos: si la fruta ya no existe, lo dice, y no manda a revisar
   await expect(hoja.getByRole("alert")).toHaveText("Una fruta o el proveedor de la compra ya no está. Vuelve a elegirlos.");
 });
 
-test("el dueño y el ayudante compran la misma fruta a la vez: el stock sube la suma, sin perder ninguna", async ({ page, browser }) => {
+test("el dueño y el ayudante compran la misma fruta a la vez: el stock sube la suma, sin perder ninguna", async ({ page, browser, baseURL }) => {
   const f = await fruta();
   const hojaA = await abrirCompra(page, "duenio");
-  const ctx = await browser.newContext({ baseURL: "http://127.0.0.1:3000", viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
+  const ctx = await browser.newContext({ baseURL, viewport: page.viewportSize()!, locale: "es-PE", timezoneId: "America/Lima" });
   const paginaB = await ctx.newPage();
   const hojaB = await abrirCompra(paginaB, "ayudante");
   await llenarFruta(hojaA, f.nombre, 5, "20");

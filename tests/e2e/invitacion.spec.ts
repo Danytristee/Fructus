@@ -5,10 +5,10 @@ import { expect, test } from "@playwright/test";
 import { entornoLocal } from "./base";
 
 // Corre el comando real (scripts/invitar.mjs) contra la base local y devuelve el enlace que imprime.
-function invitar(correo: string, nombre: string, rol: string) {
+function invitar(correo: string, nombre: string, rol: string, sitio: string) {
   const entorno = entornoLocal();
   const salida = execFileSync("node", ["scripts/invitar.mjs", correo, nombre, rol], {
-    env: { ...process.env, ...entorno, SITIO_URL: "http://127.0.0.1:3000" },
+    env: { ...process.env, ...entorno, SITIO_URL: sitio },
     encoding: "utf8",
   });
   const enlace = salida.match(/http\S+\/auth\/confirmar\S+/)?.[0];
@@ -16,9 +16,9 @@ function invitar(correo: string, nombre: string, rol: string) {
   return enlace;
 }
 
-test("una persona invitada abre su enlace, elige su clave y entra con su rol", async ({ page }, info) => {
+test("una persona invitada abre su enlace, elige su clave y entra con su rol", async ({ page, baseURL }, info) => {
   const correo = `invitada-${Date.now()}-${info.project.name}@puesto.test`;
-  const enlace = invitar(correo, "Rosa del puesto", "ayudante");
+  const enlace = invitar(correo, "Rosa del puesto", "ayudante", baseURL!);
 
   // Una vista previa (WhatsApp) abre el enlace antes que la persona: eso no lo puede gastar.
   const vistaPrevia = await page.request.get(enlace, { maxRedirects: 0 });

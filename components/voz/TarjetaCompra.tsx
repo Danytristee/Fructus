@@ -24,6 +24,7 @@ import { DudasVoz } from "./DudasVoz";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { EditorItem } from "./EditorItem";
 import { FilaTarjeta } from "./FilaTarjeta";
+import { EnCola } from "./EnCola";
 import { Guardado } from "./Guardado";
 import { InsigniaSugerido } from "./InsigniaSugerido";
 import { PagoODebe } from "./PagoODebe";
@@ -63,7 +64,7 @@ function IconoProveedor() {
 export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando, aMano = false }: Props) {
   const [borrador, setBorrador] = useState<BorradorCompra>(() => borradorCompra(tarjeta));
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
-  const { confirmar: enviar, guardando, error, guardado, incierto } = useConfirmar<{ ok: true; compraId: number }>({ alGuardar, alCambiarGuardando });
+  const { confirmar: enviar, guardando, error, guardado, encolado, incierto } = useConfirmar<{ ok: true; compraId: number }>({ alGuardar, alCambiarGuardando });
 
   const total = totalCompra(borrador);
   const falta = faltaCompra(borrador);
@@ -71,8 +72,12 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
 
   function confirmar() {
     if (falta.length > 0) return;
-    void enviar(() => confirmarCompra({ comandoId, borrador, corregido: fueCorregidaCompra(tarjeta, borrador), latenciaMs, aMano }));
+    const entrada = { comandoId, borrador, corregido: fueCorregidaCompra(tarjeta, borrador), latenciaMs, aMano };
+    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
+    void enviar(() => confirmarCompra(entrada), { tipo: "compra", entrada });
   }
+
+  if (encolado) return <EnCola tipo="compra" />;
 
   if (guardado) {
     const cajas = borrador.items.reduce((s, it) => s + it.cantidad, 0);
@@ -228,6 +233,7 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
       </div>
 
       <PieConfirmar
+          guardaSinSenal
         style={pieza(borrador.items.length + 3)}
         aviso={aviso}
         avisoNeutro={aMano}

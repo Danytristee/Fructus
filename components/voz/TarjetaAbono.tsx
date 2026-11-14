@@ -24,6 +24,7 @@ import { EditorBusqueda } from "./EditorBusqueda";
 import { EditorMonto } from "./EditorMonto";
 import { FilaCliente } from "./FilaCliente";
 import { FilaTarjeta } from "./FilaTarjeta";
+import { EnCola } from "./EnCola";
 import { Guardado } from "./Guardado";
 import { PieConfirmar } from "./PieConfirmar";
 import { SelectorMedio } from "./SelectorMedio";
@@ -50,7 +51,7 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [borrador, setBorrador] = useState<BorradorAbono>(() => borradorAbono(tarjeta));
   const [vista, setVista] = useState<"tarjeta" | "cliente" | "monto">("tarjeta");
   const [saldo, setSaldo] = useState<number | null>(null);
-  const { confirmar: enviar, guardando, error, guardado, incierto } = useConfirmar<{ ok: true; saldo: number | null }>({ alGuardar, alCambiarGuardando });
+  const { confirmar: enviar, guardando, error, guardado, encolado, incierto } = useConfirmar<{ ok: true; saldo: number | null }>({ alGuardar, alCambiarGuardando });
 
   const clienteId = borrador.cliente?.id ?? null;
   useEffect(() => {
@@ -69,8 +70,12 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
   function confirmar() {
     if (falta.length > 0) return;
-    void enviar(() => confirmarAbono({ comandoId, borrador, corregido: fueCorregidoAbono(tarjeta, borrador), latenciaMs, aMano }));
+    const entrada = { comandoId, borrador, corregido: fueCorregidoAbono(tarjeta, borrador), latenciaMs, aMano };
+    // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
+    void enviar(() => confirmarAbono(entrada), { tipo: "abono", entrada });
   }
+
+  if (encolado) return <EnCola tipo="abono" />;
 
   if (guardado) {
     const queda = guardado.saldo;
@@ -191,6 +196,7 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       )}
 
       <PieConfirmar
+          guardaSinSenal
         style={pieza(4)}
         aviso={frasesFaltaAbono(falta)}
         avisoNeutro={aMano}

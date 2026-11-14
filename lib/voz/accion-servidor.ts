@@ -5,7 +5,8 @@ import "server-only";
 import { permisosDe } from "@/lib/permisos-reglas";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 
-export const SIN_SENAL = "No se pudo guardar. Revisa tu señal e inténtalo otra vez.";
+// La frase vive en las reglas de la cola: así la cola sabe que no es un rechazo y lo reintenta (ADR-0019).
+export { SIN_SENAL } from "@/lib/cola-reglas";
 
 /** La llave foránea se rompió (23503): el cliente se borró mientras la tarjeta estaba abierta. Reintentar no sirve: hay que elegir otro. */
 export const CLIENTE_YA_NO_ESTA = "Ese cliente ya no está en tu cuaderno. Elige a otro.";
@@ -15,6 +16,12 @@ export const COMPRA_YA_NO_ESTA = "Una fruta o el proveedor de la compra ya no es
 
 /** Lo mismo con la fruta: se desactivó o se borró mientras la tarjeta estaba abierta. */
 export const PRODUCTO_YA_NO_ESTA = "Esa fruta ya no está en tu catálogo. Elige otra.";
+
+/**
+ * La hora del toque, para lo que llega desde la cola sin conexión (ADR-0019). La base la acepta si es creíble (48 h atrás a 5 min
+ * adelante) y si no usa la suya: aquí solo se pasa. Sin hora (lo confirmado con señal), la de la base.
+ */
+export const conFecha = <T extends object>(pedido: T, fecha: string | undefined): T & { fecha?: string } => (fecha ? { ...pedido, fecha } : pedido);
 
 /** «Tu sesión terminó. Vuelve a entrar: el abono te espera en «Hoy».» */
 export const sinSesion = (que: string) => `Tu sesión terminó. Vuelve a entrar: ${que} te espera en «Hoy».`;

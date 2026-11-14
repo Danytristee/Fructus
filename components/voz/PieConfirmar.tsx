@@ -1,6 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { WifiOff } from "lucide-react";
+
+import { useCola } from "@/components/cola/ColaProveedor";
 
 import { Boton } from "@/components/ui/Boton";
 import { PieFijo } from "@/components/ui/PieFijo";
@@ -22,15 +25,25 @@ type Props = {
   etiquetaPendiente?: string;
   alConfirmar: () => void;
   alDescartar: () => void;
+  /** Las tarjetas de voz y a mano: sin señal se guardan en el celular (ADR-0019). Las demás hojas necesitan señal para guardar. */
+  guardaSinSenal?: boolean;
   style?: React.CSSProperties;
 };
 
 // El pie de toda tarjeta de voz: qué falta o qué falló, Confirmar y Descartar. Va pegado abajo de la hoja (`PieFijo`): con todo lo de
 // arriba, a 360 px Confirmar se iba debajo del borde (regla 1).
-export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = false, etiqueta, etiquetaPendiente, etiquetaDescartar = "Descartar", alConfirmar, alDescartar, style }: Props) {
+export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = false, etiqueta, etiquetaPendiente, etiquetaDescartar = "Descartar", alConfirmar, alDescartar, guardaSinSenal = false, style }: Props) {
   const router = useRouter();
+  // Con la hoja abierta, el velo tapa la franja de arriba: sin señal se dice aquí, antes de tocar (/formidable 2026-11-12).
+  const sinSenal = useCola()?.situacion.enLinea === false;
   return (
     <PieFijo className="animate-pieza gap-2" style={style}>
+      {sinSenal && !error && (
+        <p className="mx-1 mb-1 flex items-start gap-2 font-bold text-texto">
+          <WifiOff aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
+          {guardaSinSenal ? "Sin señal: se guarda en el celular y se envía cuando vuelva." : "Sin señal: para guardar esto necesitas señal."}
+        </p>
+      )}
       {(aviso || error) && (
         <p role={error ? "alert" : undefined} className={`mx-1 mb-1 font-bold ${!error && avisoNeutro ? "text-texto" : "text-deuda"}`}>
           {error?.mensaje ?? aviso}

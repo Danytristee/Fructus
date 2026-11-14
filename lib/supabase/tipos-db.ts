@@ -487,6 +487,9 @@ isOneToOne: false
               "cajas": number,"compras": number,"costo_promedio": number,"producto_id": number,"proveedor_id": number,"total": number,"ultima": string,"ultimo_costo": number
             }[]
                            },
+"fecha_del_celular":
+{ Args: { "p": string }; Returns: string
+                           },
 "registrar_compra":
 { Args: { "p": Json }; Returns: number
                            },
