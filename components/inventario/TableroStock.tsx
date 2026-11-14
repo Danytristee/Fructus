@@ -23,7 +23,9 @@ const TARJETAS_A_LA_VISTA = 3;
 
 function FilaProducto({ e, puedeRegistrar }: { e: EstadoProducto; puedeRegistrar: boolean }) {
   const frescura = Math.round((1 - e.desgaste) * 100);
-  const color = e.desgaste >= 0.85 ? "bg-deuda" : e.desgaste >= 0.6 ? "bg-sol" : "bg-exito";
+  // El color sigue al aviso: rojo si su llegada más vieja tiene que salir hoy, ámbar si sale mañana.
+  const restan = e.lotes[0]?.restan ?? null;
+  const color = restan === 0 ? "bg-deuda" : restan === 1 ? "bg-sol" : "bg-exito";
   // Menos de cero: se registró más salida que entrada (una merma de 8 con 5 en la app). No es «sin cajas», es un aviso (/chaos 2026-11-10).
   const negativo = e.stock < 0;
   return (

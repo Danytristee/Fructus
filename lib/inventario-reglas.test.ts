@@ -52,11 +52,49 @@ describe("evaluarProducto", () => {
     expect(evaluarProducto(producto({}), hoy).alertas).toEqual([]);
   });
 
-  it("papaya de 5 días (dura 5): se está por malograr, véndela hoy", () => {
+  it("papaya que llegó hace 5 días (dura 5): tiene que salir hoy, y dice que ya se pasó", () => {
     const e = evaluarProducto(producto({ nombre: "Papaya", variedad: null, stock: 10, vendido7: 14, entradas: [{ fecha: haceDias(5), cantidad: 20 }] }), hoy);
     const a = e.alertas.find((x) => x.tipo === "deterioro");
-    expect(a).toMatchObject({ gravedad: "alta", titulo: "Papaya se está por malograr" });
+    expect(a).toMatchObject({ gravedad: "alta", titulo: "Papaya tiene que salir hoy", corto: "10 cajas del viernes" });
+    expect(a?.detalle).toBe("10 cajas que llegaron el viernes. Su último día bueno fue ayer: revisa la fruta antes de venderla.");
     expect(a?.recomendacion).toContain("Véndelo hoy");
+  });
+
+  describe("el calor de cada día", () => {
+    // Mango (dura 7 a temperatura normal) que llegó hace 4 días. Sin calor le quedan 2 días; con una semana de 31°, hoy es el último.
+    const mango = producto({ nombre: "Mango", variedad: "Kent", stock: 12, vendido7: 63, entradas: [{ fecha: haceDias(4), cantidad: 12 }] });
+    const semana = (grados: number) => [0, 1, 2, 3, 4].map((n) => ({ dia: haceDias(n).slice(0, 10), grados }));
+
+    it("sin temperaturas anotadas cuenta como la tabla de siempre: no avisa todavía", () => {
+      const e = evaluarProducto(mango, hoy);
+      expect(e.alertas.filter((a) => a.tipo === "deterioro")).toEqual([]);
+      expect(e.lotes).toMatchObject([{ cajas: 12, restan: 2, perdidos: 0 }]);
+    });
+
+    it("con una semana de calor fuerte la misma caja tiene que salir hoy, y dice cuánto le quitó el calor", () => {
+      const e = evaluarProducto(mango, hoy, semana(31));
+      const a = e.alertas.find((x) => x.tipo === "deterioro");
+      expect(a).toMatchObject({ gravedad: "alta", titulo: "Mango Kent tiene que salir hoy" });
+      expect(a?.detalle).toBe("12 cajas que llegaron el sábado. El calor le quitó 2 días: hoy es su último día bueno.");
+    });
+
+    it("lo que se acaba mañana se avisa como «sale mañana», para ponerlo adelante", () => {
+      const e = evaluarProducto(mango, hoy, semana(28));
+      expect(e.alertas.find((x) => x.tipo === "deterioro")).toMatchObject({ gravedad: "media", titulo: "Mango Kent sale mañana", recomendacion: "Ponlo adelante y véndelo primero." });
+    });
+
+    it("cada llegada lleva su cuenta: lo viejo sale hoy y lo nuevo aguanta", () => {
+      const dos = producto({ nombre: "Mango", variedad: "Kent", stock: 42, vendido7: 63, entradas: [{ fecha: haceDias(4), cantidad: 20 }, { fecha: haceDias(1), cantidad: 30 }] });
+      const e = evaluarProducto(dos, hoy, semana(31));
+      expect(e.lotes.map((l) => [l.cajas, l.restan])).toEqual([[12, 0], [30, 3]]);
+      // El aviso habla solo de las 12 que salen hoy, no de las 42.
+      expect(e.alertas.find((x) => x.tipo === "deterioro")?.corto).toBe("12 cajas del sábado");
+    });
+
+    it("una sola caja se dice en singular", () => {
+      const una = producto({ nombre: "Mango", variedad: "Kent", stock: 1, vendido7: 63, entradas: [{ fecha: haceDias(4), cantidad: 1 }] });
+      expect(evaluarProducto(una, hoy, semana(31)).alertas.find((x) => x.tipo === "deterioro")?.detalle).toMatch(/^1 caja que llegó el sábado\./);
+    });
   });
 
   it("kiwi con 80 cajas y 2 al día: sobrestock, no compres más", () => {

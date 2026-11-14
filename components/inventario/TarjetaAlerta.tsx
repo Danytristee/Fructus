@@ -62,7 +62,8 @@ export function TarjetaAlerta({ g, nombreDe, i }: { g: GrupoAlertas; nombreDe: M
           )}
         </span>
         <span className={cn("rounded-full px-2.5 py-1 text-sm font-extrabold whitespace-nowrap", g.gravedad === "alta" ? "bg-deuda text-superficie" : "bg-texto/8 text-texto")}>
-          {g.gravedad === "alta" ? "Hoy" : "Pronto"}
+          {/* Lo que se acaba mañana tiene día: «Mañana». Lo demás que puede esperar, «Pronto». */}
+          {g.gravedad === "alta" ? "Hoy" : g.tipo === "deterioro" ? "Mañana" : "Pronto"}
         </span>
       </div>
       {resto > 0 && (

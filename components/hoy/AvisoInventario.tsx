@@ -16,7 +16,7 @@ export async function AvisoInventario() {
   if (!inventario || inventario.alertas.length === 0) return null;
   const { resumen, alertas } = inventario;
   const partes = [
-    resumen.frutasPorMalograrse > 0 && plural(resumen.frutasPorMalograrse, "fruta por malograrse", "frutas por malograrse"),
+    resumen.frutasPorMalograrse > 0 && plural(resumen.frutasPorMalograrse, "fruta tiene que salir hoy", "frutas tienen que salir hoy"),
     resumen.porReponer > 0 && plural(resumen.porReponer, "por reponer", "por reponer"),
   ].filter(Boolean);
   const titulo = partes.length ? partes.join(" y ") : plural(alertas.length, "aviso de tu stock", "avisos de tu stock");

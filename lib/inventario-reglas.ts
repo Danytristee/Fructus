@@ -1,11 +1,14 @@
-// El dashboard inteligente de inventario: con el stock, la demanda y la edad de cada lote, decide qué fruta está por
-// malograrse, cuál sobra, cuál hay que reponer y qué conviene hacer. Lógica pura: no importa React ni Supabase.
+// El dashboard inteligente de inventario: con el stock, la demanda, cuándo llegó cada caja y el calor de cada día, decide qué
+// fruta tiene que salir ya, cuál sobra, cuál hay que reponer y qué conviene hacer. Lógica pura: no importa React ni Supabase.
 
+import { diaDeLima } from "./formato";
+import { cuandoLlego, deCuando, estimarLlegada, llegadasEnStock, type Estimacion, type Llegada } from "./frescura-reglas";
 import { agruparPorFruta, detalleProducto, nombreProducto, tituloEnGrupo, type PartesProducto } from "./productos-reglas";
+import type { TemperaturaDia } from "./temperatura-reglas";
 
 /**
- * Días que aguanta una caja en buen estado en el puesto (sin cámara de frío). Valores de referencia para la demo, por
- * familia de fruta; se ajustan con el dueño y, si hace falta, pasan a una columna de productos.
+ * Días que aguanta una caja en buen estado en el puesto (sin cámara de frío) a temperatura normal (24°). Valores de referencia
+ * para la demo, por familia de fruta. El calor de cada día los acorta (lib/frescura-reglas.ts).
  */
 const VIDA_UTIL_DIAS: Record<string, number> = {
   manzana: 30,
@@ -79,7 +82,7 @@ export type Alerta = {
   detalle: string;
   /** Qué hacer. */
   recomendacion: string;
-  /** El dato en pocas palabras, para cuando la alerta va junto a otras del mismo tipo: «72 de más», «lote de 9 días, dura 10». */
+  /** El dato en pocas palabras, para cuando la alerta va junto a otras del mismo tipo: «72 de más», «12 cajas del lunes». */
   corto: string;
 };
 
@@ -107,10 +110,15 @@ export type EstadoProducto = {
   coberturaDias: number | null;
   edadDias: number | null;
   vidaUtil: number;
-  /** De 0 a 1: cuánto de su vida útil ya pasó el lote más viejo. */
+  /** De 0 a 1: cuánto de su vida ya gastó la llegada más vieja, contando el calor de cada día. */
   desgaste: number;
+  /** Cada llegada que todavía tiene cajas, de la más vieja a la más nueva, con lo que le queda. */
+  lotes: LoteEstimado[];
   alertas: Alerta[];
 };
+
+/** Una llegada con su cuenta: cuántas cajas quedan de ella y cuánto le falta para su último día bueno. */
+type LoteEstimado = Llegada & Estimacion;
 
 // Cajas y días enteros, como se dice en el puesto: «unas 136 cajas», no «136.3» («no vendo media caja», prueba a ciegas de /formidable
 // 2026-11-09). Lo que no llega a uno se dice en palabras.
@@ -130,29 +138,46 @@ export function veredictoDelStock(estados: Pick<EstadoProducto, "stock" | "alert
   return { urgentes: seguidas.filter((e) => e.alertas.some(esUrgente)).length, total: seguidas.length };
 }
 
-/** Las reglas de negocio de una fruta: deterioro, reposición, sobrestock y fruta que no se mueve. */
-export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProducto {
+/** Por qué esa llegada tiene que salir, en una frase: lo que le quitó el calor, o que ya se pasó. */
+function porQueSale(lote: LoteEstimado, hoyMismo: boolean): string {
+  if (lote.atraso > 0) return `Su último día bueno fue ${lote.atraso === 1 ? "ayer" : `hace ${dias(lote.atraso)}`}: revisa la fruta antes de venderla.`;
+  const cuando = hoyMismo ? "hoy" : "mañana";
+  return lote.perdidos > 0 ? `El calor le quitó ${dias(lote.perdidos)}: ${cuando} es su último día bueno.` : `${hoyMismo ? "Hoy" : "Mañana"} es su último día bueno.`;
+}
+
+/**
+ * Las reglas de negocio de una fruta: lo que tiene que salir, reposición, sobrestock y fruta que no se mueve. `lecturas` es la
+ * temperatura de cada día; sin ninguna, cada día cuenta como uno normal y la fruta dura lo que dice la tabla.
+ */
+export function evaluarProducto(p: ProductoInventario, hoy: Date, lecturas: readonly TemperaturaDia[] = []): EstadoProducto {
   const nombre = nombreProducto(p);
   const vidaUtil = vidaUtilDias(p.nombre);
   const demandaDiaria = p.vendido7 / 7;
   // Con stock negativo (una merma mayor que lo contado) no alcanza para nada: 0 días, no «−4.2 días» (/chaos 2026-11-10).
   const coberturaDias = demandaDiaria > 0 ? Math.max(0, p.stock) / demandaDiaria : null;
   const edadDias = edadLoteMasViejo(p.stock, p.entradas, hoy);
-  const desgaste = edadDias === null ? 0 : Math.min(1, edadDias / vidaUtil);
+  const hoyDia = diaDeLima(hoy);
+  const lotes: LoteEstimado[] = llegadasEnStock(p.stock, p.entradas).map((l) => ({ ...l, ...estimarLlegada(l.dia, vidaUtil, lecturas, hoyDia) }));
+  const viejo = lotes[0] ?? null;
+  const desgaste = viejo ? viejo.gastado : 0;
   const alertas: Alerta[] = [];
   const base = { productoId: p.id, producto: nombre };
 
-  // Deterioro: el lote más viejo ya gastó la mayor parte de su vida útil.
-  if (edadDias !== null && desgaste >= 0.6) {
-    const alta = desgaste >= 0.85;
+  // Lo que tiene que salir: las llegadas cuyo último día bueno es hoy (o ya pasó) y, si no hay, las que se acaban mañana.
+  const deHoy = lotes.filter((l) => l.restan === 0);
+  const porSalir = deHoy.length > 0 ? deHoy : lotes.filter((l) => l.restan === 1);
+  if (porSalir.length > 0) {
+    const alta = deHoy.length > 0;
+    const primero = porSalir[0]!; // la más vieja
+    const n = porSalir.reduce((s, l) => s + l.cajas, 0);
     alertas.push({
       ...base,
       tipo: "deterioro",
       gravedad: alta ? "alta" : "media",
-      titulo: alta ? `${nombre} se está por malograr` : `${nombre} hay que revisarlo pronto`,
-      detalle: `El lote más viejo tiene ${dias(edadDias)} y esta fruta dura unos ${dias(vidaUtil)}.`,
+      titulo: alta ? `${nombre} tiene que salir hoy` : `${nombre} sale mañana`,
+      detalle: `${cajas(n)} que ${Math.round(n) === 1 ? "llegó" : "llegaron"} ${cuandoLlego(primero.dia, hoyDia)}. ${porQueSale(primero, alta)}`,
       recomendacion: alta ? "Véndelo hoy, antes que lo nuevo. Si no sale, ofrécelo con rebaja." : "Ponlo adelante y véndelo primero.",
-      corto: `lote de ${dias(edadDias)}, dura ${dias(vidaUtil)}`,
+      corto: `${cajas(n)} ${deCuando(primero.dia, hoyDia)}`,
     });
   }
 
@@ -184,11 +209,12 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProduct
       });
     }
   } else {
-    // Sobrestock: al ritmo de venta, parte del stock se malogra antes de venderse.
-    const vidaRestante = Math.max(0, vidaUtil - (edadDias ?? 0));
+    // Sobrestock: al ritmo de venta, parte del stock se malogra antes de venderse. Los días que quedan para vender son los de la
+    // llegada más vieja, hoy incluido; si ya se pasó, ninguno.
+    const vidaRestante = viejo ? (viejo.atraso > 0 ? 0 : viejo.restan + 1) : vidaUtil;
     const seAlcanzaAVender = demandaDiaria * vidaRestante;
     const enRiesgo = p.stock - seAlcanzaAVender;
-    // Si ya se está por malograr, esa alerta dice lo mismo y más urgente: no se repite como sobrestock.
+    // Si ya tiene que salir hoy, esa alerta dice lo mismo y más urgente: no se repite como sobrestock.
     const yaPorMalograrse = alertas.some((a) => a.tipo === "deterioro" && a.gravedad === "alta");
     if (enRiesgo >= 1 && !yaPorMalograrse) {
       alertas.push({
@@ -216,7 +242,7 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date): EstadoProduct
   }
 
   const partes: PartesProducto = { nombre: p.nombre, variedad: p.variedad, marca: p.marca, seleccion: p.seleccion, calibre: p.calibre, kgPorCaja: p.kgPorCaja };
-  return { id: p.id, nombre, detalle: detalleProducto(p), partes, stock: p.stock, demandaDiaria, coberturaDias, edadDias, vidaUtil, desgaste, alertas };
+  return { id: p.id, nombre, detalle: detalleProducto(p), partes, stock: p.stock, demandaDiaria, coberturaDias, edadDias, vidaUtil, desgaste, lotes, alertas };
 }
 
 const ORDEN_TIPO: Record<TipoAlerta, number> = { deterioro: 0, reponer: 1, sobrestock: 2, sin_movimiento: 3 };
@@ -233,7 +259,7 @@ export type ResumenInventario = {
   /** Lo que vale el stock a precio de referencia (proyectado). */
   valor: number;
   alertasAltas: number;
-  /** Cajas del lote más viejo de las frutas que se están por malograr. */
+  /** Cuántas frutas tienen alguna llegada que tiene que salir hoy. */
   frutasPorMalograrse: number;
   porReponer: number;
   /** Por tipo de alerta: cuántas frutas en total (lo mismo que cuenta su filtro) y cuántas de ellas son para hoy. */
@@ -270,7 +296,7 @@ export type GrupoAlertas = {
 };
 
 const TITULO_GRUPO: Record<TipoAlerta, Record<Gravedad, (n: number) => string>> = {
-  deterioro: { alta: (n) => `${n} frutas se están por malograr`, media: (n) => `${n} frutas hay que revisarlas pronto` },
+  deterioro: { alta: (n) => `${n} frutas tienen que salir hoy`, media: (n) => `${n} frutas salen mañana` },
   reponer: { alta: (n) => `Hay que comprar ${n} frutas hoy`, media: (n) => `Te queda poco de ${n} frutas` },
   sobrestock: { alta: (n) => `Te sobran ${n} frutas`, media: (n) => `Te sobra algo de ${n} frutas` },
   sin_movimiento: { alta: (n) => `${n} frutas no se están vendiendo`, media: (n) => `${n} frutas no se están vendiendo` },
