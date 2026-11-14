@@ -72,14 +72,14 @@ def bajar_salas(destino: Path) -> None:
     print(f"salas: {len(archivos)} en {destino}")
 
 
-def bajar_fondo(destino: Path, fragmentos: int, max_clips: int | None) -> None:
+def bajar_fondo(destino: Path, fragmentos: int, max_clips: int | None, primero: int = 0) -> None:
     import pyarrow.parquet as pq
     from huggingface_hub import HfFileSystem
 
     fs = HfFileSystem()
     destino.mkdir(parents=True, exist_ok=True)
     hechos = 0
-    for n in range(fragmentos):
+    for n in range(primero, primero + fragmentos):
         with fs.open(f"datasets/agkphysics/AudioSet/data/bal_train/{n:02d}.parquet", "rb") as f:
             pf = pq.ParquetFile(f)
             for g in range(pf.num_row_groups):  # por grupos: no carga 650 MB de una vez
@@ -111,14 +111,17 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--destino", type=Path, default=Path("."))
     p.add_argument("--fragmentos-fondo", type=int, default=2, help="cada fragmento de AudioSet son ~500 clips de 10 s")
+    p.add_argument("--primer-fragmento", type=int, default=0, help="desde qué fragmento de AudioSet (para separar entrenar de validar)")
     p.add_argument("--max-clips-fondo", type=int, help="corta antes (para probar)")
+    p.add_argument("--solo-fondo", action="store_true", help="solo el ruido de fondo (las voces y salas ya están)")
     p.add_argument("--sin-caracteristicas", action="store_true", help="no baja los 17.5 GB (para probar)")
     a = p.parse_args()
 
-    bajar_voces(a.destino / "voces")
-    bajar_salas(a.destino / "mit_rirs")
-    bajar_fondo(a.destino / "fondo", a.fragmentos_fondo, a.max_clips_fondo)
-    if not a.sin_caracteristicas:
+    if not a.solo_fondo:
+        bajar_voces(a.destino / "voces")
+        bajar_salas(a.destino / "mit_rirs")
+    bajar_fondo(a.destino / "fondo", a.fragmentos_fondo, a.max_clips_fondo, a.primer_fragmento)
+    if not (a.sin_caracteristicas or a.solo_fondo):
         bajar_caracteristicas(a.destino)
 
 

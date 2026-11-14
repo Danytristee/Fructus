@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 AQUI = Path(__file__).parent
-SCRIPTS = ["compat_torchaudio.py", "preparar_datos.py", "generar_clips.py", "entrenar.py"]
+SCRIPTS = ["compat_torchaudio.py", "preparar_datos.py", "generar_clips.py", "caracteristicas_negativas.py", "entrenar.py"]
 
 # Versiones probadas de punta a punta en Python 3.12 (el de Colab) el 2026-11-12. scipy < 1.16: `acoustics` usa sph_harm.
 DEPENDENCIAS = (
@@ -77,8 +77,18 @@ import os
 reales = "--grabaciones grabaciones --reservar " + " ".join(RESERVAR) if os.path.isdir("grabaciones") else ""
 !python generar_clips.py --voces voces --salida salida/hola_fructus --n-train {CLIPS_ENTRENAR} --n-test {CLIPS_VALIDAR} {reales}
 """),
+        md("""
+## 6b. (Opcional) Negativos propios, sin la licencia no comercial
+
+Si tienes horas de audio propio del puesto **con permiso para subirlas**, en `ruido_propio/` (WAV a 16 kHz), esta celda arma los
+negativos con ellas y con habla sintética del puesto. Después, en la celda 7, cambia `NEGATIVOS` por `negativos_propios.npy`.
+"""),
+        code("""
+!python generar_clips.py --voces voces --salida _tmp/hola_fructus --n-train 0 --n-test 0 --habla 1500 --habla-salida habla
+!python caracteristicas_negativas.py --audio ruido_propio fondo habla --mezclar fondo --ventanas negativos_propios.npy
+"""),
         md("## 7. Entrenar (30 a 60 min)"),
-        code("!python entrenar.py --salida salida --rir mit_rirs --fondo fondo --negativos openwakeword_features_ACAV100M_2000_hrs_16bit.npy --validacion validation_set_features.npy --pasos {PASOS}"),
+        code('NEGATIVOS = "openwakeword_features_ACAV100M_2000_hrs_16bit.npy"\n!python entrenar.py --salida salida --rir mit_rirs --fondo fondo --negativos {NEGATIVOS} --validacion validation_set_features.npy --pasos {PASOS}'),
         md("## 8. Bajar el modelo\n\nGuarda `hola_fructus.onnx` y pásalo al proyecto: se mide con `medir.py`."),
         code('from google.colab import files\nfiles.download("salida/hola_fructus.onnx")'),
     ]

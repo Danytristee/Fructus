@@ -24,6 +24,19 @@ import yaml
 MODELO = "hola_fructus"
 
 
+def juntar_pesos(onnx: Path) -> None:
+    """El exportador nuevo de torch deja los pesos en <modelo>.onnx.data, aparte. El navegador (y la descarga de Colab) necesitan
+    un solo archivo: se cargan los pesos y se guardan dentro del .onnx."""
+    import onnx as onnxlib
+
+    datos = onnx.with_name(onnx.name + ".data")
+    modelo = onnxlib.load(str(onnx), load_external_data=True)
+    onnxlib.save_model(modelo, str(onnx), save_as_external_data=False)
+    if datos.exists():
+        datos.unlink()
+    onnxlib.checker.check_model(str(onnx))
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--salida", type=Path, required=True, help="carpeta donde generar_clips.py dejó <salida>/hola_fructus")
@@ -33,6 +46,7 @@ def main() -> None:
     p.add_argument("--validacion", type=Path, required=True, help="características para medir falsas activaciones (.npy)")
     p.add_argument("--pasos", type=int, default=10000)
     p.add_argument("--capa", type=int, default=32)
+    p.add_argument("--lote-parecidas", type=int, default=50, help="frases parecidas por lote (openWakeWord usa 50)")
     p.add_argument("--peso-negativo", type=float, default=1500, help="peso máximo de los negativos (el de openWakeWord es 1500)")
     p.add_argument("--falsas-por-hora", type=float, default=0.2, help="meta del entrenador al elegir el mejor modelo")
     p.add_argument("--rehacer-caracteristicas", action="store_true", help="vuelve a aumentar los clips aunque ya estén")
@@ -68,7 +82,7 @@ def main() -> None:
         "false_positive_validation_data_path": str(a.validacion),
         "augmentation_rounds": 1,
         "feature_data_files": {"ACAV100M_sample": str(a.negativos)},
-        "batch_n_per_class": {"ACAV100M_sample": 1024, "adversarial_negative": 50, "positive": 50},
+        "batch_n_per_class": {"ACAV100M_sample": 1024, "adversarial_negative": a.lote_parecidas, "positive": 50},
         "model_type": "dnn",
         "layer_size": a.capa,
         "steps": a.pasos,
@@ -105,6 +119,7 @@ def main() -> None:
         print(f"Aviso: no se pudo convertir a TFLite ({e.name}). No hace falta: el navegador usa el .onnx.")
     if not onnx.exists():
         raise SystemExit("El entrenamiento terminó sin dejar el .onnx.")
+    juntar_pesos(onnx)
     print(f"Listo: {onnx} ({onnx.stat().st_size // 1024} KB)")
 
 

@@ -8,3 +8,4 @@ voces/
 *.npy
 *.onnx
 *.tflite
+__pycache__/

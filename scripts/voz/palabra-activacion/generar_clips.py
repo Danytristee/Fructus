@@ -41,6 +41,38 @@ NEGATIVAS = [
     "¿cuántas cajas de mango me quedan?", "dos cajas de manzana", "fresa", "frutería", "fructífero", "hoy vendimos",
 ]
 
+# Frases con «fruta»: lo que más lo engaña (2026-11-14, voz que no oyó: ~11 % lo despiertan). Sumarlas a los negativos bajó esas
+# falsas a 2–4 %, pero la detección cayó de 90 % a 46–61 %: «hola, frutas» y «hola Fructus» casi no se distinguen con voces
+# sintéticas. Por eso van aparte (--con-fruta), para probarlas con grabaciones reales, no por defecto.
+NEGATIVAS_FRUTA = [
+    "fruta fresca", "frutas frescas", "la fruta", "esa fruta", "fruta buena", "fruta de temporada", "frutero", "frutita",
+    "hola, ¿hay fruta?", "hola casera, fruta fresca", "hola, la fruta está buena", "hola, ¿qué fruta hay?", "hola frutero",
+    "hola, ¿a cómo la fruta?", "olas de fruta", "hola, fresas", "hola, frutas", "hola Fructuoso", "hola Fructuosa", "fructuoso",
+    "toda la fruta", "fruta de Chao", "la fruta llegó", "fructosa natural", "hola, ¿y la fruta?", "frutas y verduras",
+]
+
+# Habla del puesto para los negativos «largos»: lo que el modelo oirá todo el día y nunca debe tomar por «Hola Fructus».
+FRUTAS = ["mango", "mango kent", "papaya", "plátano isla", "plátano seda", "piña", "manzana verde", "manzana delicia", "uva",
+          "naranja", "mandarina", "fresa", "pera", "palta", "limón", "sandía", "membrillo", "melocotón", "granadilla", "maracuyá"]
+CLIENTES = ["don Lucho", "la señora Rosa", "el flaco", "la del puesto doce", "don Carlos", "el Paraíso", "la bodega Santa Ana",
+            "el de Chao", "el de Piura", "la casera", "Juanito", "doña Maruja"]
+NUMEROS = ["dos", "tres", "cinco", "ocho", "diez", "doce", "quince", "veinte", "treinta", "cuarenta", "cincuenta", "cien"]
+PLANTILLAS = [
+    "vendí {n} cajas de {f} a {c}", "{n} de {f} para {c}, lo debe", "{c} me pagó {n} soles con Yape",
+    "llegaron {n} cajas de {f} de {c}", "se malograron {n} jabas de {f}", "¿cuántas cajas de {f} me quedan?",
+    "¿cuánto me debe {c}?", "{c} me abonó {n} soles en efectivo", "pagué {n} soles de flete", "a cuánto está la caja de {f}",
+    "ya, te dejo la {f} a {n}", "casera, llévate {n} de {f}", "hola {c}, ¿qué vas a llevar hoy?", "la {f} está buenaza",
+    "hazle factura a {c}", "anota {n} cajas de {f}", "mañana llega más {f}", "buenos días, ¿hay {f}?",
+    "{c}, ¿me pasas las {n} jabas?", "cierra la caja, ya son las seis", "la fruta de hoy salió bonita",
+]
+
+
+def frases_del_puesto(azar: random.Random, cuantas: int) -> list[str]:
+    """Frases de una a tres oraciones, como habla la gente en el puesto."""
+    def una() -> str:
+        return azar.choice(PLANTILLAS).format(n=azar.choice(NUMEROS), f=azar.choice(FRUTAS), c=azar.choice(CLIENTES))
+    return [". ".join(una() for _ in range(azar.randint(1, 3))) for _ in range(cuantas)]
+
 
 def a_16k(audio: np.ndarray, frecuencia: int) -> np.ndarray:
     if audio.ndim > 1:
@@ -98,10 +130,14 @@ def sintetizar(voz, hablantes: int, texto: str, azar: random.Random) -> np.ndarr
 def llenar(carpeta: Path, cuantos: int, textos: list[str], voces, azar: random.Random) -> None:
     carpeta.mkdir(parents=True, exist_ok=True)
     ya = len(list(carpeta.glob("*.wav")))
-    for n in range(ya, cuantos):
-        nombre, voz, hablantes = voces[n % len(voces)]
-        audio = sintetizar(voz, hablantes, azar.choice(textos), azar)
-        sf.write(carpeta / f"tts_{nombre}_{n:05d}.wav", audio, FRECUENCIA, subtype="PCM_16")
+    with open(carpeta / "textos.tsv", "a", encoding="utf-8") as registro:  # qué dice cada clip: para saber cuáles engañan al modelo
+        for n in range(ya, cuantos):
+            nombre, voz, hablantes = voces[n % len(voces)]
+            texto = azar.choice(textos)
+            audio = sintetizar(voz, hablantes, texto, azar)
+            archivo = f"tts_{nombre}_{n:05d}.wav"
+            sf.write(carpeta / archivo, audio, FRECUENCIA, subtype="PCM_16")
+            registro.write(f"{archivo}\t{texto}\n")
     print(f"{carpeta.name}: {cuantos} clips ({cuantos - ya} nuevos)")
 
 
@@ -132,10 +168,14 @@ def main() -> None:
     p.add_argument("--salida", type=Path, required=True, help="<output_dir>/<model_name> del entrenador")
     p.add_argument("--n-train", type=int, default=5000)
     p.add_argument("--n-test", type=int, default=500)
+    p.add_argument("--con-fruta", action="store_true", help="suma NEGATIVAS_FRUTA a las frases parecidas (ver la nota de la lista)")
+    p.add_argument("--n-negativos", type=int, help="frases parecidas para entrenar (por defecto, tantas como --n-train)")
     p.add_argument("--grabaciones", type=Path, help="carpeta con una subcarpeta por persona")
     p.add_argument("--reservar", nargs="*", default=[], help="personas cuyas grabaciones se guardan para medir")
     p.add_argument("--repetir-reales", type=int, default=10)
     p.add_argument("--semilla", type=int, default=2026)
+    p.add_argument("--habla", type=int, default=0, help="cuántas frases del puesto generar para los negativos largos")
+    p.add_argument("--habla-salida", type=Path, help="dónde dejar esas frases (para caracteristicas_negativas.py)")
     p.add_argument("--espeak", type=Path, help="carpeta espeak-ng-data, si la del paquete tiene una ruta muy larga")
     p.add_argument("--rehacer", action="store_true", help="borra los clips que ya había")
     a = p.parse_args()
@@ -148,8 +188,13 @@ def main() -> None:
     print("voces:", ", ".join(f"{n} ({h} hablante{'s' if h > 1 else ''})" for n, _, h in voces))
     llenar(a.salida / "positive_train", a.n_train, POSITIVAS, voces, azar)
     llenar(a.salida / "positive_test", a.n_test, POSITIVAS, voces, azar)
-    llenar(a.salida / "negative_train", a.n_train, NEGATIVAS, voces, azar)
-    llenar(a.salida / "negative_test", a.n_test, NEGATIVAS, voces, azar)
+    parecidas = NEGATIVAS + (NEGATIVAS_FRUTA if a.con_fruta else [])
+    llenar(a.salida / "negative_train", a.n_negativos or a.n_train, parecidas, voces, azar)
+    llenar(a.salida / "negative_test", a.n_test, parecidas, voces, azar)
+    if a.habla:
+        if not a.habla_salida:
+            raise SystemExit("--habla necesita --habla-salida")
+        llenar(a.habla_salida, a.habla, frases_del_puesto(azar, a.habla * 3), voces, azar)
     if a.grabaciones:
         sumar_grabaciones(a.grabaciones, a.salida / "positive_train", a.salida / "positive_test", set(a.reservar), a.repetir_reales, azar)
 

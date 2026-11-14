@@ -26,7 +26,9 @@ from scipy.signal import resample_poly
 
 FRECUENCIA = 16_000
 CUADRO = 1280  # 80 ms: lo que openWakeWord procesa por llamada
-UMBRALES = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+UMBRALES = [0.5, 0.6, 0.7, 0.8, 0.9]
+# «Paciencia» de openWakeWord: cuántos cuadros de 80 ms seguidos sobre el umbral hacen falta para despertar. La app usa la misma regla.
+PACIENCIAS = [1, 2, 3, 4]
 REFRACTARIO_S = 2.0  # tras despertar, no cuenta otra activación en 2 s (la app tampoco volvería a abrir la escucha)
 META_DETECCION = 0.90
 META_FALSAS_HORA = 1.0
@@ -82,15 +84,19 @@ def mezclar(voz: np.ndarray, ruido: np.ndarray, snr_db: float, azar: np.random.G
     return np.clip(mezcla / max(1.0, np.abs(mezcla).max() / 32767), -32768, 32767).astype(np.int16)
 
 
-def activaciones(p: np.ndarray, umbral: float) -> int:
-    cuenta, espera = 0, 0
+def activaciones(p: np.ndarray, umbral: float, paciencia: int = 1) -> int:
+    """Cuántas veces despierta: `paciencia` cuadros seguidos sobre el umbral; después, 2 s sin contar otra."""
+    cuenta, espera, seguidos = 0, 0, 0
     refractario = int(REFRACTARIO_S * FRECUENCIA / CUADRO)
     for valor in p:
         if espera > 0:
             espera -= 1
-        elif valor >= umbral:
+            continue
+        seguidos = seguidos + 1 if valor >= umbral else 0
+        if seguidos >= paciencia:
             cuenta += 1
             espera = refractario
+            seguidos = 0
     return cuenta
 
 
@@ -99,6 +105,8 @@ def main() -> None:
     a.add_argument("--modelo", type=Path, required=True)
     a.add_argument("--positivos", type=Path, nargs="+", required=True, help="«Hola Fructus» reales de personas reservadas")
     a.add_argument("--ruido", type=Path, nargs="+", required=True, help="horas del puesto sin la palabra")
+    a.add_argument("--parecidas", type=Path, nargs="*", default=[],
+                   help="frases que suenan parecido y NO deben despertarlo («hola, ¿hay fruta?», «tus frutas»): una por archivo")
     a.add_argument("--snr", type=float, nargs="*", default=[10.0, 5.0], help="dB de la frase sobre el ruido del puesto")
     a.add_argument("--informe", type=Path, help="markdown con los resultados (docs/voz/palabra-activacion-AAAA-MM-DD.md)")
     a.add_argument("--semilla", type=int, default=2026)
@@ -118,6 +126,7 @@ def main() -> None:
         ruido_total = np.concatenate(ruidos) if ruidos else np.zeros(0, dtype=np.int16)
         horas = len(ruido_total) / FRECUENCIA / 3600
         frases = [(f, leer(f, temporal)) for f in archivos(args.positivos)]
+        parecidas = [leer(f, temporal) for f in archivos(args.parecidas)] if args.parecidas else []
     if not frases or horas == 0:
         raise SystemExit(f"Faltan audios: {len(frases)} frases y {horas:.2f} h de ruido.")
 
@@ -125,7 +134,9 @@ def main() -> None:
     condiciones = {"limpia": [np.concatenate([silencio, v, silencio]) for _, v in frases]}
     for snr in args.snr:
         condiciones[f"ruido {snr:g} dB"] = [mezclar(np.concatenate([silencio, v, silencio]), ruido_total, snr, azar) for _, v in frases]
-    maximos = {c: np.array([puntajes(modelo, x).max() for x in clips]) for c, clips in condiciones.items()}
+    curvas = {c: [puntajes(modelo, x) for x in clips] for c, clips in condiciones.items()}
+
+    curvas_parecidas = [puntajes(modelo, np.concatenate([silencio, v, silencio])) for v in parecidas]
 
     t0 = time.perf_counter()
     p_ruido = puntajes(modelo, ruido_total)
@@ -133,31 +144,37 @@ def main() -> None:
 
     filas = []
     for u in UMBRALES:
-        deteccion = {c: float((m >= u).mean()) for c, m in maximos.items()}
-        falsas = activaciones(p_ruido, u) / horas
-        cumple = min(deteccion.values()) >= META_DETECCION and falsas <= META_FALSAS_HORA
-        filas.append((u, deteccion, falsas, cumple))
+        for k in PACIENCIAS:
+            deteccion = {c: float(np.mean([activaciones(p, u, k) > 0 for p in ps])) for c, ps in curvas.items()}
+            falsas = activaciones(p_ruido, u, k) / horas
+            despiertan = float(np.mean([activaciones(p, u, k) > 0 for p in curvas_parecidas])) if curvas_parecidas else None
+            cumple = min(deteccion.values()) >= META_DETECCION and falsas <= META_FALSAS_HORA
+            filas.append((u, k, deteccion, falsas, despiertan, cumple))
 
     personas = sorted({f.parent.name for f, _ in frases})
-    cabecera = ["Umbral", *[f"Detección {c}" for c in condiciones], "Falsas por hora", "¿Cumple?"]
+    cabecera = ["Umbral", "Cuadros seguidos", *[f"Detección {c}" for c in condiciones], "Falsas por hora", *(["Despiertan las parecidas"] if parecidas else []), "¿Cumple?"]
     lineas = [
         f"# «Hola Fructus»: prueba de viabilidad ({dt.date.today().isoformat()})",
         "",
         f"- **Modelo:** `{args.modelo.name}` ({args.modelo.stat().st_size // 1024} KB).",
         f"- **Frases:** {len(frases)} «Hola Fructus» de {len(personas)} persona(s) que el modelo no oyó al entrenar ({', '.join(personas)}).",
         f"- **Ruido del puesto:** {horas:.2f} h en {len(ruidos)} archivo(s). Tras despertar no cuenta otra activación en {REFRACTARIO_S:g} s.",
+        *([f"- **Frases parecidas:** {len(parecidas)} (no cuentan para la meta: dicen cuánto lo engaña, por ejemplo, «fruta»)."] if parecidas else []),
         f"- **Meta:** detección ≥ {META_DETECCION:.0%} en todas las condiciones y ≤ {META_FALSAS_HORA:g} falsa por hora.",
         f"- **Costo en esta máquina:** {costo * 1000:.1f} ms de cálculo por segundo de audio (un celular de gama media será varias veces más lento).",
         "",
         "| " + " | ".join(cabecera) + " |",
         "|" + "---|" * len(cabecera),
     ]
-    for u, deteccion, falsas, cumple in filas:
-        lineas.append("| " + " | ".join([f"{u:.1f}", *[f"{d:.1%}" for d in deteccion.values()], f"{falsas:.2f}", "sí" if cumple else "no"]) + " |")
-    buenos = [f for f in filas if f[3]]
+    for u, k, deteccion, falsas, despiertan, cumple in filas:
+        extra = [f"{despiertan:.1%}"] if despiertan is not None else []
+        lineas.append("| " + " | ".join([f"{u:.1f}", str(k), *[f"{d:.1%}" for d in deteccion.values()], f"{falsas:.2f}", *extra, "sí" if cumple else "no"]) + " |")
+    buenos = [f for f in filas if f[5]]
+    # Entre los que cumplen, el que más detecta con ruido; si ninguno cumple, el más cercano (más detección con ≤ meta de falsas).
+    mejor = max(buenos, key=lambda f: min(f[2].values())) if buenos else None
     lineas += [
         "",
-        f"**Veredicto:** {'pasa con umbral ' + f'{buenos[0][0]:.1f}' if buenos else 'no pasa en ningún umbral'}.",
+        f"**Veredicto:** {f'pasa con umbral {mejor[0]:.1f} y {mejor[1]} cuadros seguidos' if mejor else 'no pasa con ningún umbral ni paciencia'}.",
     ]
     texto = "\n".join(lineas) + "\n"
     print(texto)
