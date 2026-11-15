@@ -53,12 +53,13 @@ export function TarjetaTemperatura({ tarjeta, comandoId, latenciaMs, alGuardar, 
         <span id="etiqueta-grados" className="mx-1 text-lg font-extrabold">
           {aMano ? "¿Cuánto marca el termómetro?" : "En el puesto hace"}
         </span>
-        <div role="group" aria-labelledby="etiqueta-grados" className="grid grid-cols-[56px_1fr_56px] items-center gap-2">
+        {/* La columna de la cifra puede achicarse: con `1fr` a secas, un número larguísimo empujaba «+» y Confirmar fuera de la pantalla. */}
+        <div role="group" aria-labelledby="etiqueta-grados" className="grid grid-cols-[56px_minmax(0,1fr)_56px] items-center gap-2">
           <button type="button" disabled={grados <= GRADOS_MINIMO} onClick={() => setBorrador((b) => moverGrados(b, -1))} className={boton}>
             <Minus aria-hidden />
             <span className="sr-only">Un grado menos</span>
           </button>
-          <output aria-live="polite" className="cifra text-center text-[3.5rem] leading-none font-extrabold">
+          <output aria-live="polite" className="cifra truncate text-center text-[3.5rem] leading-none font-extrabold">
             {formatearGrados(grados)}
           </output>
           <button type="button" disabled={grados >= GRADOS_MAXIMO} onClick={() => setBorrador((b) => moverGrados(b, 1))} className={boton}>

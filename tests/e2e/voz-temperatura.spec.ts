@@ -64,6 +64,24 @@ test("un número mal oído («290») no se guarda hasta moverlo a una temperatur
   await expect(hoja.getByText("Es mucha diferencia: mira otra vez el termómetro.")).toBeVisible();
 });
 
+test("un número absurdo no rompe la tarjeta: los botones y Confirmar siguen en pantalla (/chaos 2026-11-14)", async ({ page }) => {
+  test.slow();
+  const comandoId = await crearComando("registrar_temperatura");
+  // El servidor ya no deja pasar un número así (lib/voz/esquemas.ts); la tarjeta igual no puede romperse si le llega.
+  const hoja = await dictarTemperatura(page, comandoId, tarjeta({ grados: 1_000_000_000 }));
+
+  await expect(hoja.getByText("Eso no parece una temperatura. Muévela a lo que marca el termómetro.")).toBeVisible();
+  const ancho = page.viewportSize()!.width;
+  for (const nombre of ["Un grado menos", "Un grado más", "Confirmar temperatura"]) {
+    const caja = (await hoja.getByRole("button", { name: nombre }).boundingBox())!;
+    expect(caja.x, `«${nombre}» empieza dentro de la pantalla`).toBeGreaterThanOrEqual(0);
+    expect(caja.x + caja.width, `«${nombre}» termina dentro de la pantalla`).toBeLessThanOrEqual(ancho);
+  }
+  await hoja.getByRole("button", { name: "Un grado menos" }).click();
+  await expect(hoja.getByText("45°")).toBeVisible();
+  expect(await lecturasDe(comandoId)).toEqual([]);
+});
+
 test("un salto grande con la de ayer se avisa, pero la decisión es de la persona", async ({ page }) => {
   test.slow();
   const comandoId = await crearComando("registrar_temperatura");

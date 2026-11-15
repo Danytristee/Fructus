@@ -215,7 +215,7 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
       "parameters": {
         "type": "object",
         "properties": {
-          "grados": { "type": "number", "description": "Grados Celsius que marca el termómetro." }
+          "grados": { "type": "number", "minimum": -99, "maximum": 999, "description": "Grados Celsius que marca el termómetro." }
         },
         "required": ["grados"]
       }

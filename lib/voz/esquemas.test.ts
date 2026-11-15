@@ -80,6 +80,14 @@ describe("leerInterpretacion", () => {
     expect(leerInterpretacion("registrar_temperatura", { grados: "mucho calor" }).ok).toBe(false);
   });
 
+  it("un «290» mal oído llega a la tarjeta, que lo corrige; un número de más de tres cifras no es una temperatura", () => {
+    expect(leerInterpretacion("registrar_temperatura", { grados: 290 }).ok).toBe(true);
+    expect(leerInterpretacion("registrar_temperatura", { grados: -3 }).ok).toBe(true);
+    // Mil millones de grados rompían la tarjeta a 360 px (/chaos 2026-11-14).
+    expect(leerInterpretacion("registrar_temperatura", { grados: 1_000_000_000 }).ok).toBe(false);
+    expect(leerInterpretacion("registrar_temperatura", { grados: -1000 }).ok).toBe(false);
+  });
+
   it("un gasto sin medio de pago es en efectivo", () => {
     const r = leerInterpretacion("registrar_gasto", { categoria: "flete", monto: 80, descripcion: null });
     expect(r.ok && r.interpretacion.herramienta === "registrar_gasto" && r.interpretacion.datos.medio_pago).toBe("efectivo");

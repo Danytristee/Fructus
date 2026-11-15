@@ -74,7 +74,9 @@ const herramientasVoz = {
   },
   registrar_temperatura: {
     descripcion: "La temperatura que marca el termómetro del puesto.",
-    esquema: z.object({ grados: z.number().describe("Grados Celsius que marca el termómetro.") }),
+    // Hasta tres cifras: un «290» mal oído llega a la tarjeta, que lo devuelve al rango con un toque. Un número más largo no es
+    // una temperatura mal oída, y la cifra rompía la tarjeta a 360 px (/chaos 2026-11-14).
+    esquema: z.object({ grados: z.number().min(-99).max(999).describe("Grados Celsius que marca el termómetro.") }),
   },
   consultar: {
     descripcion: "Una pregunta sobre el negocio.",
