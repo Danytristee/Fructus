@@ -11,7 +11,7 @@ import { diaAnterior, type TemperaturaDia } from "./temperatura-reglas";
 import type { EstadoLlegada } from "./vida-util-reglas";
 
 /** A esta temperatura la fruta dura lo que dice su vida útil. */
-export const TEMPERATURA_NORMAL = 24;
+const TEMPERATURA_NORMAL = 24;
 /** Cada cuántos grados de más la fruta se gasta el doble de rápido. */
 const DOBLE_CADA = 10;
 /** Un día sin lectura se cuenta con la última anotada, si no tiene más de una semana; si no, con la normal. */

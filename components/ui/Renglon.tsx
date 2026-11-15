@@ -14,12 +14,13 @@ type Props = {
 } & ({ href: string } | { alTocar: () => void; cargando?: boolean });
 
 // Un renglón que se toca: un aviso corto que lleva a otra pantalla (`href`) o abre una hoja (`alTocar`). Va dentro de una lista
-// con `vidrio`, un renglón por cosa, como las filas de «Lo último».
+// con `vidrio`, un renglón por cosa. Deja 4 px arriba y abajo sin tocar: entre dos renglones seguidos quedan los 8 px que pide
+// la regla del celular, sin partir la lista en dos tarjetas.
 export function Renglon(props: Props) {
   const { icono, tono = "sol", titulo, detalle } = props;
   const cargando = "alTocar" in props && props.cargando === true;
   const clase =
-    "grid min-h-14 w-full grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 ease-out active:bg-acento/6";
+    "my-1 grid min-h-12 w-full grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-1.5 text-left transition-colors duration-150 ease-out active:bg-acento/6";
   const dentro = (
     <>
       <span className={cn("grid size-10 place-items-center rounded-[14px] [&_svg]:size-5", TONO[tono])}>{icono}</span>
