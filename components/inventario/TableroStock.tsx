@@ -43,7 +43,7 @@ export function TableroStock({ alertas, estados, resumen, hoy, lecturas, puedeRe
   // mandó el servidor. Con la copia de cuando se abrió, después de una merma seguía en «8 cajas» con el stock en 6 (/chaos
   // 2026-11-14). Si esa llegada ya no tiene cajas, la hoja baja; la copia solo sirve para que no baje vacía.
   const frutaAhora = elegida ? estados.find((e) => e.id === elegida.fruta.id) : undefined;
-  const loteAhora = elegida ? frutaAhora?.lotes.find((l) => l.dia === elegida.lote.dia && l.estado === elegida.lote.estado) : undefined;
+  const loteAhora = elegida ? frutaAhora?.lotes.find((l) => l.dia === elegida.lote.dia && l.estado === elegida.lote.estado && l.antes === elegida.lote.antes) : undefined;
   const vista = frutaAhora && loteAhora ? { fruta: frutaAhora, lote: loteAhora } : elegida;
   return (
     <>

@@ -61,7 +61,7 @@ function FilaProducto({ e, hoy, puedeRegistrar, alVer }: { e: EstadoProducto; ho
         {e.lotes.length > 0 && (
           <ul aria-label={`Llegadas de ${e.nombre}`} className="mb-2 divide-y divide-border overflow-hidden rounded-control bg-texto/5">
             {e.lotes.map((l) => (
-              <li key={`${l.dia}-${l.estado ?? ""}`}>
+              <li key={`${l.dia}-${l.estado ?? ""}-${l.antes ? "antes" : ""}`}>
                 <button type="button" onClick={() => alVer(e, l)} className="flex min-h-14 w-full items-center gap-2 px-3 py-1.5 text-left active:bg-texto/5">
                   <span className="grid min-w-0 flex-1">
                     <span className="leading-tight font-extrabold">{nombreDeLlegada(l, hoy)}</span>

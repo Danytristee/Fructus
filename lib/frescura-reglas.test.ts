@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cuandoLlego, deCuando, diaCorto, diasEntre, estimarLlegada, factorCalor, hastaCuando, llegadasEnStock, temperaturaParaContar, ultimaAnotada } from "./frescura-reglas";
+import { cuandoLlego, deCuando, diaCorto, diasEntre, estimarLlegada, factorCalor, hastaCuando, llegadaSinFecha, llegadasEnStock, temperaturaParaContar, ultimaAnotada } from "./frescura-reglas";
 
 // La semana de la maqueta: lunes 9 a sábado 14 de noviembre de 2026, con calor.
 const HOY = "2026-11-14";
@@ -64,6 +64,24 @@ describe("llegadasEnStock", () => {
     expect(llegadasEnStock(0, [entrada("2026-11-12", 30)])).toEqual([]);
     expect(llegadasEnStock(50, [entrada("2026-11-12", 30)])).toEqual([{ dia: "2026-11-12", cajas: 30, estado: null }]);
   });
+
+  // /chaos 2026-11-14: las cajas más viejas del puesto eran justo las que no tenían llegada ni aviso.
+  it("si se sabe desde qué día se leyeron las entradas, lo que no cubren es una llegada de ese día o antes", () => {
+    expect(llegadasEnStock(50, [entrada("2026-11-12", 30)], "2026-09-30")).toEqual([
+      { dia: "2026-09-30", cajas: 20, estado: null, antes: true },
+      { dia: "2026-11-12", cajas: 30, estado: null },
+    ]);
+    // Sin ninguna entrada leída, todo el stock es de antes; las llegadas siempre suman el stock.
+    expect(llegadasEnStock(4, [], "2026-09-30")).toEqual([{ dia: "2026-09-30", cajas: 4, estado: null, antes: true }]);
+    // Si las entradas alcanzan, no aparece.
+    expect(llegadasEnStock(20, [entrada("2026-11-12", 30)], "2026-09-30")).toEqual([{ dia: "2026-11-12", cajas: 20, estado: null }]);
+  });
+});
+
+describe("llegadaSinFecha", () => {
+  it("no se le hace la cuenta día por día: pide revisarse hoy y va primero", () => {
+    expect(llegadaSinFecha("2026-09-30", HOY)).toEqual({ dias: [], gastado: 1, restan: 0, atraso: 45, fin: "2026-09-30", finNormal: "2026-09-30", perdidos: 0 });
+  });
 });
 
 describe("estimarLlegada", () => {
@@ -110,6 +128,11 @@ describe("estimarLlegada", () => {
 });
 
 describe("cómo se dice en el puesto", () => {
+  it("una llegada de «ese día o antes» lo dice: no se sabe el día exacto", () => {
+    expect(cuandoLlego("2026-09-30", HOY, true)).toBe("hace más de 45 días");
+    expect(deCuando("2026-09-30", HOY, true)).toBe("de hace más de 45 días");
+  });
+
   it("cuándo llegó", () => {
     expect(cuandoLlego(HOY, HOY)).toBe("hoy");
     expect(cuandoLlego("2026-11-13", HOY)).toBe("ayer");

@@ -69,10 +69,14 @@ test("una tarjeta que junta muchas frutas nombra 3 y las demás van en una hoja;
     .select("id");
   const { data: nueva } = await base.from("productos").insert({ nombre: "Tumbo", calibre: marca, unidad: "caja" }).select("id").single();
   const { error } = await base.from("movimientos_stock").insert([
-    ...viejas!.map((p) => ({ producto_id: p.id, tipo: "ajuste" as const, cantidad: 5, motivo: "prueba e2e", fecha: hace10, registrado_por: duenio!.id })),
-    { producto_id: nueva!.id, tipo: "ajuste" as const, cantidad: 20, motivo: "prueba e2e", fecha: new Date().toISOString(), registrado_por: duenio!.id },
+    ...viejas!.map((p) => ({ producto_id: p.id, tipo: "ajuste" as const, cantidad: 5, motivo: "prueba e2e", registrado_por: duenio!.id })),
+    { producto_id: nueva!.id, tipo: "ajuste" as const, cantidad: 20, motivo: "prueba e2e", registrado_por: duenio!.id },
   ]);
   if (error) throw new Error(`No se pudieron cargar las cajas de prueba: ${error.message}`);
+  // La base no acepta al insertar una fecha de hace más de 48 horas (ADR-0019): las cajas entran hoy y después se mueven a hace
+  // 10 días. Con la fecha en el insert quedaban como de hoy y la prueba fallaba.
+  const { error: alMover } = await base.from("movimientos_stock").update({ fecha: hace10 }).in("producto_id", viejas!.map((p) => p.id));
+  if (alMover) throw new Error(`No se pudo mover la fecha de las cajas de prueba: ${alMover.message}`);
   try {
     await entrarComo(page, "duenio");
     await page.goto("/stock");

@@ -126,6 +126,44 @@ test("con calor, la papaya que llegó hace 3 días tiene que salir hoy; la manza
   }
 });
 
+test("las cajas de hace más de 45 días no se quedan calladas: salen en «Qué hacer» y tienen su llegada (/chaos 2026-11-14)", async ({ page }) => {
+  const duenio = await idDelDuenio();
+  const marca = `E2E${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  const { data: fruta } = await base.from("productos").insert({ nombre: "Membrillo", calibre: marca, unidad: "caja" }).select("id").single();
+  try {
+    // Su única entrada es de hace 120 días: queda fuera de los 45 que se leen para saber cuándo llegó cada caja.
+    await llegaron(fruta!.id, 4, 120, duenio);
+    await entrarComo(page, "duenio");
+    await page.goto("/stock");
+    await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
+
+    // Antes solo salía como «Sin movimiento». Ahora está entre lo que tiene que salir hoy.
+    await page.getByRole("button", { name: /^Por malograrse/ }).click();
+    const tarjeta = page.locator("li[data-productos]").filter({ has: page.locator(`xpath=self::*[contains(concat(' ', @data-productos, ' '), ' ${fruta!.id} ')]`) });
+    await expect(tarjeta).toHaveCount(1);
+    await expect(tarjeta.getByText("Hoy", { exact: true })).toBeVisible();
+    await expect(tarjeta).toContainText(/tienen? que salir hoy/);
+
+    // «Tu stock»: la fila tiene su llegada (antes no tenía ninguna), dice que no se sabe el día y pide revisarla.
+    await verTuStock(page);
+    const fila = page.getByRole("listitem").filter({ hasText: marca }).filter({ hasText: "Sale hoy" }).first();
+    await fila.getByRole("button").first().click();
+    const llegada = fila.getByRole("list", { name: /^Llegadas de Membrillo/ }).getByRole("button");
+    await expect(llegada).toHaveCount(1);
+    await expect(llegada).toContainText("4 cajas de hace más de 45 días");
+    await llegada.click();
+    const hoja = page.getByRole("dialog", { name: new RegExp(marca) });
+    await expect(hoja).toBeVisible({ timeout: 15_000 });
+    await expect(hoja.getByText("Revísala antes de vender")).toBeVisible();
+    await expect(hoja.getByText("Lleva más de 45 días en el puesto.")).toBeVisible();
+    await expect(hoja.getByText(/No sé qué día llegaron/)).toBeVisible();
+    // Sin día de llegada no hay calor que mostrar día por día.
+    await expect(hoja.getByRole("heading", { name: "El calor de cada día" })).toHaveCount(0);
+  } finally {
+    await base.from("productos").update({ activo: false }).eq("id", fruta!.id);
+  }
+});
+
 test("el clima del puesto está al final de «Qué hacer», y desde ahí se anota o se corrige la de hoy", async ({ page }) => {
   await calorEstosDias(await idDelDuenio());
   await entrarComo(page, "duenio");

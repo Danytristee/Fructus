@@ -44,16 +44,27 @@ export function ultimaAnotada(lecturas: readonly TemperaturaDia[], dia: string):
   return ultima === null || diasEntre(ultima.dia, dia) > ARRASTRE_MAXIMO_DIAS ? null : ultima;
 }
 
-/** Una llegada que todavía tiene cajas en el puesto: qué día de Lima llegó, cuántas quedan de ella y cómo llegó (si se dijo). */
-export type Llegada = { dia: string; cajas: number; estado: EstadoLlegada | null };
+/**
+ * Cuántos días hacia atrás se leen las entradas para saber cuándo llegó cada caja (lib/inventario.ts). Ninguna fruta de la tabla
+ * aguanta tanto (la que más, 42 días): una caja de antes de eso ya pasó su último día bueno aunque no se sepa cuándo llegó.
+ */
+export const DIAS_DE_ENTRADAS = 45;
+
+/**
+ * Una llegada que todavía tiene cajas en el puesto: qué día de Lima llegó, cuántas quedan de ella y cómo llegó (si se dijo).
+ * `antes` marca las cajas que las entradas leídas no cubren: llegaron ese día o antes, y no se sabe cuál.
+ */
+export type Llegada = { dia: string; cajas: number; estado: EstadoLlegada | null; antes?: true };
 
 /**
  * Las llegadas que todavía están en stock, de la más vieja a la más nueva. Lo primero que entra es lo primero que sale: las
  * entradas más nuevas cubren el stock y la más vieja que hace falta queda a medias. Dos entradas del mismo día que llegaron
  * igual son una llegada; si una llegó verde y otra madura, son dos: no duran lo mismo.
- * Si las entradas conocidas no alcanzan a cubrir el stock, lo que sobra es más viejo de lo que se leyó y no se adivina su fecha.
+ * Si las entradas conocidas no alcanzan a cubrir el stock, lo que sobra es más viejo de lo que se leyó. Su fecha no se adivina,
+ * pero tampoco se calla: con `antesDe` (el día desde el que se leyeron las entradas) sale como una llegada de «ese día o antes».
+ * Sin eso, la fruta más vieja del puesto era justo la que no tenía llegada ni aviso (/chaos 2026-11-14).
  */
-export function llegadasEnStock(stock: number, entradas: readonly { fecha: string; cantidad: number; estado?: EstadoLlegada | null }[]): Llegada[] {
+export function llegadasEnStock(stock: number, entradas: readonly { fecha: string; cantidad: number; estado?: EstadoLlegada | null }[], antesDe?: string): Llegada[] {
   if (stock <= 0) return [];
   const juntas = new Map<string, Llegada>();
   let falta = stock;
@@ -66,7 +77,9 @@ export function llegadasEnStock(stock: number, entradas: readonly { fecha: strin
     juntas.set(llave, { dia, estado, cajas: (juntas.get(llave)?.cajas ?? 0) + cajas });
     falta -= cajas;
   }
-  return [...juntas.values()].sort((a, b) => (a.dia === b.dia ? 0 : a.dia < b.dia ? -1 : 1));
+  const conocidas = [...juntas.values()].sort((a, b) => (a.dia === b.dia ? 0 : a.dia < b.dia ? -1 : 1));
+  const sinCubrir = Math.round(falta * 100) / 100;
+  return antesDe && sinCubrir > 0 ? [{ dia: antesDe, cajas: sinCubrir, estado: null, antes: true }, ...conocidas] : conocidas;
 }
 
 /** Lo que gastó la caja un día: con qué temperatura se contó y qué parte de su vida se fue. */
@@ -115,21 +128,34 @@ export function estimarLlegada(diaLlegada: string, vida: number, lecturas: reado
   return { dias, gastado: Math.min(1, acumulado), restan, atraso: Math.max(0, diasEntre(fin, hoy)), fin, finNormal, perdidos: Math.max(0, diasEntre(fin, finNormal)) };
 }
 
+/**
+ * La cuenta de una llegada de la que no se sabe el día (llegó `dia` o antes): no se le hace la cuenta día por día. Ya gastó su
+ * vida, pide revisarse hoy y, al ordenar por la que se acaba antes, va primero.
+ */
+export function llegadaSinFecha(dia: string, hoy: string): Estimacion {
+  return { dias: [], gastado: 1, restan: 0, atraso: Math.max(1, diasEntre(dia, hoy)), fin: dia, finNormal: dia, perdidos: 0 };
+}
+
 const NOMBRE_DEL_DIA = new Intl.DateTimeFormat("es-PE", { weekday: "long", timeZone: "UTC" });
 const diaDeSemana = (dia: string) => NOMBRE_DEL_DIA.format(new Date(`${dia}T12:00:00Z`));
 
 /** El día en tres letras, para el pie de un gráfico: «lun», «mié», «sáb». */
 export const diaCorto = (dia: string): string => diaDeSemana(dia).slice(0, 3);
 
-/** Cuándo llegó, como se dice en el puesto: «hoy», «ayer», «el lunes» o, si ya pasó una semana, «hace 9 días». */
-export function cuandoLlego(dia: string, hoy: string): string {
+/**
+ * Cuándo llegó, como se dice en el puesto: «hoy», «ayer», «el lunes» o, si ya pasó una semana, «hace 9 días». Con `antes` (llegó
+ * ese día o antes, no se sabe cuál), «hace más de 45 días».
+ */
+export function cuandoLlego(dia: string, hoy: string, antes = false): string {
   const n = diasEntre(dia, hoy);
+  if (antes) return `hace más de ${n} días`;
   return n <= 0 ? "hoy" : n === 1 ? "ayer" : n < 7 ? `el ${diaDeSemana(dia)}` : `hace ${n} días`;
 }
 
-/** Lo mismo para nombrar la llegada: «12 cajas del lunes», «de ayer», «de hace 9 días». */
-export function deCuando(dia: string, hoy: string): string {
+/** Lo mismo para nombrar la llegada: «12 cajas del lunes», «de ayer», «de hace 9 días», «de hace más de 45 días». */
+export function deCuando(dia: string, hoy: string, antes = false): string {
   const n = diasEntre(dia, hoy);
+  if (antes) return `de hace más de ${n} días`;
   return n <= 0 ? "de hoy" : n === 1 ? "de ayer" : n < 7 ? `del ${diaDeSemana(dia)}` : `de hace ${n} días`;
 }
 

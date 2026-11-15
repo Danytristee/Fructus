@@ -6,7 +6,7 @@ import { cn } from "cn";
 import { Hoja } from "@/components/ui/Hoja";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import { comoYCuandoLlego, explicacionDelCalor, tonoDeLlegada, veredictoDeLlegada } from "@/lib/frescura-frases-reglas";
-import { diaCorto } from "@/lib/frescura-reglas";
+import { DIAS_DE_ENTRADAS, diaCorto } from "@/lib/frescura-reglas";
 import { cajas, type EstadoProducto, type LoteEstimado } from "@/lib/inventario-reglas";
 import { veredictoClima } from "@/lib/temperatura-reglas";
 import { MermaAMano } from "./MermaAMano";
@@ -56,41 +56,48 @@ export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistra
           </span>
         </p>
 
-        <section aria-labelledby="lo-gastado" className="vidrio grid gap-2 rounded-tarjeta p-4">
-          <h3 id="lo-gastado" className="font-extrabold">
-            El calor de cada día
-          </h3>
-          <div aria-hidden className="flex h-5 gap-0.5 overflow-hidden rounded-full bg-texto/8">
-            {lote.dias.map((d) => (
-              <span key={d.dia} className={cn("min-w-0 basis-0", CALOR[veredictoClima(d.grados).nivel])} style={{ flexGrow: d.gasto }} />
-            ))}
-            {queda > 0.02 && <span className="basis-0" style={{ flexGrow: queda }} />}
-          </div>
-          {conRotulos ? (
-            <div className="flex gap-0.5 text-center">
+        {lote.antes ? (
+          // De estas cajas no se sabe el día: no hay calor que mostrar día por día, y se dice por qué.
+          <p className="vidrio rounded-tarjeta p-4 leading-snug">
+            No sé qué día llegaron: su compra tiene más de {DIAS_DE_ENTRADAS} días. Mira si siguen en el puesto y cómo están.
+          </p>
+        ) : (
+          <section aria-labelledby="lo-gastado" className="vidrio grid gap-2 rounded-tarjeta p-4">
+            <h3 id="lo-gastado" className="font-extrabold">
+              El calor de cada día
+            </h3>
+            <div aria-hidden className="flex h-5 gap-0.5 overflow-hidden rounded-full bg-texto/8">
               {lote.dias.map((d) => (
-                <span key={d.dia} className="grid min-w-0 basis-0 justify-items-center" style={{ flexGrow: d.gasto }}>
-                  <span className="text-base leading-tight font-extrabold tabular-nums">
-                    {d.grados}°{algunaSinAnotar && !d.anotada ? "*" : ""}
-                  </span>
-                  <span className="text-[15px] font-bold whitespace-nowrap text-texto-suave">{d.dia === hoy ? "hoy" : diaCorto(d.dia)}</span>
-                </span>
+                <span key={d.dia} className={cn("min-w-0 basis-0", CALOR[veredictoClima(d.grados).nivel])} style={{ flexGrow: d.gasto }} />
               ))}
-              {queda > 0.02 && (
-                <span className="grid min-w-0 basis-0 justify-items-center" style={{ flexGrow: queda }}>
-                  <span className="text-base leading-tight">&nbsp;</span>
-                  {queda >= QUEDA_CON_ROTULO && <span className="text-[15px] font-bold whitespace-nowrap text-texto-suave">le queda</span>}
-                </span>
-              )}
+              {queda > 0.02 && <span className="basis-0" style={{ flexGrow: queda }} />}
             </div>
-          ) : (
-            <p className="text-texto-suave">
-              Lleva {lote.dias.length} días en el puesto{algunaAnotada ? `. El de más calor fue de ${Math.max(...lote.dias.map((d) => d.grados))}°` : ""}.
-            </p>
-          )}
-          <p className="leading-snug">{explicacionDelCalor(lote, hoy)}</p>
-          {algunaSinAnotar && conRotulos && <p className="text-[15px] leading-snug text-texto-suave">* Ese día no se anotó la temperatura: se contó con la última.</p>}
-        </section>
+            {conRotulos ? (
+              <div className="flex gap-0.5 text-center">
+                {lote.dias.map((d) => (
+                  <span key={d.dia} className="grid min-w-0 basis-0 justify-items-center" style={{ flexGrow: d.gasto }}>
+                    <span className="text-base leading-tight font-extrabold tabular-nums">
+                      {d.grados}°{algunaSinAnotar && !d.anotada ? "*" : ""}
+                    </span>
+                    <span className="text-[15px] font-bold whitespace-nowrap text-texto-suave">{d.dia === hoy ? "hoy" : diaCorto(d.dia)}</span>
+                  </span>
+                ))}
+                {queda > 0.02 && (
+                  <span className="grid min-w-0 basis-0 justify-items-center" style={{ flexGrow: queda }}>
+                    <span className="text-base leading-tight">&nbsp;</span>
+                    {queda >= QUEDA_CON_ROTULO && <span className="text-[15px] font-bold whitespace-nowrap text-texto-suave">le queda</span>}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-texto-suave">
+                Lleva {lote.dias.length} días en el puesto{algunaAnotada ? `. El de más calor fue de ${Math.max(...lote.dias.map((d) => d.grados))}°` : ""}.
+              </p>
+            )}
+            <p className="leading-snug">{explicacionDelCalor(lote, hoy)}</p>
+            {algunaSinAnotar && conRotulos && <p className="text-[15px] leading-snug text-texto-suave">* Ese día no se anotó la temperatura: se contó con la última.</p>}
+          </section>
+        )}
 
         {lote.restan <= 1 && (
           <p className="flex gap-2 rounded-control bg-acento/8 px-3 py-2.5 leading-snug">

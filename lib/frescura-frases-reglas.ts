@@ -15,11 +15,11 @@ export const tonoDeLlegada = (restan: number): "hoy" | "manana" | "bien" => (res
 export const etiquetaDeLlegada = (restan: number): string => (restan === 0 ? "Sale hoy" : restan === 1 ? "Sale mañana" : dias(restan));
 
 /** «12 cajas del lunes»: cómo se nombra una llegada en una fila. */
-export const nombreDeLlegada = (lote: Lote, hoy: string): string => `${cajas(lote.cajas)} ${deCuando(lote.dia, hoy)}`;
+export const nombreDeLlegada = (lote: Lote, hoy: string): string => `${cajas(lote.cajas)} ${deCuando(lote.dia, hoy, lote.antes)}`;
 
 /** «llegaron el lunes, pintonas» / «llegó ayer»: debajo del nombre de la fruta, en la hoja. */
 export function comoYCuandoLlego(lote: Lote, hoy: string): string {
-  return `${Math.round(lote.cajas) === 1 ? "llegó" : "llegaron"} ${cuandoLlego(lote.dia, hoy)}${lote.estado ? `, ${NOMBRE_ESTADO[lote.estado].cajas}` : ""}`;
+  return `${Math.round(lote.cajas) === 1 ? "llegó" : "llegaron"} ${cuandoLlego(lote.dia, hoy, lote.antes)}${lote.estado ? `, ${NOMBRE_ESTADO[lote.estado].cajas}` : ""}`;
 }
 
 /**
@@ -44,6 +44,8 @@ export function fraseDeLlegadas(lotes: readonly Pick<Lote, "cajas" | "restan">[]
  * mirarla: «Tiene que salir hoy» encima de «Su último día bueno fue ayer» dejaba la duda de si ya estaba mala (/formidable 2026-11-14).
  */
 export function veredictoDeLlegada(lote: Lote, hoy: string): { titulo: string; detalle: string } {
+  // De hace más de 45 días no se sabe el día: no se inventa cuál fue su último día bueno.
+  if (lote.antes) return { titulo: "Revísala antes de vender", detalle: `Lleva más de ${dias(diasEntre(lote.dia, hoy))} en el puesto.` };
   if (lote.atraso > 0) return { titulo: "Revísala antes de vender", detalle: `Su último día bueno fue ${lote.atraso === 1 ? "ayer" : `hace ${dias(lote.atraso)}`}.` };
   if (lote.restan === 0) return { titulo: "Tiene que salir hoy", detalle: "Hoy es su último día bueno." };
   if (lote.restan === 1) return { titulo: "Sale mañana", detalle: "Mañana es su último día bueno." };

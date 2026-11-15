@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { comoYCuandoLlego, etiquetaDeLlegada, explicacionDelCalor, fraseDeLlegadas, nombreDeLlegada, tonoDeLlegada, veredictoDeLlegada } from "./frescura-frases-reglas";
-import { estimarLlegada } from "./frescura-reglas";
+import { estimarLlegada, llegadaSinFecha } from "./frescura-reglas";
 
 const HOY = "2026-11-14";
 const calor = [27, 29, 31, 30, 30, 29].map((grados, i) => ({ dia: `2026-11-${String(9 + i).padStart(2, "0")}`, grados }));
@@ -36,6 +36,18 @@ describe("cómo se nombra una llegada", () => {
   it("en la hoja: cuándo llegó y cómo, si se dijo", () => {
     expect(comoYCuandoLlego(lote("2026-11-09", 8, 12, "pinton"), HOY)).toBe("llegaron el lunes, pintonas");
     expect(comoYCuandoLlego(lote("2026-11-13", 8, 1), HOY)).toBe("llegó ayer");
+  });
+});
+
+describe("una llegada de hace más de 45 días (no se sabe su día)", () => {
+  const vieja = { dia: "2026-09-30", cajas: 4, estado: null, antes: true as const, ...llegadaSinFecha("2026-09-30", HOY) };
+  it("se nombra así en la fila y en la hoja", () => {
+    expect(nombreDeLlegada(vieja, HOY)).toBe("4 cajas de hace más de 45 días");
+    expect(comoYCuandoLlego(vieja, HOY)).toBe("llegaron hace más de 45 días");
+  });
+  it("pide revisarla, sin inventar cuál fue su último día bueno", () => {
+    expect(veredictoDeLlegada(vieja, HOY)).toEqual({ titulo: "Revísala antes de vender", detalle: "Lleva más de 45 días en el puesto." });
+    expect([etiquetaDeLlegada(vieja.restan), tonoDeLlegada(vieja.restan)]).toEqual(["Sale hoy", "hoy"]);
   });
 });
 

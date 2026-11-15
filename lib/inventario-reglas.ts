@@ -2,9 +2,9 @@
 // fruta tiene que salir ya, cuál sobra, cuál hay que reponer y qué conviene hacer. Lógica pura: no importa React ni Supabase.
 
 import { diaDeLima } from "./formato";
-import { cuandoLlego, deCuando, estimarLlegada, llegadasEnStock, type Estimacion, type Llegada } from "./frescura-reglas";
+import { cuandoLlego, deCuando, DIAS_DE_ENTRADAS, estimarLlegada, llegadaSinFecha, llegadasEnStock, type Estimacion, type Llegada } from "./frescura-reglas";
 import { agruparPorFruta, detalleProducto, nombreProducto, tituloEnGrupo, type PartesProducto } from "./productos-reglas";
-import type { TemperaturaDia } from "./temperatura-reglas";
+import { diaAnterior, type TemperaturaDia } from "./temperatura-reglas";
 import { NOMBRE_ESTADO, vidaDeLlegada, vidaUtilDias, type EstadoLlegada } from "./vida-util-reglas";
 
 const DIA_MS = 86_400_000;
@@ -99,6 +99,7 @@ export function veredictoDelStock(estados: Pick<EstadoProducto, "stock" | "alert
 
 /** Por qué esa llegada tiene que salir, en una frase: lo que le quitó el calor, o que ya se pasó. */
 function porQueSale(lote: LoteEstimado, hoyMismo: boolean): string {
+  if (lote.antes) return "Revisa la fruta antes de venderla.";
   if (lote.atraso > 0) return `Su último día bueno fue ${lote.atraso === 1 ? "ayer" : `hace ${dias(lote.atraso)}`}: revisa la fruta antes de venderla.`;
   const cuando = hoyMismo ? "hoy" : "mañana";
   return lote.perdidos > 0 ? `El calor le quitó ${dias(lote.perdidos)}: ${cuando} es su último día bueno.` : `${hoyMismo ? "Hoy" : "Mañana"} es su último día bueno.`;
@@ -117,8 +118,9 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date, lecturas: read
   const edadDias = edadLoteMasViejo(p.stock, p.entradas, hoy);
   const hoyDia = diaDeLima(hoy);
   // Cada llegada con su cuenta, primero la que se acaba antes: una que llegó madura ayer puede salir antes que una verde del lunes.
-  const lotes: LoteEstimado[] = llegadasEnStock(p.stock, p.entradas)
-    .map((l) => ({ ...l, ...estimarLlegada(l.dia, vidaDeLlegada(p.nombre, l.estado), lecturas, hoyDia) }))
+  // Las cajas que las entradas leídas no cubren son de hace más de 45 días: no se les hace la cuenta, piden revisarse hoy.
+  const lotes: LoteEstimado[] = llegadasEnStock(p.stock, p.entradas, diaAnterior(hoyDia, DIAS_DE_ENTRADAS))
+    .map((l) => ({ ...l, ...(l.antes ? llegadaSinFecha(l.dia, hoyDia) : estimarLlegada(l.dia, vidaDeLlegada(p.nombre, l.estado), lecturas, hoyDia)) }))
     .sort((a, b) => (a.fin === b.fin ? 0 : a.fin < b.fin ? -1 : 1));
   const viejo = lotes[0] ?? null;
   const desgaste = viejo ? viejo.gastado : 0;
@@ -137,9 +139,9 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date, lecturas: read
       tipo: "deterioro",
       gravedad: alta ? "alta" : "media",
       titulo: alta ? `${nombre} tiene que salir hoy` : `${nombre} sale mañana`,
-      detalle: `${cajas(n)} que ${Math.round(n) === 1 ? "llegó" : "llegaron"} ${cuandoLlego(primero.dia, hoyDia)}${primero.estado ? `, ${NOMBRE_ESTADO[primero.estado].cajas}` : ""}. ${porQueSale(primero, alta)}`,
+      detalle: `${cajas(n)} que ${Math.round(n) === 1 ? "llegó" : "llegaron"} ${cuandoLlego(primero.dia, hoyDia, primero.antes)}${primero.estado ? `, ${NOMBRE_ESTADO[primero.estado].cajas}` : ""}. ${porQueSale(primero, alta)}`,
       recomendacion: alta ? "Véndelo hoy, antes que lo nuevo. Si no sale, ofrécelo con rebaja." : "Ponlo adelante y véndelo primero.",
-      corto: `${cajas(n)} ${deCuando(primero.dia, hoyDia)}${primero.estado ? `, ${NOMBRE_ESTADO[primero.estado].cajas}` : ""}`,
+      corto: `${cajas(n)} ${deCuando(primero.dia, hoyDia, primero.antes)}${primero.estado ? `, ${NOMBRE_ESTADO[primero.estado].cajas}` : ""}`,
     });
   }
 
