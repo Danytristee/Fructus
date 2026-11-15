@@ -38,6 +38,7 @@ export default async function MarcoApp({ children }: { children: React.ReactNode
             rol={sesion.perfil ? nombreDelRol(sesion.perfil.rol) : ""}
             verCierre={sesion.permisos.cierre}
             verAjustes={sesion.permisos.ajustes}
+            verManosLibres={sesion.permisos.registrar}
             clavePush={sesion.permisos.cierre ? clavePublicaParaElNavegador() : null}
           />
         )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Volume2 } from "lucide-react";
 
 import { buscarClientes, confirmarVenta, saldoDe, sugerirPrecios } from "@/app/(app)/acciones-voz";
 import { Avatar } from "@/components/ui/Avatar";
@@ -11,6 +11,7 @@ import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
+import { lecturaVenta } from "@/lib/voz/lectura-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { DudasVoz } from "./DudasVoz";
@@ -18,6 +19,8 @@ import { EditorItem } from "./EditorItem";
 import { FilaCliente } from "./FilaCliente";
 import { FilaTarjeta } from "./FilaTarjeta";
 import { GrupoOpciones } from "./GrupoOpciones";
+import { callar, hablar } from "./hablar";
+import { manosLibres } from "./manos-libres";
 import { EnCola } from "./EnCola";
 import { Guardado } from "./Guardado";
 import { InsigniaSugerido } from "./InsigniaSugerido";
@@ -51,6 +54,20 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const [saldo, setSaldo] = useState<number | null>(null);
   const { confirmar: enviar, guardando, error, guardado: guardada, encolado, incierto } = useConfirmar<{ ok: true; saldo: number | null; comprobante: string | null }>({ alGuardar, alCambiarGuardando });
+  // Manos libres (ADR-0020): la venta lista se lee en voz alta apenas se abre. Lo incompleto no se lee: se pide en la tarjeta.
+  // La tarjeta se monta solo en el navegador (la hoja no tiene SSR): se puede leer el celular al empezar.
+  const [lectura] = useState(() => (manosLibres() ? lecturaVenta(borradorDe(tarjeta)) : null));
+  const [leyendo, setLeyendo] = useState(lectura !== null);
+  useEffect(() => {
+    if (!lectura) return;
+    // En desarrollo React monta dos veces: la frase cortada de la primera vez no debe apagar el «te la leo» de la segunda.
+    let vigente = true;
+    if (!hablar(lectura, () => vigente && setLeyendo(false))) queueMicrotask(() => vigente && setLeyendo(false));
+    return () => {
+      vigente = false;
+      callar(); // se cerró la hoja: no sigue leyendo una venta que ya no está en pantalla
+    };
+  }, [lectura]);
 
   const clienteId = borrador.cliente?.id ?? null;
   useEffect(() => {
@@ -160,7 +177,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   // «Pagó / Lo debe» ya lleva su pregunta escrita encima: el pie no la repite (/formidable 2026-10-29).
   const aviso = frasesFalta(falta.filter((f) => f !== "condicion"));
   return (
-    <div className="grid gap-2">
+    // Tocar la tarjeta es tomar el control: la lectura se calla para que se pueda corregir o confirmar sin oírla encima.
+    <div className="grid gap-2" onPointerDown={leyendo ? callar : undefined}>
       <FilaCliente
         style={pieza(0)}
         className="animate-pieza"
@@ -248,6 +266,14 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         etiquetaPendiente={falta.length === 1 && falta[0] === "condicion" ? "Primero: ¿pagó o lo debe?" : undefined}
         alConfirmar={confirmar}
         alDescartar={() => alDescartar(incierto.current)}
+        nota={
+          leyendo && (
+            <>
+              <Volume2 aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
+              Te la estoy leyendo…
+            </>
+          )
+        }
       />
     </div>
   );

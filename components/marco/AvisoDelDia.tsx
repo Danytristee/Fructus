@@ -6,6 +6,7 @@ import { cn } from "cn";
 
 import { activarAvisos, apagarAvisos } from "@/app/(app)/acciones-avisos";
 import { Aviso } from "@/components/ui/Aviso";
+import { Interruptor } from "@/components/ui/Interruptor";
 import { vibrar } from "@/components/voz/senales";
 import { leerEstadoDelAviso, quitarSuscripcionDeEsteTelefono, suscribirEsteTelefono } from "@/lib/push/navegador";
 import { HORA_DEL_AVISO_TEXTO, type EstadoDelAviso } from "@/lib/push-reglas";
@@ -122,9 +123,7 @@ export function AvisoDelDia({ clavePublica }: { clavePublica: string }) {
         <span className="text-base font-normal text-texto-suave">{SUBTITULOS[estado]}</span>
       </span>
       {/* El interruptor: la posición de la perilla y el texto de arriba dicen lo mismo, para que el color no sea la única señal. */}
-      <span aria-hidden className={cn("relative h-8 w-14 shrink-0 rounded-full transition-colors duration-200", activo ? "bg-exito" : "bg-texto/25")}>
-        <span className={cn("absolute top-1 left-1 size-6 rounded-full bg-sobre-acento shadow-sm transition-transform duration-200 ease-salida", activo && "translate-x-6")} />
-      </span>
+      <Interruptor activo={activo} />
     </>
   );
 

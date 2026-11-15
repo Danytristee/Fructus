@@ -36,6 +36,7 @@ export async function Encabezado({ titulo, subtitulo, volver, marca = false, sob
       rol={perfil ? nombreDelRol(perfil.rol) : ""}
       verCierre={permisos.cierre}
       verAjustes={permisos.ajustes}
+      verManosLibres={permisos.registrar}
       clavePush={permisos.cierre ? clavePublicaParaElNavegador() : null}
     />
   );

@@ -27,12 +27,14 @@ type Props = {
   alDescartar: () => void;
   /** Las tarjetas de voz y a mano: sin señal se guardan en el celular (ADR-0019). Las demás hojas necesitan señal para guardar. */
   guardaSinSenal?: boolean;
+  /** Una línea sobre los botones con lo que hace la voz en manos libres («Te la estoy leyendo…», ADR-0020), con su icono. */
+  nota?: React.ReactNode;
   style?: React.CSSProperties;
 };
 
 // El pie de toda tarjeta de voz: qué falta o qué falló, Confirmar y Descartar. Va pegado abajo de la hoja (`PieFijo`): con todo lo de
 // arriba, a 360 px Confirmar se iba debajo del borde (regla 1).
-export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = false, etiqueta, etiquetaPendiente, etiquetaDescartar = "Descartar", alConfirmar, alDescartar, guardaSinSenal = false, style }: Props) {
+export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = false, etiqueta, etiquetaPendiente, etiquetaDescartar = "Descartar", alConfirmar, alDescartar, guardaSinSenal = false, nota, style }: Props) {
   const router = useRouter();
   // Con la hoja abierta, el velo tapa la franja de arriba: sin señal se dice aquí, antes de tocar (/formidable 2026-11-12).
   const sinSenal = useCola()?.situacion.enLinea === false;
@@ -42,6 +44,11 @@ export function PieConfirmar({ aviso, error, guardando, listo, avisoNeutro = fal
         <p className="mx-1 mb-1 flex items-start gap-2 font-bold text-texto">
           <WifiOff aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
           {guardaSinSenal ? "Sin señal: se guarda en el celular y se envía cuando vuelva." : "Sin señal: para guardar esto necesitas señal."}
+        </p>
+      )}
+      {nota && !error && (
+        <p role="status" className="mx-1 mb-1 flex items-start gap-2 font-bold text-texto">
+          {nota}
         </p>
       )}
       {(aviso || error) && (

@@ -14,3 +14,18 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
 - **Pendiente:**
   - Sin probar con el audífono ni con el ruido del puesto: los 1.2 s, los 0.4 s de voz mínima y los 12 dB sobre el fondo.
   - Si corta a alguien que piensa el precio, sube a 1.5 s. El costo es esperar un poco más en cada venta.
+
+## Actividad 2 · La venta se lee en voz alta
+
+- **Qué cambió:**
+  - Interruptor «Manos libres» en el menú, por celular, apagado de fábrica y solo para quien registra (`components/marco/ManosLibres.tsx`). La perilla pasó a ser una pieza: `components/ui/Interruptor.tsx`, también en «Aviso del día».
+  - Con el interruptor prendido, la venta lista se lee al abrir la tarjeta (`lib/voz/lectura-reglas.ts`), con «Te la estoy leyendo…» sobre Confirmar.
+  - Tocar la tarjeta calla la lectura. Lo incompleto no se lee.
+- **Cómo se verificó:**
+  - Vitest: 10 de la lectura.
+  - `voz-lectura.spec.ts`, 6 pruebas con un sintetizador de prueba. Con `voz.spec.ts` y `voz-venta.spec.ts`, 54 en verde a 412 y 360 px.
+  - Capturas a 412 y 360 px.
+- **Pendiente:**
+  - Sin oír en un celular real: la voz de Chrome en Android, cómo dice «45 con 50» y los nombres largos («calibre 113»).
+  - `push-menu.spec.ts:214` falla si corre junto con `:100`: las dos usan la cuenta del dueño y la misma fila de suscripción. Sola pasa. Ya pasaba antes de este cambio.
+  - Este worktree no tenía las claves del aviso: se generaron claves locales en `.env.development.local` (fuera de git).

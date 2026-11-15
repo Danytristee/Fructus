@@ -14,6 +14,7 @@ type Props = {
   /** Lo decide el servidor con permisosDe(): aquí solo se obedece. */
   verCierre: boolean;
   verAjustes: boolean;
+  verManosLibres: boolean;
   clavePush: string | null;
 };
 
@@ -29,7 +30,7 @@ const esActual = (href: string, ruta: string) => (href === "/" ? ruta === "/" : 
 // El marco de escritorio (desde 1024 px, ADR-0015): en vez de la barra de abajo y del menú de tres rayas, un panel verde a la izquierda con los
 // cuatro destinos y, separados, Proveedores, Cierre y Ajustes, siempre a la vista. Abajo, quién entró y «Más» (el mismo menú del celular: aviso del día,
 // instalar la app y salir). En celular no se dibuja: la barra de abajo sigue siendo la navegación.
-export function PanelLateral({ nombre, rol, verCierre, verAjustes, clavePush }: Props) {
+export function PanelLateral({ nombre, rol, verCierre, verAjustes, verManosLibres, clavePush }: Props) {
   const ruta = usePathname();
   const secundarios = [
     { href: "/proveedores", nombre: "Proveedores", Icono: Truck },
@@ -73,7 +74,7 @@ export function PanelLateral({ nombre, rol, verCierre, verAjustes, clavePush }: 
           <span className="truncate font-extrabold">{nombre}</span>
           <span className="text-[15px] text-sobre-acento/75">{rol}</span>
         </span>
-        <MenuMas nombre={nombre} rol={rol} verCierre={verCierre} verAjustes={verAjustes} clavePush={clavePush} />
+        <MenuMas nombre={nombre} rol={rol} verCierre={verCierre} verAjustes={verAjustes} verManosLibres={verManosLibres} clavePush={clavePush} />
       </div>
     </aside>
   );
