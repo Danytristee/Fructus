@@ -36,6 +36,15 @@ describe("siguienteGesto", () => {
     expect(siguienteGesto(r.gesto, { tipo: "subir", en: 80 }).efecto).toBe("enviar");
   });
 
+  it("escuchando sin el dedo, callarse envía solo; mientras se mantiene, manda el dedo", () => {
+    const tocar: EventoGesto[] = [{ tipo: "bajar", en: 0 }, { tipo: "subir", en: 120 }];
+    expect(recorrer([...tocar, { tipo: "silencio" }])).toEqual({ fase: "reposo", efectos: ["empezar", "bloquear", "enviar"] });
+    expect(recorrer([{ tipo: "bajar", en: 0 }, { tipo: "silencio" }])).toEqual({ fase: "presionado", efectos: ["empezar"] });
+    // El dedo bajó para enviar y se calló antes de levantarlo: se envía una sola vez.
+    expect(recorrer([...tocar, { tipo: "bajar", en: 3000 }, { tipo: "silencio" }, { tipo: "subir", en: 3100 }])).toEqual({ fase: "reposo", efectos: ["empezar", "bloquear", "enviar"] });
+    expect(siguienteGesto(REPOSO, { tipo: "silencio" }).efecto).toBe("nada");
+  });
+
   it("si el navegador se queda con el segundo toque, sigue escuchando: no se pierde lo dicho", () => {
     expect(siguienteGesto({ fase: "cerrando" }, { tipo: "perder" })).toEqual({ gesto: { fase: "bloqueado" }, efecto: "nada" });
     expect(siguienteGesto({ fase: "bloqueado" }, { tipo: "perder" }).efecto).toBe("nada");
