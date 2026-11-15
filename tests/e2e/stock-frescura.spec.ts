@@ -71,17 +71,26 @@ test("con calor, la papaya que llegó hace 3 días tiene que salir hoy; la manza
     // La manzana (dura 30) llegó el mismo día y con el mismo calor: no tiene nada que avisar.
     await expect(con(manzana)).toHaveCount(0);
 
-    // El porqué, a un toque desde el aviso: qué gastó cada día y qué hacer.
-    await dePapaya.getByRole("button").filter({ hasText: new RegExp(`${marca}|¿Por qué\\?`) }).first().click();
+    // El porqué, a un toque desde el aviso: el calor de cada día y qué hacer. La tarjeta nombra tres frutas y las demás van en
+    // «Ver las N frutas»: con otra corrida en paralelo la papaya puede no ser una de las tres, y entonces el porqué se abre
+    // solo desde su llegada, más abajo.
     const hoja = page.getByRole("dialog", { name: new RegExp(marca) });
-    await expect(hoja).toBeVisible({ timeout: 15_000 });
-    await expect(hoja.getByText("Tiene que salir hoy")).toBeVisible();
-    await expect(hoja.getByText(/8 cajas · llegaron el /)).toBeVisible();
-    await expect(hoja.getByRole("heading", { name: "Lo que gastó cada día" })).toBeVisible();
-    await expect(hoja.getByText(/El calor le quitó \d+ días?\.|no le quitó ningún día/)).toBeVisible();
-    await expect(hoja.getByRole("button", { name: "Se malogró" })).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(hoja).toBeHidden();
+    const revisarElPorQue = async () => {
+      await expect(hoja).toBeVisible({ timeout: 15_000 });
+      // Tres días de 30° se comieron sus 5 días: su último día bueno ya pasó, así que pide revisarla, no «tiene que salir hoy».
+      await expect(hoja.getByText(/^(Tiene que salir hoy|Revísala antes de vender)$/)).toBeVisible();
+      await expect(hoja.getByText(/8 cajas · llegaron el /)).toBeVisible();
+      await expect(hoja.getByRole("heading", { name: "El calor de cada día" })).toBeVisible();
+      await expect(hoja.getByText(/El calor le quitó \d+ días?\.|no le quitó ningún día/)).toBeVisible();
+      await expect(hoja.getByRole("button", { name: "Se malogró" })).toBeVisible();
+    };
+    const desdeElAviso = dePapaya.getByRole("button").filter({ hasText: new RegExp(`${marca}|¿Por qué\\?`) });
+    if ((await desdeElAviso.count()) > 0) {
+      await desdeElAviso.first().click();
+      await revisarElPorQue();
+      await page.keyboard.press("Escape");
+      await expect(hoja).toBeHidden();
+    }
 
     // «Tu stock»: los totales y la lista; la fila de la papaya dice lo mismo con palabras y abre el mismo porqué desde su llegada.
     await verTuStock(page);
@@ -92,8 +101,25 @@ test("con calor, la papaya que llegó hace 3 días tiene que salir hoy; la manza
     await expect(llegada).toContainText(/8 cajas de/);
     await expect(llegada).toContainText("Sale hoy");
     await llegada.click();
+    await revisarElPorQue();
+
+    // Una merma registrada desde la hoja: al guardar, la hoja se cierra, y al volver a abrirla dice lo que quedó. Antes seguía
+    // en «8 cajas» con el stock ya en 6, y parecía que la merma no había entrado (/chaos 2026-11-14).
+    await hoja.getByRole("button", { name: "Se malogró" }).click();
+    const merma = page.getByRole("dialog", { name: "Registrar merma" });
+    await expect(merma).toBeVisible({ timeout: 20_000 });
+    await merma.getByRole("button", { name: /¿Cuántas cajas de/ }).click();
+    for (let i = 0; i < 2; i++) await merma.getByRole("button", { name: "Una caja más" }).click();
+    await merma.getByRole("button", { name: "Listo" }).click();
+    await merma.getByRole("button", { name: "Confirmar merma" }).click();
+    await expect(page.getByText("Merma guardada")).toBeVisible();
+    await expect(merma).toBeHidden({ timeout: 8_000 });
+    await expect(hoja).toBeHidden();
+    await expect(llegada).toContainText(/6 cajas de/, { timeout: 15_000 });
+    await llegada.click();
     await expect(hoja).toBeVisible();
-    await expect(hoja.getByText("Tiene que salir hoy")).toBeVisible();
+    await expect(hoja.getByText(/6 cajas · llegaron el /)).toBeVisible();
+    await expect(hoja.getByText(/8 cajas/)).toHaveCount(0);
   } finally {
     // No se borra (CLAUDE.md): las frutas de prueba quedan inactivas.
     await base.from("productos").update({ activo: false }).in("id", [papaya, manzana]);

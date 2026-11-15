@@ -39,6 +39,12 @@ export function TableroStock({ alertas, estados, resumen, hoy, lecturas, puedeRe
     const fruta = estados.find((e) => e.id === productoId);
     if (fruta?.lotes[0]) ver(fruta, fruta.lotes[0]);
   };
+  // La hoja dice lo que hay ahora, no lo que había al abrirla: se busca la misma llegada (su día y cómo llegó) en lo último que
+  // mandó el servidor. Con la copia de cuando se abrió, después de una merma seguía en «8 cajas» con el stock en 6 (/chaos
+  // 2026-11-14). Si esa llegada ya no tiene cajas, la hoja baja; la copia solo sirve para que no baje vacía.
+  const frutaAhora = elegida ? estados.find((e) => e.id === elegida.fruta.id) : undefined;
+  const loteAhora = elegida ? frutaAhora?.lotes.find((l) => l.dia === elegida.lote.dia && l.estado === elegida.lote.estado) : undefined;
+  const vista = frutaAhora && loteAhora ? { fruta: frutaAhora, lote: loteAhora } : elegida;
   return (
     <>
       <div className="vidrio rounded-full p-1 lg:hidden">
@@ -61,7 +67,7 @@ export function TableroStock({ alertas, estados, resumen, hoy, lecturas, puedeRe
         </div>
       </div>
       {/* Queda montada con la última llegada vista: así la hoja baja con su contenido en vez de vaciarse al cerrar. */}
-      {elegida && <HojaPorQue abierta={abierta} alCambiar={setAbierta} fruta={elegida.fruta} lote={elegida.lote} hoy={hoy} puedeRegistrar={puedeRegistrar} />}
+      {vista && <HojaPorQue abierta={abierta && loteAhora !== undefined} alCambiar={setAbierta} fruta={vista.fruta} lote={vista.lote} hoy={hoy} puedeRegistrar={puedeRegistrar} />}
     </>
   );
 }

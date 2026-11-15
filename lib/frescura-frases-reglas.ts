@@ -1,6 +1,6 @@
 // Cómo dice Stock lo que le queda a cada llegada: la etiqueta, la frase junto a la barra y el porqué de la hoja. Lógica pura.
 // Va aparte de la cuenta (lib/frescura-reglas.ts) para que la cuenta no sepa de pantallas.
-import { cuandoLlego, deCuando, diasEntre, hastaCuando, TEMPERATURA_NORMAL, type Estimacion, type Llegada } from "./frescura-reglas";
+import { cuandoLlego, deCuando, diasEntre, hastaCuando, type Estimacion, type Llegada } from "./frescura-reglas";
 import { NOMBRE_ESTADO } from "./vida-util-reglas";
 
 type Lote = Llegada & Estimacion;
@@ -39,19 +39,22 @@ export function fraseDeLlegadas(lotes: readonly Pick<Lote, "cajas" | "restan">[]
     .join(" · ");
 }
 
-/** El veredicto de la hoja «¿por qué?»: qué pasa con esa llegada y hasta cuándo. */
+/**
+ * El veredicto de la hoja «¿por qué?»: qué pasa con esa llegada y hasta cuándo. Si su último día bueno ya pasó, lo primero es
+ * mirarla: «Tiene que salir hoy» encima de «Su último día bueno fue ayer» dejaba la duda de si ya estaba mala (/formidable 2026-11-14).
+ */
 export function veredictoDeLlegada(lote: Lote, hoy: string): { titulo: string; detalle: string } {
-  if (lote.atraso > 0) return { titulo: "Tiene que salir hoy", detalle: `Su último día bueno fue ${lote.atraso === 1 ? "ayer" : `hace ${dias(lote.atraso)}`}. Revisa la fruta antes de venderla.` };
+  if (lote.atraso > 0) return { titulo: "Revísala antes de vender", detalle: `Su último día bueno fue ${lote.atraso === 1 ? "ayer" : `hace ${dias(lote.atraso)}`}.` };
   if (lote.restan === 0) return { titulo: "Tiene que salir hoy", detalle: "Hoy es su último día bueno." };
   if (lote.restan === 1) return { titulo: "Sale mañana", detalle: "Mañana es su último día bueno." };
   return { titulo: `Le quedan ${dias(lote.restan)}`, detalle: `Aguanta hasta ${hastaCuando(lote.fin, hoy)}.` };
 }
 
-/** Lo que hizo el calor, en una frase: cuánto aguantaba a temperatura normal y cuántos días le quitó. */
+/** Lo que hizo el calor, en una frase: cuánto aguantaba con clima normal (24°, que en pantalla no se nombra) y cuántos días le quitó. */
 export function explicacionDelCalor(lote: Lote, hoy: string): string {
   if (lote.perdidos > 0) {
     const normal = diasEntre(hoy, lote.finNormal) < 0 ? `hace ${dias(-diasEntre(hoy, lote.finNormal))}` : hastaCuando(lote.finNormal, hoy);
-    return `A ${TEMPERATURA_NORMAL}° aguantaba hasta ${normal}. El calor le quitó ${dias(lote.perdidos)}.`;
+    return `Con clima normal aguantaba hasta ${normal}. El calor le quitó ${dias(lote.perdidos)}.`;
   }
   return lote.dias.some((d) => d.anotada) ? "El clima de estos días no le quitó ningún día." : "Sin temperaturas anotadas, cada día cuenta como uno normal.";
 }

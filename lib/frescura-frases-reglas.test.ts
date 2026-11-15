@@ -43,7 +43,8 @@ describe("veredictoDeLlegada y explicacionDelCalor", () => {
   it("el mango del lunes, con la semana de calor: sale hoy y el calor le quitó 2 días", () => {
     const l = lote("2026-11-09", 8, 12);
     expect(veredictoDeLlegada(l, HOY)).toEqual({ titulo: "Tiene que salir hoy", detalle: "Hoy es su último día bueno." });
-    expect(explicacionDelCalor(l, HOY)).toBe("A 24° aguantaba hasta el lunes 16. El calor le quitó 2 días.");
+    // «A 24°» era la cuenta cruda: en la prueba a ciegas nadie supo de dónde salía ese número (/formidable 2026-11-14).
+    expect(explicacionDelCalor(l, HOY)).toBe("Con clima normal aguantaba hasta el lunes 16. El calor le quitó 2 días.");
   });
 
   it("lo que sale mañana y lo que aguanta", () => {
@@ -51,11 +52,12 @@ describe("veredictoDeLlegada y explicacionDelCalor", () => {
     expect(veredictoDeLlegada(lote("2026-11-12", 11, 30), HOY)).toEqual({ titulo: "Le quedan 5 días", detalle: "Aguanta hasta el jueves 19." });
   });
 
-  it("si ya se pasó, lo dice y pide revisar la fruta", () => {
+  it("si ya se pasó, pide revisarla: no dice «tiene que salir hoy» junto a «su último día bueno fue ayer»", () => {
     const l = lote("2026-11-09", 4, 6);
-    expect(veredictoDeLlegada(l, HOY)).toEqual({ titulo: "Tiene que salir hoy", detalle: "Su último día bueno fue hace 3 días. Revisa la fruta antes de venderla." });
+    expect(veredictoDeLlegada(l, HOY)).toEqual({ titulo: "Revísala antes de vender", detalle: "Su último día bueno fue hace 3 días." });
+    expect(veredictoDeLlegada(lote("2026-11-09", 6, 6), HOY)).toEqual({ titulo: "Revísala antes de vender", detalle: "Su último día bueno fue ayer." });
     // A temperatura normal aguantaba hasta el jueves 12, que ya pasó: se dice «hace 2 días», no «el jueves 12».
-    expect(explicacionDelCalor(l, HOY)).toBe("A 24° aguantaba hasta hace 2 días. El calor le quitó 1 día.");
+    expect(explicacionDelCalor(l, HOY)).toBe("Con clima normal aguantaba hasta hace 2 días. El calor le quitó 1 día.");
   });
 
   it("sin temperaturas anotadas no le echa la culpa al calor", () => {

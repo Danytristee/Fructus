@@ -13,8 +13,13 @@ import { MermaAMano } from "./MermaAMano";
 
 const TONO = { hoy: "bg-deuda-fondo text-deuda", manana: "bg-sol/12 text-sol", bien: "bg-exito-fondo text-exito" } as const;
 const CALOR = { fuerte: "bg-deuda/75", calor: "bg-sol/60", normal: "bg-exito/60", fresco: "bg-exito/60" } as const;
-/** Hasta cuántos días se rotulan uno por uno debajo de la barra: con más, las etiquetas no entran a 360 px y se dice en una frase. */
-const DIAS_CON_ROTULO = 7;
+/**
+ * Hasta cuántos días se rotulan uno por uno debajo de la barra: con más, las etiquetas no entran a 360 px y se dice en una frase.
+ * Eran 7 con los grados a 14 px; a 17 px, que es lo que se lee al sol, el séptimo ya se pisa con el de al lado.
+ */
+const DIAS_CON_ROTULO = 6;
+/** Desde qué parte de la barra el tramo vacío lleva su rótulo «le queda»: en uno más angosto se monta sobre «hoy». */
+const QUEDA_CON_ROTULO = 0.25;
 
 type Props = {
   abierta: boolean;
@@ -28,6 +33,7 @@ type Props = {
 
 // «¿Por qué sale hoy?» (ley 6: lo difícil, a un toque): qué parte de su vida gastó la llegada cada día, con qué temperatura,
 // y cuánto le quitó el calor. La barra se llena de izquierda a derecha; cada tramo es un día y los de más calor ocupan más.
+// Se titula «El calor de cada día»: «Lo que gastó cada día» se leyó como plata (/formidable 2026-11-14).
 export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistrar }: Props) {
   const veredicto = veredictoDeLlegada(lote, hoy);
   const tono = tonoDeLlegada(lote.restan);
@@ -52,7 +58,7 @@ export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistra
 
         <section aria-labelledby="lo-gastado" className="vidrio grid gap-2 rounded-tarjeta p-4">
           <h3 id="lo-gastado" className="font-extrabold">
-            Lo que gastó cada día
+            El calor de cada día
           </h3>
           <div aria-hidden className="flex h-5 gap-0.5 overflow-hidden rounded-full bg-texto/8">
             {lote.dias.map((d) => (
@@ -64,16 +70,16 @@ export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistra
             <div className="flex gap-0.5 text-center">
               {lote.dias.map((d) => (
                 <span key={d.dia} className="grid min-w-0 basis-0 justify-items-center" style={{ flexGrow: d.gasto }}>
-                  <span className="text-sm font-extrabold tabular-nums">
+                  <span className="text-base leading-tight font-extrabold tabular-nums">
                     {d.grados}°{algunaSinAnotar && !d.anotada ? "*" : ""}
                   </span>
-                  <span className="text-[13px] font-bold whitespace-nowrap text-texto-suave">{d.dia === hoy ? "hoy" : diaCorto(d.dia)}</span>
+                  <span className="text-[15px] font-bold whitespace-nowrap text-texto-suave">{d.dia === hoy ? "hoy" : diaCorto(d.dia)}</span>
                 </span>
               ))}
               {queda > 0.02 && (
                 <span className="grid min-w-0 basis-0 justify-items-center" style={{ flexGrow: queda }}>
-                  <span className="text-sm">&nbsp;</span>
-                  <span className="text-[13px] font-bold whitespace-nowrap text-texto-suave">le queda</span>
+                  <span className="text-base leading-tight">&nbsp;</span>
+                  {queda >= QUEDA_CON_ROTULO && <span className="text-[15px] font-bold whitespace-nowrap text-texto-suave">le queda</span>}
                 </span>
               )}
             </div>
@@ -93,8 +99,10 @@ export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistra
           </p>
         )}
 
-        {/* Si ya se malogró, se registra desde aquí: ya trae la fruta, solo falta decir cuántas cajas. */}
-        {puedeRegistrar && <MermaAMano producto={{ id: fruta.id, nombre: fruta.nombre }} variante="fila" />}
+        {/* Si ya se malogró, se registra desde aquí: ya trae la fruta, solo falta decir cuántas cajas. Al guardar, esta hoja baja
+            con la de la merma y se ve Stock con lo que quedó: si seguía abierta con las cajas de antes, parecía que la merma no
+            había entrado y se registraba otra vez (/chaos 2026-11-14). */}
+        {puedeRegistrar && <MermaAMano producto={{ id: fruta.id, nombre: fruta.nombre }} variante="fila" alGuardar={() => alCambiar(false)} />}
 
         <p className="flex gap-2 text-[15px] leading-snug text-texto-suave">
           <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0 text-sol" />
