@@ -122,7 +122,7 @@ test("a mano desde «Hoy»: si falta la de hoy, se pide; al anotarla queda guard
     await expect(pedido).toBeVisible({ timeout: 4_000 });
   }).toPass({ timeout: 30_000 });
 
-  await expect(pedido).toContainText("Así sé qué fruta sale primero");
+  await expect(pedido).toContainText("Con ella sé qué vender primero");
   // Se ve sin deslizar, por encima del botón de voz y de su etiqueta: antes empezaba debajo de la pantalla.
   const voz = (await page.locator("#voz-texto").boundingBox())!;
   const renglon = (await pedido.boundingBox())!;

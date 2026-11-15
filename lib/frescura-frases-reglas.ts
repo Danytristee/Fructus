@@ -52,6 +52,17 @@ export function veredictoDeLlegada(lote: Lote, hoy: string): { titulo: string; d
   return { titulo: `Le quedan ${dias(lote.restan)}`, detalle: `Aguanta hasta ${hastaCuando(lote.fin, hoy)}.` };
 }
 
+/**
+ * Qué hacer con esa llegada, debajo del porqué. Si su último día bueno ya pasó, la app no sabe si la fruta sigue buena: dice qué
+ * hacer en los dos casos. «Véndelo hoy» al lado de «Su último día bueno fue ayer» dejaba esa duda (/formidable 2026-11-15).
+ * null si todavía aguanta: no hay nada que hacer.
+ */
+export function consejoDeLlegada(lote: Lote): string | null {
+  if (lote.atraso > 0) return "Si sigue buena, véndela hoy con rebaja. Si no, anótala con «Se malogró».";
+  if (lote.restan === 0) return "Véndelo hoy, antes que lo nuevo. Si no sale, ofrécelo con rebaja.";
+  return lote.restan === 1 ? "Ponlo adelante y véndelo primero." : null;
+}
+
 /** Lo que hizo el calor, en una frase: cuánto aguantaba con clima normal (24°, que en pantalla no se nombra) y cuántos días le quitó. */
 export function explicacionDelCalor(lote: Lote, hoy: string): string {
   if (lote.perdidos > 0) {

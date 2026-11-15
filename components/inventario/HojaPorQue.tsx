@@ -5,7 +5,7 @@ import { cn } from "cn";
 
 import { Hoja } from "@/components/ui/Hoja";
 import { IconoFruta } from "@/components/ui/IconoFruta";
-import { comoYCuandoLlego, explicacionDelCalor, tonoDeLlegada, veredictoDeLlegada } from "@/lib/frescura-frases-reglas";
+import { comoYCuandoLlego, consejoDeLlegada, explicacionDelCalor, tonoDeLlegada, veredictoDeLlegada } from "@/lib/frescura-frases-reglas";
 import { DIAS_DE_ENTRADAS, diaCorto } from "@/lib/frescura-reglas";
 import { cajas, type EstadoProducto, type LoteEstimado } from "@/lib/inventario-reglas";
 import { veredictoClima } from "@/lib/temperatura-reglas";
@@ -36,6 +36,7 @@ type Props = {
 // Se titula «El calor de cada día»: «Lo que gastó cada día» se leyó como plata (/formidable 2026-11-14).
 export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistrar }: Props) {
   const veredicto = veredictoDeLlegada(lote, hoy);
+  const consejo = consejoDeLlegada(lote);
   const tono = tonoDeLlegada(lote.restan);
   const queda = Math.max(0, 1 - lote.dias.reduce((s, d) => s + d.gasto, 0));
   const conRotulos = lote.dias.length <= DIAS_CON_ROTULO;
@@ -99,10 +100,10 @@ export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistra
           </section>
         )}
 
-        {lote.restan <= 1 && (
+        {consejo && (
           <p className="flex gap-2 rounded-control bg-acento/8 px-3 py-2.5 leading-snug">
             <Lightbulb aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
-            <span>{lote.restan === 0 ? "Véndelo hoy, antes que lo nuevo. Si no sale, ofrécelo con rebaja." : "Ponlo adelante y véndelo primero."}</span>
+            <span>{consejo}</span>
           </p>
         )}
 

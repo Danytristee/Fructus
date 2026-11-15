@@ -7,6 +7,9 @@ import type { Alerta, ResumenInventario } from "@/lib/inventario-reglas";
 import { diaAnterior, hayQuePedirla, temperaturaDe, type TemperaturaDia } from "@/lib/temperatura-reglas";
 
 const plural = (n: number, una: string, varias: string) => `${n} ${n === 1 ? una : varias}`;
+// Para qué se pide la temperatura. Decía «Así sé qué fruta sale primero»: en la 2.ª prueba a ciegas se leyó «así se» y «sale
+// primero» como «la que más se vende» (/formidable 2026-11-15).
+const PARA_QUE = "Con ella sé qué vender primero";
 
 type Props = {
   /** Lo que dice Stock; null si no se pudo leer. */
@@ -35,7 +38,7 @@ export function AvisosDeHoy({ inventario, lecturas, hoy, className }: Props) {
       )}
       {pedir && (
         <li>
-          <TemperaturaAMano hoy={null} ayer={temperaturaDe(lecturas, diaAnterior(hoy))} etiqueta="Anota la temperatura" detalle="Así sé qué fruta sale primero" />
+          <TemperaturaAMano hoy={null} ayer={temperaturaDe(lecturas, diaAnterior(hoy))} etiqueta="Anota la temperatura" detalle={PARA_QUE} />
         </li>
       )}
     </ul>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { comoYCuandoLlego, etiquetaDeLlegada, explicacionDelCalor, fraseDeLlegadas, nombreDeLlegada, tonoDeLlegada, veredictoDeLlegada } from "./frescura-frases-reglas";
+import { comoYCuandoLlego, consejoDeLlegada, etiquetaDeLlegada, explicacionDelCalor, fraseDeLlegadas, nombreDeLlegada, tonoDeLlegada, veredictoDeLlegada } from "./frescura-frases-reglas";
 import { estimarLlegada, llegadaSinFecha } from "./frescura-reglas";
 
 const HOY = "2026-11-14";
@@ -48,6 +48,22 @@ describe("una llegada de hace más de 45 días (no se sabe su día)", () => {
   it("pide revisarla, sin inventar cuál fue su último día bueno", () => {
     expect(veredictoDeLlegada(vieja, HOY)).toEqual({ titulo: "Revísala antes de vender", detalle: "Lleva más de 45 días en el puesto." });
     expect([etiquetaDeLlegada(vieja.restan), tonoDeLlegada(vieja.restan)]).toEqual(["Sale hoy", "hoy"]);
+  });
+});
+
+describe("consejoDeLlegada", () => {
+  it("lo que sale hoy o mañana dice qué hacer; lo que aguanta, nada", () => {
+    expect(consejoDeLlegada(lote("2026-11-09", 8, 12))).toBe("Véndelo hoy, antes que lo nuevo. Si no sale, ofrécelo con rebaja.");
+    expect(consejoDeLlegada(lote("2026-11-12", 5, 20))).toBe("Ponlo adelante y véndelo primero.");
+    expect(consejoDeLlegada(lote("2026-11-12", 11, 30))).toBeNull();
+  });
+
+  // 2.ª prueba a ciegas de /formidable (2026-11-15): «Su último día bueno fue ayer» junto a «Véndelo hoy» dejaba la duda de si
+  // la fruta ya estaba mala. La app no lo sabe: dice qué hacer en los dos casos.
+  it("si su último día bueno ya pasó, dice qué hacer si sigue buena y qué hacer si no", () => {
+    const pasada = "Si sigue buena, véndela hoy con rebaja. Si no, anótala con «Se malogró».";
+    expect(consejoDeLlegada(lote("2026-11-09", 4, 6))).toBe(pasada);
+    expect(consejoDeLlegada({ dia: "2026-09-30", cajas: 4, estado: null, antes: true as const, ...llegadaSinFecha("2026-09-30", HOY) })).toBe(pasada);
   });
 });
 
