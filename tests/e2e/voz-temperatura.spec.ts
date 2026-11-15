@@ -93,7 +93,8 @@ test("a mano desde «Hoy»: si falta la de hoy, se pide; al anotarla queda guard
 
   // Otras pruebas anotan la de hoy en paralelo. Para que «Hoy» la pida, las lecturas de hoy se pasan a ayer (no se borran:
   // las otras pruebas las leen por su comando, no por su fecha) y se recarga hasta ver el pedido.
-  const pedido = page.getByRole("region", { name: "Falta la temperatura de hoy" });
+  // Es un renglón de «Lo que pide tu puesto hoy», justo debajo de lo vendido, y dice para qué sirve (/formidable 2026-11-14).
+  const pedido = page.getByRole("list", { name: "Lo que pide tu puesto hoy" }).getByRole("button", { name: /^Anota la temperatura/ });
   await expect(async () => {
     // La medianoche de hoy en Lima, que siempre es UTC−5.
     const desde = `${new Date(Date.now() - 5 * 3_600_000).toISOString().slice(0, 10)}T00:00:00-05:00`;
@@ -103,7 +104,12 @@ test("a mano desde «Hoy»: si falta la de hoy, se pide; al anotarla queda guard
     await expect(pedido).toBeVisible({ timeout: 4_000 });
   }).toPass({ timeout: 30_000 });
 
-  await pedido.getByRole("button", { name: "Anotar la temperatura" }).click();
+  await expect(pedido).toContainText("Así sé qué fruta sale primero");
+  // Se ve sin deslizar, por encima del botón de voz y de su etiqueta: antes empezaba debajo de la pantalla.
+  const voz = (await page.locator("#voz-texto").boundingBox())!;
+  const renglon = (await pedido.boundingBox())!;
+  expect(renglon.y + renglon.height, "el renglón termina antes de la etiqueta del botón de voz").toBeLessThanOrEqual(voz.y);
+  await pedido.click();
   const hoja = page.getByRole("dialog", { name: "Anotar la temperatura" });
   await expect(hoja).toBeVisible({ timeout: 15_000 });
   await expect(hoja.getByText("¿Cuánto marca el termómetro?")).toBeVisible();

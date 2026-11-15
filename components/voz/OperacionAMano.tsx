@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { abrirComandoAMano, type IntencionAMano, type ResultadoComandoAMano } from "@/app/(app)/acciones-a-mano";
 import { descartarComando } from "@/app/(app)/acciones-voz";
 import { Boton } from "@/components/ui/Boton";
+import { Renglon } from "@/components/ui/Renglon";
 import { NO_ABRIO } from "@/lib/a-mano-reglas";
 import { comandoTemporal } from "@/lib/cola-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
@@ -28,16 +29,21 @@ type Props = {
   icono: React.ReactNode;
   /** El texto del botón; si no se dice, el título. */
   etiqueta?: string;
+  /** Solo en `renglon`: para qué sirve, debajo de la etiqueta. */
+  detalle?: string;
   /**
    * `flotante`: una píldora de la acción de la pantalla; va dentro de una `BarraFlotante`, que la pone sobre la barra de abajo
-   * donde el pulgar la alcanza. `fila`: un botón normal dentro de la pantalla, junto a lo que registra.
+   * donde el pulgar la alcanza. `fila`: un botón normal dentro de la pantalla, junto a lo que registra. `renglon`: un renglón
+   * de una lista de avisos, como el de «Hoy» que pide la temperatura.
    */
-  variante: "flotante" | "fila";
+  variante: "flotante" | "fila" | "renglon";
+  /** Lo que hace la pantalla de atrás cuando la operación quedó guardada y su hoja ya bajó. */
+  alGuardar?: () => void;
 };
 
 // Registrar a mano lo mismo que se registra por voz (A8): la misma tarjeta de confirmación, llenada con lo que se toca.
 // Abre un comando «a mano» al tocar, para que un doble toque o una respuesta perdida no guarden dos veces.
-export function OperacionAMano({ intencion, tarjeta, titulo, icono, etiqueta, variante }: Props) {
+export function OperacionAMano({ intencion, tarjeta, titulo, icono, etiqueta, detalle, variante, alGuardar }: Props) {
   const [resultado, setResultado] = useState<ResultadoVoz | null>(null);
   const [abierta, setAbierta] = useState(false);
   const [abriendo, setAbriendo] = useState(false);
@@ -83,6 +89,7 @@ export function OperacionAMano({ intencion, tarjeta, titulo, icono, etiqueta, va
 
   function alCerrar(motivo: "guardada" | "descartada") {
     setAbierta(false);
+    if (motivo === "guardada") alGuardar?.();
     if (motivo === "descartada" && resultado) void descartarComando(resultado.comandoId, 0).catch(() => {});
   }
 
@@ -101,6 +108,11 @@ export function OperacionAMano({ intencion, tarjeta, titulo, icono, etiqueta, va
             {icono}
             {etiqueta ?? titulo}
           </Boton>
+        </>
+      ) : variante === "renglon" ? (
+        <>
+          {aviso && <div className="px-4 pt-3">{aviso}</div>}
+          <Renglon icono={icono} titulo={etiqueta ?? titulo} detalle={detalle} alTocar={() => void abrir()} cargando={abriendo} />
         </>
       ) : (
         <div className="grid gap-2">

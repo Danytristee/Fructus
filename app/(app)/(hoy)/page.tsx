@@ -2,9 +2,7 @@ import { Suspense } from "react";
 
 import { Encabezado } from "@/components/marco/Encabezado";
 import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
-import { AvisoInventario } from "@/components/hoy/AvisoInventario";
 import { EsqueletoResumen, EsqueletoUltimas } from "@/components/hoy/EsqueletoResumen";
-import { PedirTemperatura } from "@/components/hoy/PedirTemperatura";
 import { ResumenDia } from "@/components/hoy/ResumenDia";
 import { UltimasOperaciones } from "@/components/hoy/UltimasOperaciones";
 import { VozHoy } from "@/components/voz/VozHoy";
@@ -27,25 +25,15 @@ export default async function Hoy() {
   return (
     <>
       <Encabezado titulo="Hoy" subtitulo={formatearFecha(new Date())} marca sobreTarjeta />
-      <Suspense fallback={<EsqueletoResumen />}>
-        <ResumenDia />
-      </Suspense>
-      {/* En escritorio (ADR-0015): «Lo último» a la izquierda y el aviso de stock al lado, alineado con la lista. En celular, uno debajo del otro,
-          el aviso primero. */}
-      <div className="lg:mt-4 lg:grid lg:grid-cols-12 lg:items-start lg:gap-4">
-        <div className="lg:col-span-5 lg:col-start-8 lg:row-start-1 lg:pt-[60px]">
-          {/* Sin esqueleto: si no hay alertas no ocupa lugar, y si las hay aparece con su animación. */}
-          <Suspense fallback={null}>
-            <AvisoInventario />
-          </Suspense>
-          {/* Después del aviso: lo que tiene que salir va primero, y la temperatura se pide solo si falta la de hoy. */}
-          {permisos.registrar && (
-            <Suspense fallback={null}>
-              <PedirTemperatura />
-            </Suspense>
-          )}
-        </div>
-        <div className="lg:col-span-7 lg:col-start-1 lg:row-start-1">
+      {/* Una sola grilla. En celular, de arriba abajo: lo vendido, lo que el puesto pide hoy, lo cobrado y lo último. En escritorio
+          (ADR-0015): lo vendido y lo cobrado arriba; «Lo último» debajo a la izquierda, con los avisos al lado. El margen de
+          «Lo último» más el espacio de la grilla dan los 24 px de siempre. */}
+      <div className="grid gap-2.5 lg:grid-cols-12 lg:items-start lg:gap-4">
+        <Suspense fallback={<EsqueletoResumen />}>
+          {/* El contador solo lee: no se le pide la temperatura. */}
+          <ResumenDia pideTemperatura={permisos.registrar} />
+        </Suspense>
+        <div className="min-w-0 lg:col-span-7 lg:col-start-1 lg:row-start-2">
           <Suspense fallback={<EsqueletoUltimas />}>
             <UltimasOperaciones />
           </Suspense>

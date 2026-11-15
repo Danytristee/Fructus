@@ -5,7 +5,8 @@ import { tarjetaTemperaturaAMano } from "@/lib/a-mano-reglas";
 
 // Anotar a mano lo que marca el termómetro: la misma tarjeta que la voz («hoy hizo 29 grados»), abierta con un toque.
 // `hoy` es la que ya se anotó hoy (se está corrigiendo) y `ayer`, la del día anterior: la tarjeta parte de ahí.
-export function TemperaturaAMano({ hoy, ayer, etiqueta }: { hoy: number | null; ayer: number | null; etiqueta: string }) {
+// Con `detalle` es un renglón de aviso (el de «Hoy»); sin él, un botón dentro de «El clima del puesto».
+export function TemperaturaAMano({ hoy, ayer, etiqueta, detalle }: { hoy: number | null; ayer: number | null; etiqueta: string; detalle?: string }) {
   return (
     <OperacionAMano
       intencion="registrar_temperatura"
@@ -13,7 +14,8 @@ export function TemperaturaAMano({ hoy, ayer, etiqueta }: { hoy: number | null; 
       titulo="Anotar la temperatura"
       icono={<Thermometer aria-hidden />}
       etiqueta={etiqueta}
-      variante="fila"
+      detalle={detalle}
+      variante={detalle ? "renglon" : "fila"}
     />
   );
 }
