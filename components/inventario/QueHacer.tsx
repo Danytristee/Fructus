@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronDown, Lightbulb } from "lucide-react";
 
 import { Boton } from "@/components/ui/Boton";
@@ -26,11 +26,22 @@ type Props = {
   alVerFruta: (productoId: number) => void;
 };
 
-// «Qué hacer»: los avisos con su recomendación, filtrables por tipo, y al final el clima del puesto, que explica los de frescura.
+// «Qué hacer»: los avisos con su recomendación; debajo, los filtros por tipo, y al final el clima del puesto, que explica los de
+// frescura. Los filtros iban arriba: tres filas que empujaban el primer aviso al 38 % de la pantalla (47 % a 360 px), para una
+// lista que ya abre con lo más urgente (/formidable 2026-11-14).
 export function QueHacer({ alertas, estados, hoy, lecturas, puedeRegistrar, alVerFruta }: Props) {
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [todasALaVista, setTodasALaVista] = useState(false);
-  const cuenta = (t: TipoAlerta) => alertas.filter((a) => a.tipo === t).length;
+  const seccion = useRef<HTMLElement>(null);
+  const hay = (t: TipoAlerta) => alertas.some((a) => a.tipo === t);
+  function filtrar(f: Filtro) {
+    setFiltro(f);
+    setTodasALaVista(false);
+    // Los filtros están debajo de la lista: al elegir uno, la lista nueva se muestra desde su primer aviso.
+    requestAnimationFrame(() => {
+      if ((seccion.current?.getBoundingClientRect().top ?? 0) < 0) seccion.current?.scrollIntoView({ block: "start" });
+    });
+  }
   // Las del mismo tipo y urgencia, en una tarjeta. Con un filtro se ven todas; en «Todas», las primeras y el resto a un toque.
   const tarjetas = juntarAlertas(filtro === "todas" ? alertas : alertas.filter((a) => a.tipo === filtro));
   const recortar = filtro === "todas" && !todasALaVista && tarjetas.length > TARJETAS_A_LA_VISTA;
@@ -39,31 +50,18 @@ export function QueHacer({ alertas, estados, hoy, lecturas, puedeRegistrar, alVe
   const nombreDe = new Map(estados.map((e) => [e.id, e.nombre]));
   return (
     <div>
-      <section aria-labelledby="que-hacer" className="mt-4 lg:mt-6">
+      <section ref={seccion} aria-labelledby="que-hacer" className="mt-4 scroll-mt-3 lg:mt-6">
         {/* En celular la pestaña ya dice el título: el h2 queda para el lector de pantalla y para el escritorio, que no tiene pestañas. */}
         <h2 id="que-hacer" className="sr-only text-xl font-extrabold lg:not-sr-only lg:mb-2.5">
           Qué hacer hoy
         </h2>
-        <Filtros
-          etiqueta="Filtrar alertas"
-          valor={filtro}
-          alCambiar={(f) => {
-            setFiltro(f);
-            setTodasALaVista(false);
-          }}
-          opciones={[
-            // «Todas» sin número: contaba avisos junto a cifras que cuentan frutas, y el ciego no supo a cuál creerle (/formidable 2026-11-10).
-            { valor: "todas" as Filtro, etiqueta: "Todas" },
-            ...(Object.keys(tipos) as TipoAlerta[]).filter((t) => cuenta(t) > 0).map((t) => ({ valor: t as Filtro, etiqueta: tipos[t].etiqueta, cuenta: cuenta(t) })),
-          ]}
-        />
         {tarjetas.length === 0 ? (
-          <Vacio className="mt-3" icono={<Lightbulb />} titulo="Todo en orden">
+          <Vacio icono={<Lightbulb />} titulo="Todo en orden">
             Ninguna fruta necesita que hagas algo hoy.
           </Vacio>
         ) : (
           <>
-            <ul key={filtro} className="mt-3 grid gap-2.5">
+            <ul key={filtro} className="grid gap-2.5">
               {visibles.map((g, i) => (
                 <TarjetaAlerta key={g.clave} g={g} nombreDe={nombreDe} i={i} alVerFruta={alVerFruta} />
               ))}
@@ -76,6 +74,20 @@ export function QueHacer({ alertas, estados, hoy, lecturas, puedeRegistrar, alVe
               </Boton>
             )}
           </>
+        )}
+        {alertas.length > 0 && (
+          <Filtros
+            className="mt-4"
+            etiqueta="Filtrar alertas"
+            valor={filtro}
+            alCambiar={filtrar}
+            opciones={[
+              // Sin números: contaban avisos junto a cifras que cuentan frutas («Por malograrse 3» frente a «2 frutas tienen que salir
+              // hoy»), y en la prueba a ciegas nadie supo a cuál creerle (/formidable 2026-11-10 y 2026-11-14).
+              { valor: "todas" as Filtro, etiqueta: "Todas" },
+              ...(Object.keys(tipos) as TipoAlerta[]).filter(hay).map((t) => ({ valor: t as Filtro, etiqueta: tipos[t].etiqueta })),
+            ]}
+          />
         )}
       </section>
       <ClimaPuesto hoy={hoy} lecturas={lecturas} puedeRegistrar={puedeRegistrar} />

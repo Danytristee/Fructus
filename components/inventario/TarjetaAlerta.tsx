@@ -43,7 +43,8 @@ export function TarjetaAlerta({ g, nombreDe, i, alVerFruta }: Props) {
       className={cn("vidrio grid animate-subir gap-3 rounded-tarjeta p-4", g.gravedad === "alta" && "animate-pulso-alerta")}
       style={{ animationDelay: `${i * 50}ms` }}
     >
-      <div className="grid grid-cols-[auto_1fr_auto] items-start gap-3">
+      {/* Con varias frutas el título va solo, a la altura del ícono; con una, encabeza su detalle. */}
+      <div className={cn("grid grid-cols-[auto_1fr_auto] gap-3", sola ? "items-start" : "items-center")}>
         {sola ? (
           <span className="relative">
             <IconoFruta nombre={nombreDe.get(sola.productoId) ?? sola.producto} tamano={44} />
@@ -58,7 +59,7 @@ export function TarjetaAlerta({ g, nombreDe, i, alVerFruta }: Props) {
         )}
         <span className="grid min-w-0 gap-0.5 wrap-anywhere">
           <span className="leading-tight font-extrabold">{g.titulo}</span>
-          {sola ? (
+          {sola && (
             <>
               <span className="text-base leading-snug text-texto-suave">{g.detalle}</span>
               {verPorQue && (
@@ -68,27 +69,6 @@ export function TarjetaAlerta({ g, nombreDe, i, alVerFruta }: Props) {
                 </button>
               )}
             </>
-          ) : (
-            <ul className="mt-1 grid gap-1 text-base leading-snug">
-              {aLaVista.map((a) =>
-                verPorQue ? (
-                  <li key={a.productoId}>
-                    <button type="button" onClick={() => verPorQue(a.productoId)} className="flex min-h-12 w-full items-center gap-1 text-left">
-                      <span className="min-w-0 flex-1">
-                        <span className="font-bold">{a.producto}</span>
-                        <span className="text-texto-suave"> · {a.corto}</span>
-                      </span>
-                      <ChevronRight aria-hidden className="size-5 shrink-0 text-texto-suave" />
-                    </button>
-                  </li>
-                ) : (
-                  <li key={a.productoId}>
-                    <span className="font-bold">{a.producto}</span>
-                    <span className="text-texto-suave"> · {a.corto}</span>
-                  </li>
-                ),
-              )}
-            </ul>
           )}
         </span>
         <span className={cn("rounded-full px-2.5 py-1 text-sm font-extrabold whitespace-nowrap", g.gravedad === "alta" ? "bg-deuda text-superficie" : "bg-texto/8 text-texto")}>
@@ -96,6 +76,38 @@ export function TarjetaAlerta({ g, nombreDe, i, alVerFruta }: Props) {
           {g.gravedad === "alta" ? "Hoy" : g.tipo === "deterioro" ? "Mañana" : "Pronto"}
         </span>
       </div>
+      {/* Las frutas, a todo el ancho de la tarjeta: en la columna del medio el nombre se partía en tres líneas a 360 px y las filas
+          quedaban a 4 px una de otra (/formidable 2026-11-14). Las que tienen un porqué se tocan; las demás solo se leen. */}
+      {!sola &&
+        (verPorQue ? (
+          <ul className="grid gap-2">
+            {aLaVista.map((a) => (
+              <li key={a.productoId}>
+                <button
+                  type="button"
+                  onClick={() => verPorQue(a.productoId)}
+                  className="flex min-h-14 w-full items-center gap-3 rounded-control bg-texto/5 px-3 py-2 text-left transition-colors duration-150 ease-out active:bg-texto/10"
+                >
+                  <IconoFruta nombre={nombreDe.get(a.productoId) ?? a.producto} tamano={36} />
+                  <span className="grid min-w-0 flex-1">
+                    <span className="leading-tight font-extrabold wrap-anywhere">{a.producto}</span>
+                    <span className="leading-snug text-texto-suave first-letter:uppercase">{a.corto}</span>
+                  </span>
+                  <ChevronRight aria-hidden className="size-5 shrink-0 text-texto-suave" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <ul className="grid gap-1 leading-snug wrap-anywhere">
+            {aLaVista.map((a) => (
+              <li key={a.productoId}>
+                <span className="font-bold">{a.producto}</span>
+                <span className="text-texto-suave"> · {a.corto}</span>
+              </li>
+            ))}
+          </ul>
+        ))}
       {resto > 0 && (
         <Boton variante="secundario" className="w-full" onClick={() => setAbierta(true)}>
           <span className="flex items-center gap-1.5">
