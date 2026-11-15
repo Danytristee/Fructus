@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(11);
+select plan(13);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000a18', 'ayudante18@fructus.test'),
@@ -49,6 +49,14 @@ select throws_ok($$ insert into temperaturas (grados) values (-3) $$, '23514', n
 -- --- Borde: una fecha que no es creíble (una semana atrás) se cambia por la del servidor (ADR-0019) ---
 insert into temperaturas (grados, fecha) values (20, now() - interval '7 days');
 select is((select count(*)::int from temperaturas where grados = 20 and fecha > now() - interval '1 minute'), 1, 'una fecha de hace una semana no se acepta: queda la del servidor');
+
+-- --- Borde: el celular con el reloj adelantado no le gana a la corrección (/chaos 2026-11-14) ---
+-- Una lectura que salió de la cola sin conexión con la hora cuatro minutos adelante, y enseguida la corrección con señal.
+-- Antes la base aceptaba hasta cinco minutos del futuro: la primera quedaba como «la última del día» y la corrección no valía.
+insert into temperaturas (grados, fecha) values (36, now() + interval '4 minutes');
+insert into temperaturas (grados) values (33);
+select is((select fecha from temperaturas where grados = 36), now(), 'una lectura fechada en el futuro queda con la hora del servidor');
+select is((select grados from v_temperatura_dia where dia = pg_temp.hoy()), 33.0, 'la corrección que viene después es la temperatura del día');
 
 -- --- El ayudante registra, pero no cambia lo anotado (un update sin permiso no toca filas) ----
 update temperaturas set grados = 10 where grados = 31.5;

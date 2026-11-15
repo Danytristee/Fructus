@@ -18,8 +18,8 @@ export const COMPRA_YA_NO_ESTA = "Una fruta o el proveedor de la compra ya no es
 export const PRODUCTO_YA_NO_ESTA = "Esa fruta ya no está en tu catálogo. Elige otra.";
 
 /**
- * La hora del toque, para lo que llega desde la cola sin conexión (ADR-0019). La base la acepta si es creíble (48 h atrás a 5 min
- * adelante) y si no usa la suya: aquí solo se pasa. Sin hora (lo confirmado con señal), la de la base.
+ * La hora del toque, para lo que llega desde la cola sin conexión (ADR-0019). La base la acepta si es creíble (de 48 h atrás hasta
+ * ahora, nunca del futuro) y si no usa la suya: aquí solo se pasa. Sin hora (lo confirmado con señal), la de la base.
  */
 export const conFecha = <T extends object>(pedido: T, fecha: string | undefined): T & { fecha?: string } => (fecha ? { ...pedido, fecha } : pedido);
 
