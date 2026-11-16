@@ -48,7 +48,8 @@ export type Pago = { condicion: "contado"; medio: "efectivo" | "yape" | "plin" |
 /** Para Whisper, cuando se pregunta si pagó. */
 export const VOCABULARIO_PAGO = "Pagó. Lo debe. Yape. Plin. Efectivo. Transferencia. Fiado.";
 
-const PAGO = new Set(["pago", "pagado", "pagada", "contado", "cancelo", "cancelado", "efectivo", "yape", "yapeo", "yapeado", "plin", "transferencia", "transfirio", "deposito"]);
+// «Pagué» y «la debo» son de las compras: quien compra es el dueño.
+const PAGO = new Set(["pago", "pague", "pagado", "pagada", "contado", "cancelo", "cancelado", "efectivo", "yape", "yapeo", "yapeado", "plin", "transferencia", "transfirio", "deposito"]);
 const DEBE = new Set(["debe", "debo", "fiado", "fiada", "fio", "credito", "cuenta", "despues", "luego"]);
 const MEDIO: Record<string, Extract<Pago, { condicion: "contado" }>["medio"]> = {
   yape: "yape", yapeo: "yape", yapeado: "yape", plin: "plin", transferencia: "transferencia", transfirio: "transferencia", deposito: "transferencia",

@@ -2,7 +2,8 @@
 // transcripción. Es la misma tarjeta, dicha. Lógica pura: no importa React ni el sintetizador del navegador (components/voz/hablar.ts).
 import { faltaDe, frasesFalta, totalDe, type Borrador, type Medio } from "./confirmar-venta-reglas";
 
-const MEDIOS: Record<Medio, string> = { efectivo: "en efectivo", yape: "con Yape", plin: "con Plin", transferencia: "por transferencia" };
+/** Cómo se dice cómo se pagó: «en efectivo», «con Yape». */
+export const MEDIOS_HABLADOS: Record<Medio, string> = { efectivo: "en efectivo", yape: "con Yape", plin: "con Plin", transferencia: "por transferencia" };
 
 // «6ta» o «cal. 113» se leen mal en voz alta: se dicen como se hablan.
 const ORDINALES: [RegExp, string][] = [
@@ -42,7 +43,7 @@ export function solesHablados(n: number): string {
 }
 
 /** Un precio por caja, corto: «45», «45 con 50». */
-function precioHablado(n: number): string {
+export function precioHablado(n: number): string {
   const centimos = Math.round(n * 100);
   return centimos % 100 === 0 ? String(centimos / 100) : `${Math.trunc(centimos / 100)} con ${String(centimos % 100).padStart(2, "0")}`;
 }
@@ -68,7 +69,7 @@ function resumenHablado(b: Borrador, total: number): string {
 export function lecturaVenta(b: Borrador): string | null {
   const total = totalDe(b);
   if (faltaDe(b).length > 0 || total === null) return null;
-  const pago = b.condicion === "credito" ? "Lo debe" : `Pagó ${MEDIOS[b.medio ?? "efectivo"]}`;
+  const pago = b.condicion === "credito" ? "Lo debe" : `Pagó ${MEDIOS_HABLADOS[b.medio ?? "efectivo"]}`;
   const comprobante = b.comprobante === "boleta" ? " Con boleta." : b.comprobante === "factura" ? " Con factura." : "";
   return `${resumenHablado(b, total)} ${pago}.${comprobante} ¿Confirmo?`;
 }
@@ -76,7 +77,9 @@ export function lecturaVenta(b: Borrador): string | null {
 /** Lo que pregunta, y qué espera oír: «confirmo», «pagó» o «lo debe», o nada (solo avisa y pide el toque). */
 export type Guion = { pregunta: "confirmar" | "pago" | "ninguna"; texto: string };
 
-export const DUDA_HABLADA = "Tengo una duda con esta venta. Revisa la tarjeta y toca Confirmar.";
+/** «Tengo una duda con esta venta…» (o «con este abono»): con dudas del intérprete no se confirma hablando. */
+export const dudaHablada = (con: string) => `Tengo una duda con ${con}. Revisa la tarjeta y toca Confirmar.`;
+export const DUDA_HABLADA = dudaHablada("esta venta");
 
 /**
  * Qué dice Fructus al abrir la tarjeta en manos libres (ADR-0020, candado 4):

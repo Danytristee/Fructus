@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, Mic, Volume2 } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 import { buscarClientes, confirmarVenta, saldoDe, sugerirPrecios } from "@/app/(app)/acciones-voz";
 import { Avatar } from "@/components/ui/Avatar";
@@ -12,7 +12,6 @@ import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import { guionVenta, lecturaVenta } from "@/lib/voz/lectura-reglas";
-import { GUARDADO } from "@/lib/voz/manos-libres-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { DudasVoz } from "./DudasVoz";
@@ -20,8 +19,8 @@ import { EditorItem } from "./EditorItem";
 import { FilaCliente } from "./FilaCliente";
 import { FilaTarjeta } from "./FilaTarjeta";
 import { GrupoOpciones } from "./GrupoOpciones";
-import { hablar } from "./hablar";
 import { manosLibres } from "./manos-libres";
+import { notaDeVoz } from "./NotaVoz";
 import { EnCola } from "./EnCola";
 import { Guardado } from "./Guardado";
 import { InsigniaSugerido } from "./InsigniaSugerido";
@@ -80,11 +79,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       setSaldo(null);
       return guionVenta(b, nueva.dudas);
     },
+    guardado: guardada !== null,
   });
-  // «Guardado» solo cuando la base respondió (candado 6): lo que quedó en el celular sin señal no se anuncia como guardado.
-  useEffect(() => {
-    if (guardada && guion) hablar(GUARDADO);
-  }, [guardada, guion]);
 
   const clienteId = borrador.cliente?.id ?? null;
   useEffect(() => {
@@ -283,18 +279,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         etiquetaPendiente={falta.length === 1 && falta[0] === "condicion" ? "Primero: ¿pagó o lo debe?" : undefined}
         alConfirmar={() => confirmar("toque")}
         alDescartar={() => alDescartar(incierto.current)}
-        nota={
-          voz.nota && (
-            <>
-              {voz.fase === "escuchando" ? (
-                <Mic aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
-              ) : (
-                <Volume2 aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
-              )}
-              {voz.nota}
-            </>
-          )
-        }
+        nota={notaDeVoz(voz)}
       />
     </div>
   );

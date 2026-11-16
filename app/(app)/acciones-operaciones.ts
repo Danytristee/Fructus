@@ -23,6 +23,8 @@ const comun = {
   latenciaMs: z.number().int().min(0).max(120_000),
   /** La hora del toque, si viene de la cola sin conexión (ADR-0019). */
   fecha: z.iso.datetime({ offset: true }).optional(),
+  /** Con un toque o diciendo «confirmo» después de oír la lectura (ADR-0020). */
+  confirmadoPor: z.enum(["toque", "voz"]).default("toque"),
 };
 const YA_GUARDADO = "23505";
 
@@ -43,7 +45,7 @@ const confirmacionAbono = z.object({
 export async function confirmarAbono(entrada: z.input<typeof confirmacionAbono>): Promise<ResultadoAbono> {
   const leido = confirmacionAbono.safeParse(entrada);
   if (!leido.success) return { ok: false, error: "Revisa el monto de la tarjeta." };
-  const { comandoId, borrador, corregido, latenciaMs, aMano, fecha } = leido.data;
+  const { comandoId, borrador, corregido, latenciaMs, aMano, fecha, confirmadoPor } = leido.data;
   const pedido = pedidoAbono(borrador, comandoId);
   if (!pedido) return { ok: false, error: "Revisa el monto de la tarjeta." };
 
@@ -60,7 +62,7 @@ export async function confirmarAbono(entrada: z.input<typeof confirmacionAbono>)
     return { ok: false, error: SIN_SENAL };
   }
 
-  await marcarComando(supabase, comandoId, corregido, latenciaMs);
+  await marcarComando(supabase, comandoId, corregido, latenciaMs, confirmadoPor);
   return { ok: true, saldo: await leerSaldo(supabase, pedido.cliente_id) };
 }
 
@@ -81,7 +83,7 @@ const confirmacionMerma = z.object({
 export async function confirmarMerma(entrada: z.input<typeof confirmacionMerma>): Promise<ResultadoMerma> {
   const leido = confirmacionMerma.safeParse(entrada);
   if (!leido.success) return { ok: false, error: "Revisa la fruta y las cajas de la tarjeta." };
-  const { comandoId, borrador, corregido, latenciaMs, aMano, fecha } = leido.data;
+  const { comandoId, borrador, corregido, latenciaMs, aMano, fecha, confirmadoPor } = leido.data;
   const pedido = pedidoMerma(borrador, comandoId);
   if (!pedido) return { ok: false, error: "Revisa la fruta y las cajas de la tarjeta." };
 
@@ -98,7 +100,7 @@ export async function confirmarMerma(entrada: z.input<typeof confirmacionMerma>)
     return { ok: false, error: SIN_SENAL };
   }
 
-  await marcarComando(supabase, comandoId, corregido, latenciaMs);
+  await marcarComando(supabase, comandoId, corregido, latenciaMs, confirmadoPor);
   return { ok: true, stock: await leerStock(supabase, pedido.producto_id) };
 }
 
@@ -127,7 +129,7 @@ const confirmacionGasto = z.object({
 export async function confirmarGasto(entrada: z.input<typeof confirmacionGasto>): Promise<ResultadoGasto> {
   const leido = confirmacionGasto.safeParse(entrada);
   if (!leido.success) return { ok: false, error: "Revisa el monto de la tarjeta." };
-  const { comandoId, borrador, corregido, latenciaMs, fecha } = leido.data;
+  const { comandoId, borrador, corregido, latenciaMs, fecha, confirmadoPor } = leido.data;
   const pedido = pedidoGasto(borrador, comandoId);
   if (!pedido) return { ok: false, error: "Revisa el monto de la tarjeta." };
 
@@ -143,7 +145,7 @@ export async function confirmarGasto(entrada: z.input<typeof confirmacionGasto>)
     return { ok: false, error: SIN_SENAL };
   }
 
-  await marcarComando(supabase, comandoId, corregido, latenciaMs);
+  await marcarComando(supabase, comandoId, corregido, latenciaMs, confirmadoPor);
   return { ok: true };
 }
 
@@ -176,7 +178,7 @@ const confirmacionCompra = z.object({
 export async function confirmarCompra(entrada: z.input<typeof confirmacionCompra>): Promise<ResultadoCompra> {
   const leido = confirmacionCompra.safeParse(entrada);
   if (!leido.success) return { ok: false, error: "Revisa el costo y las cajas de la tarjeta." };
-  const { comandoId, borrador, corregido, latenciaMs, aMano, fecha } = leido.data;
+  const { comandoId, borrador, corregido, latenciaMs, aMano, fecha, confirmadoPor } = leido.data;
   const pedido = pedidoCompra(borrador, comandoId, corregido);
   if (!pedido) return { ok: false, error: "Revisa el costo y las cajas de la tarjeta." };
 
@@ -185,7 +187,7 @@ export async function confirmarCompra(entrada: z.input<typeof confirmacionCompra
   const { supabase, permisos } = s;
   if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar compras." };
 
-  const { data: compraId, error } = await supabase.rpc("registrar_compra", { p: conFecha(pedido, fecha) });
+  const { data: compraId, error } = await supabase.rpc("registrar_compra", { p: { ...conFecha(pedido, fecha), confirmado_por: confirmadoPor } });
   if (error || compraId === null) {
     console.error("voz: no se pudo registrar la compra", { comandoId, codigo: error?.code });
     if (error?.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar compras." };

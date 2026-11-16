@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   CALLADO,
+  GUARDADO,
   REPREGUNTA,
   REPREGUNTA_PAGO,
   SILENCIO_RESPUESTA_MS,
@@ -70,10 +71,12 @@ type Opciones = {
   guion: Guion | null;
   /** Dijo «confirmo»: la misma acción que el toque. */
   alConfirmar: () => void;
-  /** Respondió si pagó: se anota en la tarjeta. Devuelve la lectura de la venta completa, o null si todavía falta algo. */
-  alPago: (pago: Pago) => string | null;
-  /** Corrigió la venta hablando: la tarjeta nueva reemplaza a la de la hoja. Devuelve qué se dice ahora. */
-  alCorregir: (corregida: Venta) => Guion;
+  /** Respondió si pagó (venta y compra): se anota en la tarjeta. Devuelve la lectura completa, o null si todavía falta algo. */
+  alPago?: (pago: Pago) => string | null;
+  /** Corrigió la venta hablando: la tarjeta nueva reemplaza a la de la hoja. Devuelve qué se dice ahora. Solo en la venta. */
+  alCorregir?: (corregida: Venta) => Guion;
+  /** La base respondió que se guardó: se dice «Guardado» (candado 6). Lo que quedó en el celular sin señal no cuenta. */
+  guardado: boolean;
 };
 
 /**
@@ -83,7 +86,7 @@ type Opciones = {
  *
  * `tomarControl`: la persona tocó la tarjeta. Se calla, se apaga el micrófono y lo que llegue del servidor ya no guarda.
  */
-export function useManosLibres({ guion, alConfirmar, alPago, alCorregir }: Opciones) {
+export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, guardado }: Opciones) {
   const [estado, setEstado] = useState(() => (guion ? leyendo(guion.pregunta) : CALLADO));
   const actual = useRef(estado);
   const relojes = useRef<number[]>([]);
@@ -146,7 +149,8 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir }: Opcio
     const g = await grabadora.terminar();
     const pregunta = actual.current.pregunta;
     const vacia: EventoManosLibres = pregunta === "pago" ? { tipo: "pago", pago: "fallo" } : { tipo: "respuesta", respuesta: "fallo" };
-    const r = g.audio.size === 0 ? { ev: vacia } : await entender(g.audio, g.duracionMs, pregunta, leido.current);
+    // La lectura viaja solo si esta tarjeta sabe corregirse hablando (la venta): sin ella, el servidor no intenta corregir.
+    const r = g.audio.size === 0 ? { ev: vacia } : await entender(g.audio, g.duracionMs, pregunta, corregir.current ? leido.current : null);
     if (mio !== turno.current) return;
     corregida.current = r.corregida ?? null;
     aplicar(r.ev);
@@ -158,11 +162,12 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir }: Opcio
         return decir(actual.current.pregunta === "pago" ? REPREGUNTA_PAGO : REPREGUNTA);
       case "anotar": {
         if (ev.tipo !== "pago" || ev.pago === null || ev.pago === "fallo") return;
-        relectura.current = anotar.current(ev.pago);
+        relectura.current = anotar.current?.(ev.pago) ?? null;
         return aplicar({ tipo: "anotado", lista: relectura.current !== null });
       }
       case "corregir": {
-        if (!corregida.current) return;
+        // Sin alCorregir no se envía la lectura, así que no debería pasar; si pasa, se calla y queda para tocar (nunca trabado).
+        if (!corregida.current || !corregir.current) return aplicar({ tipo: "tocaron" });
         const g = corregir.current(corregida.current);
         corregida.current = null;
         relectura.current = g.texto;
@@ -207,6 +212,10 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir }: Opcio
     // Solo al abrir la tarjeta: `decir` cambia en cada render pero lee todo de refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guion]);
+
+  useEffect(() => {
+    if (guardado && guion) hablar(GUARDADO);
+  }, [guardado, guion]);
 
   return {
     fase: estado.fase,

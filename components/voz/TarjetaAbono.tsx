@@ -18,6 +18,7 @@ import {
   saldoTrasAbono,
   type BorradorAbono,
 } from "@/lib/voz/confirmar-abono-reglas";
+import { guionAbono } from "@/lib/voz/guion-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { DudasVoz } from "./DudasVoz";
 import { EditorBusqueda } from "./EditorBusqueda";
@@ -28,7 +29,10 @@ import { EnCola } from "./EnCola";
 import { Guardado } from "./Guardado";
 import { PieConfirmar } from "./PieConfirmar";
 import { SelectorMedio } from "./SelectorMedio";
+import { manosLibres } from "./manos-libres";
+import { notaDeVoz } from "./NotaVoz";
 import { useConfirmar } from "./useConfirmar";
+import { useManosLibres } from "./useManosLibres";
 
 type Abono = Extract<Tarjeta, { tipo: "abono" }>;
 
@@ -52,6 +56,9 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [vista, setVista] = useState<"tarjeta" | "cliente" | "monto">("tarjeta");
   const [saldo, setSaldo] = useState<number | null>(null);
   const { confirmar: enviar, guardando, error, guardado, encolado, incierto } = useConfirmar<{ ok: true; saldo: number | null }>({ alGuardar, alCambiarGuardando });
+  // Manos libres (ADR-0020): al abrirse se lee y se confirma diciendo «confirmo». A mano no: quien escribe ya está mirando.
+  const [guion] = useState(() => (manosLibres() && !aMano ? guionAbono(borradorAbono(tarjeta), tarjeta.dudas) : null));
+  const voz = useManosLibres({ guion, alConfirmar: () => confirmar("voz"), guardado: guardado !== null });
 
   const clienteId = borrador.cliente?.id ?? null;
   useEffect(() => {
@@ -68,9 +75,9 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const falta = faltaAbono(borrador);
   const { cliente, monto } = borrador;
 
-  function confirmar() {
+  function confirmar(confirmadoPor: "toque" | "voz" = "toque") {
     if (falta.length > 0) return;
-    const entrada = { comandoId, borrador, corregido: fueCorregidoAbono(tarjeta, borrador), latenciaMs, aMano };
+    const entrada = { comandoId, borrador, corregido: fueCorregidoAbono(tarjeta, borrador), latenciaMs, aMano, confirmadoPor };
     // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
     void enviar(() => confirmarAbono(entrada), { tipo: "abono", entrada });
   }
@@ -135,7 +142,8 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
   const tras = cliente && saldo !== null && monto !== null && !falta.includes("monto") ? saldoTrasAbono(saldo, monto) : null;
   return (
-    <div className="grid gap-2">
+    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo.
+    <div className="grid gap-2" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
       <FilaCliente
         style={pieza(0)}
         className="animate-pieza"
@@ -204,7 +212,8 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         guardando={guardando}
         listo={falta.length === 0}
         etiqueta="Confirmar abono"
-        alConfirmar={confirmar}
+        alConfirmar={() => confirmar("toque")}
+        nota={notaDeVoz(voz)}
         alDescartar={() => alDescartar(incierto.current)}
       />
     </div>

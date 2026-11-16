@@ -18,6 +18,7 @@ import {
   totalCompra,
   type BorradorCompra,
 } from "@/lib/voz/confirmar-compra-reglas";
+import { guionCompra } from "@/lib/voz/guion-reglas";
 import type { ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { DudasVoz } from "./DudasVoz";
@@ -29,7 +30,10 @@ import { Guardado } from "./Guardado";
 import { InsigniaSugerido } from "./InsigniaSugerido";
 import { PagoODebe } from "./PagoODebe";
 import { PieConfirmar } from "./PieConfirmar";
+import { manosLibres } from "./manos-libres";
+import { notaDeVoz } from "./NotaVoz";
 import { useConfirmar } from "./useConfirmar";
+import { useManosLibres } from "./useManosLibres";
 
 type Compra = Extract<Tarjeta, { tipo: "compra" }>;
 type Vista = { tipo: "tarjeta" } | { tipo: "proveedor" } | { tipo: "item"; n: number };
@@ -65,14 +69,24 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
   const [borrador, setBorrador] = useState<BorradorCompra>(() => borradorCompra(tarjeta));
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const { confirmar: enviar, guardando, error, guardado, encolado, incierto } = useConfirmar<{ ok: true; compraId: number }>({ alGuardar, alCambiarGuardando });
+  // Manos libres (ADR-0020): al abrirse se lee y se confirma diciendo «confirmo». A mano no: quien escribe ya está mirando.
+  const [guion] = useState(() => (manosLibres() && !aMano ? guionCompra(borradorCompra(tarjeta), tarjeta.dudas) : null));
+  const voz = useManosLibres({ guion, alConfirmar: () => confirmar("voz"), guardado: guardado !== null,
+    // «¿La pagaste o la debes?» respondido por voz: se anota en la tarjeta y se lee la compra completa para confirmarla.
+    alPago: (pago) => {
+      const nuevo = { ...borrador, condicion: pago.condicion, medio: pago.medio };
+      setBorrador(nuevo);
+      const g = guionCompra(nuevo, tarjeta.dudas);
+      return g.pregunta === "confirmar" ? g.texto : null;
+    }, });
 
   const total = totalCompra(borrador);
   const falta = faltaCompra(borrador);
   const { proveedor } = borrador;
 
-  function confirmar() {
+  function confirmar(confirmadoPor: "toque" | "voz" = "toque") {
     if (falta.length > 0) return;
-    const entrada = { comandoId, borrador, corregido: fueCorregidaCompra(tarjeta, borrador), latenciaMs, aMano };
+    const entrada = { comandoId, borrador, corregido: fueCorregidaCompra(tarjeta, borrador), latenciaMs, aMano, confirmadoPor };
     // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
     void enviar(() => confirmarCompra(entrada), { tipo: "compra", entrada });
   }
@@ -146,7 +160,8 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
   // «¿La pagaste o la debes?» ya lleva su pregunta escrita encima: el pie no la repite.
   const aviso = frasesFaltaCompra(falta.filter((f) => f !== "condicion"));
   return (
-    <div className="grid gap-2">
+    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo.
+    <div className="grid gap-2" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
       <FilaTarjeta
         style={pieza(0)}
         className="animate-pieza"
@@ -243,7 +258,8 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
         etiqueta="Confirmar compra"
         // Las dos opciones, aunque a 360 px ocupe dos líneas: «¿la pagaste?» solo no parecía botón ni aviso (/formidable 2026-10-31).
         etiquetaPendiente={falta.length === 1 && falta[0] === "condicion" ? "Primero: ¿pagaste o debes?" : undefined}
-        alConfirmar={confirmar}
+        alConfirmar={() => confirmar("toque")}
+        nota={notaDeVoz(voz)}
         alDescartar={() => alDescartar(incierto.current)}
       />
     </div>

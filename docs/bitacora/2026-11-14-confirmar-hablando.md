@@ -81,3 +81,19 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
   - **El acierto de datos clave del intérprete quedó en 87.1 %** (meta 90 %), por casos que no son de esta obra: los 3 que ya fallaban el 2026-10-31 y 6 del catálogo real que se sumaron después (`docs/voz/precision-2026-11-16.md`). Se corrige en el prompt de sistema, con su `/voz-precision` antes y después.
   - `components/voz/TarjetaVenta.tsx` tiene 301 líneas: la actividad 6 saca lo de manos libres a una pieza común.
   - Este worktree ya tiene `GROQ_API_KEY` en `.env.local`, fuera de git. Gemini sigue sin clave, así que no hay respaldo.
+
+## Actividad 6 · Abono, merma, gasto y compra hablando
+
+- **Qué cambió:**
+  - Las cuatro tarjetas leen y se confirman hablando, con los mismos candados (`lib/voz/guion-reglas.ts`).
+  - La compra pregunta «¿La pagaste o la debes?» si no se dijo. Corregir hablando sigue siendo solo de la venta: en las demás, una corrección cuenta como «otra cosa» y se repregunta.
+  - Las tarjetas «a mano» no leen.
+  - `registrar_compra` y `marcarComando` guardan `confirmado_por`: la migración `20261114220000` creció y sigue sin aplicar al proyecto.
+  - «Guardado» y la línea de estado pasaron a piezas comunes (`useManosLibres`, `NotaVoz.tsx`).
+- **Cómo se verificó:**
+  - Vitest: 261 de `lib/voz`.
+  - pgTAP 18 (10 pruebas, con la compra), 17 y 05 en verde.
+  - `voz-operaciones-hablando.spec.ts`: 8 en verde a 412 y 360 px, con `confirmado_por = 'voz'` en la base.
+  - Toda la voz y lo «a mano»: 136 en verde y 7 fallan por la base compartida. El Mango Kent del seed está inactivo con el catálogo real: `voz-merma` (4), `voz-consulta` piña (2) y `voz-api` (1). Ya pasaba antes, ver la bitácora del 2026-11-12.
+- **Pendiente:**
+  - `components/voz/TarjetaVenta.tsx` sigue en 286 líneas. Lo que más pesa es el editor de cliente y de ítem: partir ahí, no en la voz.
