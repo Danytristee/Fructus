@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
-import { CUADRO_MS, OIDO_NUEVO, nivelDb, oir } from "@/lib/voz/silencio-reglas";
+import { CUADRO_MS, OIDO_NUEVO, SILENCIO_PARA_ENVIAR_MS, nivelDb, oir } from "@/lib/voz/silencio-reglas";
 
 export type FallaGrabadora = "sin_permiso" | "sin_microfono" | "no_soportado";
 
@@ -21,10 +21,15 @@ function falla(e: unknown): FallaGrabadora {
 type Opciones = {
   /** Habló y después calló (lib/voz/silencio-reglas.ts). Quien graba decide si eso termina: sin el dedo, sí; manteniendo, no. */
   alCallarse?: () => void;
+  /** Cuánto silencio después de hablar cuenta como «se calló»: un dictado tiene pausas para pensar, una respuesta corta no. */
+  silencioMs?: number;
 };
 
-/** Mide el volumen del micrófono mientras graba y avisa cuando la persona se calla. Devuelve cómo apagarlo. */
-function escucharSilencios(flujo: MediaStream, alCallarse: () => void): () => void {
+type Oido = { apagar: () => void; hablo: () => boolean };
+const SIN_OIDO: Oido = { apagar: () => {}, hablo: () => false };
+
+/** Mide el volumen del micrófono mientras graba y avisa cuando la persona se calla. Devuelve cómo apagarlo y si ya habló. */
+function escucharSilencios(flujo: MediaStream, alCallarse: () => void, silencioMs: number): Oido {
   try {
     const contexto = new AudioContext();
     const analizador = contexto.createAnalyser();
@@ -33,21 +38,26 @@ function escucharSilencios(flujo: MediaStream, alCallarse: () => void): () => vo
     void contexto.resume().catch(() => {});
     const muestras = new Float32Array(analizador.fftSize);
     let oido = OIDO_NUEVO;
+    let hablo = false;
     // Con la pantalla en segundo plano el reloj se frena a una vez por segundo: así tarda más en enviar, nunca antes.
     const reloj = window.setInterval(() => {
       analizador.getFloatTimeDomainData(muestras);
-      const r = oir(oido, nivelDb(muestras));
+      const r = oir(oido, nivelDb(muestras), silencioMs);
       oido = r.oido;
+      hablo ||= r.vozMs > 0;
       if (r.termino) alCallarse();
     }, CUADRO_MS);
-    return () => {
-      window.clearInterval(reloj);
-      void contexto.close().catch(() => {});
+    return {
+      apagar: () => {
+        window.clearInterval(reloj);
+        void contexto.close().catch(() => {});
+      },
+      hablo: () => hablo,
     };
   } catch (e) {
     // Sin el oído se envía como antes: con un toque o a los 55 s. No se pierde nada de lo dicho.
     console.warn("voz: no se pudo medir el silencio", { error: e instanceof Error ? e.name : "desconocido" });
-    return () => {};
+    return SIN_OIDO;
   }
 }
 
@@ -59,12 +69,12 @@ function escucharSilencios(flujo: MediaStream, alCallarse: () => void): () => vo
  * tocar mientras el celular preguntaba), se apaga ahí mismo. Con una sola bandera «soltado», un toque nuevo la reiniciaba
  * y el micrófono del toque anterior quedaba prendido sin que nadie lo supiera (/chaos 2026-11-12, A1).
  */
-export function useGrabadora({ alCallarse }: Opciones = {}) {
+export function useGrabadora({ alCallarse, silencioMs = SILENCIO_PARA_ENVIAR_MS }: Opciones = {}) {
   const grabadora = useRef<MediaRecorder | null>(null);
   const trozos = useRef<Blob[]>([]);
   const inicio = useRef(0);
   const vuelta = useRef(0);
-  const apagarOido = useRef<() => void>(() => {});
+  const oido = useRef<Oido>(SIN_OIDO);
   // El último aviso que pasó quien graba: el oído vive más que un render y no debe llamar a uno viejo.
   const avisar = useRef(alCallarse);
   useEffect(() => {
@@ -86,7 +96,7 @@ export function useGrabadora({ alCallarse }: Opciones = {}) {
       return null;
     }
     const anterior = grabadora.current;
-    apagarOido.current();
+    oido.current.apagar();
     if (anterior) {
       if (anterior.state !== "inactive") anterior.stop();
       anterior.stream.getTracks().forEach((t) => t.stop());
@@ -100,13 +110,13 @@ export function useGrabadora({ alCallarse }: Opciones = {}) {
     g.start();
     inicio.current = performance.now();
     grabadora.current = g;
-    apagarOido.current = escucharSilencios(flujo, () => avisar.current?.());
+    oido.current = escucharSilencios(flujo, () => avisar.current?.(), silencioMs);
     return null;
-  }, []);
+  }, [silencioMs]);
 
   const terminar = useCallback(async (): Promise<Grabacion> => {
     vuelta.current++; // el micrófono que todavía no llegó ya no es de nadie
-    apagarOido.current();
+    oido.current.apagar();
     const g = grabadora.current;
     grabadora.current = null;
     if (!g || g.state === "inactive") return { audio: new Blob(), duracionMs: 0 };
@@ -123,7 +133,7 @@ export function useGrabadora({ alCallarse }: Opciones = {}) {
   useEffect(
     () => () => {
       vuelta.current++;
-      apagarOido.current();
+      oido.current.apagar();
       const g = grabadora.current;
       grabadora.current = null;
       if (g && g.state !== "inactive") g.stop();
@@ -132,5 +142,8 @@ export function useGrabadora({ alCallarse }: Opciones = {}) {
     [],
   );
 
-  return { empezar, terminar };
+  /** Ya habló algo en esta grabación (para dejar de escuchar a quien no responde). */
+  const hablo = useCallback(() => oido.current.hablo(), []);
+
+  return { empezar, terminar, hablo };
 }

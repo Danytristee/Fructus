@@ -29,3 +29,24 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
   - Sin oír en un celular real: la voz de Chrome en Android, cómo dice «45 con 50» y los nombres largos («calibre 113»).
   - `push-menu.spec.ts:214` falla si corre junto con `:100`: las dos usan la cuenta del dueño y la misma fila de suscripción. Sola pasa. Ya pasaba antes de este cambio.
   - Este worktree no tenía las claves del aviso: se generaron claves locales en `.env.development.local` (fuera de git).
+
+## Actividad 3 · Decir «confirmo» guarda la venta
+
+- **Qué cambió:**
+  - Con manos libres, al terminar de leer se abre el micrófono por 5 s (`lib/voz/manos-libres-reglas.ts`, `components/voz/useManosLibres.ts`).
+  - `POST /api/voz/respuesta` transcribe la respuesta, y solo «confirmo», «correcto» o «acepto», sin nada más, guardan (`lib/voz/respuesta-reglas.ts`). Guardan por la misma acción que el toque, y dice «Guardado» cuando la base respondió.
+  - Si oye otra cosa, pregunta una vez más. Si calla, si el servidor falla o si se toca la tarjeta, queda para tocar.
+  - Migración `20261114220000_confirmado_por`: el comando guarda si se confirmó con un toque o por voz. Un check impide un descartado «confirmado por voz».
+  - **Arreglo de raíz en `silencio-reglas.ts`:** quien respondía apenas se abría el micrófono no contaba, porque el primer cuadro (ya con voz) quedaba como fondo. Ahora lo oído se vuelve a mirar en cada cuadro contra el fondo de ahora.
+- **Cómo se verificó:**
+  - Vitest: 15 del silencio, 10 de manos libres y 22 de la respuesta.
+  - pgTAP 18, 17 y 05 en verde.
+  - e2e: `voz-confirmar-hablando.spec.ts` (5) y toda la voz, 70 en verde a 412 y 360 px.
+  - En la base: 3 ventas de prueba con `confirmado_por = 'voz'` y las demás `'toque'`. `scripts/invariantes.sql`: las 12 en orden.
+  - Capturas de «Te escucho» a 412 y 360 px.
+- **Pendiente:**
+  - La migración no está en el proyecto de Supabase: se aplica con OK, junto con el PR.
+  - La base local la comparte otra sesión con migraciones que esta rama no tiene: esta se aplicó con psql, sin anotarla en el historial. Tras un `db reset` hay que volver a aplicarla.
+  - pgTAP 01, 03, 04 y 11 fallan en la base compartida porque el catálogo real deja inactivo el producto 1; ya pasaba antes.
+  - Sin probar con el audífono: qué tarda Android en abrir el micrófono Bluetooth después de leer, y si se come el principio del «confirmo».
+  - `components/voz/TarjetaVenta.tsx` ya pasa las 250 líneas; la actividad 6 saca lo común a todas las tarjetas.

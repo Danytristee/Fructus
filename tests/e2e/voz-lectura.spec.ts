@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { entrarComo } from "./cuentas";
+import { dichas, distintas, sintetizadorDePrueba, terminarFrase } from "./manos-libres";
 
 // Manos libres (ADR-0020): con el interruptor prendido, la venta lista se lee en voz alta al abrir la tarjeta. El sintetizador del
 // navegador se reemplaza por uno que anota lo que se le pide decir y termina la frase cuando la prueba quiere.
@@ -18,40 +19,6 @@ const lista = {
   falta: [],
 };
 const LECTURA = "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?";
-
-type Voz = { dichas: string[]; terminar: () => void };
-
-/** Un sintetizador de mentira: anota cada frase y la termina con `terminar()`; `cancel()` la corta, como el de verdad. */
-async function sintetizadorDePrueba(page: Page, { manosLibres }: { manosLibres: boolean }) {
-  await page.addInitScript((prender) => {
-    if (prender) localStorage.setItem("fructus:manos-libres", "si");
-    let actual: SpeechSynthesisUtterance | null = null;
-    const voz: Voz = {
-      dichas: [],
-      terminar: () => {
-        const u = actual;
-        actual = null;
-        u?.onend?.(new Event("end") as SpeechSynthesisEvent);
-      },
-    };
-    window.speechSynthesis.speak = (u: SpeechSynthesisUtterance) => {
-      voz.dichas.push(u.text);
-      actual = u;
-    };
-    window.speechSynthesis.cancel = () => {
-      const u = actual;
-      actual = null;
-      u?.onerror?.(new Event("error") as SpeechSynthesisErrorEvent);
-    };
-    Object.assign(window, { __voz: voz });
-  }, manosLibres);
-}
-
-const dichas = (page: Page) => page.evaluate(() => (window as unknown as { __voz: Voz }).__voz.dichas);
-// En desarrollo React monta la tarjeta dos veces: la primera lectura se corta al instante con la segunda (hablar() calla lo
-// anterior), así que se oye una vez. Se cuentan las frases distintas.
-const distintas = async (page: Page) => [...new Set(await dichas(page))];
-const terminarFrase = (page: Page) => page.evaluate(() => (window as unknown as { __voz: Voz }).__voz.terminar());
 
 async function abrirTarjeta(page: Page, tarjeta: unknown) {
   await page.route("/api/voz", (ruta) => ruta.fulfill({ status: 200, json: { comandoId: 51, tarjeta, latenciaMs: 900 } }));

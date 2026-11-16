@@ -66,6 +66,31 @@ describe("oir", () => {
     expect(fines).toEqual([300 + 1000 + SILENCIO_PARA_ENVIAR_MS, 300 + 1000 + 1500 + 1000 + SILENCIO_PARA_ENVIAR_MS]);
   });
 
+  it("una respuesta de una palabra se cierra con menos silencio", () => {
+    let o = OIDO_NUEVO;
+    const fines: number[] = [];
+    let t = 0;
+    for (const [nivel, ms] of [[FONDO, 300], [VOZ, 600], [FONDO, 2000]] as const) {
+      for (let i = 0; i < ms / CUADRO_MS; i++) {
+        t += CUADRO_MS;
+        const r = oir(o, nivel, 800);
+        o = r.oido;
+        if (r.termino) fines.push(t);
+      }
+    }
+    expect(fines).toEqual([300 + 600 + 800]);
+  });
+
+  it("si responde apenas se abre el micrófono (el primer cuadro ya es voz), lo dicho cuenta igual y termina al callarse", () => {
+    expect(escuchar([[VOZ, 700], [FONDO, 3000]]).fines).toEqual([700 + SILENCIO_PARA_ENVIAR_MS]);
+    expect(escuchar([[-13, 700], [-100, 3000]]).fines).toEqual([700 + SILENCIO_PARA_ENVIAR_MS]);
+  });
+
+  it("y no corta antes: el silencio se cuenta recién desde que dejó de hablar", () => {
+    // Habla desde el primer cuadro, respira 300 ms y sigue: no termina en la respiración.
+    expect(escuchar([[VOZ, 800], [FONDO, 300], [VOZ, 800], [FONDO, 3000]]).fines).toEqual([800 + 300 + 800 + SILENCIO_PARA_ENVIAR_MS]);
+  });
+
   it("el silencio digital (-∞) no rompe nada", () => {
     const { fines } = escuchar([[-Infinity, 300], [VOZ, 1000], [-Infinity, 1500]]);
     expect(fines).toEqual([300 + 1000 + SILENCIO_PARA_ENVIAR_MS]);

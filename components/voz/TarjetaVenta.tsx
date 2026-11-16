@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, Volume2 } from "lucide-react";
+import { ChevronLeft, Mic, Volume2 } from "lucide-react";
 
 import { buscarClientes, confirmarVenta, saldoDe, sugerirPrecios } from "@/app/(app)/acciones-voz";
 import { Avatar } from "@/components/ui/Avatar";
@@ -12,6 +12,7 @@ import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import { lecturaVenta } from "@/lib/voz/lectura-reglas";
+import { GUARDADO } from "@/lib/voz/manos-libres-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { DudasVoz } from "./DudasVoz";
@@ -19,7 +20,7 @@ import { EditorItem } from "./EditorItem";
 import { FilaCliente } from "./FilaCliente";
 import { FilaTarjeta } from "./FilaTarjeta";
 import { GrupoOpciones } from "./GrupoOpciones";
-import { callar, hablar } from "./hablar";
+import { hablar } from "./hablar";
 import { manosLibres } from "./manos-libres";
 import { EnCola } from "./EnCola";
 import { Guardado } from "./Guardado";
@@ -28,6 +29,7 @@ import { MedidorDeuda } from "./MedidorDeuda";
 import { PagoODebe } from "./PagoODebe";
 import { PieConfirmar } from "./PieConfirmar";
 import { useConfirmar } from "./useConfirmar";
+import { useManosLibres } from "./useManosLibres";
 
 type Venta = Extract<Tarjeta, { tipo: "venta" }>;
 type Vista = { tipo: "tarjeta" } | { tipo: "cliente" } | { tipo: "item"; n: number };
@@ -54,20 +56,14 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const [saldo, setSaldo] = useState<number | null>(null);
   const { confirmar: enviar, guardando, error, guardado: guardada, encolado, incierto } = useConfirmar<{ ok: true; saldo: number | null; comprobante: string | null }>({ alGuardar, alCambiarGuardando });
-  // Manos libres (ADR-0020): la venta lista se lee en voz alta apenas se abre. Lo incompleto no se lee: se pide en la tarjeta.
-  // La tarjeta se monta solo en el navegador (la hoja no tiene SSR): se puede leer el celular al empezar.
+  // Manos libres (ADR-0020): la venta lista se lee en voz alta apenas se abre y se confirma diciendo «confirmo». Lo incompleto no
+  // se lee: se pide en la tarjeta. La tarjeta se monta solo en el navegador (la hoja no tiene SSR): se puede leer el celular al empezar.
   const [lectura] = useState(() => (manosLibres() ? lecturaVenta(borradorDe(tarjeta)) : null));
-  const [leyendo, setLeyendo] = useState(lectura !== null);
+  const voz = useManosLibres({ lectura, alConfirmar: () => confirmar("voz") });
+  // «Guardado» solo cuando la base respondió (candado 6): lo que quedó en el celular sin señal no se anuncia como guardado.
   useEffect(() => {
-    if (!lectura) return;
-    // En desarrollo React monta dos veces: la frase cortada de la primera vez no debe apagar el «te la leo» de la segunda.
-    let vigente = true;
-    if (!hablar(lectura, () => vigente && setLeyendo(false))) queueMicrotask(() => vigente && setLeyendo(false));
-    return () => {
-      vigente = false;
-      callar(); // se cerró la hoja: no sigue leyendo una venta que ya no está en pantalla
-    };
-  }, [lectura]);
+    if (guardada && lectura) hablar(GUARDADO);
+  }, [guardada, lectura]);
 
   const clienteId = borrador.cliente?.id ?? null;
   useEffect(() => {
@@ -102,9 +98,9 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
     }));
   }
 
-  function confirmar() {
+  function confirmar(confirmadoPor: "toque" | "voz" = "toque") {
     if (falta.length > 0) return;
-    const entrada = { comandoId, borrador, corregido: fueCorregido(tarjeta, borrador), latenciaMs };
+    const entrada = { comandoId, borrador, corregido: fueCorregido(tarjeta, borrador), latenciaMs, confirmadoPor };
     // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
     void enviar(() => confirmarVenta(entrada), { tipo: "venta", entrada });
   }
@@ -178,7 +174,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const aviso = frasesFalta(falta.filter((f) => f !== "condicion"));
   return (
     // Tocar la tarjeta es tomar el control: la lectura se calla para que se pueda corregir o confirmar sin oírla encima.
-    <div className="grid gap-2" onPointerDown={leyendo ? callar : undefined}>
+    <div className="grid gap-2" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
       <FilaCliente
         style={pieza(0)}
         className="animate-pieza"
@@ -264,13 +260,17 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         etiqueta="Confirmar venta"
         // Si solo falta eso, el botón mismo dice qué hacer: la pregunta está justo arriba (2.ª prueba ciega, /formidable).
         etiquetaPendiente={falta.length === 1 && falta[0] === "condicion" ? "Primero: ¿pagó o lo debe?" : undefined}
-        alConfirmar={confirmar}
+        alConfirmar={() => confirmar("toque")}
         alDescartar={() => alDescartar(incierto.current)}
         nota={
-          leyendo && (
+          voz.nota && (
             <>
-              <Volume2 aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
-              Te la estoy leyendo…
+              {voz.fase === "escuchando" ? (
+                <Mic aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
+              ) : (
+                <Volume2 aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />
+              )}
+              {voz.nota}
             </>
           )
         }

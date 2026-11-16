@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { entrarComo } from "./cuentas";
+import { callar, hablar, microfonoControlado } from "./manos-libres";
 
 // Sin el dedo encima, callarse envía lo dicho (lib/voz/silencio-reglas.ts). El micrófono es un tono que la prueba prende («habla»)
 // y apaga («se calla»), así se controla exactamente cuándo hay voz. /api/voz va simulado: se prueba la pantalla, no a Groq.
@@ -17,34 +18,6 @@ const tarjeta = {
   dudas: [],
   falta: [],
 };
-
-type Microfono = { hablar: () => void; callar: () => void };
-
-/** Reemplaza el micrófono por un tono mudo; `hablar()` y `callar()` lo prenden y lo apagan. */
-async function microfonoControlado(page: Page) {
-  await page.addInitScript(() => {
-    navigator.mediaDevices.getUserMedia = async () => {
-      const ac = new AudioContext();
-      const tono = ac.createOscillator();
-      tono.frequency.value = 220;
-      const volumen = ac.createGain();
-      volumen.gain.value = 0;
-      const destino = ac.createMediaStreamDestination();
-      tono.connect(volumen).connect(destino);
-      tono.start();
-      await ac.resume();
-      const microfono: Microfono = {
-        hablar: () => volumen.gain.setValueAtTime(0.3, ac.currentTime),
-        callar: () => volumen.gain.setValueAtTime(0, ac.currentTime),
-      };
-      Object.assign(window, { __microfono: microfono });
-      return destino.stream;
-    };
-  });
-}
-
-const hablar = (page: Page) => page.evaluate(() => (window as unknown as { __microfono: Microfono }).__microfono.hablar());
-const callar = (page: Page) => page.evaluate(() => (window as unknown as { __microfono: Microfono }).__microfono.callar());
 
 async function preparar(page: Page) {
   await microfonoControlado(page);

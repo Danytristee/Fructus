@@ -43,6 +43,8 @@ const confirmacion = z.object({
   latenciaMs: z.number().int().min(0).max(120_000),
   /** La hora del toque, si viene de la cola sin conexión (ADR-0019). */
   fecha: z.iso.datetime({ offset: true }).optional(),
+  /** Con un toque o diciendo «confirmo» después de oír la lectura (ADR-0020). Lo anterior a esto era siempre un toque. */
+  confirmadoPor: z.enum(["toque", "voz"]).default("toque"),
 });
 
 /** Al confirmar la voz no se hace esperar la venta: si el proveedor tarda más que esto, el comprobante queda «en proceso» y se termina desde la venta. */
@@ -55,7 +57,7 @@ export type ResultadoConfirmar = { ok: true; ventaId: number; saldo: number | nu
 export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Promise<ResultadoConfirmar> {
   const leido = confirmacion.safeParse(entrada);
   if (!leido.success) return { ok: false, error: REVISA };
-  const { comandoId, borrador: b, corregido, latenciaMs, fecha } = leido.data;
+  const { comandoId, borrador: b, corregido, latenciaMs, fecha, confirmadoPor } = leido.data;
   const pedido = pedidoVenta(b, comandoId, corregido);
   if (!pedido) return { ok: false, error: REVISA };
 
@@ -64,7 +66,7 @@ export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Pro
   const { supabase, permisos } = s;
   if (!permisos.registrar) return { ok: false, error: "Tu cuenta no puede registrar ventas." };
 
-  const { data: ventaId, error } = await supabase.rpc("registrar_venta", { p: conFecha(pedido, fecha) });
+  const { data: ventaId, error } = await supabase.rpc("registrar_venta", { p: { ...conFecha(pedido, fecha), confirmado_por: confirmadoPor } });
   if (error || ventaId === null) {
     console.error("voz: no se pudo registrar la venta", { comandoId, codigo: error?.code });
     if (error?.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar ventas." };

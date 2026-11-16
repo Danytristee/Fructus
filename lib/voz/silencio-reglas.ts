@@ -19,10 +19,18 @@ const PISO_DB = -100;
 /** Cuánto sube el fondo por cuadro cuando no es voz: un motor que arranca despacio no se vuelve «voz» (2 dB por segundo). */
 const SUBIDA_DEL_FONDO_DB = 0.1;
 
-/** Lo que lleva oído: el ruido de fondo (null antes del primer cuadro), cuánta voz y cuánto silencio seguido. */
-export type Oido = { fondo: number | null; vozMs: number; silencioMs: number };
+/**
+ * Lo que lleva oído: el ruido de fondo (null antes del primer cuadro) y el volumen de cada cuadro desde que empezó a escuchar (o desde la
+ * última vez que terminó). Se guardan para volver a mirarlos contra el fondo de ahora: ver `oir`.
+ */
+export type Oido = { fondo: number | null; niveles: number[] };
 
-export const OIDO_NUEVO: Oido = { fondo: null, vozMs: 0, silencioMs: 0 };
+export const OIDO_NUEVO: Oido = { fondo: null, niveles: [] };
+
+/** Cuántos cuadros se recuerdan: 20 s. Para decidir si se calló no hace falta mirar más atrás. */
+const CUADROS_RECORDADOS = 400;
+
+const esVoz = (nivel: number, fondo: number) => nivel > SILENCIO_ABSOLUTO_DB && nivel >= fondo + SOBRE_EL_FONDO_DB;
 
 /** El volumen de un trozo de audio (muestras de -1 a 1), en dB respecto del máximo. Un trozo mudo da PISO_DB. */
 export function nivelDb(muestras: ArrayLike<number>): number {
@@ -34,18 +42,25 @@ export function nivelDb(muestras: ArrayLike<number>): number {
 }
 
 /**
- * Un cuadro más. `termino`: habló al menos VOZ_MINIMA_MS y después calló SILENCIO_PARA_ENVIAR_MS seguidos. Al terminar, lo oído se
- * reinicia (el fondo se conserva): si el dedo seguía encima y no se envió, la próxima vez que se calle vuelve a avisar.
+ * Un cuadro más. `termino`: habló al menos VOZ_MINIMA_MS y después calló `silencioMs` seguidos (un dictado, SILENCIO_PARA_ENVIAR_MS;
+ * una respuesta de una palabra, menos). Al terminar, lo oído se reinicia (el fondo se conserva): si el dedo seguía encima y no se
+ * envió, la próxima vez que se calle vuelve a avisar. `vozMs`: cuánta voz lleva, para saber si ya empezó a hablar.
+ *
+ * Lo oído se vuelve a mirar en cada cuadro contra el fondo de ahora. El primer cuadro es la primera idea del fondo, y si la persona
+ * respondió apenas se abrió el micrófono («¿Confirmo?» … «Confirmo»), ese cuadro ya era voz: el fondo quedaba tan alto como la voz y
+ * nada contaba. Como el fondo baja enseguida cuando se calla, al mirar de nuevo lo dicho al principio cuenta igual.
  */
-export function oir(o: Oido, nivel: number): { oido: Oido; termino: boolean } {
+export function oir(o: Oido, nivel: number, silencioMs = SILENCIO_PARA_ENVIAR_MS): { oido: Oido; termino: boolean; vozMs: number } {
   const n = Math.max(PISO_DB, nivel);
-  // El primer cuadro es el fondo: el micrófono recién arrancó y la persona todavía no habla («Te escucho» sale después).
-  if (o.fondo === null) return { oido: { fondo: n, vozMs: 0, silencioMs: CUADRO_MS }, termino: false };
-  const esVoz = n > SILENCIO_ABSOLUTO_DB && n >= o.fondo + SOBRE_EL_FONDO_DB;
+  const niveles = [...o.niveles.slice(-(CUADROS_RECORDADOS - 1)), n];
   // El fondo baja enseguida y sube despacio, y no se mueve mientras habla: si no, la voz misma se volvería fondo.
-  const fondo = esVoz ? o.fondo : n < o.fondo ? o.fondo + (n - o.fondo) / 2 : Math.min(n, o.fondo + SUBIDA_DEL_FONDO_DB);
-  const vozMs = esVoz ? o.vozMs + CUADRO_MS : o.vozMs;
-  const silencioMs = esVoz ? 0 : o.silencioMs + CUADRO_MS;
-  if (vozMs >= VOZ_MINIMA_MS && silencioMs >= SILENCIO_PARA_ENVIAR_MS) return { oido: { fondo, vozMs: 0, silencioMs: 0 }, termino: true };
-  return { oido: { fondo, vozMs, silencioMs }, termino: false };
+  const fondo =
+    o.fondo === null ? n : esVoz(n, o.fondo) ? o.fondo : n < o.fondo ? o.fondo + (n - o.fondo) / 2 : Math.min(n, o.fondo + SUBIDA_DEL_FONDO_DB);
+  let voz = 0;
+  for (const x of niveles) if (esVoz(x, fondo)) voz++;
+  let callado = 0;
+  for (let k = niveles.length - 1; k >= 0 && !esVoz(niveles[k]!, fondo); k--) callado++;
+  const vozMs = voz * CUADRO_MS;
+  if (vozMs >= VOZ_MINIMA_MS && callado * CUADRO_MS >= silencioMs) return { oido: { fondo, niveles: [] }, termino: true, vozMs };
+  return { oido: { fondo, niveles }, termino: false, vozMs };
 }

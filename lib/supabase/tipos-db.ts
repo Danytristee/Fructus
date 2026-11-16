@@ -59,14 +59,14 @@ isOneToOne: false
                   ]
                 },"comandos_voz": {
                   Row: {
-                    "creado_en": string,"duracion_audio_ms": number | null,"id": number,"intencion": string | null,"interpretacion": Json | null,"latencia_ms": number | null,"modelo_llm": string | null,"modelo_stt": string | null,"registrado_por": string,"resultado": string,"transcripcion": string
+                    "confirmado_por": string | null,"creado_en": string,"duracion_audio_ms": number | null,"id": number,"intencion": string | null,"interpretacion": Json | null,"latencia_ms": number | null,"modelo_llm": string | null,"modelo_stt": string | null,"registrado_por": string,"resultado": string,"transcripcion": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "creado_en"?: string,"duracion_audio_ms"?: number | null,"id"?: never,"intencion"?: string | null,"interpretacion"?: Json | null,"latencia_ms"?: number | null,"modelo_llm"?: string | null,"modelo_stt"?: string | null,"registrado_por"?: string,"resultado"?: string,"transcripcion": string
+                    "confirmado_por"?: string | null,"creado_en"?: string,"duracion_audio_ms"?: number | null,"id"?: never,"intencion"?: string | null,"interpretacion"?: Json | null,"latencia_ms"?: number | null,"modelo_llm"?: string | null,"modelo_stt"?: string | null,"registrado_por"?: string,"resultado"?: string,"transcripcion": string
                   }
                   Update: {
-                    "creado_en"?: string,"duracion_audio_ms"?: number | null,"id"?: never,"intencion"?: string | null,"interpretacion"?: Json | null,"latencia_ms"?: number | null,"modelo_llm"?: string | null,"modelo_stt"?: string | null,"registrado_por"?: string,"resultado"?: string,"transcripcion"?: string
+                    "confirmado_por"?: string | null,"creado_en"?: string,"duracion_audio_ms"?: number | null,"id"?: never,"intencion"?: string | null,"interpretacion"?: Json | null,"latencia_ms"?: number | null,"modelo_llm"?: string | null,"modelo_stt"?: string | null,"registrado_por"?: string,"resultado"?: string,"transcripcion"?: string
                   }
                   Relationships: [
                     {
