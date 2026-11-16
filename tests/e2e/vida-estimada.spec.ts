@@ -23,9 +23,10 @@ const DIA_MS = 86_400_000;
 /** Las 7 a. m. de Lima (UTC−5) de hace `n` días. */
 const haceDias = (n: number) => `${new Date(Date.now() - 5 * 3_600_000 - n * DIA_MS).toISOString().slice(0, 10)}T07:00:00-05:00`;
 
-type Pedido = { modelo: string; esfuerzo?: string; formato?: string; conClave: boolean; frutas: { id: number; fruta: string; tabla: number }[] };
+type Evidencia = { tipo: string; haceDias: number; gastado: number; cajas?: number };
+type Pedido = { modelo: string; esfuerzo?: string; formato?: string; conClave: boolean; frutas: { id: number; fruta: string; tabla: number; minimo: number; maximo: number; actual?: number; evidencia?: Evidencia[] }[] };
 const pedidos = async (): Promise<Pedido[]> => (await (await fetch(`${MODELO_SIMULADO}/recibidos`)).json()) as Pedido[];
-type InformeVida = { motivo: string; pedidas: number; guardadas: number; recortadas: number; codigo?: string };
+type InformeVida = { motivo: string; pedidas: number; ajustes: number; guardadas: number; recortadas: number; codigo?: string };
 const correrElCron = async (request: APIRequestContext) => ((await (await request.get(RUTA, { headers: conSecreto })).json()) as { vidaUtil: InformeVida }).vidaUtil;
 
 const frutas: Record<"menos" | "loca" | "falla", number> = { menos: 0, loca: 0, falla: 0 };
@@ -86,7 +87,7 @@ test("el cron le pregunta al modelo solo por las frutas sin estimación, guarda 
   const [pedido, ...otros] = await pedidos();
   expect(otros, "una sola llamada por noche").toEqual([]);
   expect(pedido).toMatchObject({ modelo: "claude-sonnet-5-5", esfuerzo: "low", formato: "json_schema", conClave: true });
-  expect(pedido!.frutas.find((f) => f.id === frutas.menos)).toEqual({ id: frutas.menos, fruta: `Papaya, calibre ${MARCA}-sim-menos`, tabla: 5 });
+  expect(pedido!.frutas.find((f) => f.id === frutas.menos)).toEqual({ id: frutas.menos, fruta: `Papaya, calibre ${MARCA}-sim-menos`, tabla: 5, minimo: 3, maximo: 7 });
 
   // Lo que quedó en la base: la estimación de cada una, con su motivo y el modelo; la disparatada, metida al margen.
   const { data } = await base.from("v_vida_util").select("producto_id, dias, motivo, modelo").in("producto_id", [frutas.menos, frutas.loca]);
@@ -106,6 +107,40 @@ test("Stock cuenta con la estimación, y la hoja dice quién lo estimó, cuándo
   await expect(hoja.getByText(/^(Tiene que salir hoy|Revísala antes de vender)$/)).toBeVisible();
   await expect(hoja).toContainText("Para estas cajas cuento unos 4 días con clima normal. Lo estimó la IA hoy: Simulado: llega más madura y se pasa antes.");
   await expect(hoja).toContainText("Es un cálculo aproximado. Mira la fruta antes de decidir.");
+});
+
+test("se corrige sola: un «Sigue buena» entra al pedido de la noche siguiente, y el ajuste queda acotado y explicado", async ({ page, request }) => {
+  // «Ayer»: la estimación de la papaya (4 días) pasa a ser de anoche, como si el cron hubiera corrido el día anterior.
+  const ayer = new Date(Date.now() - 5 * 3_600_000 - DIA_MS).toISOString().slice(0, 10);
+  await base.from("vida_util_estimada").update({ dia: ayer, creado_en: new Date(Date.now() - DIA_MS).toISOString() }).eq("producto_id", frutas.menos);
+  // Hoy alguien miró la llegada de hace 3 días, que ya había pasado su día, y seguía buena.
+  const { data: duenio } = await base.from("perfiles").select("id").eq("rol", "duenio").limit(1).single();
+  const { error } = await base.from("revisiones_frescura").insert({ producto_id: frutas.menos, llegada_dia: haceDias(3).slice(0, 10), registrado_por: duenio!.id });
+  expect(error).toBeNull();
+  await fetch(`${MODELO_SIMULADO}/recibidos`, { method: "DELETE" });
+
+  const informe = await correrElCron(request);
+  expect(informe, JSON.stringify(informe)).toMatchObject({ motivo: "estimado", pedidas: 1, ajustes: 1, guardadas: 1, recortadas: 1 });
+
+  // Al modelo le llegó solo esa fruta, con lo que rige, su paso de esta noche y la evidencia (sin nombres de nadie).
+  const [pedido] = await pedidos();
+  expect(pedido!.frutas).toHaveLength(1);
+  expect(pedido!.frutas[0]).toMatchObject({ id: frutas.menos, tabla: 5, actual: 4, minimo: 3, maximo: 5 });
+  expect(pedido!.frutas[0]!.evidencia).toEqual([{ tipo: "sigue_buena", haceDias: 0, gastado: expect.any(Number) }]);
+  expect(pedido!.frutas[0]!.evidencia![0]!.gastado, "llevaba gastada toda su vida calculada, o más").toBeGreaterThanOrEqual(1);
+
+  // El modelo pidió 3 días más; quedó en uno (el paso de una noche), con su motivo. La estimación de antes sigue guardada.
+  const { data: historia } = await base.from("vida_util_estimada").select("dia, dias, motivo").eq("producto_id", frutas.menos).order("dia");
+  expect(historia).toEqual([
+    { dia: ayer, dias: 4, motivo: "Simulado: llega más madura y se pasa antes." },
+    { dia: new Date(Date.now() - 5 * 3_600_000).toISOString().slice(0, 10), dias: 5, motivo: "Simulado: la revisaron pasada su fecha y seguía buena." },
+  ]);
+  // Y otra pasada esta misma noche no vuelve a preguntar: esa evidencia ya se miró.
+  expect(await correrElCron(request)).toMatchObject({ motivo: "sin-novedad", pedidas: 0 });
+
+  // La hoja lo cuenta: cuántos días rige ahora y por qué.
+  const hoja = await abrirElPorQue(page, `${MARCA}-sim-menos`);
+  await expect(hoja).toContainText("Para estas cajas cuento unos 5 días con clima normal. Lo estimó la IA hoy: Simulado: la revisaron pasada su fecha y seguía buena.");
 });
 
 test("si el modelo falla, el cron contesta igual y la fruta nueva sigue con la tabla", async ({ request }) => {

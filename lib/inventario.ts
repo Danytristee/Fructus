@@ -8,7 +8,7 @@ import { evaluarProducto, priorizarAlertas, resumirInventario, type ProductoInve
 import type { Database } from "./supabase/tipos-db";
 import { leerTemperaturas } from "./temperatura";
 import { leerVidaEstimada } from "./vida-estimada/servidor";
-import type { VidaEstimada } from "./vida-estimada-reglas";
+import type { VidaVigente } from "./vida-estimada-reglas";
 
 const DIA_MS = 86_400_000;
 
@@ -36,7 +36,7 @@ export async function leerInventario(supabase: SupabaseClient<Database>, hoy = n
     }),
     leerVidaEstimada(supabase).catch((e: unknown) => {
       console.error("inventario: no se pudo leer la vida estimada", { error: e instanceof Error ? e.name : "desconocido" });
-      return new Map<number, VidaEstimada>();
+      return new Map<number, VidaVigente>();
     }),
     supabase.from("revisiones_frescura").select("producto_id, llegada_dia, llegada_estado, dia").eq("dia", diaDeLima(hoy)),
   ]);

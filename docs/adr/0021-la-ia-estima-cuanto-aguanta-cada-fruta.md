@@ -29,8 +29,8 @@ otro sin motivo, o que Stock deje de funcionar cuando el modelo no responde.
    leen; nadie con sesión escribe, edita ni borra (el intento falla con 42501). Rige la del día más reciente (`v_vida_util`). Cada fila lleva
    su motivo y el modelo que la dio.
 6. **Stock cuenta con la estimación y dice de dónde sale** (`lib/inventario.ts`, `evaluarProducto`). La hoja «¿por qué?» lo dice al pie:
-   «Para estas cajas cuento unos 4 días con clima normal. Lo estimó la IA ayer: De tercera suele llegar más madura: se pasa antes.» Si la
-   IA la revisó y coincide con la tabla, dice eso. Sin estimación: «…según la tabla del sistema».
+   «Para estas cajas cuento unos 4 días con clima normal. Lo estimó la IA ayer: De tercera suele llegar más madura: se pasa antes.»
+   Sin estimación: «…según la tabla del sistema».
 7. **Si algo falla, sigue la tabla.** Sin clave, sin respuesta a tiempo, con un rechazo del modelo, con una respuesta cortada o con la base
    caída: no se guarda nada, el cron lo informa (`vidaUtil.motivo`: `fallo` o `sin-configurar`, con un código) y Stock cuenta con lo que ya
    tenía (la última estimación, o la tabla). Si la lectura de las estimaciones falla, el inventario sale igual con la tabla.
@@ -51,6 +51,23 @@ otro sin motivo, o que Stock deje de funcionar cuando el modelo no responde.
       de Lima de hoy y a nombre de quien la tocó: la política no deja anotar una con otra fecha ni a nombre de otro.
     - Antes de anotar, el servidor mira el inventario de ahora: si esa llegada ya no está o ya no está pasada, no anota y lo dice.
 
+11. **Se corrige sola: lo que pasa en el puesto es evidencia** (`evidenciaDe`, `lib/vida-estimada-reglas.ts`).
+    - Cada **merma** y cada **«Sigue buena»** de los últimos 30 días se traduce a un número: qué parte de la vida calculada llevaba
+      gastada esa llegada cuando pasó, con el calor de cada día y cómo llegó ya contados. Una merma con 0.6 se malogró antes de tiempo;
+      un «Sigue buena» con 1.4 aguantó más de lo calculado.
+    - **La merma se le cuenta a la llegada más vieja que había en el puesto en ese momento** (lo primero que entra es lo primero que se
+      malogra). Para saber cuál era hace falta el stock de ese instante: lo da la vista `v_mermas_con_stock`, de solo lectura.
+    - **Lo que no se puede fechar no es evidencia:** cajas de hace más de 45 días, o una merma de cajas más viejas que las entradas
+      leídas. No se inventa una edad.
+    - **Una fruta vuelve al pedido solo si juntó evidencia nueva** desde que se guardó su estimación, y **entra al pedido del día
+      siguiente:** hay una estimación por fruta y por día.
+    - **Cada ajuste va acotado:** en una noche la estimación se mueve a lo más la quinta parte (y por lo menos un día), y nunca sale del
+      margen de la tabla (`limitesDeAjuste`). Una racha de mermas acorta la vida noche a noche, no de golpe.
+    - **Y explicado:** el motivo se guarda con la estimación y se ve en la hoja. También cuando no cambia nada («Una sola revisión pasada
+      su fecha no alcanza para cambiarla»): así esa evidencia queda como vista y no se vuelve a preguntar.
+    - Al modelo se le pide prudencia: una sola observación mueve poco o nada; varias en el mismo sentido pesan más; avisar un día antes
+      cuesta menos que avisar un día tarde.
+
 ## Alternativas descartadas
 
 - **Que el modelo decida directamente «qué sale hoy»:** una respuesta distinta cada noche, sin poder explicar por qué cambió, y Stock
@@ -62,6 +79,8 @@ otro sin motivo, o que Stock deje de funcionar cuando el modelo no responde.
   toca. El respaldo de Fructus es la tabla, que no depende de ningún servicio.
 - **Una ruta de cron aparte:** otra tarea programada y otro secreto para algo que cabe en la pasada de la noche.
 - **Llamar al modelo desde Stock, al abrirlo:** la pantalla esperaría a un servicio externo y cada visita costaría una llamada.
+- **Ajustar la vida con una fórmula, sin modelo:** el número «gastado» alcanzaría para una regla fija, pero no sabría decir por qué en
+  palabras del puesto ni dudar de una sola caja golpeada. El modelo propone; el código acota.
 - **Que «Sigue buena» apague el aviso de esa llegada para siempre:** una fruta revisada el lunes no está revisada el jueves.
 - **Que «Sigue buena» le sume días a la fruta en el acto:** un toque de una persona movería el aviso de todas las llegadas de esa
   fruta. La revisión es evidencia; el ajuste lo hace la estimación de la noche, acotado y con su motivo.
@@ -74,4 +93,9 @@ otro sin motivo, o que Stock deje de funcionar cuando el modelo no responde.
 - **Hay que poner `ANTHROPIC_API_KEY` en Vercel.** Hasta entonces, producción responde `sin-configurar` y sigue con la tabla.
 - **Las pruebas no gastan créditos:** un modelo de mentira (`tests/e2e/sonnet-simulado.mjs`, `VIDA_UTIL_SIMULADOR_URL`, solo direcciones
   locales) contesta por defecto lo mismo que la tabla, para que las demás pruebas de Stock no cambien.
-- **Una estimación no caduca sola.** Cambia cuando el puesto da una razón: ver los puntos siguientes.
+- **Una estimación no caduca sola.** Cambia cuando el puesto da una razón (punto 11). Probado con el modelo de verdad: dos mermas de
+  tuna el mismo día de llegar → «le quito un día» (7 → 6); un solo «Sigue buena» de caqui → «no alcanza para cambiarla» (queda en 10).
+- **La calidad del ajuste depende de que el puesto registre:** las compras (sin ellas no se sabe qué llegada se malogró), las mermas y
+  la temperatura. Sin eso no hay evidencia, y la estimación se queda donde está.
+- **Las mermas por golpe o por robo cuentan igual que las de madurez:** la merma no guarda el motivo con detalle. Por eso el ajuste es
+  lento y prudente, y por eso existe «Sigue buena» para empujar en el otro sentido.

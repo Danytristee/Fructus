@@ -129,6 +129,13 @@ export function estimarLlegada(diaLlegada: string, vida: number, lecturas: reado
 }
 
 /**
+ * Qué parte de su vida llevaba gastada una llegada al terminar el día `dia`, sin tope: 0.6 es «iba por el 60 %»; 1.4, «ya había
+ * pasado su último día bueno hacía rato». Sirve para leer lo que pasó de verdad (una merma, un «Sigue buena») contra la cuenta.
+ */
+export const gastadoAl = (diaLlegada: string, vida: number, lecturas: readonly TemperaturaDia[], dia: string): number =>
+  estimarLlegada(diaLlegada, vida, lecturas, dia).dias.reduce((s, d) => s + d.gasto, 0);
+
+/**
  * La cuenta de una llegada de la que no se sabe el día (llegó `dia` o antes): no se le hace la cuenta día por día. Ya gastó su
  * vida, pide revisarse hoy y, al ordenar por la que se acaba antes, va primero.
  */

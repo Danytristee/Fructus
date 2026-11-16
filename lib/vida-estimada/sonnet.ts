@@ -28,7 +28,16 @@ Fíjate en lo que distingue a esa fruta de otras de su familia: la variedad, la 
 Para cada fruta devuelve:
 - "producto_id": el mismo id que recibiste.
 - "dias": un número entero de días.
-- "motivo": una sola frase corta, en español peruano neutro y de tú, que el dueño del puesto entienda sin explicación. Máximo 120 caracteres. No pongas números de días ni nombres técnicos. Ejemplos: «La Fuji es más firme que otras manzanas y aguanta más.» / «De tercera suele llegar más madura: se pasa antes.» / «No encuentro nada que la distinga de la tabla.»
+- "motivo": una sola frase corta, en español peruano neutro y de tú, que el dueño del puesto entienda sin explicación. Máximo 120 caracteres. No pongas números de días ni nombres técnicos. Ejemplos: «La Fuji es más firme que otras manzanas y aguanta más.» / «De tercera suele llegar más madura: se pasa antes.» / «No veo nada que la distinga de otras de su tipo: queda como en la tabla.»
+
+Cada fruta trae "minimo" y "maximo": tu número tiene que quedar entre los dos.
+
+Algunas frutas ya tienen una estimación tuya y vuelven porque el puesto juntó evidencia. Esas traen además:
+- "actual": los días que rigen hoy.
+- "evidencia": lo que pasó con llegadas de esa fruta, de lo más nuevo a lo más viejo. "haceDias" es hace cuántos días pasó. "gastado" es qué parte de la vida calculada con "actual" llevaba gastada esa llegada en ese momento, con el calor de cada día y cómo llegó ya contados (1 = justo su último día bueno).
+  - "merma": se malograron "cajas" cajas. Con "gastado" cerca de 1 o más es lo esperado y no dice nada. Con "gastado" claramente menor que 1 (por ejemplo 0.6) esa fruta se malogró antes de lo calculado: aguanta menos.
+  - "sigue_buena": alguien miró una llegada que ya había pasado su último día bueno y seguía vendible. Con "gastado" 1.3 aguantó un 30 % más de lo calculado: aguanta más.
+Para esas frutas decide si "actual" sube, baja o se queda. Sé prudente: una sola observación mueve poco o nada (una caja se puede malograr por un golpe, y una fruta puede seguir «buena» ya al límite); varias en el mismo sentido pesan más; si se contradicen, quédate con "actual". Avisar un día antes cuesta menos que avisar un día tarde. En "motivo" di qué viste, en palabras del puesto: «Dos veces se malogró antes de tiempo esta semana: le quito un día.» / «La revisaron pasada su fecha y seguía buena: le doy un día más.» / «Una sola merma no alcanza para cambiarla.»
 
 Devuelve una estimación por cada fruta recibida y ninguna más.`;
 

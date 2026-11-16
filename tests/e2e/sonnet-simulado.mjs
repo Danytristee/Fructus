@@ -6,13 +6,15 @@
 //                      demás pruebas de Stock no cambian. La marca va en el nombre de la fruta (su calibre), como en Lucode:
 //                        «sim-menos» → un día menos que la tabla      «sim-loco» → 400 días (la app lo mete al margen)
 //                        «sim-falla» → 500 para todo el pedido        «sim-rechazo» → el modelo rechaza el pedido
+//                      Una fruta que vuelve con evidencia (trae «actual») queda igual, salvo que alguien la haya revisado y
+//                      siguiera buena: entonces pide 3 días más, y la app lo deja en el paso de una noche.
 //   GET  /recibidos    los pedidos recibidos, en orden.
 //   DELETE /recibidos  los olvida.
 //   GET  /salud        para que Playwright sepa que ya está arriba.
 import { createServer } from "node:http";
 
 const puerto = Number(process.env.PUERTO_SONNET ?? 3500);
-/** @type {Array<{ modelo: string; esfuerzo?: string; formato?: string; conClave: boolean; frutas: { id: number; fruta: string; tabla: number }[] }>} */
+/** @type {Array<{ modelo: string; esfuerzo?: string; formato?: string; conClave: boolean; frutas: { id: number; fruta: string; tabla: number; minimo: number; maximo: number; actual?: number; evidencia?: { tipo: string; haceDias: number; gastado: number; cajas?: number }[] }[] }>} */
 const recibidos = [];
 
 const responder = (res, estado, cuerpo) => {
@@ -52,10 +54,16 @@ createServer(async (req, res) => {
   if (tiene("sim-falla")) return responder(res, 500, { type: "error", error: { type: "api_error", message: "falla simulada" } });
   if (tiene("sim-rechazo")) return responder(res, 200, mensaje(pedido.model, { stop_reason: "refusal" }));
 
-  const estimaciones = frutas.map((f) => ({
-    producto_id: f.id,
-    dias: f.fruta.includes("sim-loco") ? 400 : f.fruta.includes("sim-menos") ? f.tabla - 1 : f.tabla,
-    motivo: f.fruta.includes("sim-menos") ? "Simulado: llega más madura y se pasa antes." : "Simulado: igual que la tabla.",
-  }));
+  const estimaciones = frutas.map((f) => {
+    if (f.actual !== undefined) {
+      const siguioBuena = (f.evidencia ?? []).some((e) => e.tipo === "sigue_buena");
+      return { producto_id: f.id, dias: siguioBuena ? f.actual + 3 : f.actual, motivo: siguioBuena ? "Simulado: la revisaron pasada su fecha y seguía buena." : "Simulado: no alcanza para cambiarla." };
+    }
+    return {
+      producto_id: f.id,
+      dias: f.fruta.includes("sim-loco") ? 400 : f.fruta.includes("sim-menos") ? f.tabla - 1 : f.tabla,
+      motivo: f.fruta.includes("sim-menos") ? "Simulado: llega más madura y se pasa antes." : "Simulado: igual que la tabla.",
+    };
+  });
   return responder(res, 200, mensaje(pedido.model, { content: [{ type: "text", text: JSON.stringify({ estimaciones }) }] }));
 }).listen(puerto, "127.0.0.1", () => console.log(`Sonnet simulado en http://127.0.0.1:${puerto}`));

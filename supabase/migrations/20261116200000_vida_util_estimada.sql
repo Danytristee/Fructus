@@ -30,14 +30,16 @@ create table vida_util_estimada (
 comment on table vida_util_estimada is
   'Cuántos días aguanta cada fruta a temperatura normal, estimado por la IA. Solo se agregan y solo las escribe el servidor; rige la última de cada fruta (v_vida_util).';
 
--- La estimación que rige para cada fruta: la del día más reciente.
+-- La estimación que rige para cada fruta: la del día más reciente. `creado_en` dice cuándo se guardó: lo que pase en el puesto
+-- después de ese momento (una merma, un «Sigue buena») es evidencia nueva para la noche siguiente.
 create view v_vida_util with (security_invoker = true) as
 select distinct on (producto_id)
   producto_id,
   dias,
   motivo,
   dia,
-  modelo
+  modelo,
+  creado_en
 from vida_util_estimada
 order by producto_id, dia desc, id desc;
 comment on view v_vida_util is 'La estimación de vida útil que rige para cada fruta: la del día más reciente.';
@@ -48,4 +50,6 @@ create policy vida_util_estimada_leer on vida_util_estimada for select to authen
   using (rol_actual() is not null);
 
 -- Nadie con sesión escribe: sin el permiso de la tabla el intento falla con 42501, en vez de «no tocar filas» en silencio.
+-- La vista tampoco sirve de puerta: es solo para leer.
 revoke insert, update, delete, truncate on vida_util_estimada from authenticated, anon;
+revoke insert, update, delete, truncate on v_vida_util from authenticated, anon;

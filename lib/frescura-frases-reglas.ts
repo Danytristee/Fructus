@@ -78,15 +78,14 @@ export function explicacionDelCalor(lote: Lote, hoy: string): string {
 
 /**
  * De dónde sale la cuenta, al pie de la hoja «¿por qué?»: con cuántos días se contó esa llegada y quién lo dijo, la tabla del
- * sistema o la IA (con el día y su motivo). Si la IA la revisó y quedó en lo mismo que la tabla, se dice eso y no su motivo, que
- * sería «no encuentro nada que la distinga». null si la llegada no lleva cuenta (cajas de hace más de 45 días).
+ * sistema o la IA (con el día y su motivo, también cuando quedó en lo mismo que la tabla: un ajuste que vuelve a ese número
+ * tiene su porqué). null si la llegada no lleva cuenta (cajas de hace más de 45 días).
  */
 export function origenDeLaCuenta(lote: { vida: number | null }, origen: OrigenVida, hoy: string): string | null {
   if (lote.vida === null) return null;
   const n = Math.max(1, Math.round(lote.vida));
   const cuento = `Para estas cajas cuento ${n === 1 ? "un día" : `unos ${n} días`} con clima normal`;
   if (origen.fuente === "tabla") return `${cuento}, según la tabla del sistema.`;
-  if (origen.dias === origen.tabla) return `${cuento}. La IA lo revisó ${cuandoLlego(origen.dia, hoy)} y coincide con la tabla del sistema.`;
   const motivo = origen.motivo.trim();
   return `${cuento}. Lo estimó la IA ${cuandoLlego(origen.dia, hoy)}: ${/[.!?…]$/.test(motivo) ? motivo : `${motivo}.`}`;
 }

@@ -124,9 +124,9 @@ describe("origenDeLaCuenta", () => {
     expect(origenDeLaCuenta({ vida: 36 }, { ...ia, dia: "2026-11-01" }, HOY)).toContain("Lo estimó la IA hace 13 días:");
   });
 
-  it("si la IA la revisó y quedó igual que la tabla, dice eso y no repite un motivo vacío", () => {
-    expect(origenDeLaCuenta({ vida: 30 }, { ...ia, dias: 30, motivo: "No encuentro nada que la distinga de la tabla." }, HOY)).toBe(
-      "Para estas cajas cuento unos 30 días con clima normal. La IA lo revisó ayer y coincide con la tabla del sistema.",
+  it("si quedó igual que la tabla también dice su motivo: un ajuste que vuelve a ese número tiene su porqué", () => {
+    expect(origenDeLaCuenta({ vida: 30 }, { ...ia, dias: 30, motivo: "La revisaron pasada su fecha y seguía buena: le doy un día más." }, HOY)).toBe(
+      "Para estas cajas cuento unos 30 días con clima normal. Lo estimó la IA ayer: La revisaron pasada su fecha y seguía buena: le doy un día más.",
     );
   });
 

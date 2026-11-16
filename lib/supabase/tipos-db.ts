@@ -526,7 +526,33 @@ isOneToOne: false
                 }
           }
           Views: {
-            "v_saldo_clientes": {
+            "v_mermas_con_stock": {
+                  Row: {
+                    "cajas": number | null,"fecha": string,"id": number,"producto_id": number,"stock_antes": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                           "cajas"?: never,"fecha"?: string | null,"id"?: number | null,"producto_id"?: number | null,"stock_antes"?: never
+                         }
+                        Update: {
+                           "cajas"?: never,"fecha"?: string | null,"id"?: number | null,"producto_id"?: number | null,"stock_antes"?: never
+                         }
+                        Relationships: [
+                    {
+      foreignKeyName: "movimientos_stock_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "productos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "movimientos_stock_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "v_stock"
+      referencedColumns: ["producto_id"]
+    }
+                  ]
+                },"v_saldo_clientes": {
                   Row: {
                     "alias": (string)[],"cliente_id": number,"nombre": string,"saldo": number | null,"ultima_venta_credito": string | null,"ultimo_abono": string | null
                   }
@@ -560,7 +586,7 @@ isOneToOne: false
                   ]
                 },"v_vida_util": {
                   Row: {
-                    "dia": string,"dias": number,"modelo": string,"motivo": string,"producto_id": number
+                    "creado_en": string,"dia": string,"dias": number,"modelo": string,"motivo": string,"producto_id": number
                   }
                   ComputedFields: never
                   Relationships: [

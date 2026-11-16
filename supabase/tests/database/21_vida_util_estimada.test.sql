@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(13);
+select plan(15);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000d21', 'duenio21@fructus.test'),
@@ -74,6 +74,11 @@ select throws_ok(
 select throws_ok(
   $$ update vida_util_estimada set dias = 30 where producto_id = pg_temp.fruta('Pitahaya') $$,
   '42501', null, 'ni editar una que ya está');
+
+select throws_ok(
+  $$ update v_vida_util set dias = 30 where producto_id = pg_temp.fruta('Pitahaya') $$,
+  null, null, 'ni por la vista de lo que rige');
+select isnt((select creado_en from v_vida_util where producto_id = pg_temp.fruta('Pitahaya')), null, 'lo que rige dice cuándo se guardó: lo que pase después es evidencia nueva');
 
 select * from finish();
 rollback;
