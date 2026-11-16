@@ -24,7 +24,7 @@ facturación va a sandbox. Si se aprueba, se implementa con el empresario (ver �
 
 Adaptados de los de CAYLA Retail, que ya probaron su valor allá.
 
-1. **La voz propone, la persona confirma.** Nada se guarda sin un toque de confirmación. La tarjeta muestra lo que se *entendió*, no la transcripción.
+1. **La voz propone, la persona confirma.** Nada se guarda sin que la persona confirme: con un toque o, en manos libres, diciendo «confirmo», «correcto» o «acepto» después de oír la lectura, con los candados del ADR-0020. La tarjeta muestra lo que se *entendió*, no la transcripción.
 2. **Nunca se inventa dinero.** Si no dijo el precio, se sugiere el último y se marca «sugerido». Si no dijo si pagó, se pregunta con dos botones (**Pagó** / **Lo debe**). Nunca se asume contado.
 3. **Cero estados imposibles.** Si el stock o una deuda pueden quedar en un estado imposible, el diseño está mal, no el código. Se corrige el esquema, la RLS o la RPC; no se parcha con una validación después.
 4. **Una sola fuente de verdad.** Stock = suma de `movimientos_stock` (solo se agregan filas). Deuda = ventas al crédito − abonos. Nada de eso se edita a mano: se corrige registrando un movimiento nuevo o anulando.
@@ -227,7 +227,7 @@ Si dos leyes chocan, gana la que va primero.
 El flujo completo, el prompt y las herramientas del intérprete viven en `docs/interprete-voz.md`.
 
 - **Mantener → hablar → soltar → tarjeta → Confirmar.** Un toque largo graba (`MediaRecorder`, `audio/webm;codecs=opus`) y al soltar se envía a `POST /api/voz`. El botón tiene tres estados visibles y anunciados con `aria-live`: escuchando, entendiendo y listo.
-  - **Sin mantener (ADR-0018):** un toque corto, o subir el dedo hasta el candado mientras se mantiene, deja el orbe escuchando sin el dedo. El orbe dice «Enviar» y el siguiente toque envía; «Borrar» descarta. A los 55 s se envía solo.
+  - **Sin mantener (ADR-0018):** un toque corto, o subir el dedo hasta el candado mientras se mantiene, deja el orbe escuchando sin el dedo. El orbe dice «Enviar» y el siguiente toque envía; «Borrar» descarta. También envía callarse 1.2 s después de hablar (`lib/voz/silencio-reglas.ts`); mientras se mantiene, manda el dedo. A los 55 s se envía solo.
 - **El servidor hace todo lo sensible:**
   1. Whisper, con el prompt de vocabulario armado desde la base.
   2. El LLM con las herramientas.
@@ -245,7 +245,16 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - Si Groq no responde en **8 s** (`AbortSignal.timeout`), se intenta con Gemini.
   - Si tampoco responde, sale «No te entendí, inténtalo otra vez» y el audio se conserva.
   - Toda llamada externa lleva un tope de espera. Ningún `catch` se traga un error sin registrarlo.
-- **Responder hablando** solo en consultas («¿quién me debe?»), con `speechSynthesis` en `es-PE` o `es-US`. Una venta se confirma con vibración, sonido y la tarjeta en verde; no hace falta voz.
+- **Responder hablando** en consultas («¿quién me debe?»), con `speechSynthesis` en `es-PE` o `es-US`. Sin manos libres, una venta se confirma con vibración, sonido y la tarjeta en verde; no hace falta voz.
+- **Manos libres (ADR-0020):** un interruptor del menú, por celular y apagado de fábrica, pensado para usarse con audífono.
+  - Al abrir la tarjeta, Fructus lee lo que se va a guardar y pregunta «¿Confirmo?» (`lib/voz/lectura-reglas.ts`, `guion-reglas.ts`).
+  - Si falta saber si pagó, primero pregunta «¿Pagó o lo debe?».
+  - Escucha 5 s y la respuesta pasa por `POST /api/voz/respuesta`:
+    - solo «confirmo», «correcto» o «acepto» guardan, por la misma acción que el toque;
+    - «no, son ocho cajas» rehace la venta con el intérprete y se vuelve a leer;
+    - otra cosa se repregunta una vez.
+  - **Candados:** un «sí» suelto no confirma; con dudas del intérprete, si falta un dato o sin señal, solo se avisa y se confirma con el dedo; mientras habla, no escucha; tocar la tarjeta calla la voz.
+  - Dice «Guardado» cuando la base respondió, y `comandos_voz.confirmado_por` registra si fue `toque` o `voz`.
 - **Precisión medible.** Los casos de `docs/interprete-voz.md` viven en `tests/interprete/casos.json`, y `/voz-precision` los corre contra el modelo real. Meta de la demo: **90 % o más de acierto** en intención y datos clave. Se mide antes de cada entrega.
 
 ## Base de datos

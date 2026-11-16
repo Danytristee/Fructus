@@ -3,6 +3,7 @@
 // sin cliente; la rebaja dicha para toda la venta se reparte entre las frutas según su peso en el total. Lógica pura.
 import type { EstadoLlegada } from "../vida-util-reglas";
 import { leerMonto } from "./monto-reglas";
+import type { VentaActual } from "./esquemas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
 type Venta = Extract<Tarjeta, { tipo: "venta" }>;
@@ -147,5 +148,17 @@ export function pedidoVenta(b: Borrador, comandoId: number, corregido: boolean):
     comando_voz_id: comandoId,
     corregido,
     items: b.items.map((it, n) => ({ producto_id: it.productoId!, cantidad: it.cantidad, precio_unitario: it.precio!, descuento: descuentos[n]! })),
+  };
+}
+
+/** La venta de la tarjeta en los campos de registrar_venta, para que el intérprete la corrija sin perder nada (corregir hablando). */
+export function ventaActual(b: Borrador): VentaActual {
+  return {
+    cliente_texto: b.cliente?.nombre ?? null,
+    items: b.items.map((it) => ({ producto_texto: it.producto, cantidad: it.cantidad, precio_unitario: it.precio })),
+    descuento_total: b.descuento > 0 ? b.descuento : null,
+    condicion: b.condicion,
+    medio_pago: b.condicion === "contado" ? (b.medio ?? "efectivo") : null,
+    comprobante: b.comprobante,
   };
 }

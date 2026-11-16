@@ -42,14 +42,15 @@ export async function sesion() {
 type Cliente = NonNullable<Awaited<ReturnType<typeof sesion>>>["supabase"];
 
 /**
- * Lo que se insertó directo en su tabla (abono, merma, gasto) queda enlazado a su comando: confirmado o corregido, y con
- * la latencia medida en el celular (CLAUDE.md, regla 9). Solo si seguía pendiente: un segundo toque no lo cambia. Si
+ * Lo que se insertó directo en su tabla (abono, merma, gasto) queda enlazado a su comando: confirmado o corregido, con
+ * la latencia medida en el celular (CLAUDE.md, regla 9) y si se confirmó con un toque o hablando. Solo si seguía pendiente: un segundo toque no lo cambia. Si
  * falla, la operación igual vale (el comando solo cuenta distinto en la precisión).
  */
-export async function marcarComando(supabase: Cliente, comandoId: number, corregido: boolean, latenciaMs: number) {
+export async function marcarComando(supabase: Cliente, comandoId: number, corregido: boolean, latenciaMs: number, confirmadoPor: "toque" | "voz" = "toque") {
   const { error } = await supabase
     .from("comandos_voz")
-    .update({ resultado: corregido ? "corregido" : "confirmado", latencia_ms: latenciaMs })
+    // Cómo se confirmó (ADR-0020) va en la misma fila: el check de la base no deja un «por voz» sin confirmar.
+    .update({ resultado: corregido ? "corregido" : "confirmado", latencia_ms: latenciaMs, confirmado_por: confirmadoPor })
     .eq("id", comandoId)
     .eq("resultado", "pendiente");
   if (error) console.error("voz: no se pudo marcar el comando", { comandoId, codigo: error.code });

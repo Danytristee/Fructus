@@ -14,13 +14,17 @@ import {
   quedanTrasMerma,
   type BorradorMerma,
 } from "@/lib/voz/confirmar-merma-reglas";
+import { guionMerma } from "@/lib/voz/guion-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorItem } from "./EditorItem";
 import { FilaTarjeta } from "./FilaTarjeta";
 import { EnCola } from "./EnCola";
 import { Guardado } from "./Guardado";
 import { PieConfirmar } from "./PieConfirmar";
+import { manosLibres } from "./manos-libres";
+import { notaDeVoz } from "./NotaVoz";
 import { useConfirmar } from "./useConfirmar";
+import { useManosLibres } from "./useManosLibres";
 
 type Merma = Extract<Tarjeta, { tipo: "merma" }>;
 
@@ -44,6 +48,9 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [editando, setEditando] = useState(false);
   const [stock, setStock] = useState<number | null>(null);
   const { confirmar: enviar, guardando, error, guardado, encolado, incierto } = useConfirmar<{ ok: true; stock: number | null }>({ alGuardar, alCambiarGuardando });
+  // Manos libres (ADR-0020): al abrirse se lee y se confirma diciendo «confirmo». A mano no: quien escribe ya está mirando.
+  const [guion] = useState(() => (manosLibres() && !aMano ? guionMerma(borradorMerma(tarjeta)) : null));
+  const voz = useManosLibres({ guion, alConfirmar: () => confirmar("voz"), guardado: guardado !== null });
 
   const productoId = borrador.producto?.id ?? null;
   useEffect(() => {
@@ -60,9 +67,9 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const falta = faltaMerma(borrador);
   const { producto, cantidad } = borrador;
 
-  function confirmar() {
+  function confirmar(confirmadoPor: "toque" | "voz" = "toque") {
     if (falta.length > 0) return;
-    const entrada = { comandoId, borrador, corregido: fueCorregidaMerma(tarjeta, borrador), latenciaMs, aMano };
+    const entrada = { comandoId, borrador, corregido: fueCorregidaMerma(tarjeta, borrador), latenciaMs, aMano, confirmadoPor };
     // Con los datos, no solo la función: sin señal se guarda en el celular y se envía solo después (ADR-0019).
     void enviar(() => confirmarMerma(entrada), { tipo: "merma", entrada });
   }
@@ -108,7 +115,8 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
   const quedan = producto && stock !== null && !falta.includes("cantidad") ? quedanTrasMerma(stock, cantidad) : null;
   return (
-    <div className="grid gap-2">
+    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo.
+    <div className="grid gap-2" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
       <FilaTarjeta
         style={pieza(0)}
         className="animate-pieza"
@@ -157,7 +165,8 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         guardando={guardando}
         listo={falta.length === 0}
         etiqueta="Confirmar merma"
-        alConfirmar={confirmar}
+        alConfirmar={() => confirmar("toque")}
+        nota={notaDeVoz(voz)}
         alDescartar={() => alDescartar(incierto.current)}
       />
     </div>

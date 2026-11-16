@@ -1,4 +1,5 @@
-// El gesto del botón de voz: mantener para hablar (soltar envía) o tocar una vez para que quede escuchando (otro toque envía).
+// El gesto del botón de voz: mantener para hablar (soltar envía) o tocar una vez para que quede escuchando (otro toque envía, y
+// también callarse: lib/voz/silencio-reglas.ts).
 // Lógica pura: no importa React ni el micrófono. Quien la usa ejecuta el efecto que devuelve.
 
 /** Un toque más corto que esto no es «mantener»: deja el botón escuchando sin el dedo encima. */
@@ -31,7 +32,9 @@ export type EventoGesto =
   /** Tocó «Cancelar»: se descarta sin enviar. */
   | { tipo: "cancelar" }
   /** Pasó TOPE_ESCUCHA_MS escuchando. */
-  | { tipo: "tope" };
+  | { tipo: "tope" }
+  /** Habló y después calló un rato (lib/voz/silencio-reglas.ts). */
+  | { tipo: "silencio" };
 
 /** Qué hacer con el micrófono: empezar a grabar, seguir sin el dedo, enviar lo grabado, tirarlo o nada. */
 export type EfectoGesto = "empezar" | "bloquear" | "enviar" | "descartar" | "nada";
@@ -55,11 +58,12 @@ export function siguienteGesto(g: Gesto, e: EventoGesto): { gesto: Gesto; efecto
       return quedar;
     case "bloqueado":
       if (e.tipo === "bajar") return { gesto: { fase: "cerrando" }, efecto: "nada" };
-      if (e.tipo === "tope") return { gesto: REPOSO, efecto: "enviar" };
+      // Sin el dedo, callarse es terminar: se envía solo, sin el segundo toque. Mientras se mantiene, manda el dedo.
+      if (e.tipo === "tope" || e.tipo === "silencio") return { gesto: REPOSO, efecto: "enviar" };
       if (e.tipo === "cancelar") return { gesto: REPOSO, efecto: "descartar" };
       return quedar;
     case "cerrando":
-      if (e.tipo === "subir" || e.tipo === "tope") return { gesto: REPOSO, efecto: "enviar" };
+      if (e.tipo === "subir" || e.tipo === "tope" || e.tipo === "silencio") return { gesto: REPOSO, efecto: "enviar" };
       // El toque que iba a enviar se perdió: sigue escuchando, nada de lo dicho se pierde.
       if (e.tipo === "perder") return { gesto: { fase: "bloqueado" }, efecto: "nada" };
       if (e.tipo === "cancelar") return { gesto: REPOSO, efecto: "descartar" };

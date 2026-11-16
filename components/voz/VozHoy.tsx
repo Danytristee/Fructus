@@ -80,7 +80,7 @@ async function enviarAudio({ audio, duracionMs }: Grabacion): Promise<Desenlace 
 
 /**
  * El botón de voz de «Hoy», encajado al centro de la barra de abajo, en la zona del pulgar (CLAUDE.md, regla 1).
- * Mantener → hablar → soltar, o tocar → hablar → tocar (lib/voz/gesto-reglas.ts) → la tarjeta en una hoja. Si algo falla,
+ * Mantener → hablar → soltar, o tocar → hablar → tocar o callarse (lib/voz/gesto-reglas.ts) → la tarjeta en una hoja. Si algo falla,
  * dice qué hacer y guarda el audio para reintentarlo.
  */
 export function VozHoy() {
@@ -95,7 +95,8 @@ export function VozHoy() {
   // Cuánto subió el dedo hacia el candado (0 a 1) y desde qué altura bajó.
   const [avance, setAvance] = useState(0);
   const inicioY = useRef(0);
-  const grabadora = useGrabadora();
+  // Sin el dedo encima, callarse envía lo dicho (lib/voz/gesto-reglas.ts); manteniendo, no.
+  const grabadora = useGrabadora({ alCallarse: () => aplicar({ tipo: "silencio" }) });
   const cola = useCola();
   // La tarjeta abierta vino de la cola (un dictado sin señal que ya volvió): se saca de la cola al guardarla o descartarla.
   const desdeCola = useRef<number | null>(null);

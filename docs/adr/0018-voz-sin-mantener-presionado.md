@@ -36,3 +36,16 @@ como los audios de WhatsApp. La palabra de activación («Hola Fructus») queda 
 - Con teclado, pulsar Espacio una vez deja el orbe escuchando, y pulsarlo otra vez envía.
 - **Sin probar en un teléfono real:** los 300 ms del toque, los 94 px del candado y qué hace Android con el micrófono de una página
   escuchando cuando se bloquea la pantalla. Se miden con el dueño y se ajustan en `gesto-reglas.ts`.
+
+## Actualización 2026-11-14: callarse también envía
+
+Escuchando sin el dedo, el orbe envía solo cuando la persona habló al menos 0.4 s y después calló 1.2 s (`lib/voz/silencio-reglas.ts`).
+Es el primer paso del manos libres del ADR-0020: con un toque se dicta y no hace falta el segundo.
+
+- **Mide el volumen, no reconoce la voz.** Una voz es lo que suena 12 dB o más por encima del fondo. El fondo baja enseguida, sube
+  despacio (2 dB por segundo) y no se mueve mientras se habla. No suma ningún modelo ni descarga.
+- **Mientras se mantiene, manda el dedo:** callarse no envía.
+- **Si el puesto suena tan fuerte como la voz,** nunca «se calla» y se envía como antes, con un toque o a los 55 s.
+- **Sin probar con el audífono ni en el puesto.** Si corta frases o no termina, se ajustan los números de `silencio-reglas.ts`; si
+  no alcanza con el volumen, se cambia por un detector de voz (Silero).
+

@@ -1005,6 +1005,401 @@
           "consulta": "que_sale_hoy"
         }
       }
+    },
+    {
+      "id": "correccion-cantidad",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, son ocho cajas",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 8,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-precio",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, a cuarenta",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 40
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-pago",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, me pagó con Yape",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "correccion-cliente",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, es para don Lucho",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-fruta",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, eran de papaya",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-un-item-de-dos",
+      "correccionDe": {
+        "cliente_texto": "Bodega Santa Ana",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          },
+          {
+            "producto_texto": "Palta Fuerte",
+            "cantidad": 5,
+            "precio_unitario": 60
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "contado",
+        "medio_pago": "efectivo",
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "La palta a cincuenta y cinco",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "bodega santa ana",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            },
+            {
+              "producto_texto": "palta fuerte",
+              "cantidad": 5,
+              "precio_unitario": 55
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "correccion-cliente-de-paso",
+      "correccionDe": {
+        "cliente_texto": null,
+        "items": [
+          {
+            "producto_texto": "Papaya",
+            "cantidad": 3,
+            "precio_unitario": 30
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "contado",
+        "medio_pago": "yape",
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, cuatro cajas",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": null,
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 4,
+              "precio_unitario": 30
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "correccion-no-corrige",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "Gracias por ver el video.",
+      "esperado": {
+        "herramienta": "no_entendido",
+        "datos": {}
+      }
+    },
+    {
+      "id": "correccion-centimos-con-palabras",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, a cuarenta y cinco con cincuenta.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45.5
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-centimos-con-cifras",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, a 45 con 50.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45.5
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-centimos-con-punto",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, a 45.50",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45.5
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-centimos-sin-con",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, a cuarenta y cinco cincuenta",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45.5
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
     }
   ]
 }
