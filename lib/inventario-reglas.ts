@@ -2,7 +2,7 @@
 // fruta tiene que salir ya, cuál sobra, cuál hay que reponer y qué conviene hacer. Lógica pura: no importa React ni Supabase.
 
 import { diaDeLima } from "./formato";
-import { cuandoLlego, deCuando, DIAS_DE_ENTRADAS, estimarLlegada, llegadaSinFecha, llegadasEnStock, type Estimacion, type Llegada } from "./frescura-reglas";
+import { conRevisionDeHoy, cuandoLlego, deCuando, DIAS_DE_ENTRADAS, esDeEstaLlegada, estimarLlegada, llegadaSinFecha, llegadasEnStock, sePasoDeSuDia, type Estimacion, type Llegada, type Revision } from "./frescura-reglas";
 import { agruparPorFruta, detalleProducto, nombreProducto, tituloEnGrupo, type PartesProducto } from "./productos-reglas";
 import { diaAnterior, type TemperaturaDia } from "./temperatura-reglas";
 import type { VidaEstimada } from "./vida-estimada-reglas";
@@ -56,6 +56,8 @@ export type ProductoInventario = PartesProducto & {
   precioReferencia: number | null;
   /** Lo que estimó la IA para esta fruta (ADR-0021). Sin eso, o si no se pudo leer, se cuenta con la tabla. */
   vidaEstimada?: VidaEstimada | null;
+  /** Las llegadas de esta fruta que alguien revisó y dijo «Sigue buena». Solo cuentan las de hoy. */
+  revisiones?: readonly Revision[];
 };
 
 /** De dónde salen los días que aguanta la fruta: de lo que estimó la IA (sus días, de cuándo es, su motivo y lo que decía la tabla) o de la tabla. */
@@ -87,8 +89,9 @@ export type EstadoProducto = {
 /**
  * Una llegada con su cuenta: cuántas cajas quedan de ella y cuánto le falta para su último día bueno. `vida` son los días con
  * los que se contó (a temperatura normal, según cómo llegó); null en las cajas de hace más de 45 días, que no llevan cuenta.
+ * `revisada`: ya pasó su último día bueno, pero alguien la miró hoy y sigue buena: sale mañana.
  */
-export type LoteEstimado = Llegada & Estimacion & { vida: number | null };
+export type LoteEstimado = Llegada & Estimacion & { vida: number | null; revisada: boolean };
 
 // Cajas y días enteros, como se dice en el puesto: «unas 136 cajas», no «136.3» («no vendo media caja», prueba a ciegas de /formidable
 // 2026-11-09). Lo que no llega a uno se dice en palabras.
@@ -100,6 +103,7 @@ const esUrgente = (a: Pick<Alerta, "gravedad">) => a.gravedad === "alta";
 
 /** Por qué esa llegada tiene que salir, en una frase: lo que le quitó el calor, o que ya se pasó. */
 function porQueSale(lote: LoteEstimado, hoyMismo: boolean): string {
+  if (lote.revisada) return "La revisaste hoy y sigue buena. Mañana vuelve a mirarla.";
   if (lote.antes) return "Revisa la fruta antes de venderla.";
   if (lote.atraso > 0) return `Su último día bueno fue ${lote.atraso === 1 ? "ayer" : `hace ${dias(lote.atraso)}`}: revisa la fruta antes de venderla.`;
   const cuando = hoyMismo ? "hoy" : "mañana";
@@ -125,9 +129,11 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date, lecturas: read
   // Las cajas que las entradas leídas no cubren son de hace más de 45 días: no se les hace la cuenta, piden revisarse hoy.
   const lotes: LoteEstimado[] = llegadasEnStock(p.stock, p.entradas, diaAnterior(hoyDia, DIAS_DE_ENTRADAS))
     .map((l) => {
-      if (l.antes) return { ...l, vida: null, ...llegadaSinFecha(l.dia, hoyDia) };
-      const vida = vidaDeLlegada(p.nombre, l.estado, vidaUtil);
-      return { ...l, vida, ...estimarLlegada(l.dia, vida, lecturas, hoyDia) };
+      const vida = l.antes ? null : vidaDeLlegada(p.nombre, l.estado, vidaUtil);
+      const cuenta = vida === null ? llegadaSinFecha(l.dia, hoyDia) : estimarLlegada(l.dia, vida, lecturas, hoyDia);
+      // «Sigue buena»: la que ya se pasó y alguien revisó hoy gana un día (sale mañana).
+      const revisada = sePasoDeSuDia(cuenta) && (p.revisiones ?? []).some((r) => r.dia === hoyDia && esDeEstaLlegada(r, l));
+      return { ...l, vida, revisada, ...(revisada ? conRevisionDeHoy(cuenta, hoyDia) : cuenta) };
     })
     .sort((a, b) => (a.fin === b.fin ? 0 : a.fin < b.fin ? -1 : 1));
   const viejo = lotes[0] ?? null;

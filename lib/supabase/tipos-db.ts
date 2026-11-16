@@ -329,6 +329,38 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"revisiones_frescura": {
+                  Row: {
+                    "creado_en": string,"dia": string,"id": number,"llegada_dia": string | null,"llegada_estado": Database["public"]['Enums']["estado_llegada"] | null,"producto_id": number,"registrado_por": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creado_en"?: string,"dia"?: string,"id"?: never,"llegada_dia"?: string | null,"llegada_estado"?: Database["public"]['Enums']["estado_llegada"] | null,"producto_id": number,"registrado_por"?: string
+                  }
+                  Update: {
+                    "creado_en"?: string,"dia"?: string,"id"?: never,"llegada_dia"?: string | null,"llegada_estado"?: Database["public"]['Enums']["estado_llegada"] | null,"producto_id"?: number,"registrado_por"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "revisiones_frescura_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "productos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "revisiones_frescura_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "v_stock"
+      referencedColumns: ["producto_id"]
+    },{
+      foreignKeyName: "revisiones_frescura_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "perfiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"series_comprobante": {
                   Row: {
                     "serie": string,"tipo": string,"ultimo_numero": number

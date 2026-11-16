@@ -98,6 +98,18 @@ describe("veredictoDeLlegada y explicacionDelCalor", () => {
   });
 });
 
+describe("una llegada revisada hoy («Sigue buena»)", () => {
+  const revisada = { ...lote("2026-11-09", 4, 6), restan: 1, atraso: 0, fin: "2026-11-15", revisada: true };
+
+  it("el veredicto dice que la revisaste y cuándo volver a mirarla", () => {
+    expect(veredictoDeLlegada(revisada, HOY)).toEqual({ titulo: "Sigue buena", detalle: "La revisaste hoy. Mañana vuelve a mirarla." });
+  });
+
+  it("el consejo es venderla hoy, aunque sea con rebaja", () => {
+    expect(consejoDeLlegada(revisada)).toBe("Ponla adelante y véndela hoy, aunque sea con rebaja.");
+  });
+});
+
 describe("origenDeLaCuenta", () => {
   const ia = { fuente: "ia", dias: 36, dia: "2026-11-13", motivo: "La Fuji es más firme que otras manzanas.", tabla: 30 } as const;
 

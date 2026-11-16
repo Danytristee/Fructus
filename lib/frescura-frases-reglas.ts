@@ -4,7 +4,7 @@ import { cuandoLlego, deCuando, diasEntre, hastaCuando, type Estimacion, type Ll
 import type { OrigenVida } from "./inventario-reglas";
 import { NOMBRE_ESTADO } from "./vida-util-reglas";
 
-type Lote = Llegada & Estimacion;
+type Lote = Llegada & Estimacion & { revisada?: boolean };
 
 const cajas = (n: number) => `${Math.round(n)} ${Math.round(n) === 1 ? "caja" : "cajas"}`;
 const dias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
@@ -45,6 +45,8 @@ export function fraseDeLlegadas(lotes: readonly Pick<Lote, "cajas" | "restan">[]
  * mirarla: «Tiene que salir hoy» encima de «Su último día bueno fue ayer» dejaba la duda de si ya estaba mala (/formidable 2026-11-14).
  */
 export function veredictoDeLlegada(lote: Lote, hoy: string): { titulo: string; detalle: string } {
+  // Ya había pasado su día, pero alguien la miró hoy: lo primero es decir que eso quedó anotado.
+  if (lote.revisada) return { titulo: "Sigue buena", detalle: "La revisaste hoy. Mañana vuelve a mirarla." };
   // De hace más de 45 días no se sabe el día: no se inventa cuál fue su último día bueno.
   if (lote.antes) return { titulo: "Revísala antes de vender", detalle: `Lleva más de ${dias(diasEntre(lote.dia, hoy))} en el puesto.` };
   if (lote.atraso > 0) return { titulo: "Revísala antes de vender", detalle: `Su último día bueno fue ${lote.atraso === 1 ? "ayer" : `hace ${dias(lote.atraso)}`}.` };
@@ -59,6 +61,7 @@ export function veredictoDeLlegada(lote: Lote, hoy: string): { titulo: string; d
  * null si todavía aguanta: no hay nada que hacer.
  */
 export function consejoDeLlegada(lote: Lote): string | null {
+  if (lote.revisada) return "Ponla adelante y véndela hoy, aunque sea con rebaja.";
   if (lote.atraso > 0) return "Si sigue buena, véndela hoy con rebaja. Si no, anótala con «Se malogró».";
   if (lote.restan === 0) return "Véndelo hoy, antes que lo nuevo. Si no sale, ofrécelo con rebaja.";
   return lote.restan === 1 ? "Ponlo adelante y véndelo primero." : null;

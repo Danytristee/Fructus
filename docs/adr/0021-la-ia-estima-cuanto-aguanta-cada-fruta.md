@@ -40,6 +40,17 @@ otro sin motivo, o que Stock deje de funcionar cuando el modelo no responde.
    ventas.
 9. **Clave:** `ANTHROPIC_API_KEY`, solo en el servidor (`.env.local`, variables de Vercel). Sin ella no se estima y se dice.
 
+10. **«Sigue buena»: la llegada que ya pasó su día se revisa con un toque** (`revisiones_frescura`, `components/inventario/SigueBuena.tsx`).
+    La hoja «¿por qué?» de una llegada pasada ofrece dos respuestas lado a lado, como «Pagó / Lo debe»: **Sigue buena** y **Se malogró**.
+    - Solo se le pregunta a la que ya pasó su último día bueno (o a las cajas de hace más de 45 días), y solo a quien puede registrar.
+    - No lleva tarjeta de confirmación: no mueve dinero ni stock, y el toque es la confirmación. La hoja cambia recién cuando la base
+      respondió, con vibración y sonido. Sin señal no se encola: lo dice y espera (regla 10 de «Celular primero»).
+    - **La revisión de hoy le da un día:** la llegada sale de «para hoy» y queda como «sale mañana»; mañana se vuelve a preguntar. No
+      cambia el stock ni cuánto aguanta la fruta: eso lo decide la estimación de cada noche, con la revisión como evidencia.
+    - En la base solo se agregan filas, una por llegada y por día (el doble toque, o dos personas a la vez, dejan una sola), con el día
+      de Lima de hoy y a nombre de quien la tocó: la política no deja anotar una con otra fecha ni a nombre de otro.
+    - Antes de anotar, el servidor mira el inventario de ahora: si esa llegada ya no está o ya no está pasada, no anota y lo dice.
+
 ## Alternativas descartadas
 
 - **Que el modelo decida directamente «qué sale hoy»:** una respuesta distinta cada noche, sin poder explicar por qué cambió, y Stock
@@ -51,6 +62,9 @@ otro sin motivo, o que Stock deje de funcionar cuando el modelo no responde.
   toca. El respaldo de Fructus es la tabla, que no depende de ningún servicio.
 - **Una ruta de cron aparte:** otra tarea programada y otro secreto para algo que cabe en la pasada de la noche.
 - **Llamar al modelo desde Stock, al abrirlo:** la pantalla esperaría a un servicio externo y cada visita costaría una llamada.
+- **Que «Sigue buena» apague el aviso de esa llegada para siempre:** una fruta revisada el lunes no está revisada el jueves.
+- **Que «Sigue buena» le sume días a la fruta en el acto:** un toque de una persona movería el aviso de todas las llegadas de esa
+  fruta. La revisión es evidencia; el ajuste lo hace la estimación de la noche, acotado y con su motivo.
 
 ## Consecuencias
 

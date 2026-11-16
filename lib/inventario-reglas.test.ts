@@ -170,6 +170,37 @@ describe("evaluarProducto", () => {
     });
   });
 
+  describe("«Sigue buena»: la llegada que alguien revisó hoy", () => {
+    // Papaya (5 días) que llegó hace 7: su último día bueno fue hace dos días.
+    const papaya = { nombre: "Papaya", variedad: null, stock: 10, vendido7: 35, entradas: [{ fecha: haceDias(7), cantidad: 10 }] };
+    const llegadaDia = "2026-10-21";
+
+    it("sin revisar, tiene que salir hoy y pide mirarla", () => {
+      const e = evaluarProducto(producto(papaya), hoy);
+      expect(e.lotes[0]).toMatchObject({ dia: llegadaDia, restan: 0, revisada: false });
+      expect(e.lotes[0]!.atraso).toBeGreaterThan(0);
+      expect(e.alertas.find((a) => a.tipo === "deterioro")).toMatchObject({ gravedad: "alta" });
+    });
+
+    it("revisada hoy, ya no es para hoy: sale mañana, y el aviso dice que la revisaste", () => {
+      const e = evaluarProducto(producto({ ...papaya, revisiones: [{ llegadaDia, estado: null, dia: "2026-10-28" }] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ restan: 1, atraso: 0, revisada: true });
+      const aviso = e.alertas.find((a) => a.tipo === "deterioro")!;
+      expect(aviso).toMatchObject({ gravedad: "media", titulo: "Papaya sale mañana" });
+      expect(aviso.detalle).toContain("La revisaste hoy y sigue buena. Mañana vuelve a mirarla.");
+    });
+
+    it("la revisión de ayer ya no vale hoy: vuelve a pedir que la mires", () => {
+      const e = evaluarProducto(producto({ ...papaya, revisiones: [{ llegadaDia, estado: null, dia: "2026-10-27" }] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ restan: 0, revisada: false });
+    });
+
+    it("la revisión de otra llegada no cuenta para esta", () => {
+      const e = evaluarProducto(producto({ ...papaya, revisiones: [{ llegadaDia: "2026-10-20", estado: null, dia: "2026-10-28" }] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ restan: 0, revisada: false });
+    });
+  });
+
   it("kiwi con 80 cajas y 2 al día: sobrestock, no compres más", () => {
     const e = evaluarProducto(producto({ nombre: "Kiwi", variedad: "Cope", stock: 80, vendido7: 14, entradas: [{ fecha: haceDias(2), cantidad: 80 }] }), hoy);
     const a = e.alertas.find((x) => x.tipo === "sobrestock");
