@@ -77,9 +77,19 @@ export function lecturaVenta(b: Borrador): string | null {
 /** Lo que pregunta, y qué espera oír: «confirmo», «pagó» o «lo debe», o nada (solo avisa y pide el toque). */
 export type Guion = { pregunta: "confirmar" | "pago" | "ninguna"; texto: string };
 
-/** «Tengo una duda con esta venta…» (o «con este abono»): con dudas del intérprete no se confirma hablando. */
-export const dudaHablada = (con: string) => `Tengo una duda con ${con}. Revisa la tarjeta y toca Confirmar.`;
-export const DUDA_HABLADA = dudaHablada("esta venta");
+/**
+ * Con dudas del intérprete no se confirma hablando, pero la duda se dice: «Tengo una duda: no sé si dijo 10 o 12 cajas. Revisa la
+ * tarjeta y toca Confirmar.» Solo «tengo una duda» obligaba a soltar las cajas para saber cuál (/formidable 2026-11-16). Con varias,
+ * la primera y cuántas más.
+ */
+export function dudaHablada(dudas: string[]): string {
+  const primera = (dudas[0] ?? "").trim().replace(/[.。]+$/, "");
+  const duda = primera ? `: ${primera.charAt(0).toLowerCase()}${primera.slice(1)}` : "";
+  const mas = dudas.length === 2 ? ", y una más" : dudas.length > 2 ? `, y ${dudas.length - 1} más` : "";
+  const frase = `Tengo una duda${duda}${mas}`;
+  // Una duda que es pregunta ya cierra con «?»: sin otro punto detrás.
+  return `${frase}${/[?!]$/.test(frase) ? "" : "."} Revisa la tarjeta y toca Confirmar.`;
+}
 
 /**
  * Qué dice Fructus al abrir la tarjeta en manos libres (ADR-0020, candado 4):
@@ -89,7 +99,7 @@ export const DUDA_HABLADA = dudaHablada("esta venta");
  *   - si no falta nada, lee lo que se va a guardar y pregunta «¿Confirmo?».
  */
 export function guionVenta(b: Borrador, dudas: string[]): Guion {
-  if (dudas.length > 0) return { pregunta: "ninguna", texto: DUDA_HABLADA };
+  if (dudas.length > 0) return { pregunta: "ninguna", texto: dudaHablada(dudas) };
   const falta = faltaDe(b);
   const total = totalDe(b);
   if (falta.length === 0 && total !== null) return { pregunta: "confirmar", texto: lecturaVenta(b)! };

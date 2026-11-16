@@ -155,3 +155,22 @@ test("«no, son ocho cajas»: la tarjeta se corrige, se vuelve a leer y se confi
   expect(ventas).toEqual([{ total: 360, venta_items: [{ cantidad: 8 }] }]);
   expect(await confirmacion(comandoId)).toEqual({ resultado: "corregido", confirmado_por: "voz" });
 });
+
+test("«repite»: la vuelve a leer entera y escucha otra vez; después «confirmo» la guarda", async ({ page }, info) => {
+  const cliente = clientePorAncho[info.project.name as Ancho];
+  let n = 0;
+  await page.route("/api/voz/respuesta", (r) => r.fulfill({ json: n++ === 0 ? { repetir: true } : { respuesta: "confirmar" } }));
+  const comandoId = await crearComando();
+  const hoja = await hastaEscuchar(page, comandoId, cliente.nombre, cliente);
+  // La línea enseña que se puede corregir hablando (/formidable 2026-11-16).
+  await expect(hoja.getByRole("status")).toHaveText("Te escucho: di «confirmo» o lo que hay que cambiar.");
+
+  const leidas = (await dichas(page)).filter((d) => d === lectura(cliente.nombre)).length;
+  await responder(page); // «¿Qué?»
+  await expect.poll(async () => (await dichas(page)).filter((d) => d === lectura(cliente.nombre)).length).toBe(leidas + 1);
+  await terminarFrase(page);
+  await expect(hoja.getByRole("status").filter({ hasText: "di «confirmo»" })).toBeVisible();
+  await responder(page);
+  await expect(page.getByText("Venta guardada")).toBeVisible();
+  expect(await confirmacion(comandoId)).toEqual({ resultado: "confirmado", confirmado_por: "voz" });
+});

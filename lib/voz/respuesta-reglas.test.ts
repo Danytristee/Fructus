@@ -20,6 +20,16 @@ describe("clasificarRespuesta", () => {
     expect(clasificarRespuesta(dicho)).toBe("otra"),
   );
 
+  it.each(["Repite", "Repítelo, por favor", "¿Qué?", "¿Cómo?", "¿Qué dijiste?", "Otra vez", "No te escuché", "No escuché nada", "Perdón, ¿qué?"])(
+    "«%s» pide que lo lea otra vez",
+    (dicho) => expect(clasificarRespuesta(dicho)).toBe("repetir"),
+  );
+
+  it("lo que confirma no se toma como «repite», y lo que mezcla las dos no se adivina", () => {
+    expect(clasificarRespuesta("Correcto, otra vez")).toBe("otra"); // ¿confirma o pide repetir? se repregunta
+    expect(clasificarRespuesta("¿Qué fruta era?")).toBe("otra"); // pregunta otra cosa: no es «repite»
+  });
+
   it("el silencio o lo que Whisper inventa en el silencio no confirma", () => {
     expect(clasificarRespuesta("")).toBe("otra");
     expect(clasificarRespuesta("Gracias por ver el video.")).toBe("otra");

@@ -4,12 +4,12 @@ import { permisosDe } from "@/lib/permisos-reglas";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { interpretar } from "@/lib/voz/interprete";
 import { resolver } from "@/lib/voz/resolver";
-import { VOCABULARIO_PAGO, VOCABULARIO_RESPUESTA, clasificarPago, clasificarRespuesta, pareceCorreccion } from "@/lib/voz/respuesta-reglas";
+import { VOCABULARIO_PAGO, VOCABULARIO_RESPUESTA, clasificarPago, clasificarRespuesta, pareceCorreccion, pideQueRepita } from "@/lib/voz/respuesta-reglas";
 import { transcribir } from "@/lib/voz/stt";
 import { armarTarjeta } from "@/lib/voz/tarjeta-reglas";
 
 // POST /api/voz/respuesta: la respuesta corta después de oír la lectura de una venta (ADR-0020) → Whisper → ¿confirma?, o, si se
-// preguntó «¿Pagó o lo debe?» (`pregunta=pago`), cómo quedó el pago. No guarda nada: el celular anota el pago en la tarjeta y, si
+// preguntó «¿Pagó o lo debe?» (`pregunta=pago`), cómo quedó el pago. «Repite» pide que se lea otra vez. No guarda nada: el celular anota el pago en la tarjeta y, si
 // confirma, guarda por la misma acción que el toque. Si en vez de confirmar corrige («no, son ocho cajas»), el intérprete arma la
 // venta corregida a partir de lo que se leyó (`lectura`) y vuelve una tarjeta nueva para leer y confirmar. Nunca registra la
 // transcripción en los logs.
@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
   const pregunta = formulario?.get("pregunta") === "pago" ? "pago" : "confirmar";
   const texto = await transcribir(audio, { vocabulario: pregunta === "pago" ? VOCABULARIO_PAGO : VOCABULARIO_RESPUESTA });
   if (!texto.ok) return responder(502, { error: "No te entendí." });
+  // «Repite», «¿qué?»: se vuelve a leer, en cualquier pregunta, sin llamar al modelo.
+  if (pideQueRepita(texto.texto)) return responder(200, { repetir: true });
   if (pregunta === "pago") return responder(200, { pago: clasificarPago(texto.texto) });
 
   const respuesta = clasificarRespuesta(texto.texto);

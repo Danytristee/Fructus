@@ -14,7 +14,7 @@ describe("guionAbono", () => {
     expect(guionAbono({ cliente: null, monto: 200, medio: "efectivo" }, [])).toMatchObject({ pregunta: "ninguna" });
     expect(guionAbono({ cliente: { id: 1, nombre: "Luis Paredes" }, monto: 200, medio: "efectivo" }, ["¿200 o 300?"])).toEqual({
       pregunta: "ninguna",
-      texto: "Tengo una duda con este abono. Revisa la tarjeta y toca Confirmar.",
+      texto: "Tengo una duda: ¿200 o 300? Revisa la tarjeta y toca Confirmar.",
     });
   });
 });

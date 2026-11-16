@@ -11,7 +11,7 @@ const avisar = (falta: string | null): Guion => ({ pregunta: "ninguna", texto: `
 
 /** «Abono de Luis Paredes: 200 soles con Yape. ¿Confirmo?» */
 export function guionAbono(b: BorradorAbono, dudas: string[]): Guion {
-  if (dudas.length > 0) return { pregunta: "ninguna", texto: dudaHablada("este abono") };
+  if (dudas.length > 0) return { pregunta: "ninguna", texto: dudaHablada(dudas) };
   const falta = faltaAbono(b);
   if (falta.length > 0 || !b.cliente || b.monto === null) return avisar(frasesFaltaAbono(falta));
   return { pregunta: "confirmar", texto: `Abono de ${b.cliente.nombre}: ${solesHablados(b.monto)} ${MEDIOS_HABLADOS[b.medio]}. ¿Confirmo?` };
@@ -43,7 +43,7 @@ function resumenCompra(b: BorradorCompra, total: number): string {
 
 /** «Compra a Agrícola Chao: 50 cajas de Plátano Isla, a 25 la caja. Total, 1250 soles. La debes. ¿Confirmo?» */
 export function guionCompra(b: BorradorCompra, dudas: string[]): Guion {
-  if (dudas.length > 0) return { pregunta: "ninguna", texto: dudaHablada("esta compra") };
+  if (dudas.length > 0) return { pregunta: "ninguna", texto: dudaHablada(dudas) };
   const falta = faltaCompra(b);
   const total = totalCompra(b);
   if (falta.length === 1 && falta[0] === "condicion" && total !== null) return { pregunta: "pago", texto: `${resumenCompra(b, total)} ¿La pagaste o la debes?` };

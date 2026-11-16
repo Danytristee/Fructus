@@ -95,7 +95,8 @@ test("con dudas del intérprete no se escucha: lo dice y la venta se confirma co
   const comandoId = await crearComando();
   const hoja = await dictar(page, comandoId, tarjeta(cliente, { dudas: ["No sé si dijo 10 o 12 cajas"] }), "¿Así fue la venta?");
 
-  await expect.poll(() => distintas(page)).toEqual(["Tengo una duda con esta venta. Revisa la tarjeta y toca Confirmar."]);
+  // La duda se dice: no hay que soltar las cajas para saber cuál es (/formidable 2026-11-16).
+  await expect.poll(() => distintas(page)).toEqual(["Tengo una duda: no sé si dijo 10 o 12 cajas. Revisa la tarjeta y toca Confirmar."]);
   await terminarFrase(page);
   await responder(page);
   await page.waitForTimeout(1500);

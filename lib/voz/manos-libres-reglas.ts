@@ -6,7 +6,8 @@
 //      └─── «Para guardar, di confirmo» ◀───────────┘
 //
 // Si falta saber si pagó, la primera pregunta es «¿Pagó o lo debe?»: la respuesta se anota en la tarjeta y se lee la venta completa
-// para confirmarla. Si en vez de «confirmo» corrige («no, son ocho cajas»), la tarjeta se rehace y se vuelve a leer. Con dudas del intérprete (o si falta otro dato) solo se avisa: no se escucha nada y se confirma con el dedo.
+// para confirmarla. Si en vez de «confirmo» corrige («no, son ocho cajas»), la tarjeta se rehace y se vuelve a leer; si dice
+// «repite» o «¿qué?», se vuelve a leer igual (hasta REPETICIONES veces). Con dudas del intérprete (o si falta otro dato) solo se avisa: no se escucha nada y se confirma con el dedo.
 // Tocar la tarjeta, en cualquier momento: callado (la persona toma el control).
 import type { Pago } from "./respuesta-reglas";
 
@@ -19,6 +20,8 @@ export const SILENCIO_RESPUESTA_MS = 800;
 /** Lo que dice si oyó otra cosa: una sola vez, y vuelve a escuchar. */
 export const REPREGUNTA = "Para guardar, di confirmo.";
 export const REPREGUNTA_PAGO = "¿Pagó o lo debe?";
+/** Cuántas veces se vuelve a leer si pide «repite»: después, cuenta como otra cosa (nada se lee en bucle). */
+const REPETICIONES = 2;
 /** Lo que dice cuando la base respondió que se guardó (candado 6): nunca antes. */
 export const GUARDADO = "Guardado.";
 
@@ -27,7 +30,7 @@ export type Fase = "leyendo" | "abriendo" | "escuchando" | "entendiendo" | "anot
 export type Pregunta = "confirmar" | "pago" | "ninguna";
 /** Por qué quedó callado sin guardar: la tarjeta lo dice y pide el toque. */
 type Motivo = "no_hablo" | "no_entendio" | "fallo" | "sin_senal" | "aviso" | "falta";
-export type EstadoManosLibres = { fase: Fase; pregunta: Pregunta; intento: number; motivo: Motivo | null };
+export type EstadoManosLibres = { fase: Fase; pregunta: Pregunta; intento: number; motivo: Motivo | null; repeticiones: number };
 
 export type EventoManosLibres =
   /** Terminó de leer. `completa`: se dijo entera (false: la cortó un toque u otra frase). */
@@ -48,15 +51,17 @@ export type EventoManosLibres =
   | { tipo: "anotado"; lista: boolean }
   /** La tarjeta se rehízo con la corrección: qué pregunta toca ahora (la venta corregida puede dejar dudas o faltar algo). */
   | { tipo: "corregida"; pregunta: Pregunta }
+  /** Pidió que lo lea otra vez («repite», «¿qué?», «no te escuché»). */
+  | { tipo: "repetir" }
   /** Tocó la tarjeta: toma el control. */
   | { tipo: "tocaron" };
 
 /** Qué hacer: hablar la repregunta, abrir el micrófono, enviar lo oído, tirarlo, anotar el pago, rehacer la tarjeta con la corrección,
  * guardar, leer de nuevo o callar. */
-export type EfectoManosLibres = "repreguntar" | "escuchar" | "enviar" | "descartar" | "anotar" | "corregir" | "releer" | "confirmar" | "callar" | "nada";
+export type EfectoManosLibres = "repreguntar" | "escuchar" | "enviar" | "descartar" | "anotar" | "corregir" | "releer" | "repetir" | "confirmar" | "callar" | "nada";
 
-export const CALLADO: EstadoManosLibres = { fase: "callado", pregunta: "ninguna", intento: 1, motivo: null };
-export const leyendo = (pregunta: Pregunta): EstadoManosLibres => ({ fase: "leyendo", pregunta, intento: 1, motivo: null });
+export const CALLADO: EstadoManosLibres = { fase: "callado", pregunta: "ninguna", intento: 1, motivo: null, repeticiones: 0 };
+export const leyendo = (pregunta: Pregunta): EstadoManosLibres => ({ fase: "leyendo", pregunta, intento: 1, motivo: null, repeticiones: 0 });
 
 export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres): { estado: EstadoManosLibres; efecto: EfectoManosLibres } {
   const quedar = { estado: e, efecto: "nada" as const };
@@ -82,6 +87,10 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
     case "entendiendo": {
       if (ev.tipo === "sin_senal") return callado("sin_senal", "nada");
       const otraVez = e.intento === 1 ? { estado: { ...e, fase: "leyendo" as const, intento: 2 }, efecto: "repreguntar" as const } : callado("no_entendio", "nada");
+      // «Repite»: se lee otra vez lo mismo, entero, y se vuelve a escuchar. Después de REPETICIONES, cuenta como otra cosa.
+      if (ev.tipo === "repetir") {
+        return e.repeticiones < REPETICIONES ? { estado: { ...e, fase: "leyendo", intento: 1, repeticiones: e.repeticiones + 1 }, efecto: "repetir" } : otraVez;
+      }
       if (ev.tipo === "respuesta" && e.pregunta === "confirmar") {
         if (ev.respuesta === "confirmar") return { estado: { ...e, fase: "guardando" }, efecto: "confirmar" };
         if (ev.respuesta === "corregir") return { estado: { ...e, fase: "anotando" }, efecto: "corregir" };
@@ -108,8 +117,12 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
   }
 }
 
-/** La línea sobre Confirmar: qué está haciendo la voz o por qué se dejó para tocar. null si no hay nada que decir. */
-export function notaManosLibres(e: EstadoManosLibres): string | null {
+/**
+ * La línea sobre Confirmar: qué está haciendo la voz o por qué se dejó para tocar. null si no hay nada que decir. `corrige`: la
+ * tarjeta se puede corregir hablando (la venta), y escuchando lo enseña: nada en la pantalla decía que «no, son 8» funciona, y
+ * «o toca Confirmar» sobraba con el botón justo abajo (/formidable 2026-11-16).
+ */
+export function notaManosLibres(e: EstadoManosLibres, { corrige = false }: { corrige?: boolean } = {}): string | null {
   const pago = e.pregunta === "pago";
   const tocar = pago ? "Toca Pagó o Lo debe." : "Si está bien, toca Confirmar.";
   switch (e.fase) {
@@ -118,7 +131,8 @@ export function notaManosLibres(e: EstadoManosLibres): string | null {
       if (e.intento === 1) return "Te la estoy leyendo…";
       return pago ? "¿Pagó o lo debe?" : "Para guardar, di «confirmo».";
     case "escuchando":
-      return pago ? "Te escucho: di «pagó» o «lo debe»." : "Te escucho: di «confirmo» o toca Confirmar.";
+      if (pago) return "Te escucho: di «pagó» o «lo debe».";
+      return corrige ? "Te escucho: di «confirmo» o lo que hay que cambiar." : "Te escucho: di «confirmo» o toca Confirmar.";
     case "entendiendo":
     case "anotando":
       return "Entendiendo…";

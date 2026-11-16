@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Borrador } from "./confirmar-venta-reglas";
-import { DUDA_HABLADA, cajasHabladas, guionVenta, lecturaVenta, nombreHablado, solesHablados } from "./lectura-reglas";
+import { cajasHabladas, dudaHablada, guionVenta, lecturaVenta, nombreHablado, solesHablados } from "./lectura-reglas";
 
 const venta = (cambios: Partial<Borrador> = {}): Borrador => ({
   cliente: { id: 1, nombre: "Luis Paredes" },
@@ -92,7 +92,15 @@ describe("guionVenta", () => {
   });
 
   it("con dudas del intérprete no se confirma hablando: pide el toque", () => {
-    expect(guionVenta(venta(), ["No sé si dijo 10 o 12 cajas"])).toEqual({ pregunta: "ninguna", texto: DUDA_HABLADA });
+    expect(guionVenta(venta(), ["No sé si dijo 10 o 12 cajas."])).toEqual({
+      pregunta: "ninguna",
+      texto: "Tengo una duda: no sé si dijo 10 o 12 cajas. Revisa la tarjeta y toca Confirmar.",
+    });
+  });
+
+  it("la duda se dice, y si hay varias, cuántas más: no hay que soltar las cajas para saber cuál es", () => {
+    expect(dudaHablada(["¿Mango Kent o Edward?", "No dijo el precio"])).toBe("Tengo una duda: ¿Mango Kent o Edward?, y una más. Revisa la tarjeta y toca Confirmar.");
+    expect(dudaHablada(["A", "B", "C"])).toBe("Tengo una duda: a, y 2 más. Revisa la tarjeta y toca Confirmar.");
   });
 
   it("si falta otra cosa, dice qué y se elige en la tarjeta", () => {

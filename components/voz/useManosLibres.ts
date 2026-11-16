@@ -52,7 +52,8 @@ async function entender(audio: Blob, duracionMs: number, pregunta: Pregunta, lec
   if (lectura && pregunta === "confirmar") formulario.append("lectura", lectura);
   try {
     const r = await fetch("/api/voz/respuesta", { method: "POST", body: formulario, signal: AbortSignal.timeout(TOPE_ENVIO_MS) });
-    const cuerpo = (await r.json().catch(() => null)) as { respuesta?: unknown; pago?: unknown; tarjeta?: { tipo?: unknown } } | null;
+    const cuerpo = (await r.json().catch(() => null)) as { respuesta?: unknown; pago?: unknown; repetir?: unknown; tarjeta?: { tipo?: unknown } } | null;
+    if (r.ok && cuerpo?.repetir === true) return { ev: { tipo: "repetir" } };
     if (r.ok && pregunta === "pago" && cuerpo && "pago" in cuerpo) return { ev: { tipo: "pago", pago: leerPago(cuerpo.pago) } };
     if (r.ok && cuerpo?.respuesta === "corregir" && cuerpo.tarjeta?.tipo === "venta") {
       return { ev: { tipo: "respuesta", respuesta: "corregir" }, corregida: cuerpo.tarjeta as Venta };
@@ -173,6 +174,8 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, guardad
         relectura.current = g.texto;
         return aplicar({ tipo: "corregida", pregunta: g.pregunta });
       }
+      case "repetir": // lo mismo que se leyó, entero: la venta, o la pregunta de si pagó
+        return leido.current ? decir(leido.current) : aplicar({ tipo: "tocaron" });
       case "releer":
         if (!relectura.current) return;
         leido.current = relectura.current;
@@ -219,7 +222,7 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, guardad
 
   return {
     fase: estado.fase,
-    nota: notaManosLibres(estado),
+    nota: notaManosLibres(estado, { corrige: alCorregir !== undefined }),
     tomarControl: () => aplicar({ tipo: "tocaron" }),
   };
 }

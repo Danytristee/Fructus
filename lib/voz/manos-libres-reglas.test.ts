@@ -130,9 +130,31 @@ describe("siguienteManosLibres: corregir hablando", () => {
   });
 });
 
+describe("siguienteManosLibres: «repite»", () => {
+  const repite = { tipo: "repetir" } as const;
+
+  it("vuelve a leer lo mismo y escucha de nuevo; después se confirma", () => {
+    const r = recorrer([...oir, repite, ...oir, respuesta("confirmar")]);
+    expect(r.efectos).toEqual(["escuchar", "enviar", "repetir", "escuchar", "enviar", "confirmar"]);
+    expect(r.estado.fase).toBe("guardando");
+  });
+
+  it("hasta dos veces: la tercera cuenta como otra cosa (nada se lee en bucle)", () => {
+    const r = recorrer([...oir, repite, ...oir, repite, ...oir, repite]);
+    expect(r.efectos.filter((x) => x === "repetir")).toHaveLength(2);
+    expect(r.efectos.at(-1)).toBe("repreguntar");
+  });
+
+  it("también al preguntar si pagó", () => {
+    expect(recorrer([...oir, repite], leyendo("pago")).efectos).toEqual(["escuchar", "enviar", "repetir"]);
+  });
+});
+
 describe("notaManosLibres", () => {
   it("dice qué hace la voz, y por qué se dejó para tocar", () => {
     expect(notaManosLibres({ ...leyendo("pago"), fase: "escuchando" })).toBe("Te escucho: di «pagó» o «lo debe».");
+    expect(notaManosLibres({ ...leyendo("confirmar"), fase: "escuchando" }, { corrige: true })).toBe("Te escucho: di «confirmo» o lo que hay que cambiar.");
+    expect(notaManosLibres({ ...leyendo("confirmar"), fase: "escuchando" })).toBe("Te escucho: di «confirmo» o toca Confirmar.");
     expect(notaManosLibres({ ...leyendo("confirmar"), fase: "callado", motivo: "no_hablo" })).toBe("No te oí. Si está bien, toca Confirmar.");
     expect(notaManosLibres({ ...leyendo("confirmar"), fase: "callado", motivo: "sin_senal" })).toBe("Sin señal no te entiendo. Si está bien, toca Confirmar.");
     expect(notaManosLibres(CALLADO)).toBeNull();

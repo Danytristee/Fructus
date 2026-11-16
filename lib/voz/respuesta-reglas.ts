@@ -1,7 +1,7 @@
 // La respuesta corta después de oír la lectura de una venta (ADR-0020, candado 2): ¿confirma o no? Lógica pura: recibe lo
 // que transcribió Whisper y decide. No guarda nada: guardar sigue siendo la misma acción que el toque.
 
-export type Respuesta = "confirmar" | "otra";
+export type Respuesta = "confirmar" | "repetir" | "otra";
 
 /** Solo estas palabras confirman: en el puesto no se dicen por casualidad. Un «sí» suelto no confirma. */
 const CONFIRMAN = new Set(["confirmo", "confirma", "confirmado", "correcto", "acepto", "aceptado"]);
@@ -10,8 +10,13 @@ const RELLENO = new Set(["si", "ya", "ok", "okey", "listo", "dale", "eso", "es",
 /** Cualquier negación o pedido de esperar anula la confirmación: «no, correcto no», «espera». */
 const NIEGAN = new Set(["no", "nada", "espera", "pera", "cancela", "cancelar", "borra", "descarta", "mal"]);
 
+/** Pedir que lo lea otra vez: con el ruido del puesto, la lectura no siempre se oye (/formidable 2026-11-16). */
+const REPITEN = new Set(["repite", "repita", "repiteme", "repitelo", "repitemelo", "repetir"]);
+/** «¿Qué?», «¿cómo?», «¿qué dijiste?», «perdón»: solo con estas palabras es pedir que se repita. */
+const PREGUNTAN = new Set(["que", "como", "dijiste", "perdon", "disculpa", "eh", "mande"]);
+
 /** Para Whisper: con estas palabras en el prompt las escribe bien aunque se digan rápido. */
-export const VOCABULARIO_RESPUESTA = "Confirmo. Correcto. Acepto. No. Sí. Espera.";
+export const VOCABULARIO_RESPUESTA = "Confirmo. Correcto. Acepto. No. Sí. Espera. Repite.";
 
 const palabras = (texto: string) =>
   texto
@@ -24,15 +29,29 @@ const palabras = (texto: string) =>
 
 /**
  * «confirmar» solo si dijo una palabra que confirma y nada más que relleno. Lo que agregue algo («correcto, pero son ocho»)
- * o niegue no confirma: se vuelve a preguntar o se deja para tocar.
+ * o niegue no confirma: se vuelve a preguntar o se deja para tocar. «Repite», «¿qué?» u «otra vez» piden que se lea de nuevo.
  */
 export function clasificarRespuesta(texto: string): Respuesta {
   const p = palabras(texto);
+  // Antes que las negaciones: «no te escuché» pide que se repita, no niega la venta.
+  if (pideRepetir(p)) return "repetir";
   if (p.some((x) => NIEGAN.has(x))) return "otra";
   const confirma = p.some((x) => CONFIRMAN.has(x));
   const resto = p.filter((x) => !CONFIRMAN.has(x) && !RELLENO.has(x));
   return confirma && resto.length === 0 ? "confirmar" : "otra";
 }
+
+/** «Repite», «otra vez», «no te escuché», o una pregunta suelta («¿qué?», «¿cómo?»). Nunca si además confirma. */
+function pideRepetir(p: string[]): boolean {
+  if (p.some((x) => CONFIRMAN.has(x))) return false;
+  if (p.some((x) => REPITEN.has(x))) return true;
+  const junto = ` ${p.join(" ")} `;
+  if (junto.includes(" otra vez ") || junto.includes(" no escuche ") || junto.includes(" no te escuche ") || junto.includes(" no oi ")) return true;
+  return p.length > 0 && p.every((x) => PREGUNTAN.has(x)) && (p.includes("que") || p.includes("como"));
+}
+
+/** Para la ruta: lo que pide repetir se resuelve antes que el pago o la corrección, sin llamar al modelo. */
+export const pideQueRepita = (texto: string) => pideRepetir(palabras(texto));
 
 /**
  * ¿Vale la pena pedirle al intérprete que corrija la venta con esto? Sí si, además de «no», «sí» o relleno, dijo algo («no, son
