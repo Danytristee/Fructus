@@ -130,10 +130,10 @@ test("«no, son ocho cajas»: la tarjeta se corrige, se vuelve a leer y se confi
   test.slow();
   const cliente = clientePorAncho[info.project.name as Ancho];
   const ocho = { ...tarjeta(cliente), items: [{ ...tarjeta(cliente).items[0]!, cantidad: 8, subtotal: 360 }], total: 360 };
-  const lecturas: string[] = [];
+  const enviadas: { cliente_texto: string | null; items: { cantidad: number }[] }[] = [];
   let n = 0;
   await page.route("/api/voz/respuesta", (r) => {
-    lecturas.push(r.request().postDataBuffer()?.toString("utf8").match(/name="lectura"\r\n\r\n([^\r]*)/)?.[1] ?? "");
+    enviadas.push(JSON.parse(r.request().postDataBuffer()?.toString("utf8").match(/name="venta"\r\n\r\n([^\r]*)/)?.[1] ?? "null"));
     return r.fulfill({ json: n++ === 0 ? { respuesta: "corregir", tarjeta: ocho } : { respuesta: "confirmar" } });
   });
   const comandoId = await crearComando();
@@ -149,8 +149,8 @@ test("«no, son ocho cajas»: la tarjeta se corrige, se vuelve a leer y se confi
   await responder(page);
 
   await expect(page.getByText("Venta guardada")).toBeVisible();
-  // Al servidor viaja lo que se leyó, para que el intérprete corrija sobre eso; la segunda vez, ya la venta corregida.
-  expect(lecturas).toEqual([lectura(cliente.nombre), corregida]);
+  // Al servidor viaja la venta de la tarjeta, en datos, para que el intérprete la corrija; la segunda vez, ya la corregida.
+  expect(enviadas.map((v) => [v.cliente_texto, v.items[0]!.cantidad])).toEqual([[cliente.nombre, 10], [cliente.nombre, 8]]);
   const ventas = (await base.from("ventas").select("total, venta_items(cantidad)").eq("comando_voz_id", comandoId)).data ?? [];
   expect(ventas).toEqual([{ total: 360, venta_items: [{ cantidad: 8 }] }]);
   expect(await confirmacion(comandoId)).toEqual({ resultado: "corregido", confirmado_por: "voz" });

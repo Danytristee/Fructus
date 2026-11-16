@@ -86,24 +86,17 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
 ### 2c. Corregir hablando (ADR-0020)
 
 Con manos libres, Fructus lee la venta y pregunta «¿Confirmo?». Si en vez de confirmar la persona corrige («no, son ocho cajas», «a
-cuarenta», «es para don Lucho»), `POST /api/voz/respuesta` vuelve a llamar al intérprete. El **prompt de sistema no cambia**: lo que
-cambia es el mensaje del usuario, que lleva la venta tal como se leyó y lo que respondió (`mensajeCorreccion`, `lib/voz/prompt.ts`):
+cuarenta», «es para don Lucho»), `POST /api/voz/respuesta` vuelve a llamar al intérprete.
 
-```text
-CORRECCIÓN de una venta que todavía no se guarda. Fructus le leyó en voz alta esta venta:
-«10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?»
-y la persona respondió:
-«No, son ocho cajas»
-
-Llama registrar_venta con la venta COMPLETA ya corregida: copia tal cual lo que no cambió …
-```
-
-- La salida es un `registrar_venta` como el de una venta dictada. Pasa por Zod, por `resolver` y por `armarTarjeta`, y vuelve como
-  tarjeta nueva para leer y confirmar.
-- Una respuesta sin contenido («no», «sí») no llama al modelo (`pareceCorreccion`): se repregunta.
-- Si el modelo no devuelve una venta, la respuesta cuenta como «otra cosa».
-- Los casos viven en `tests/interprete/casos.json` con el campo `correccionDe`, que es la lectura. El 2026-11-16 pasaron 8 de 8 con
-  `openai/gpt-oss-120b` (`docs/voz/precision-2026-11-16-2.md`).
+- **El prompt de sistema no cambia.** Lo que cambia es el mensaje del usuario (`mensajeCorreccion`, `lib/voz/prompt.ts`):
+  - lleva **la venta actual en los campos de `registrar_venta`**: el celular la arma con `ventaActual` y el servidor la valida con `esquemaVentaActual`;
+  - lleva lo que respondió la persona;
+  - dice dos reglas explícitas: el cliente es el mismo si no nombra a otro, y «45 con 50» es un precio de 45.50 (lo que va después de «con» son los céntimos).
+- **Por qué la venta va en datos:** al principio se mandaba la lectura en frases. El /chaos del 2026-11-16 encontró que en 3 de 12 corridas el modelo perdía al cliente, y que «No, a 45 con 50» salía 50 (una vez, «total 50 con 400 de rebaja»). Con la venta en datos y las dos reglas, las 17 correcciones que Groq respondió salieron bien: 12 de 12 y 5 de 5. El resto de esa corrida fueron cortes del plan gratuito (429).
+- **Lo que vuelve:** un `registrar_venta` como el de una venta dictada. Pasa por Zod, por `resolver` y por `armarTarjeta`, y vuelve como tarjeta nueva para leer y confirmar.
+- **Sin contenido no se llama al modelo:** una respuesta como «no» o «sí» se repregunta (`pareceCorreccion`). «Repite» o «¿qué?» vuelven a leer, también sin modelo (`pideQueRepita`).
+- **Si el modelo no devuelve una venta,** la respuesta cuenta como «otra cosa».
+- **Los casos** viven en `tests/interprete/casos.json`: los `correccion-*`, con `correccionDe`, que es la venta actual en datos.
 
 ## 3. Herramientas (formato OpenAI / Groq)
 

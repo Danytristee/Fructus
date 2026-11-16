@@ -8,11 +8,13 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { expect, test } from "vitest";
 
 import type { Catalogo } from "../../lib/voz/catalogo-reglas";
+import type { VentaActual } from "../../lib/voz/esquemas";
 import { interpretar } from "../../lib/voz/interprete";
 import { camposPrudentes, diferencias, inventos, percentil } from "../../lib/voz/precision-reglas";
 
-// `correccionDe`: la venta que Fructus leyó en voz alta; `transcripcion` es lo que la persona respondió para corregirla (ADR-0020).
-type Caso = { id: string; transcripcion: string; correccionDe?: string; esperado: { herramienta: string; datos: Record<string, unknown> } };
+// `correccionDe`: la venta que Fructus leyó en voz alta, en los campos de registrar_venta; `transcripcion` es lo que la persona
+// respondió para corregirla (ADR-0020).
+type Caso = { id: string; transcripcion: string; correccionDe?: VentaActual; esperado: { herramienta: string; datos: Record<string, unknown> } };
 type Fila = { id: string; intencion: boolean; datos: boolean; inventos: string[]; fallos: string[]; obtenido: string; dudas: string[]; ms: number };
 
 const archivo = JSON.parse(readFileSync(process.env.VOZ_CASOS ?? "tests/interprete/casos.json", "utf8")) as { catalogo?: Catalogo; casos: Caso[] };

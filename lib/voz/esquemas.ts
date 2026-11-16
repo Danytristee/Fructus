@@ -105,6 +105,13 @@ const herramientasVoz = {
   },
 } as const;
 
+/**
+ * La venta que se está confirmando, en los mismos campos de registrar_venta: lo que el celular manda para corregir hablando (ADR-0020).
+ * El intérprete la copia y cambia solo lo corregido; antes recibía la lectura en frases y a veces perdía al cliente (/chaos 2026-11-16).
+ */
+export const esquemaVentaActual = herramientasVoz.registrar_venta.esquema.omit({ dudas: true });
+export type VentaActual = z.input<typeof esquemaVentaActual>;
+
 type NombreHerramienta = keyof typeof herramientasVoz;
 type Datos<N extends NombreHerramienta> = z.output<(typeof herramientasVoz)[N]["esquema"]>;
 

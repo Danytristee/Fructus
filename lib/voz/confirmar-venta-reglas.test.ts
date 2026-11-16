@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, pedidoVenta, repartirDescuento, totalDe, type Borrador } from "./confirmar-venta-reglas";
+import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, pedidoVenta, repartirDescuento, totalDe, type Borrador, ventaActual } from "./confirmar-venta-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
 type Venta = Extract<Tarjeta, { tipo: "venta" }>;
@@ -195,5 +195,27 @@ describe("leerPrecio", () => {
   it("cero o un monto absurdo se rechazan", () => {
     expect(leerPrecio("0")).toEqual({ ok: false, error: "El precio tiene que ser más que cero." });
     expect(leerPrecio("999999")).toMatchObject({ ok: false, error: expect.stringContaining("demasiado") });
+  });
+});
+
+describe("ventaActual", () => {
+  it("la tarjeta en los campos de registrar_venta: lo que el intérprete copia al corregir", () => {
+    const b = {
+      cliente: { id: 1, nombre: "Luis Paredes" },
+      items: [{ productoId: 1, producto: "Mango Kent", cantidad: 10, precio: 45, sugerido: true }],
+      descuento: 0,
+      condicion: "contado" as const,
+      medio: null,
+      comprobante: "boleta" as const,
+    };
+    expect(ventaActual(b)).toEqual({
+      cliente_texto: "Luis Paredes",
+      items: [{ producto_texto: "Mango Kent", cantidad: 10, precio_unitario: 45 }],
+      descuento_total: null,
+      condicion: "contado",
+      medio_pago: "efectivo",
+      comprobante: "boleta",
+    });
+    expect(ventaActual({ ...b, cliente: null, condicion: "credito", descuento: 10 })).toMatchObject({ cliente_texto: null, medio_pago: null, descuento_total: 10 });
   });
 });

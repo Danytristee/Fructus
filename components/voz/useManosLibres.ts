@@ -17,6 +17,7 @@ import {
   type EventoManosLibres,
   type Pregunta,
 } from "@/lib/voz/manos-libres-reglas";
+import type { VentaActual } from "@/lib/voz/esquemas";
 import type { Guion } from "@/lib/voz/lectura-reglas";
 import type { Pago } from "@/lib/voz/respuesta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
@@ -42,14 +43,14 @@ function leerPago(x: unknown): Pago | null {
 
 /**
  * Lo que el servidor entendió de la respuesta corta, como evento. «fallo» si no respondió o no la entendió: nunca se guarda ni se
- * anota por las dudas. Sin señal se dice así, para que la tarjeta lo explique. `lectura`: lo que se leyó, para poder corregirlo.
+ * anota por las dudas. Sin señal se dice así, para que la tarjeta lo explique. `venta`: la venta actual, para poder corregirla.
  */
-async function entender(audio: Blob, duracionMs: number, pregunta: Pregunta, lectura: string | null): Promise<Entendido> {
+async function entender(audio: Blob, duracionMs: number, pregunta: Pregunta, venta: VentaActual | null): Promise<Entendido> {
   const formulario = new FormData();
   formulario.append("audio", audio, audio.type.includes("mp4") ? "respuesta.m4a" : "respuesta.webm");
   formulario.append("duracion_ms", String(duracionMs));
   formulario.append("pregunta", pregunta);
-  if (lectura && pregunta === "confirmar") formulario.append("lectura", lectura);
+  if (venta && pregunta === "confirmar") formulario.append("venta", JSON.stringify(venta));
   try {
     const r = await fetch("/api/voz/respuesta", { method: "POST", body: formulario, signal: AbortSignal.timeout(TOPE_ENVIO_MS) });
     const cuerpo = (await r.json().catch(() => null)) as { respuesta?: unknown; pago?: unknown; repetir?: unknown; tarjeta?: { tipo?: unknown } } | null;
@@ -76,6 +77,8 @@ type Opciones = {
   alPago?: (pago: Pago) => string | null;
   /** Corrigió la venta hablando: la tarjeta nueva reemplaza a la de la hoja. Devuelve qué se dice ahora. Solo en la venta. */
   alCorregir?: (corregida: Venta) => Guion;
+  /** La venta de la tarjeta ahora, en los campos de registrar_venta: viaja con la respuesta para poder corregirla. Solo en la venta. */
+  ventaActual?: () => VentaActual;
   /** La base respondió que se guardó: se dice «Guardado» (candado 6). Lo que quedó en el celular sin señal no cuenta. */
   guardado: boolean;
 };
@@ -87,7 +90,7 @@ type Opciones = {
  *
  * `tomarControl`: la persona tocó la tarjeta. Se calla, se apaga el micrófono y lo que llegue del servidor ya no guarda.
  */
-export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, guardado }: Opciones) {
+export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, ventaActual, guardado }: Opciones) {
   const [estado, setEstado] = useState(() => (guion ? leyendo(guion.pregunta) : CALLADO));
   const actual = useRef(estado);
   const relojes = useRef<number[]>([]);
@@ -96,12 +99,14 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, guardad
   const confirmar = useRef(alConfirmar);
   const anotar = useRef(alPago);
   const corregir = useRef(alCorregir);
+  const actualDeLaTarjeta = useRef(ventaActual);
   useEffect(() => {
     confirmar.current = alConfirmar;
     anotar.current = alPago;
     corregir.current = alCorregir;
+    actualDeLaTarjeta.current = ventaActual;
   });
-  // Lo que se dirá después de anotar el pago o rehacer la tarjeta, y lo último que se leyó de la venta (para poder corregirlo).
+  // Lo que se dirá después de anotar el pago o rehacer la tarjeta, y lo último que se leyó (para «repite»).
   const relectura = useRef<string | null>(null);
   const leido = useRef<string | null>(guion?.texto ?? null);
   // La tarjeta corregida que mandó el servidor, mientras se anota.
@@ -150,8 +155,9 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, guardad
     const g = await grabadora.terminar();
     const pregunta = actual.current.pregunta;
     const vacia: EventoManosLibres = pregunta === "pago" ? { tipo: "pago", pago: "fallo" } : { tipo: "respuesta", respuesta: "fallo" };
-    // La lectura viaja solo si esta tarjeta sabe corregirse hablando (la venta): sin ella, el servidor no intenta corregir.
-    const r = g.audio.size === 0 ? { ev: vacia } : await entender(g.audio, g.duracionMs, pregunta, corregir.current ? leido.current : null);
+    // La venta viaja solo si esta tarjeta sabe corregirse hablando (la venta): sin ella, el servidor no intenta corregir.
+    const venta = corregir.current && actualDeLaTarjeta.current ? actualDeLaTarjeta.current() : null;
+    const r = g.audio.size === 0 ? { ev: vacia } : await entender(g.audio, g.duracionMs, pregunta, venta);
     if (mio !== turno.current) return;
     corregida.current = r.corregida ?? null;
     aplicar(r.ev);
@@ -167,7 +173,7 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, guardad
         return aplicar({ tipo: "anotado", lista: relectura.current !== null });
       }
       case "corregir": {
-        // Sin alCorregir no se envía la lectura, así que no debería pasar; si pasa, se calla y queda para tocar (nunca trabado).
+        // Sin alCorregir no se envía la venta, así que no debería pasar; si pasa, se calla y queda para tocar (nunca trabado).
         if (!corregida.current || !corregir.current) return aplicar({ tipo: "tocaron" });
         const g = corregir.current(corregida.current);
         corregida.current = null;

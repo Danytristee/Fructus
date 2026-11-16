@@ -10,7 +10,7 @@ import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
-import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
+import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import { guionVenta, lecturaVenta } from "@/lib/voz/lectura-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
@@ -79,6 +79,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       setSaldo(null);
       return guionVenta(b, nueva.dudas);
     },
+    ventaActual: () => ventaActual(borrador),
     guardado: guardada !== null,
   });
 

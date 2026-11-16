@@ -26,10 +26,13 @@ Fructus dice los precios así («a 45 con 50 la caja»), y quien corrige lo repi
   - «No, a cuarenta y cinco cincuenta» → 45.5 ✅
   - Con el audio real («no, a cuarenta y cinco con cincuenta»), la corrección volvió con 45: no aplicó el cambio.
 - **Por qué no es gravedad 1:** no se guarda solo. La venta corregida se vuelve a leer («a 50 la caja… Total, 500 soles») y hay que decir «confirmo». Pero un precio mal oído en la lectura pasa fácil con el ruido del puesto.
-- **Arreglo propuesto (con OK):**
-  - Decirle al intérprete, en el mensaje de corrección, que «45 con 50» son 45.50.
-  - Medir antes y después con estos 4 casos sumados a `casos.json`.
-  - Ver si también hace falta en el dictado normal: eso tocaría el prompt de sistema, con su `/voz-precision` completo.
+- **Al medir apareció una segunda causa:** en 3 de 12 corridas el intérprete perdía al cliente al corregir, porque copiaba la venta desde la lectura en frases.
+- **Arreglado con OK:**
+  - el celular manda la venta actual en los campos de `registrar_venta` (`ventaActual`, validada con `esquemaVentaActual`);
+  - el mensaje de corrección dice dos reglas: el cliente no cambia si no nombra a otro, y «45 con 50» es 45.50;
+  - 4 casos de céntimos en `casos.json`.
+- **Antes:** 9 de 12. **Después:** las 17 correcciones que Groq respondió salieron bien (12 de 12 y 5 de 5); el resto fueron cortes por cupo (429).
+- **Pendiente:** ver si el dictado normal también entiende «45 con 50». Eso toca el prompt de sistema, con su `/voz-precision` completo.
 
 ### 2 · Toca permisos: el detalle va solo por chat (candado 4)
 

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { permisosDe } from "@/lib/permisos-reglas";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { esquemaVentaActual } from "@/lib/voz/esquemas";
 import { interpretar } from "@/lib/voz/interprete";
 import { resolver } from "@/lib/voz/resolver";
 import { VOCABULARIO_PAGO, VOCABULARIO_RESPUESTA, clasificarPago, clasificarRespuesta, pareceCorreccion, pideQueRepita } from "@/lib/voz/respuesta-reglas";
@@ -11,14 +12,26 @@ import { armarTarjeta } from "@/lib/voz/tarjeta-reglas";
 // POST /api/voz/respuesta: la respuesta corta después de oír la lectura de una venta (ADR-0020) → Whisper → ¿confirma?, o, si se
 // preguntó «¿Pagó o lo debe?» (`pregunta=pago`), cómo quedó el pago. «Repite» pide que se lea otra vez. No guarda nada: el celular anota el pago en la tarjeta y, si
 // confirma, guarda por la misma acción que el toque. Si en vez de confirmar corrige («no, son ocho cajas»), el intérprete arma la
-// venta corregida a partir de lo que se leyó (`lectura`) y vuelve una tarjeta nueva para leer y confirmar. Nunca registra la
+// venta corregida a partir de la venta actual (`venta`, en los campos de registrar_venta) y vuelve una tarjeta nueva para leer y
+// confirmar. Nunca registra la
 // transcripción en los logs.
 
 // Una respuesta corta: el celular deja de escuchar a los 8 s.
 const TOPE_BYTES = 1024 * 1024;
 const TOPE_MS = 15_000;
-/** La lectura de una venta de varias frutas: más que esto no es una lectura de Fructus. */
-const TOPE_LECTURA = 1_000;
+/** La venta que se está confirmando, en datos: más que esto no es una venta del puesto. */
+const TOPE_VENTA = 4_000;
+
+/** La venta actual que mandó el celular para poder corregirla, validada; null si no vino o no tiene la forma de registrar_venta. */
+function leerVentaActual(campo: FormDataEntryValue | null | undefined) {
+  if (typeof campo !== "string" || !campo || campo.length > TOPE_VENTA) return null;
+  try {
+    const leida = esquemaVentaActual.safeParse(JSON.parse(campo));
+    return leida.success ? leida.data : null;
+  } catch {
+    return null;
+  }
+}
 
 const responder = (estado: number, cuerpo: Record<string, unknown>) => NextResponse.json(cuerpo, { status: estado });
 
@@ -47,12 +60,10 @@ export async function POST(request: NextRequest) {
   if (pregunta === "pago") return responder(200, { pago: clasificarPago(texto.texto) });
 
   const respuesta = clasificarRespuesta(texto.texto);
-  const lectura = formulario?.get("lectura");
-  if (respuesta === "confirmar" || typeof lectura !== "string" || !lectura || lectura.length > TOPE_LECTURA || !pareceCorreccion(texto.texto)) {
-    return responder(200, { respuesta });
-  }
+  const actual = leerVentaActual(formulario?.get("venta"));
+  if (respuesta === "confirmar" || !actual || !pareceCorreccion(texto.texto)) return responder(200, { respuesta });
   // Corrigió: la venta completa ya corregida, con los nombres y precios de la base, como una tarjeta dictada.
-  const corregida = await interpretar(texto.texto, { correccionDe: lectura });
+  const corregida = await interpretar(texto.texto, { correccionDe: actual });
   if (!corregida.ok || corregida.interpretacion.herramienta !== "registrar_venta") return responder(200, { respuesta: "otra" });
   try {
     const tarjeta = armarTarjeta(corregida.interpretacion, await resolver(supabase, corregida.interpretacion));

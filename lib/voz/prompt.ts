@@ -1,3 +1,5 @@
+import type { VentaActual } from "./esquemas";
+
 // El prompt de sistema del intérprete, igual que en docs/interprete-voz.md (sección 2). Si cambia, cambian los dos
 // y se corre /voz-precision antes y después.
 // Lo que es de UNA herramienta (la temperatura, cómo llegó la fruta, qué pregunta es) no va aquí: va en la descripción de esa
@@ -38,16 +40,24 @@ Reglas que NO se rompen:
 
 /**
  * Corregir hablando (ADR-0020, docs/interprete-voz.md sección 2c): Fructus leyó la venta en voz alta y la persona, en vez de
- * «confirmo», dijo una corrección («no, son ocho cajas»). Se le pasa al intérprete la venta tal como se leyó y la respuesta, y se le
- * pide la venta completa ya corregida con registrar_venta. El prompt de sistema no cambia: las frases dictadas se interpretan igual.
+ * «confirmo», dijo una corrección («no, son ocho cajas»). Se le pasa al intérprete la venta actual en los mismos campos de
+ * registrar_venta y lo que respondió, y se le pide la venta completa ya corregida. El prompt de sistema no cambia.
+ *
+ * Antes se le pasaba la lectura en frases y en 3 de 12 corridas perdía al cliente; «45 con 50» salía 50, o un total de 50 con 400 de
+ * rebaja (/chaos 2026-11-16). Por eso va la venta en datos y las dos reglas, escritas.
  */
-export function mensajeCorreccion(lectura: string, dicho: string): string {
-  return `CORRECCIÓN de una venta que todavía no se guarda. Fructus le leyó en voz alta esta venta:
-«${lectura}»
-y la persona respondió:
+export function mensajeCorreccion(actual: VentaActual, dicho: string): string {
+  return `CORRECCIÓN de una venta que todavía no se guarda. Esta es la venta tal como está ahora (los campos de registrar_venta):
+${JSON.stringify(actual)}
+
+La persona respondió:
 «${dicho}»
 
-Llama registrar_venta con la venta COMPLETA ya corregida: copia tal cual lo que no cambió (cliente, frutas, cajas, precios, si
-pagó y cómo) y cambia solo lo que la persona corrigió. «Para un cliente de paso» es cliente_texto null. «Lo debe» es crédito y
-«pagó …» es contado con ese medio. Si la respuesta no corrige nada de la venta, usa no_entendido.`;
+Llama registrar_venta con la venta COMPLETA ya corregida:
+- Copia tal cual todo lo que la persona no corrigió. El cliente es el mismo si no nombra a otro; las frutas, las cajas, los precios,
+  si pagó y cómo, y el comprobante, también.
+- Cambia solo lo que corrigió. Si nombra una fruta, el cambio es en esa fruta.
+- «45 con 50» o «cuarenta y cinco con cincuenta» es un precio de 45.50 por caja: lo que va después de «con» son los céntimos. No es
+  un total ni una rebaja.
+- Si la respuesta no corrige nada de la venta, usa no_entendido.`;
 }

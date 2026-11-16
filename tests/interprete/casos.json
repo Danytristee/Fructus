@@ -1008,7 +1008,20 @@
     },
     {
       "id": "correccion-cantidad",
-      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
       "transcripcion": "No, son ocho cajas",
       "esperado": {
         "herramienta": "registrar_venta",
@@ -1028,7 +1041,20 @@
     },
     {
       "id": "correccion-precio",
-      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
       "transcripcion": "No, a cuarenta",
       "esperado": {
         "herramienta": "registrar_venta",
@@ -1048,7 +1074,20 @@
     },
     {
       "id": "correccion-pago",
-      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
       "transcripcion": "No, me pagó con Yape",
       "esperado": {
         "herramienta": "registrar_venta",
@@ -1068,7 +1107,20 @@
     },
     {
       "id": "correccion-cliente",
-      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
       "transcripcion": "No, es para don Lucho",
       "esperado": {
         "herramienta": "registrar_venta",
@@ -1088,7 +1140,20 @@
     },
     {
       "id": "correccion-fruta",
-      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
       "transcripcion": "No, eran de papaya",
       "esperado": {
         "herramienta": "registrar_venta",
@@ -1108,7 +1173,25 @@
     },
     {
       "id": "correccion-un-item-de-dos",
-      "correccionDe": "10 cajas de Mango Kent, a 45, y 5 cajas de Palta Fuerte, a 60, para Bodega Santa Ana. Total, 750 soles. Pagó en efectivo. ¿Confirmo?",
+      "correccionDe": {
+        "cliente_texto": "Bodega Santa Ana",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          },
+          {
+            "producto_texto": "Palta Fuerte",
+            "cantidad": 5,
+            "precio_unitario": 60
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "contado",
+        "medio_pago": "efectivo",
+        "comprobante": "ninguno"
+      },
       "transcripcion": "La palta a cincuenta y cinco",
       "esperado": {
         "herramienta": "registrar_venta",
@@ -1133,7 +1216,20 @@
     },
     {
       "id": "correccion-cliente-de-paso",
-      "correccionDe": "3 cajas de Papaya, a 30 la caja, para un cliente de paso. Total, 90 soles. Pagó con Yape. ¿Confirmo?",
+      "correccionDe": {
+        "cliente_texto": null,
+        "items": [
+          {
+            "producto_texto": "Papaya",
+            "cantidad": 3,
+            "precio_unitario": 30
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "contado",
+        "medio_pago": "yape",
+        "comprobante": "ninguno"
+      },
       "transcripcion": "No, cuatro cajas",
       "esperado": {
         "herramienta": "registrar_venta",
@@ -1153,11 +1249,156 @@
     },
     {
       "id": "correccion-no-corrige",
-      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
       "transcripcion": "Gracias por ver el video.",
       "esperado": {
         "herramienta": "no_entendido",
         "datos": {}
+      }
+    },
+    {
+      "id": "correccion-centimos-con-palabras",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, a cuarenta y cinco con cincuenta.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45.5
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-centimos-con-cifras",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, a 45 con 50.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45.5
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-centimos-con-punto",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, a 45.50",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45.5
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-centimos-sin-con",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, a cuarenta y cinco cincuenta",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45.5
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
       }
     }
   ]

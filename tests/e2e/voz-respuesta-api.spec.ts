@@ -7,7 +7,15 @@ import { entrarComo } from "./cuentas";
 // POST /api/voz/respuesta de punta a punta con Whisper y el intérprete reales (necesita GROQ_API_KEY en .env.local): la respuesta corta
 // después de oír la lectura (ADR-0020). Los audios son sintéticos (la voz «Paulina» del Mac). No guarda nada: solo dice qué entendió.
 const audio = (id: string) => readFileSync(`tests/e2e/audios/respuesta-${id}.m4a`);
-const LECTURA = "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?";
+// La venta de la tarjeta, como la manda el celular para poder corregirla (ventaActual).
+const VENTA = JSON.stringify({
+  cliente_texto: "Luis Paredes",
+  items: [{ producto_texto: "Mango Kent", cantidad: 10, precio_unitario: 45 }],
+  descuento_total: null,
+  condicion: "credito",
+  medio_pago: null,
+  comprobante: "ninguno",
+});
 const enviar = (id: string, extra: Record<string, string> = {}) => ({
   multipart: { audio: { name: "respuesta.m4a", mimeType: "audio/mp4", buffer: audio(id) }, duracion_ms: "1500", ...extra },
   timeout: 30_000,
@@ -22,12 +30,12 @@ test.describe("con Groq real", () => {
   });
 
   test("«confirmo» confirma y un «sí» suelto no", async ({ page }) => {
-    expect(await (await page.request.post("/api/voz/respuesta", enviar("confirmo", { lectura: LECTURA }))).json()).toEqual({ respuesta: "confirmar" });
-    expect(await (await page.request.post("/api/voz/respuesta", enviar("si", { lectura: LECTURA }))).json()).toEqual({ respuesta: "otra" });
+    expect(await (await page.request.post("/api/voz/respuesta", enviar("confirmo", { venta: VENTA }))).json()).toEqual({ respuesta: "confirmar" });
+    expect(await (await page.request.post("/api/voz/respuesta", enviar("si", { venta: VENTA }))).json()).toEqual({ respuesta: "otra" });
   });
 
   test("«no, son ocho cajas» vuelve la venta corregida, con los nombres de la base", async ({ page }) => {
-    const r = await page.request.post("/api/voz/respuesta", enviar("ocho-cajas", { lectura: LECTURA }));
+    const r = await page.request.post("/api/voz/respuesta", enviar("ocho-cajas", { venta: VENTA }));
     expect(r.status()).toBe(200);
     const { respuesta, tarjeta } = await r.json();
     expect(respuesta).toBe("corregir");
