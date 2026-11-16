@@ -4,7 +4,7 @@
 // hizo 29 grados») o se anota a mano, y un número mal oído («39» por «29») cambiaría el aviso de qué tiene que salir.
 // Mal hecho: aceptar cualquier número, o aceptar sin avisar un salto de 10 grados de un día a otro.
 
-/** Lo que acepta la tarjeta. La base acepta de 0 a 50 (20261114190000_temperatura_diaria): esto es más angosto, para el puesto. */
+/** Lo que acepta la tarjeta. La base acepta de 0 a 50 (20261116161805_temperatura_diaria): esto es más angosto, para el puesto. */
 export const GRADOS_MINIMO = 5;
 export const GRADOS_MAXIMO = 45;
 
