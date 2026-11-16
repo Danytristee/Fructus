@@ -153,12 +153,28 @@ describe("armarTarjeta · lo demás", () => {
     expect(t).toMatchObject({ tipo: "compra", items: [{ costo: { valor: 95, sugerido: true } }], condicion: null, falta: ["condicion"] });
   });
 
+  it("una compra trae cómo llegó cada fruta y la temperatura con la que se cuenta hoy", () => {
+    const t = armarTarjeta(
+      interpretar("registrar_compra", { proveedor_texto: null, items: [{ producto_texto: "manzana royal", cantidad: 40, costo_unitario: 90, estado: "verde" }], condicion: "contado" }),
+      { ...nada, productos: [[royal]], temperaturaHoy: 30 },
+    );
+    expect(t).toMatchObject({ tipo: "compra", items: [{ estado: "verde" }], temperatura: 30 });
+  });
+
   it("una compra al crédito pide a quién se le debe", () => {
     const t = armarTarjeta(
       interpretar("registrar_compra", { proveedor_texto: null, items: [{ producto_texto: "manzana royal", cantidad: 40, costo_unitario: 90 }], condicion: "credito" }),
       { ...nada, productos: [[royal]] },
     );
     expect(t).toMatchObject({ tipo: "compra", items: [{ costo: { valor: 90, sugerido: false } }], falta: ["proveedor"] });
+  });
+
+  it("la temperatura trae los grados dichos y la de ayer para comparar", () => {
+    expect(armarTarjeta(interpretar("registrar_temperatura", { grados: 29 }), { ...nada, temperaturaAyer: 30 })).toEqual({ tipo: "temperatura", grados: 29, ayer: 30 });
+  });
+
+  it("sin lectura de ayer no se inventa una: la tarjeta no compara", () => {
+    expect(armarTarjeta(interpretar("registrar_temperatura", { grados: 29 }), nada)).toEqual({ tipo: "temperatura", grados: 29, ayer: null });
   });
 
   it("no entendido dice qué hacer, en lenguaje de puesto", () => {

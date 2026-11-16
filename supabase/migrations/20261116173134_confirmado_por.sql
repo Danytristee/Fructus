@@ -10,7 +10,8 @@
 --      en lo anterior a esta migración, que no se sabe.
 --   2. Un check impide el estado imposible: un comando descartado o pendiente que «se confirmó por voz».
 --   3. registrar_venta y registrar_compra lo guardan en la misma transacción que la operación, desde p.confirmado_por; sin el
---      dato, 'toque'. Abonos, mermas y gastos se insertan directo y la acción del servidor marca el comando con el dato.
+--      dato, 'toque'. Son las versiones vigentes (fecha_del_celular y como_llego_la_fruta) con esa sola línea de más.
+--   4. Abonos, mermas y gastos se insertan directo: la acción del servidor marca el comando con el dato (marcarComando).
 --
 -- El dato lo declara el celular: sirve para auditar y medir, no es una prueba. El dinero lo protege lo de siempre: solo el
 -- dueño o el administrador anulan (anular_venta).
@@ -170,13 +171,15 @@ begin
             (v_item ->> 'cantidad')::numeric,
             (v_item ->> 'costo_unitario')::numeric);
 
-    insert into movimientos_stock (producto_id, tipo, cantidad, compra_id, comando_voz_id, fecha)
+    -- Cómo llegó esa fruta (verde, pintón, maduro), si se dijo: va en la entrada de stock, que es la llegada.
+    insert into movimientos_stock (producto_id, tipo, cantidad, compra_id, comando_voz_id, fecha, estado_llegada)
     values ((v_item ->> 'producto_id')::bigint,
             'entrada_compra',
             (v_item ->> 'cantidad')::numeric,
             v_id,
             v_voz,
-            v_fecha);
+            v_fecha,
+            nullif(v_item ->> 'estado_llegada', '')::estado_llegada);
   end loop;
 
   if v_voz is not null then

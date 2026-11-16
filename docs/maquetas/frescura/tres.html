@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fructus · Stock · Tres órdenes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../bosque/tokens.css">
+<style>
+  /* Las tres maneras de ordenar Stock, lado a lado y tocables. Para elegir mirando, no leyendo. En un celular, abre app.html?orden=a (b, c). */
+  body { margin: 0; padding: 22px 20px 40px; font: 500 16px/1.45 "Manrope", system-ui; color: var(--texto); background: var(--marfil-calido); }
+  header { max-width: 1320px; margin: 0 auto 18px; }
+  h1 { font-size: 26px; margin: 0 0 4px; } header p { margin: 0 0 12px; color: #4A554E; max-width: 70ch; }
+  .opciones { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .opciones span { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #4A554E; margin: 0 4px 0 10px; }
+  .opciones span:first-child { margin-left: 0; }
+  .opciones button, .opciones a { min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--borde); background: var(--tarjeta); font: 700 14px "Manrope"; color: var(--texto); cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; }
+  .opciones [aria-pressed="true"] { background: var(--bosque); color: var(--sobre-bosque); border-color: var(--bosque); }
+  .tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 1320px; margin: 0 auto; }
+  .propuesta h2 { font-size: 20px; margin: 0 0 2px; } .propuesta h2 b { display: inline-grid; place-items: center; width: 32px; height: 32px; margin-right: 6px; border-radius: 50%; background: var(--lima); color: var(--bosque); font-size: 17px; }
+  .propuesta ul { margin: 6px 0 12px; padding-left: 18px; font-size: 15px; color: #4A554E; min-height: 5.6em; } .propuesta li b { color: var(--texto); }
+  .sello-elegida { margin-left: 6px; padding: 3px 10px; border-radius: 999px; background: var(--bosque); color: var(--sobre-bosque); font-size: 13px; font-weight: 800; vertical-align: middle; }
+  .caja { overflow: hidden; }
+  .telefono { position: relative; width: max-content; padding: 10px; border-radius: 46px; background: #1b1f1d; box-shadow: 0 24px 50px rgb(16 40 26 / .3), inset 0 0 0 2px #3a403c; transform-origin: top left; }
+  .telefono iframe { display: block; border: 0; border-radius: 36px; background: var(--marfil); }
+  @media (max-width: 900px) { .tres { grid-template-columns: 1fr; } .propuesta ul { min-height: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Stock: tres maneras de ordenarlo</h1>
+  <p>En las tres, lo que tiene que salir hoy es lo primero, «Compra» y «Merma» flotan abajo como en la app, y se van el anillo y los tres recuadros. Cambia dónde vive cada cosa. Se eligió la B (14 de noviembre). Datos de demostración: se pueden tocar.</p>
+  <div class="opciones">
+    <span>Estado</span>
+    <button data-g="estado" data-v="normal">Semana de calor</button><button data-g="estado" data-v="sin-temp">Falta la temperatura de hoy</button><button data-g="estado" data-v="en-orden">Semana fresca</button>
+    <span>Ancho</span><button data-g="ancho" data-v="360x780">360</button><button data-g="ancho" data-v="412x880">412</button>
+    <a href="index.html" style="margin-left:auto">Volver al visor</a>
+  </div>
+</header>
+<main class="tres">
+  <section class="propuesta"><h2><b>A</b>Lo urgente arriba</h2>
+    <ul><li><b>Una sola página:</b> hoy, mañana y después tu stock.</li><li><b>Temperatura:</b> un botón chico en la cabecera.</li><li><b>Totales:</b> en el subtítulo.</li></ul>
+    <div class="caja"><div class="telefono"><iframe data-orden="a" title="Propuesta A"></iframe></div></div></section>
+  <section class="propuesta"><h2><b>B</b>Dos pestañas <span class="sello-elegida">Elegida</span></h2>
+    <ul><li><b>«Qué hacer»</b> y <b>«Tu stock»</b>, cada una con lo suyo.</li><li><b>Temperatura:</b> al final de «Qué hacer», con la semana.</li><li><b>Totales:</b> al inicio de «Tu stock».</li></ul>
+    <div class="caja"><div class="telefono"><iframe data-orden="b" title="Propuesta B"></iframe></div></div></section>
+  <section class="propuesta"><h2><b>C</b>En orden de salida</h2>
+    <ul><li><b>Una sola lista</b> por el día en que sale cada llegada.</li><li><b>Temperatura:</b> en el renglón de «Hoy».</li><li><b>Totales:</b> al final de la lista.</li></ul>
+    <div class="caja"><div class="telefono"><iframe data-orden="c" title="Propuesta C"></iframe></div></div></section>
+</main>
+<script>
+  const s = { estado: "normal", ancho: "412x880" };
+  function aplicar(recargar = true) {
+    const [w, h] = s.ancho.split("x").map(Number);
+    document.querySelectorAll(".caja").forEach((caja) => {
+      const tel = caja.firstElementChild, marco = tel.firstElementChild, escala = Math.min(1, caja.clientWidth / (w + 20));
+      marco.width = w; marco.height = h; tel.style.transform = `scale(${escala})`; caja.style.height = `${(h + 20) * escala}px`;
+      if (recargar) marco.src = `app.html?orden=${marco.dataset.orden}&estado=${s.estado}&v=${Date.now()}#stock`;
+    });
+    document.querySelectorAll("[data-g]").forEach((b) => b.setAttribute("aria-pressed", String(s[b.dataset.g] === b.dataset.v)));
+  }
+  document.querySelectorAll("[data-g]").forEach((b) => b.addEventListener("click", () => { s[b.dataset.g] = b.dataset.v; aplicar(); }));
+  addEventListener("resize", () => aplicar(false));
+  aplicar();
+</script>
+</body>
+</html>

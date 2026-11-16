@@ -94,6 +94,8 @@ describe("resumenDe", () => {
     expect(resumenDe(sinPrecio)).toBe(`Venta · ${formatearCajas(3)}`);
   });
   it("un abono dice de quién y cuánto", () => expect(resumenDe(abono)).toBe(`Abono de Don Lucho · ${formatearSoles(80)}`));
+  it("la temperatura dice cuántos grados", () =>
+    expect(resumenDe({ tipo: "temperatura", entrada: { comandoId: 9, corregido: false, latenciaMs: 0, borrador: { grados: 29 } } })).toBe("Temperatura · 29°"));
 });
 
 describe("contarPorEnviar", () => {

@@ -11,6 +11,8 @@ import { Insignia } from "@/components/ui/Insignia";
 import { formatearSoles } from "@/lib/formato";
 import type { ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import type { LecturaMonto } from "@/lib/voz/monto-reglas";
+import { maduraEnLaCaja } from "@/lib/vida-util-reglas";
+import { ComoLlego } from "./ComoLlego";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { FilaTarjeta } from "./FilaTarjeta";
 
@@ -24,11 +26,13 @@ type Props = {
    */
   monto: { etiqueta: string; leer: (texto: string) => LecturaMonto; sugerir: (productoId: number) => Promise<number | null> } | null;
   alListo: (item: ItemBorrador) => void;
+  /** Solo en la compra: pregunta cómo llegó la fruta (si madura en la caja) y dice cuánto aguanta con la temperatura de hoy. */
+  comoLlego?: { temperatura: number | null };
 };
 
 // Corregir una fruta de la tarjeta: cuál es, cuántas cajas y, si lleva dinero, a cuánto. El número se escribe con el
 // teclado de números.
-export function EditorItem({ item, opciones, monto, alListo }: Props) {
+export function EditorItem({ item, opciones, monto, alListo, comoLlego }: Props) {
   const [borrador, setBorrador] = useState(item);
   const [eligiendo, setEligiendo] = useState(item.productoId === null);
   const [precioTexto, setPrecioTexto] = useState(item.precio === null ? "" : String(item.precio));
@@ -92,6 +96,10 @@ export function EditorItem({ item, opciones, monto, alListo }: Props) {
           </button>
         </div>
       </div>
+
+      {comoLlego && borrador.productoId !== null && maduraEnLaCaja(borrador.producto) && (
+        <ComoLlego fruta={borrador.producto} estado={borrador.estado ?? null} temperatura={comoLlego.temperatura} alCambiar={(estado) => setBorrador((b) => ({ ...b, estado }))} />
+      )}
 
       {monto && (
         <div className="grid gap-1.5">

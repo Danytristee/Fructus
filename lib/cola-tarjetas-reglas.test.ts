@@ -26,10 +26,15 @@ describe("queEsLaTarjeta", () => {
   it("sin elegir, usa lo que se dijo", () => expect(queEsLaTarjeta({ tipo: "abono", cliente: { dicho: "el flaco", elegido: null, opciones: [] }, monto: null })).toBe("tu abono del flaco"));
   it("una merma dice la fruta y las cajas", () =>
     expect(queEsLaTarjeta({ tipo: "merma", producto: { dicho: null, elegido: { id: 2, nombre: "Palta" }, opciones: [] }, cantidad: 2 })).toBe(`tu merma de Palta · ${formatearCajas(2)}`));
+  it("la temperatura dice cuántos grados", () => expect(queEsLaTarjeta({ tipo: "temperatura", grados: 29, ayer: 30 })).toBe("la temperatura · 29°"));
   it("lo que no reconoce no rompe", () => expect(queEsLaTarjeta(null)).toBe("lo que dictaste"));
 });
 
 describe("tarjetaParaAnotar", () => {
+  it("la temperatura vuelve con sus grados, sin la de ayer", () => {
+    expect(tarjetaParaAnotar({ tipo: "temperatura", entrada: { comandoId: 9, corregido: false, latenciaMs: 0, borrador: { grados: 31 } } }, undefined)).toEqual({ tipo: "temperatura", grados: 31, ayer: null });
+  });
+
   it("si el cliente ya no está, el abono vuelve con su monto y medio, y el cliente por elegir", () => {
     expect(tarjetaParaAnotar(abono, "Ese cliente ya no está en tu cuaderno. Elige a otro.")).toEqual({
       tipo: "abono",

@@ -1,6 +1,7 @@
 // De la tarjeta de venta (lo que se entendió) al borrador que la persona corrige, y del borrador a lo que recibe
 // registrar_venta. Reglas de dinero (CLAUDE.md, principio 2): no se guarda sin precio, sin saber si pagó, ni al crédito
 // sin cliente; la rebaja dicha para toda la venta se reparte entre las frutas según su peso en el total. Lógica pura.
+import type { EstadoLlegada } from "../vida-util-reglas";
 import { leerMonto } from "./monto-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
@@ -15,6 +16,8 @@ export type ItemBorrador = {
   precio: number | null;
   /** El precio no se dijo: se puso el último cobrado (o el de referencia). */
   sugerido: boolean;
+  /** Solo en la compra: cómo llegó la fruta (verde, pintón, maduro), si se dijo. */
+  estado?: EstadoLlegada | null;
 };
 
 export type Borrador = {

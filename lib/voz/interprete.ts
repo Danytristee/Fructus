@@ -5,6 +5,7 @@ import "server-only";
 // esquema, no se usa. La transcripción nunca va a los logs (CLAUDE.md, «Seguridad y claves»).
 import { fetchWithTimeout } from "../supabase/fetch-con-tope";
 import { bloqueCatalogo, type Catalogo } from "./catalogo-reglas";
+import { sinEstadoQueEsNombre } from "./como-llego-reglas";
 import { herramientasParaElModelo, leerInterpretacion, type Interpretacion } from "./esquemas";
 import { PROMPT_SISTEMA, mensajeCorreccion } from "./prompt";
 
@@ -70,6 +71,12 @@ async function preguntar(p: Proveedor, sistema: string, transcripcion: string): 
   return leida.ok ? leida : { ok: false, error: `respuesta inválida: ${leida.motivo.slice(0, 200)}` };
 }
 
+/** Lo que no se le pide al modelo porque se puede decidir contando: en una compra, el «verde» que era parte del nombre de la fruta. */
+function afinar(interpretacion: Interpretacion, transcripcion: string): Interpretacion {
+  if (interpretacion.herramienta !== "registrar_compra") return interpretacion;
+  return { ...interpretacion, datos: { ...interpretacion.datos, items: sinEstadoQueEsNombre(transcripcion, interpretacion.datos.items) } };
+}
+
 /**
  * Interpreta una transcripción. `catalogo` es lo que hay en el puesto (productos, clientes y proveedores).
  * `correccionDe`: la venta que Fructus leyó en voz alta; la transcripción es la corrección que dijo la persona («no, son ocho»).
@@ -90,7 +97,7 @@ export async function interpretar(
       continue;
     }
     const r = await preguntar(p, sistema, opciones.correccionDe ? mensajeCorreccion(opciones.correccionDe, transcripcion) : transcripcion);
-    if (r.ok) return { ok: true, interpretacion: r.interpretacion, modelo: p.modelo, latenciaMs: Math.round(performance.now() - inicio), intentos };
+    if (r.ok) return { ok: true, interpretacion: afinar(r.interpretacion, transcripcion), modelo: p.modelo, latenciaMs: Math.round(performance.now() - inicio), intentos };
     console.error("interprete: un proveedor falló", { modelo: p.modelo, error: r.error.slice(0, 120) });
     intentos.push({ modelo: p.modelo, error: r.error });
   }

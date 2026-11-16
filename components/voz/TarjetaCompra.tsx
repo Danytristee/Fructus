@@ -21,6 +21,8 @@ import {
 import { guionCompra } from "@/lib/voz/guion-reglas";
 import type { ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
+import { maduraEnLaCaja, NOMBRE_ESTADO } from "@/lib/vida-util-reglas";
+import { ComoLlego } from "./ComoLlego";
 import { DudasVoz } from "./DudasVoz";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { EditorItem } from "./EditorItem";
@@ -83,6 +85,11 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
   const total = totalCompra(borrador);
   const falta = faltaCompra(borrador);
   const { proveedor } = borrador;
+  // Con qué temperatura se cuenta hoy. Una tarjeta que esperaba en la cola desde antes puede no traerla.
+  const temperatura = tarjeta.temperatura ?? null;
+  // Con una sola fruta, «¿Cómo llegó?» va a la vista; con varias, dentro de cada una (un toque), para no alargar la tarjeta.
+  const unica = borrador.items.length === 1 ? borrador.items[0]! : null;
+  const preguntarAqui = unica !== null && unica.productoId !== null && maduraEnLaCaja(unica.producto);
 
   function confirmar(confirmadoPor: "toque" | "voz" = "toque") {
     if (falta.length > 0) return;
@@ -146,6 +153,7 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
             item={borrador.items[vista.n]!}
             opciones={tarjeta.items[vista.n]?.producto.opciones ?? []}
             monto={COSTO}
+            comoLlego={{ temperatura }}
             alListo={(item: ItemBorrador) => {
               setBorrador((b) => ({ ...b, items: b.items.map((it, n) => (n === vista.n ? item : it)) }));
               volver();
@@ -206,10 +214,17 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
                 {item.productoId === null ? "Toca para elegir la fruta" : item.cantidad < 1 ? "Toca para poner las cajas" : item.precio === null ? "Toca para poner el costo" : `${formatearSoles(item.precio)} la caja`}
               </span>
               {item.sugerido && <InsigniaSugerido />}
+              {item.estado && maduraEnLaCaja(item.producto) && <span>· {NOMBRE_ESTADO[item.estado].cajas}</span>}
             </span>
           }
         />
       ))}
+
+      {preguntarAqui && (
+        <div className="mt-1 animate-pieza" style={pieza(2)}>
+          <ComoLlego fruta={unica.producto} estado={unica.estado ?? null} temperatura={temperatura} alCambiar={(estado) => setBorrador((b) => ({ ...b, items: [{ ...b.items[0]!, estado }] }))} />
+        </div>
+      )}
 
       {aMano && (
         <div className="grid animate-pieza gap-1" style={pieza(borrador.items.length + 1)}>

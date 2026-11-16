@@ -1,0 +1,206 @@
+/* Fructus · maqueta del aviso de frescura. Se apoya en la maqueta Bosque (../bosque/tokens.css y app.css) y solo agrega las piezas
+   nuevas. Reglas de CLAUDE.md que se cuidan aquí: texto base 17 px, controles de 48 px o más, cifras con tabular-nums, y el color nunca
+   es la única señal (cada barra y cada tramo llevan su texto: «Sale hoy», «31°»). */
+:root {
+  --texto-2: #4A554E; /* el gris de la app real: 7.1:1 sobre el marfil (app/globals.css) */
+  --naranja: #D9822B; /* solo relleno de barras; el texto de aviso sigue siendo --aviso */
+}
+h3 { margin: 0; }
+.bajo-titulo { margin: -6px 2px 0; font-size: 16px; }
+.seccion { margin-top: 12px; }
+
+/* ── Hoy: el aviso (misma tarjeta que el aviso de inventario de hoy) ── */
+.aviso-frescura { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; padding: 16px; }
+.aviso-frescura .icono-caja { position: relative; width: 52px; height: 52px; border-radius: 18px; }
+.aviso-frescura .punto::after { content: ""; position: absolute; top: -4px; right: -4px; width: 14px; height: 14px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 2px var(--tarjeta); }
+.aviso-frescura .cuerpo { display: grid; min-width: 0; }
+.aviso-frescura strong { line-height: 1.25; }
+.aviso-frescura .cuerpo > span { font-size: 16px; line-height: 1.3; color: var(--texto-2); }
+.aviso-frescura b { margin-top: 3px; font-weight: 800; color: var(--bosque); }
+
+/* ── Stock: la cabeza del tablero (como la app real) ── */
+.resumen-stock { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 16px; }
+.anillo-caja { display: grid; justify-items: center; gap: 4px; }
+.anillo-caja em { font-style: normal; font-weight: 700; }
+.anillo { position: relative; display: grid; place-items: center; width: 96px; height: 96px; margin: 0; }
+.anillo svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.anillo > span { display: grid; text-align: center; font-size: 17px; line-height: 1.15; font-weight: 800; font-variant-numeric: tabular-nums; }
+.resumen-stock .cifra { font-size: 30px; line-height: 1.15; display: block; }
+.resumen-stock b.cifra { font-size: inherit; display: inline; }
+.resumen-stock .acciones { margin-top: 10px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 12px 6px; text-align: center; }
+.tile .cifra { font-size: 24px; line-height: 1.15; }
+.tile .t { font-size: 15px; line-height: 1.2; color: var(--texto-2); }
+.tile .h { font-size: 15px; line-height: 1.2; font-weight: 800; color: var(--deuda); }
+.icono-redondo { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+.icono-redondo svg { width: 22px; height: 22px; }
+.icono-redondo.deuda { background: var(--deuda-fondo); color: var(--deuda); }
+.icono-redondo.aviso { background: var(--aviso-fondo); color: var(--aviso); }
+.icono-redondo.positivo { background: var(--positivo-fondo); color: var(--positivo); }
+.icono-redondo.neutro { background: var(--lima-suave); color: var(--bosque); }
+
+/* ── Stock: el clima del puesto (nuevo) ── */
+.clima { display: grid; gap: 12px; }
+.clima-cab { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.clima-cab .etiqueta { display: block; font-size: 15px; white-space: nowrap; }
+.clima-cab .cifra { display: block; font-size: 34px; line-height: 1.05; }
+.clima-cab .cifra.sin { font-size: 22px; line-height: 1.2; letter-spacing: -.01em; }
+.boton-menu { flex-shrink: 0; }
+.clima-veredicto { line-height: 1.3; }
+.barras-temp { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; align-items: end; }
+.barras-temp .col { display: grid; justify-items: center; gap: 4px; }
+.barras-temp b { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.barras-temp .palo { width: 100%; max-width: 36px; border-radius: 9px 9px 4px 4px; background: var(--naranja); }
+.barras-temp .fuerte .palo { background: var(--deuda-relleno); }
+.barras-temp .fresco .palo { background: var(--positivo-relleno); }
+.barras-temp small { font-size: 14px; font-weight: 700; color: var(--texto-2); }
+.barras-temp .es-hoy small { font-weight: 800; color: var(--texto); }
+.barras-temp .falta .palo { background: none; border: 2px dashed var(--texto-2); }
+
+/* ── Stock: los avisos, ahora por llegada ── */
+.avisos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.alerta-stock { display: grid; gap: 12px; padding: 16px; }
+.alerta-stock .cab { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; }
+.alerta-stock .cab strong { line-height: 1.25; }
+.etiqueta-dia { padding: 4px 10px; border-radius: 999px; font-size: 14px; font-weight: 800; white-space: nowrap; flex-shrink: 0; }
+.etiqueta-dia.hoy { background: var(--deuda); color: var(--tarjeta); }
+.etiqueta-dia.manana { background: var(--aviso-fondo); color: var(--aviso); }
+.etiqueta-dia.bien { background: var(--marfil-calido); color: var(--texto); }
+.lotes { display: grid; border-radius: 16px; border: 1px solid var(--borde); overflow: hidden; }
+.lote { display: flex; align-items: center; gap: 12px; min-height: 64px; width: 100%; padding: 8px 8px 8px 12px; border: 0; background: var(--marfil); text-align: left; }
+.lote + .lote { border-top: 1px solid var(--borde); }
+button.lote:active { background: var(--marfil-calido); }
+.lote .cuerpo { display: grid; flex: 1; min-width: 0; }
+.lote .cuerpo strong { line-height: 1.25; }
+.lote .cuerpo span { font-size: 15px; line-height: 1.3; color: var(--texto-2); }
+.consejo { display: flex; gap: 8px; padding: 10px 12px; border-radius: 16px; background: rgb(16 61 41 / .08); line-height: 1.3; }
+.consejo svg { width: 20px; height: 20px; margin-top: 2px; color: var(--bosque); }
+.vacio h3 { font-size: 20px; }
+
+/* ── Stock: la lista, con la frase al lado de la barra ── */
+.grupo-fruta { display: flex; justify-content: space-between; align-items: baseline; margin: 4px 4px 6px; font-size: 17px; font-weight: 800; }
+.grupo-fruta .cifra { font-size: 15px; font-weight: 700; letter-spacing: 0; color: var(--texto-2); }
+.lista-stock { padding: 0; overflow: hidden; }
+.fila-stock + .fila-stock { border-top: 1px solid var(--borde); }
+.fila-stock summary { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 12px; min-height: 76px; padding: 10px 12px 10px 16px; cursor: pointer; list-style: none; }
+.fila-stock summary::-webkit-details-marker { display: none; }
+.fila-stock .cuerpo { display: grid; gap: 4px; min-width: 0; }
+.fila-stock .cuerpo strong { line-height: 1.2; }
+.barra-frescura { height: 8px; border-radius: 99px; background: rgb(23 37 29 / .1); overflow: hidden; }
+.barra-frescura i { display: block; height: 100%; border-radius: 99px; }
+.barra-frescura .hoy { background: var(--deuda); }
+.barra-frescura .manana { background: var(--naranja); }
+.barra-frescura .bien { background: var(--positivo-relleno); }
+.frase { font-size: 15px; line-height: 1.25; font-weight: 700; }
+.frase.hoy { color: var(--deuda); }
+.frase.manana { color: var(--aviso); }
+.frase.bien { color: var(--texto-2); font-weight: 600; }
+.fila-stock .der { text-align: right; }
+.fila-stock .der .cifra { display: block; font-size: 22px; line-height: 1.1; }
+.fila-stock .der span:last-child { font-size: 15px; color: var(--texto-2); }
+.fila-stock > summary .chev svg { transition: transform .2s var(--ease-salida); }
+.fila-stock[open] > summary .chev svg { transform: rotate(180deg); }
+.detalle { display: grid; gap: 10px; padding: 2px 16px 16px; }
+.datos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
+.datos div { padding: 8px 12px; border-radius: 16px; background: rgb(23 37 29 / .05); }
+.datos dt { font-size: 15px; color: var(--texto-2); }
+.datos dd { margin: 0; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.detalle > .boton { justify-self: start; }
+
+/* ── Hoja «¿por qué?» ── */
+.cab-lote, .cab-voz { display: flex; align-items: center; gap: 12px; }
+.cab-voz { gap: 8px; }
+.cab-lote .fruta { width: 56px; height: 56px; }
+.cab-lote h2 { margin: 0; line-height: 1.15; }
+.veredicto { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; line-height: 1.3; }
+.veredicto svg { width: 28px; height: 28px; }
+.veredicto b { display: block; font-size: 24px; font-weight: 800; line-height: 1.15; letter-spacing: -.02em; }
+.veredicto.hoy { background: var(--deuda-fondo); color: var(--deuda); }
+.veredicto.manana { background: var(--aviso-fondo); color: var(--aviso); }
+.veredicto.bien { background: var(--positivo-fondo); color: var(--positivo); }
+.vida { display: grid; gap: 8px; padding: 16px; }
+.vida h3 { font-size: 17px; }
+.vida p { line-height: 1.35; margin-top: 4px; }
+.vida-barra, .vida-dias { display: flex; gap: 2px; }
+.vida-barra { height: 22px; border-radius: 99px; overflow: hidden; background: var(--marfil-calido); }
+.vida-barra .tramo, .vida-dias span { flex: 0 1 0; min-width: 0; }
+.tramo.fresco { background: var(--positivo-relleno); }
+.tramo.calor { background: var(--naranja); }
+.tramo.fuerte { background: var(--deuda-relleno); }
+.vida-dias span { display: grid; justify-items: center; }
+.vida-dias b { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.vida-dias small { font-size: 13px; font-weight: 700; color: var(--texto-2); white-space: nowrap; }
+.calibrar { display: grid; gap: 8px; }
+.calibrar .boton { width: 100%; padding: 0 12px; }
+
+/* ── Temperatura, compra y consulta ── */
+.paso-temp { justify-content: center; }
+.paso-temp .cifra { font-size: 60px; min-width: 132px; }
+.como-llego { display: grid; gap: 8px; }
+.como-llego .etiqueta { display: flex; align-items: center; gap: 8px; margin-left: 4px; }
+.segmento.tres { grid-template-columns: repeat(3, 1fr); }
+.respuesta { font-size: 44px; line-height: 1.05; margin-top: 2px; }
+.enlace-fila { display: flex; align-items: center; justify-content: space-between; min-height: 48px; font-weight: 800; color: var(--bosque); }
+
+/* ── El aviso en el celular, la noche anterior ── */
+.bloqueo { min-height: 100dvh; display: grid; align-content: start; gap: 10px; padding: calc(64px + var(--seguro-arriba, 0px)) 14px 30px; color: var(--sobre-bosque); background: radial-gradient(120% 70% at 80% 0%, #1A5638, var(--bosque) 50%, var(--profundo)); }
+.bloqueo .reloj { font-size: 84px; font-weight: 700; line-height: 1; text-align: center; }
+.bloqueo .reloj small { font-size: 24px; letter-spacing: 0; }
+.bloqueo .fecha { margin-bottom: 26px; font-size: 19px; text-align: center; color: var(--sobre-bosque-2); }
+.notificacion { display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 14px; border-radius: 24px; background: var(--tarjeta); color: var(--texto); }
+.notificacion img { width: 44px; height: 44px; border-radius: 12px; }
+.notificacion .cuerpo { display: grid; min-width: 0; }
+.notificacion .app { font-size: 14px; font-weight: 700; color: var(--texto-2); }
+.notificacion strong { line-height: 1.25; }
+.notificacion .cuerpo > span:last-child { font-size: 16px; line-height: 1.3; color: var(--texto-2); }
+.notificacion.vieja { opacity: .82; }
+.bloqueo .pista { margin-top: 10px; font-size: 16px; text-align: center; color: var(--sobre-bosque-2); }
+
+/* ══ Los tres ordenamientos de Stock (stock.js) ══ */
+
+/* Común: «Compra» y «Merma» flotan sobre la barra, como en la app; la barra de Stock no lleva micrófono. */
+.nav.cuatro { grid-template-columns: repeat(4, 1fr); align-items: center; }
+.flotante { position: fixed; left: 0; right: 0; bottom: calc(98px + env(safe-area-inset-bottom)); z-index: 29; display: flex; justify-content: center; gap: 8px; pointer-events: none; }
+.flotante .boton { pointer-events: auto; box-shadow: 0 12px 26px -8px rgb(var(--sombra) / .55); }
+.contenido.con-flotante { padding-bottom: calc(184px + env(safe-area-inset-bottom)); }
+.nota-ia { padding: 0 4px; }
+
+/* La temperatura en un botón chico: sobre la cabecera verde (A) o sobre el marfil (C). */
+.chip-temp { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; height: 52px; padding: 0 16px 0 10px; border-radius: 999px; border: 1px solid rgb(247 245 238 / .18); background: rgb(247 245 238 / .1); color: var(--sobre-bosque); font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.chip-temp svg { width: 22px; height: 22px; }
+.chip-temp.claro { height: 48px; border-color: var(--borde); background: var(--tarjeta); color: var(--texto); font-size: 17px; }
+.chip-temp.falta { border-color: transparent; background: var(--lima); color: var(--bosque); font-size: 16px; }
+.sub-cabecera { position: relative; z-index: 2; margin: 6px 0 0 18px; color: var(--sobre-bosque-2); }
+
+/* A · la tarjeta grande de lo que sale hoy, y la de mañana más chica */
+.salida { display: grid; gap: 12px; }
+.salida-cab { display: flex; align-items: center; gap: 12px; }
+.salida-cab h2 { flex: 1; font-size: 19px; font-weight: 800; line-height: 1.2; }
+.salida-cab .cifra { font-size: 19px; }
+.salida-cifra { margin-top: -6px; font-size: 44px; line-height: 1; }
+
+/* B · las pestañas y el resumen de «Tu stock» */
+.pestanas button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; font-size: 17px; }
+.pestanas b { padding: 1px 9px; border-radius: 999px; background: var(--deuda); color: var(--tarjeta); font-size: 14px; font-variant-numeric: tabular-nums; }
+.resumen-llano { display: grid; }
+.resumen-llano > .cifra { font-size: 32px; line-height: 1.15; }
+.resumen-llano b { color: var(--texto); }
+
+/* C · la lista por día de salida */
+.salida-dia { display: grid; gap: 8px; }
+.tarjeta.salida-dia { padding: 12px 14px 14px; }
+.tarjeta.salida-dia .dia-salida { margin: 0; }
+.dia-salida { display: flex; align-items: center; gap: 8px; min-height: 48px; margin: 0 2px; }
+.dia-salida .cuando { flex: 1; min-width: 0; font-weight: 700; line-height: 1.25; }
+.lotes.suelta { border-radius: var(--r-tarjeta); background: var(--tarjeta); box-shadow: 0 1px 2px rgb(var(--sombra) / .05), 0 10px 28px -12px rgb(var(--sombra) / .22); }
+.lotes.suelta .lote { min-height: 68px; padding-left: 14px; background: var(--tarjeta); }
+.der-cajas { display: grid; justify-items: end; }
+.der-cajas .cifra { font-size: 22px; line-height: 1.1; }
+.der-cajas small { font-size: 14px; color: var(--texto-2); }
+.total-stock { margin: 6px 4px 0; line-height: 1.35; color: var(--texto-2); }
+.total-stock b { color: var(--texto); }
+
+/* La semana dentro de la hoja de la temperatura */
+.semana-temp { display: grid; gap: 8px; padding: 14px; }
+.semana-temp h3 { font-size: 15px; color: var(--texto-2); }

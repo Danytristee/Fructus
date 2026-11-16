@@ -2,7 +2,8 @@
 
 import { cn } from "cn";
 
-type Opcion<T extends string> = { valor: T; etiqueta: string; cuenta?: number };
+/** `urgente`: esa cuenta pide algo hoy y va en rojo (la pestaña «Qué hacer» de Stock). */
+type Opcion<T extends string> = { valor: T; etiqueta: string; cuenta?: number; urgente?: boolean };
 
 type Props<T extends string> = {
   opciones: Opcion<T>[];
@@ -40,7 +41,9 @@ export function Segmento<T extends string>({ opciones, valor, alCambiar, etiquet
             )}
           >
             {o.etiqueta}
-            {o.cuenta !== undefined && <span className="text-[15px] font-bold tabular-nums text-texto-suave">{o.cuenta}</span>}
+            {o.cuenta !== undefined && (
+              <span className={cn("text-[15px] font-bold tabular-nums", o.urgente ? "rounded-full bg-deuda px-2 py-px text-superficie" : "text-texto-suave")}>{o.cuenta}</span>
+            )}
           </button>
         );
       })}

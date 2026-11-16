@@ -9,6 +9,7 @@ import { z } from "zod";
 import { formatearHora, formatearSoles } from "./formato";
 import { textoVentas, type ResumenHoy } from "./hoy-reglas";
 import type { Sistema } from "./pwa-reglas";
+import { formatearGrados } from "./temperatura-reglas";
 
 /**
  * La hora de Lima a la que sale el aviso (las 7 p. m.: el puesto ya cerró y la gente que vende de mañana ya descansa).
@@ -93,6 +94,32 @@ export function avisoDelDia(r: ResumenHoy, fecha: string): Aviso | null {
     return { titulo: `Hoy cobraste ${soles(r.abonos)} en abonos`, cuerpo: `No hubo ventas · ${debe}`, url: "/cierre", tag };
   }
   return null;
+}
+
+/** Lo que tiene que salir mañana: las cajas de cada fruta cuyo último día bueno es mañana, o ya pasó, y la temperatura de hoy si se anotó. */
+export type PorSalir = { frutas: { nombre: string; cajas: number }[]; gradosHoy: number | null };
+
+/** Cuántas frutas se nombran en el aviso: las que más cajas tienen. Las demás se cuentan («y 2 más»). */
+const FRUTAS_EN_EL_AVISO = 3;
+
+/**
+ * El aviso de frescura, la noche anterior: qué tiene que salir mañana, para ponerlo adelante al abrir. Sale junto al resumen del
+ * día, con otra etiqueta para que no lo reemplace. Sin fruta por salir no avisa nada (devuelve null): un aviso vacío enseña a
+ * ignorarlo. Al tocarlo abre Stock.
+ */
+export function avisoDeFrescura(p: PorSalir, fecha: string): Aviso | null {
+  const frutas = p.frutas.filter((f) => f.cajas > 0).sort((a, b) => b.cajas - a.cajas);
+  if (frutas.length === 0) return null;
+  const total = Math.round(frutas.reduce((s, f) => s + f.cajas, 0) * 100) / 100;
+  const nombradas = frutas.slice(0, FRUTAS_EN_EL_AVISO).map((f) => `${f.nombre} (${Math.round(f.cajas * 100) / 100})`);
+  const resto = frutas.length - nombradas.length;
+  const lista = resto > 0 ? `${nombradas.join(", ")} y ${resto} más` : nombradas.length > 1 ? `${nombradas.slice(0, -1).join(", ")} y ${nombradas.at(-1)}` : nombradas[0]!;
+  return {
+    titulo: total === 1 ? "Mañana tiene que salir 1 caja" : `Mañana tienen que salir ${total} cajas`,
+    cuerpo: `${lista}.${p.gradosHoy === null ? "" : ` Hoy hizo ${formatearGrados(p.gradosHoy)}.`}`,
+    url: "/stock",
+    tag: `frescura-${fecha}`,
+  };
 }
 
 /** El aviso que sale al activarlo: así la persona ve en su teléfono cómo le va a llegar, sin esperar hasta las 7 p. m. */

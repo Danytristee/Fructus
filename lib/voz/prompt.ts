@@ -1,5 +1,8 @@
 // El prompt de sistema del intérprete, igual que en docs/interprete-voz.md (sección 2). Si cambia, cambian los dos
 // y se corre /voz-precision antes y después.
+// Lo que es de UNA herramienta (la temperatura, cómo llegó la fruta, qué pregunta es) no va aquí: va en la descripción de esa
+// herramienta o de su campo (lib/voz/esquemas.ts). Tres reglas así, puestas aquí el 14-11, hicieron que el modelo dejara de
+// entender «¿Cómo voy?», «¿Cuántas cajas de mango me quedan?» y «Le di 50 al cargador» (/voz-precision 2026-11-16).
 export const PROMPT_SISTEMA = `Eres el intérprete de comandos de Fructus, el sistema de un mayorista de frutas de
 La Hermelinda (Trujillo, Perú). Recibes la transcripción de lo que dijo el dueño o un
 ayudante en su puesto y llamas EXACTAMENTE UNA herramienta.

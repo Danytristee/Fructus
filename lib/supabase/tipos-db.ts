@@ -201,14 +201,14 @@ isOneToOne: false
                   ]
                 },"movimientos_stock": {
                   Row: {
-                    "cantidad": number,"comando_voz_id": number | null,"compra_id": number | null,"fecha": string,"id": number,"motivo": string | null,"producto_id": number,"registrado_por": string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id": number | null
+                    "cantidad": number,"comando_voz_id": number | null,"compra_id": number | null,"estado_llegada": Database["public"]['Enums']["estado_llegada"] | null,"fecha": string,"id": number,"motivo": string | null,"producto_id": number,"registrado_por": string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "cantidad": number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id": number,"registrado_por"?: string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
+                    "cantidad": number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"estado_llegada"?: Database["public"]['Enums']["estado_llegada"] | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id": number,"registrado_por"?: string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
                   }
                   Update: {
-                    "cantidad"?: number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id"?: number,"registrado_por"?: string,"tipo"?: Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
+                    "cantidad"?: number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"estado_llegada"?: Database["public"]['Enums']["estado_llegada"] | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id"?: number,"registrado_por"?: string,"tipo"?: Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
                   }
                   Relationships: [
                     {
@@ -363,6 +363,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"temperaturas": {
+                  Row: {
+                    "comando_voz_id": number | null,"creado_en": string,"fecha": string,"grados": number,"id": number,"registrado_por": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "comando_voz_id"?: number | null,"creado_en"?: string,"fecha"?: string,"grados": number,"id"?: never,"registrado_por"?: string
+                  }
+                  Update: {
+                    "comando_voz_id"?: number | null,"creado_en"?: string,"fecha"?: string,"grados"?: number,"id"?: never,"registrado_por"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "temperaturas_comando_voz_id_fkey"
+      columns: ["comando_voz_id"]
+isOneToOne: false
+      referencedRelation: "comandos_voz"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "temperaturas_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "perfiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"venta_items": {
                   Row: {
                     "cantidad": number,"descuento": number,"id": number,"precio_unitario": number,"producto_id": number,"subtotal": number | null,"venta_id": number
@@ -466,6 +492,14 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"v_temperatura_dia": {
+                  Row: {
+                    "dia": string | null,"fecha": string,"grados": number
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Functions: {
@@ -513,7 +547,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "condicion_pago": "contado"|"credito","estado_comprobante": "pendiente"|"enviado"|"aceptado"|"rechazado"|"anulado","medio_pago": "efectivo"|"yape"|"plin"|"transferencia"|"otro","rol_usuario": "duenio"|"administrador"|"ayudante"|"contador","tipo_movimiento": "entrada_compra"|"salida_venta"|"merma"|"ajuste"|"devolucion"
+            "condicion_pago": "contado"|"credito","estado_comprobante": "pendiente"|"enviado"|"aceptado"|"rechazado"|"anulado","estado_llegada": "verde"|"pinton"|"maduro","medio_pago": "efectivo"|"yape"|"plin"|"transferencia"|"otro","rol_usuario": "duenio"|"administrador"|"ayudante"|"contador","tipo_movimiento": "entrada_compra"|"salida_venta"|"merma"|"ajuste"|"devolucion"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -629,7 +663,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "condicion_pago": ["contado", "credito"],"estado_comprobante": ["pendiente", "enviado", "aceptado", "rechazado", "anulado"],"medio_pago": ["efectivo", "yape", "plin", "transferencia", "otro"],"rol_usuario": ["duenio", "administrador", "ayudante", "contador"],"tipo_movimiento": ["entrada_compra", "salida_venta", "merma", "ajuste", "devolucion"]
+            "condicion_pago": ["contado", "credito"],"estado_comprobante": ["pendiente", "enviado", "aceptado", "rechazado", "anulado"],"estado_llegada": ["verde", "pinton", "maduro"],"medio_pago": ["efectivo", "yape", "plin", "transferencia", "otro"],"rol_usuario": ["duenio", "administrador", "ayudante", "contador"],"tipo_movimiento": ["entrada_compra", "salida_venta", "merma", "ajuste", "devolucion"]
           }
         }
 } as const

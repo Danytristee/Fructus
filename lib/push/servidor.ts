@@ -1,9 +1,12 @@
 import "server-only";
 
+import { diaDeLima } from "../formato";
 import { leerResumen, type ResumenHoy } from "../hoy-reglas";
+import { leerInventario } from "../inventario";
 import { permisosDe } from "../permisos-reglas";
-import type { ResultadoEnvio, SuscripcionPush } from "../push-reglas";
+import type { PorSalir, ResultadoEnvio, SuscripcionPush } from "../push-reglas";
 import { crearClienteServicio } from "../supabase/servicio";
+import { temperaturaDe } from "../temperatura-reglas";
 import { problemaConLaClaveVapid, type ConfiguracionVapid } from "./enviar";
 import type { Destinatario } from "./resumen-diario";
 
@@ -58,6 +61,18 @@ export async function leerResumenDeLaBase(db: Servicio, fecha: string): Promise<
   const { data, error } = await db.rpc("resumen_dia", { p_fecha: fecha });
   if (error) throw new ErrorDeBase("resumen_dia", error.code);
   return leerResumen(data);
+}
+
+/**
+ * Lo que tiene que salir mañana, con la misma cuenta que Stock: las cajas de cada fruta cuyo último día bueno es mañana, hoy, o
+ * ya pasó (a las 7 p. m. el puesto ya cerró: lo que tenía que salir hoy y sigue ahí, mañana es lo primero).
+ */
+export async function leerPorSalirDeLaBase(db: Servicio, ahora: Date): Promise<PorSalir> {
+  const { estados, lecturas } = await leerInventario(db, ahora);
+  const frutas = estados
+    .map((e) => ({ nombre: e.nombre, cajas: e.lotes.filter((l) => l.restan <= 1).reduce((s, l) => s + l.cajas, 0) }))
+    .filter((f) => f.cajas > 0);
+  return { frutas, gradosHoy: temperaturaDe(lecturas, diaDeLima(ahora)) };
 }
 
 /** Los teléfonos activos de personas con cuenta activa que pueden ver el cierre: a ellos les corresponde el aviso. */

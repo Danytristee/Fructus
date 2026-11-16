@@ -9,7 +9,11 @@ import type { Database } from "../supabase/tipos-db";
 import type { Interpretacion } from "./esquemas";
 import { similitud } from "./similitud-reglas";
 import { elegir, type Resolucion } from "./tarjeta-reglas";
+import { diaDeLima } from "../formato";
 import { nombreProducto } from "../productos-reglas";
+import { leerTemperaturas } from "../temperatura";
+import { temperaturaParaContar } from "../frescura-reglas";
+import { diaAnterior, temperaturaDe } from "../temperatura-reglas";
 
 type Cliente = SupabaseClient<Database>;
 type Candidato = Resolucion["clientes"][number];
@@ -92,10 +96,17 @@ export async function resolver(supabase: Cliente, i: Interpretacion): Promise<Re
       ]);
       // Igual que el precio en la venta: solo se sugiere costo para la fruta que se eligió sola.
       const elegidos = i.datos.items.map((it, n) => elegir(it.producto_texto, productos[n] ?? []).elegido?.id ?? null);
-      return { ...vacia, proveedores, productos, precios: await costosSugeridos(supabase, elegidos) };
+      // La temperatura con la que se cuenta hoy, para que la tarjeta diga cuánto va a aguantar. Si no se puede leer, la compra sigue.
+      const [precios, lecturas] = await Promise.all([costosSugeridos(supabase, elegidos), leerTemperaturas(supabase, new Date(), 8).catch(() => [])]);
+      return { ...vacia, proveedores, productos, precios, temperaturaHoy: lecturas.length > 0 ? temperaturaParaContar(lecturas, diaDeLima(new Date())).grados : null };
     }
     case "registrar_merma":
       return { ...vacia, productos: [await buscarProductos(supabase, i.datos.producto_texto)] };
+    case "registrar_temperatura": {
+      // La de ayer, para que la tarjeta avise si la de hoy se aleja mucho. Con dos días basta.
+      const ayer = diaAnterior(diaDeLima(new Date()));
+      return { ...vacia, temperaturaAyer: temperaturaDe(await leerTemperaturas(supabase, new Date(), 2), ayer) };
+    }
     case "consultar": {
       const [clientes, productos] = await Promise.all([
         buscarClientes(supabase, i.datos.cliente_texto),

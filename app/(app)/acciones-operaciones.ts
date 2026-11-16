@@ -11,6 +11,7 @@ import { CATEGORIAS, DESCRIPCION_MAXIMO, GASTO_MAXIMO, pedidoGasto } from "@/lib
 import { CAJAS_MAXIMO, MOTIVO_MAXIMO, pedidoMerma } from "@/lib/voz/confirmar-merma-reglas";
 import { PRECIO_MAXIMO } from "@/lib/voz/confirmar-venta-reglas";
 import { buscarProveedores, costosSugeridos } from "@/lib/voz/resolver";
+import { ESTADOS_LLEGADA } from "@/lib/vida-util-reglas";
 
 // Guardar lo que no es una venta: abonos, mermas, gastos y compras dictados (A6). Cada uno es idempotente por comando:
 // un segundo toque, o un reintento tras una respuesta que no llegó, devuelve lo mismo y no guarda dos veces (el índice
@@ -165,6 +166,7 @@ const confirmacionCompra = z.object({
           cantidad: z.number().positive().max(CAJAS_MAXIMO),
           precio: z.number().positive().max(PRECIO_MAXIMO).nullable(),
           sugerido: z.boolean(),
+          estado: z.enum(ESTADOS_LLEGADA).nullable().optional(),
         }),
       )
       .min(1)

@@ -16,6 +16,7 @@ export const TITULO_CONSULTA: Record<TipoConsulta, string> = {
   ventas_hoy: "Lo que vendiste hoy",
   gastos_hoy: "Lo que gastaste hoy",
   resumen_dia: "Tu día",
+  que_sale_hoy: "Qué tiene que salir",
 };
 
 export type Respuesta = {
@@ -175,5 +176,42 @@ export function respuestaStock(productos: { id: number; nombre: string; stock: n
     hablado:
       `Tienes ${cajasEnPalabras(total)}, de ${numeroEnPalabras(hay.length).replace(/uno$/, "una")} ${hay.length === 1 ? "fruta" : "frutas"}. ` +
       `La que más tienes es ${primera.nombre}, con ${cajasEnPalabras(primera.stock)}.`,
+  };
+}
+
+/** Una fruta con las cajas que tienen que salir hoy y las que salen mañana (lib/frescura-reglas.ts lleva la cuenta). */
+export type PorSalirDeFruta = { id: number; nombre: string; hoy: number; manana: number };
+
+const juntar = (partes: string[]) => (partes.length <= 1 ? partes.join("") : `${partes.slice(0, -1).join(", ")} y ${partes.at(-1)}`);
+
+/**
+ * «¿Qué tiene que salir hoy?»: las cajas cuyo último día bueno es hoy (o ya pasó), fruta por fruta, y aparte lo de mañana. Si no
+ * hay nada, lo dice: no asusta con una cifra en cero.
+ */
+export function respuestaQueSaleHoy(frutas: PorSalirDeFruta[]): Respuesta {
+  const deHoy = frutas.filter((f) => f.hoy > 0).sort((a, b) => b.hoy - a.hoy);
+  const deManana = frutas.filter((f) => f.manana > 0).sort((a, b) => b.manana - a.manana);
+  const base = { titulo: TITULO_CONSULTA.que_sale_hoy, enlace: { texto: "Ver qué hacer en Stock", href: "/stock" } };
+  const manana = deManana.reduce((s, f) => s + centimos(f.manana), 0) / 100;
+  const mananaEscrito = deManana.length > 0 ? `Mañana: ${juntar(deManana.map((f) => `${formatearCajas(f.manana)} de ${f.nombre}`))}` : null;
+  const mananaDicho = deManana.length > 0 ? ` Mañana, ${juntar(deManana.map((f) => `${cajasEnPalabras(f.manana)} de ${f.nombre}`))}.` : "";
+  if (deHoy.length === 0) {
+    return {
+      ...base,
+      etiqueta: "Hoy no tiene que salir nada",
+      cifra: null,
+      detalle: mananaEscrito ?? "Tu fruta aguanta",
+      filas: [],
+      hablado: `Hoy no tiene que salir nada.${mananaDicho || " Tu fruta aguanta."}`,
+    };
+  }
+  const total = deHoy.reduce((s, f) => s + centimos(f.hoy), 0) / 100;
+  return {
+    ...base,
+    etiqueta: total === 1 ? "Hoy tiene que salir" : "Hoy tienen que salir",
+    cifra: { tipo: "cajas", valor: total },
+    detalle: manana > 0 ? mananaEscrito : `de ${deHoy.length} ${deHoy.length === 1 ? "fruta" : "frutas"}`,
+    filas: deHoy.slice(0, EN_LISTA).map((f) => ({ id: f.id, nombre: f.nombre, valor: formatearCajas(f.hoy), tono: "deuda" as const, icono: "fruta" as const })),
+    hablado: `Hoy ${total === 1 ? "tiene" : "tienen"} que salir ${cajasEnPalabras(total)}: ${juntar(deHoy.slice(0, EN_LISTA).map((f) => `${cajasEnPalabras(f.hoy)} de ${f.nombre}`))}.${mananaDicho}`,
   };
 }

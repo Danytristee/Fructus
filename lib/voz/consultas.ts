@@ -7,9 +7,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "../supabase/tipos-db";
 import { leerResumen } from "../hoy-reglas";
+import { leerInventario } from "../inventario";
 import {
   respuestaDeudaCliente,
   respuestaGastosHoy,
+  respuestaQueSaleHoy,
   respuestaQuienMeDebe,
   respuestaResumenDia,
   respuestaStock,
@@ -56,6 +58,12 @@ export async function responderConsulta(supabase: Cliente, p: PedidoConsulta): P
       if (error) throw new Error(`resumen_dia (${error.code})`);
       const dia = leerResumen(data);
       return p.consulta === "ventas_hoy" ? respuestaVentasHoy(dia) : p.consulta === "gastos_hoy" ? respuestaGastosHoy(dia) : respuestaResumenDia(dia);
+    }
+    case "que_sale_hoy": {
+      // La misma cuenta que Stock y que el aviso de «Hoy»: lo que se dice y lo que se ve en pantalla cuadran.
+      const { estados } = await leerInventario(supabase);
+      const cajasCon = (lotes: { cajas: number; restan: number }[], restan: number) => lotes.filter((l) => l.restan === restan).reduce((s, l) => s + l.cajas, 0);
+      return respuestaQueSaleHoy(estados.map((e) => ({ id: e.id, nombre: e.nombre, hoy: cajasCon(e.lotes, 0), manana: cajasCon(e.lotes, 1) })));
     }
     case "stock": {
       const { data, error } = await supabase.from("v_stock").select("producto_id, nombre, variedad, seleccion, calibre, stock");

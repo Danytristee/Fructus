@@ -22,7 +22,7 @@ describe("borradorCompra y faltaCompra", () => {
     const b = borradorCompra(tarjeta());
     expect(b).toEqual({
       proveedor: chao,
-      items: [{ productoId: 4, producto: "Plátano isla", cantidad: 50, precio: 25, sugerido: false }],
+      items: [{ productoId: 4, producto: "Plátano isla", cantidad: 50, precio: 25, sugerido: false, estado: null }],
       condicion: "credito",
       medio: null,
     });
@@ -88,11 +88,48 @@ describe("pedidoCompra", () => {
       medio_pago: null,
       comando_voz_id: 33,
       corregido: false,
-      items: [{ producto_id: 4, cantidad: 50, costo_unitario: 25 }],
+      items: [{ producto_id: 4, cantidad: 50, costo_unitario: 25, estado_llegada: null }],
     });
   });
 
   it("si falta algo, no hay pedido: nunca se guarda una compra a medias", () => {
     expect(pedidoCompra(borradorCompra(tarjeta({ condicion: null })), 33, false)).toBeNull();
+  });
+});
+
+describe("cómo llegó la fruta", () => {
+  const conEstado = (estado: "verde" | "pinton" | "maduro" | null) => {
+    const t = tarjeta();
+    return { ...t, items: t.items.map((it) => ({ ...it, estado })) };
+  };
+
+  it("lo que se dijo llega al borrador y de ahí a la entrada de stock", () => {
+    const b = borradorCompra(conEstado("verde"));
+    expect(b.items[0]!.estado).toBe("verde");
+    expect(pedidoCompra({ ...b, condicion: "contado", medio: "efectivo" }, 7, false)!.items[0]!.estado_llegada).toBe("verde");
+  });
+
+  it("si no se dijo queda sin decir: no se inventa (la cuenta lo trata como pintón)", () => {
+    const b = borradorCompra(conEstado(null));
+    expect(pedidoCompra({ ...b, condicion: "contado", medio: "efectivo" }, 7, false)!.items[0]!.estado_llegada).toBeNull();
+  });
+
+  it("una tarjeta vieja de la cola, sin el campo, se lee igual", () => {
+    expect(borradorCompra(tarjeta()).items[0]!.estado).toBeNull();
+  });
+
+  it("en una fruta que no madura en la caja no se guarda, aunque se haya dicho", () => {
+    const b = borradorCompra(conEstado("verde"));
+    const pina = { ...b, items: [{ ...b.items[0]!, producto: "Piña golden" }], condicion: "contado" as const, medio: "efectivo" as const };
+    expect(pedidoCompra(pina, 7, false)!.items[0]!.estado_llegada).toBeNull();
+  });
+
+  it("cambiar lo que se dijo es corregir; elegirlo cuando no se dijo, no", () => {
+    const dicho = conEstado("verde");
+    const b = borradorCompra(dicho);
+    expect(fueCorregidaCompra(dicho, { ...b, items: [{ ...b.items[0]!, estado: "maduro" }] })).toBe(true);
+    const sinDecir = conEstado(null);
+    const b2 = borradorCompra(sinDecir);
+    expect(fueCorregidaCompra(sinDecir, { ...b2, items: [{ ...b2.items[0]!, estado: "maduro" }] })).toBe(false);
   });
 });

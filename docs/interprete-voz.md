@@ -103,9 +103,14 @@ Llama registrar_venta con la venta COMPLETA ya corregida: copia tal cual lo que 
 - Una respuesta sin contenido («no», «sí») no llama al modelo (`pareceCorreccion`): se repregunta.
 - Si el modelo no devuelve una venta, la respuesta cuenta como «otra cosa».
 - Los casos viven en `tests/interprete/casos.json` con el campo `correccionDe`, que es la lectura. El 2026-11-16 pasaron 8 de 8 con
-  `openai/gpt-oss-120b` (`docs/voz/precision-2026-11-16.md`).
+  `openai/gpt-oss-120b` (`docs/voz/precision-2026-11-16-2.md`).
 
 ## 3. Herramientas (formato OpenAI / Groq)
+
+**Lo que es de una sola herramienta va aquí, no en el prompt de la sección 2:** en su descripción o en la de su campo (qué frases
+son la temperatura, cómo se dice que la fruta llegó verde, qué pregunta es cada `consulta`). El 14-11 se pusieron tres reglas así
+en el prompt general y el modelo dejó de entender «¿Cómo voy?», «¿Cuántas cajas de mango me quedan?» y «Le di 50 al cargador»
+(`docs/voz/precision-2026-11-16.md`). Con esas reglas en las descripciones, los tres vuelven a salir bien.
 
 ```json
 [
@@ -175,7 +180,8 @@ Llama registrar_venta con la venta COMPLETA ya corregida: copia tal cual lo que 
               "properties": {
                 "producto_texto": { "type": "string" },
                 "cantidad": { "type": "number" },
-                "costo_unitario": { "type": ["number", "null"] }
+                "costo_unitario": { "type": ["number", "null"] },
+                "estado": { "type": ["string", "null"], "enum": ["verde", "pinton", "maduro", null], "default": null, "description": "Cómo llegó esa fruta, si lo dijo: \"verde\", \"pintón\" o \"pintona\" (pinton), \"maduro\" o \"madura\". Si no lo dijo, null. En \"manzana verde\" o \"plátano verde\", verde es parte del nombre de la fruta: va en producto_texto y aquí null." }
               },
               "required": ["producto_texto", "cantidad", "costo_unitario"]
             }
@@ -223,6 +229,20 @@ Llama registrar_venta con la venta COMPLETA ya corregida: copia tal cual lo que 
   {
     "type": "function",
     "function": {
+      "name": "registrar_temperatura",
+      "description": "La temperatura del puesto: \"hoy hizo 29 grados\", \"el termómetro marca 31\", \"estamos a 28 grados\".",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "grados": { "type": "number", "minimum": -99, "maximum": 999, "description": "Grados Celsius que marca el termómetro, en cifras. \"28 grados y medio\" = 28.5." }
+        },
+        "required": ["grados"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "consultar",
       "description": "Una pregunta sobre el negocio.",
       "parameters": {
@@ -230,7 +250,8 @@ Llama registrar_venta con la venta COMPLETA ya corregida: copia tal cual lo que 
         "properties": {
           "consulta": {
             "type": "string",
-            "enum": ["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia"]
+            "enum": ["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia", "que_sale_hoy"],
+            "description": "Qué pregunta. ventas_hoy: cuánto vendió hoy. quien_me_debe: quiénes le deben. deuda_cliente: cuánto debe un cliente. stock: todo lo que tiene. stock_producto: cuántas cajas le quedan de UNA fruta. gastos_hoy: cuánto gastó hoy. resumen_dia: cómo va el día (\"¿cómo voy?\"). que_sale_hoy: qué fruta tiene que salir hoy o se va a malograr, qué vender primero."
           },
           "cliente_texto": { "type": ["string", "null"] },
           "producto_texto": { "type": ["string", "null"] }
@@ -268,15 +289,21 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 | "Llegaron 50 cajas de plátano isla del de Chao a 25" | registrar_compra | 50 × 25 |
 | "Se malograron 3 jabas de papaya" | registrar_merma | 3 |
 | "Pagué 80 de flete" | registrar_gasto | flete, 80 |
+| "Hoy hizo 29 grados" | registrar_temperatura | 29 |
+| "Llegaron 30 cajas de mango kent verde a 32, lo pagué" | registrar_compra | 30 × 32, estado verde, contado |
+| "Llegaron 20 cajas de manzana verde a 90" | registrar_compra | producto "manzana verde", estado null |
 | "¿Quién me debe?" | consultar | quien_me_debe |
 | "¿Cuánto me debe el flaco?" | consultar | deuda_cliente, "el flaco" |
 | "¿Cuántas cajas de mango me quedan?" | consultar | stock_producto, "mango" |
+| "¿Qué tiene que salir hoy?" | consultar | que_sale_hoy |
 | "Oye, ¿ya almorzaste?" | no_entendido | — |
 
 Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre contra el modelo real. La tasa de acierto es una métrica del proyecto universitario. Un caso que falla nunca se borra para mejorar el número.
 
 ## 5. Después de interpretar
 
+0. En una compra, quitar el estado que era parte del nombre (`lib/voz/como-llego-reglas.ts`): si la fruta se llama «manzana
+   verde» y la frase dijo «verde» una sola vez, no llegó verde. Se decide contando, no se le pide al modelo.
 1. Registrar el comando en `comandos_voz` (transcripción, intención, JSON, latencia).
 2. Resolver `cliente_texto` / `producto_texto` con `buscar_*`. Similitud ≥ 0.45 **y** al menos 0.15 por encima del segundo → se
    elige sola; si no, la tarjeta muestra las 3 mejores opciones para tocar una. El margen existe por el catálogo real (ADR-0016):

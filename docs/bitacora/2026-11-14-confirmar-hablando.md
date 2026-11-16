@@ -36,7 +36,7 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
   - Con manos libres, al terminar de leer se abre el micrófono por 5 s (`lib/voz/manos-libres-reglas.ts`, `components/voz/useManosLibres.ts`).
   - `POST /api/voz/respuesta` transcribe la respuesta, y solo «confirmo», «correcto» o «acepto», sin nada más, guardan (`lib/voz/respuesta-reglas.ts`). Guardan por la misma acción que el toque, y dice «Guardado» cuando la base respondió.
   - Si oye otra cosa, pregunta una vez más. Si calla, si el servidor falla o si se toca la tarjeta, queda para tocar.
-  - Migración `20261114220000_confirmado_por`: el comando guarda si se confirmó con un toque o por voz. Un check impide un descartado «confirmado por voz».
+  - Migración `20261116173134_confirmado_por`: el comando guarda si se confirmó con un toque o por voz. Un check impide un descartado «confirmado por voz».
   - **Arreglo de raíz en `silencio-reglas.ts`:** quien respondía apenas se abría el micrófono no contaba, porque el primer cuadro (ya con voz) quedaba como fondo. Ahora lo oído se vuelve a mirar en cada cuadro contra el fondo de ahora.
 - **Cómo se verificó:**
   - Vitest: 15 del silencio, 10 de manos libres y 22 de la respuesta.
@@ -45,7 +45,7 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
   - En la base: 3 ventas de prueba con `confirmado_por = 'voz'` y las demás `'toque'`. `scripts/invariantes.sql`: las 12 en orden.
   - Capturas de «Te escucho» a 412 y 360 px.
 - **Pendiente:**
-  - La migración no está en el proyecto de Supabase: se aplica con OK, junto con el PR.
+  - La migración se aplicó al proyecto el 2026-11-16 (ver «Cierre»).
   - La base local la comparte otra sesión con migraciones que esta rama no tiene: esta se aplicó con psql, sin anotarla en el historial. Tras un `db reset` hay que volver a aplicarla.
   - pgTAP 01, 03, 04 y 11 fallan en la base compartida porque el catálogo real deja inactivo el producto 1; ya pasaba antes.
   - Sin probar con el audífono: qué tarda Android en abrir el micrófono Bluetooth después de leer, y si se come el principio del «confirmo».
@@ -74,11 +74,11 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
   - Al guardar queda `corregido`, porque se compara con lo dictado.
 - **Cómo se verificó:**
   - Vitest: 253 de `lib/voz`.
-  - `/voz-precision`: 8 de 8 correcciones con `openai/gpt-oss-120b` (`docs/voz/precision-2026-11-16.md`).
+  - `/voz-precision`: 8 de 8 correcciones con `openai/gpt-oss-120b` (`docs/voz/precision-2026-11-16-2.md`).
   - `voz-respuesta-api.spec.ts` con Whisper y el intérprete reales, sobre audios sintéticos.
   - Toda la voz: 87 e2e en verde a 412 y 360 px.
 - **Pendiente:**
-  - **El acierto de datos clave del intérprete quedó en 87.1 %** (meta 90 %), por casos que no son de esta obra: los 3 que ya fallaban el 2026-10-31 y 6 del catálogo real que se sumaron después (`docs/voz/precision-2026-11-16.md`). Se corrige en el prompt de sistema, con su `/voz-precision` antes y después.
+  - **El acierto de datos clave del intérprete quedó en 87.1 %** (meta 90 %), por casos que no son de esta obra: los 3 que ya fallaban el 2026-10-31 y 6 del catálogo real que se sumaron después (`docs/voz/precision-2026-11-16-2.md`). Se corrige en el prompt de sistema, con su `/voz-precision` antes y después.
   - `components/voz/TarjetaVenta.tsx` tiene 301 líneas: la actividad 6 saca lo de manos libres a una pieza común.
   - Este worktree ya tiene `GROQ_API_KEY` en `.env.local`, fuera de git. Gemini sigue sin clave, así que no hay respaldo.
 
@@ -88,7 +88,7 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
   - Las cuatro tarjetas leen y se confirman hablando, con los mismos candados (`lib/voz/guion-reglas.ts`).
   - La compra pregunta «¿La pagaste o la debes?» si no se dijo. Corregir hablando sigue siendo solo de la venta: en las demás, una corrección cuenta como «otra cosa» y se repregunta.
   - Las tarjetas «a mano» no leen.
-  - `registrar_compra` y `marcarComando` guardan `confirmado_por`: la migración `20261114220000` creció y sigue sin aplicar al proyecto.
+  - `registrar_compra` y `marcarComando` guardan `confirmado_por`; la migración `20261116173134` creció con eso.
   - «Guardado» y la línea de estado pasaron a piezas comunes (`useManosLibres`, `NotaVoz.tsx`).
 - **Cómo se verificó:**
   - Vitest: 261 de `lib/voz`.
@@ -97,3 +97,13 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
   - Toda la voz y lo «a mano»: 136 en verde y 7 fallan por la base compartida. El Mango Kent del seed está inactivo con el catálogo real: `voz-merma` (4), `voz-consulta` piña (2) y `voz-api` (1). Ya pasaba antes, ver la bitácora del 2026-11-12.
 - **Pendiente:**
   - `components/voz/TarjetaVenta.tsx` sigue en 286 líneas. Lo que más pesa es el editor de cliente y de ítem: partir ahí, no en la voz.
+
+## Cierre · La migración en el proyecto
+
+- **Antes de aplicar, se trajo `main`.** Había entrado `como_llego_la_fruta`, que cambió `registrar_compra`.
+  - Si se aplicaba la versión que tenía esta rama, se borraba en el proyecto lo de «cómo llegó la fruta».
+  - Se comparó la huella (md5) de cada función en el proyecto con la de los archivos, y la migración se rehízo sobre la versión vigente con una sola línea de más.
+- **Aplicada al proyecto con OK, como `20261116173134_confirmado_por`.** En el proyecto, `registrar_venta` y `registrar_compra` guardan `confirmado_por` y la compra conserva `estado_llegada`.
+  - Avisos de seguridad y de rendimiento: ninguno nuevo; son los que CLAUDE.md deja a propósito, más los de la obra de frescura.
+- **En la base local** se volvió a aplicar con psql sobre la versión vigente: antes había pisado ahí el `registrar_compra` de «cómo llegó la fruta».
+  - pgTAP 20 (esta; antes 18, chocaba con `18_temperatura_diaria`), 19, 17 y 05 en verde.
