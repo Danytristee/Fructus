@@ -16,6 +16,7 @@ actividad 5 (escuchar dentro de la app) y se decide qué hacer.
 | `entrenar.py` | Corre el entrenador de openWakeWord 0.6.0 con tres arreglos para un Python de hoy (ver el archivo). | Colab |
 | `compat_torchaudio.py` | Devuelve `torchaudio.load`/`info`, que las versiones nuevas de torchaudio quitaron. | Colab |
 | `medir.py` | Mide el modelo con los audios reales del puesto y escribe el informe en `docs/voz/`. | **Esta computadora** |
+| `referencia.py` | Los audios y los puntajes de openWakeWord con que se prueba que el detector de la app calcula lo mismo (5b). | **Esta computadora** |
 
 ## Modelo provisional (sin grabaciones)
 
@@ -40,6 +41,28 @@ Resultado y lo aprendido: `docs/voz/palabra-activacion-2026-11-14-provisional.md
 
 **Lo más importante para grabar:** «fruta» engaña al modelo («hola, ¿hay fruta?», «tus frutas»). Además de las horas de ruido,
 graben unos minutos de frases con «fruta» dichas cerca del audífono: van con `medir.py --parecidas`.
+
+## El detector de la app (5b)
+
+La app corre la misma cadena de openWakeWord en el navegador (`lib/voz/detector-palabra.ts`, con onnxruntime-web), con tres
+modelos en `public/voz/`:
+- `melspectrogram.onnx` y `embedding_model.onnx`: los de openWakeWord 0.6.0, sin cambios (los baja `openwakeword.utils.download_models`
+  desde la versión v0.5.1 de su repositorio). El de rasgos es el `speech_embedding` de Google llevado a ONNX.
+- `hola-fructus.onnx`: el único entrenado para Fructus.
+
+`lib/voz/detector-palabra.paridad.test.ts` compara la app con Python, cuadro por cuadro, con los audios de `tests/palabra/`. Si se
+cambia un modelo, se rehace la referencia:
+
+```bash
+python3.12 -m venv .local/venv && .local/venv/bin/pip install "openwakeword==0.6.0" onnxruntime soundfile "scipy>=1.14,<1.16" piper-tts huggingface_hub
+cp -R .local/venv/lib/python3.12/site-packages/piper/espeak-ng-data .local/espeak-ng-data   # espeak no acepta rutas largas
+.local/venv/bin/python referencia.py audios --voz .local/voces/es_MX-ald-medium.onnx --salida ../../../tests/palabra --espeak .local/espeak-ng-data
+.local/venv/bin/python referencia.py puntajes --modelo ../../../public/voz/hola-fructus.onnx \
+    --audios ../../../tests/palabra/*.wav --salida ../../../tests/palabra/referencia.json
+```
+
+Los audios se hacen con `es_MX-ald-medium`, la voz que el modelo provisional nunca oyó (sus datos son de dominio público). El
+primer paso es opcional: Piper no sintetiza dos veces igual, así que rehacer los audios cambia la referencia, pero no la prueba.
 
 ## Paso 1 · Grabar (lo hace el equipo, en el puesto)
 
