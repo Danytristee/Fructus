@@ -465,6 +465,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"vida_util_estimada": {
+                  Row: {
+                    "creado_en": string,"dia": string,"dias": number,"id": number,"modelo": string,"motivo": string,"producto_id": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creado_en"?: string,"dia": string,"dias": number,"id"?: never,"modelo": string,"motivo": string,"producto_id": number
+                  }
+                  Update: {
+                    "creado_en"?: string,"dia"?: string,"dias"?: number,"id"?: never,"modelo"?: string,"motivo"?: string,"producto_id"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "vida_util_estimada_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "productos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "vida_util_estimada_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "v_stock"
+      referencedColumns: ["producto_id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -499,6 +525,26 @@ isOneToOne: false
                   ComputedFields: never
                   Relationships: [
                     
+                  ]
+                },"v_vida_util": {
+                  Row: {
+                    "dia": string,"dias": number,"modelo": string,"motivo": string,"producto_id": number
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "vida_util_estimada_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "productos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "vida_util_estimada_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "v_stock"
+      referencedColumns: ["producto_id"]
+    }
                   ]
                 }
           }

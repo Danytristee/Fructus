@@ -5,7 +5,7 @@ import { cn } from "cn";
 
 import { Hoja } from "@/components/ui/Hoja";
 import { IconoFruta } from "@/components/ui/IconoFruta";
-import { comoYCuandoLlego, consejoDeLlegada, explicacionDelCalor, tonoDeLlegada, veredictoDeLlegada } from "@/lib/frescura-frases-reglas";
+import { comoYCuandoLlego, consejoDeLlegada, explicacionDelCalor, origenDeLaCuenta, tonoDeLlegada, veredictoDeLlegada } from "@/lib/frescura-frases-reglas";
 import { DIAS_DE_ENTRADAS, diaCorto } from "@/lib/frescura-reglas";
 import { cajas, type EstadoProducto, type LoteEstimado } from "@/lib/inventario-reglas";
 import { veredictoClima } from "@/lib/temperatura-reglas";
@@ -38,6 +38,7 @@ export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistra
   const veredicto = veredictoDeLlegada(lote, hoy);
   const consejo = consejoDeLlegada(lote);
   const tono = tonoDeLlegada(lote.restan);
+  const origen = origenDeLaCuenta(lote, fruta.origenVida, hoy);
   const queda = Math.max(0, 1 - lote.dias.reduce((s, d) => s + d.gasto, 0));
   const conRotulos = lote.dias.length <= DIAS_CON_ROTULO;
   const algunaAnotada = lote.dias.some((d) => d.anotada);
@@ -114,7 +115,8 @@ export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistra
 
         <p className="flex gap-2 text-[15px] leading-snug text-texto-suave">
           <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0 text-sol" />
-          <span>Es un cálculo aproximado. Mira la fruta antes de decidir.</span>
+          {/* De dónde sale la cuenta (ADR-0021): con cuántos días se contó y si lo dijo la tabla o la IA, con su motivo. */}
+          <span>{origen ? `${origen} ` : ""}Es un cálculo aproximado. Mira la fruta antes de decidir.</span>
         </p>
       </div>
     </Hoja>

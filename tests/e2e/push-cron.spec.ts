@@ -78,6 +78,8 @@ test.afterAll(async () => {
   if (usuarioInactivo) await base.auth.admin.deleteUser(usuarioInactivo);
   // La fruta de prueba no se borra (CLAUDE.md): queda inactiva.
   if (frutaPorSalir) await base.from("productos").update({ activo: false }).eq("id", frutaPorSalir);
+  // El cron también le pide la vida útil al modelo de mentira (ADR-0021): lo que «estimó» no se queda en la base local.
+  await base.from("vida_util_estimada").delete().like("motivo", "Simulado%");
 });
 
 test("el cron no responde a quien no trae el secreto, ni a quien trae otro", async ({ request }) => {

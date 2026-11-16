@@ -5,6 +5,7 @@ import { diaDeLima } from "./formato";
 import { cuandoLlego, deCuando, DIAS_DE_ENTRADAS, estimarLlegada, llegadaSinFecha, llegadasEnStock, type Estimacion, type Llegada } from "./frescura-reglas";
 import { agruparPorFruta, detalleProducto, nombreProducto, tituloEnGrupo, type PartesProducto } from "./productos-reglas";
 import { diaAnterior, type TemperaturaDia } from "./temperatura-reglas";
+import type { VidaEstimada } from "./vida-estimada-reglas";
 import { NOMBRE_ESTADO, vidaDeLlegada, vidaUtilDias, type EstadoLlegada } from "./vida-util-reglas";
 
 const DIA_MS = 86_400_000;
@@ -53,7 +54,12 @@ export type ProductoInventario = PartesProducto & {
   /** Entradas de compra o de ajuste a favor (fecha, cajas y cómo llegó la fruta, si se dijo), para la cuenta de cada llegada. */
   entradas: { fecha: string; cantidad: number; estado?: EstadoLlegada | null }[];
   precioReferencia: number | null;
+  /** Lo que estimó la IA para esta fruta (ADR-0021). Sin eso, o si no se pudo leer, se cuenta con la tabla. */
+  vidaEstimada?: VidaEstimada | null;
 };
+
+/** De dónde salen los días que aguanta la fruta: de lo que estimó la IA (sus días, de cuándo es, su motivo y lo que decía la tabla) o de la tabla. */
+export type OrigenVida = { fuente: "ia"; dias: number; dia: string; motivo: string; tabla: number } | { fuente: "tabla" };
 
 export type EstadoProducto = {
   id: number;
@@ -68,7 +74,9 @@ export type EstadoProducto = {
   /** Días que alcanza el stock al ritmo de venta actual; null si no se vende. */
   coberturaDias: number | null;
   edadDias: number | null;
+  /** Días que aguanta a temperatura normal si llega pintona: lo estimado por la IA o, si no hay, lo de la tabla. */
   vidaUtil: number;
+  origenVida: OrigenVida;
   /** De 0 a 1: cuánto de su vida ya gastó la llegada más vieja, contando el calor de cada día. */
   desgaste: number;
   /** Cada llegada que todavía tiene cajas, de la más vieja a la más nueva, con lo que le queda. */
@@ -76,8 +84,11 @@ export type EstadoProducto = {
   alertas: Alerta[];
 };
 
-/** Una llegada con su cuenta: cuántas cajas quedan de ella y cuánto le falta para su último día bueno. */
-export type LoteEstimado = Llegada & Estimacion;
+/**
+ * Una llegada con su cuenta: cuántas cajas quedan de ella y cuánto le falta para su último día bueno. `vida` son los días con
+ * los que se contó (a temperatura normal, según cómo llegó); null en las cajas de hace más de 45 días, que no llevan cuenta.
+ */
+export type LoteEstimado = Llegada & Estimacion & { vida: number | null };
 
 // Cajas y días enteros, como se dice en el puesto: «unas 136 cajas», no «136.3» («no vendo media caja», prueba a ciegas de /formidable
 // 2026-11-09). Lo que no llega a uno se dice en palabras.
@@ -97,11 +108,14 @@ function porQueSale(lote: LoteEstimado, hoyMismo: boolean): string {
 
 /**
  * Las reglas de negocio de una fruta: lo que tiene que salir, reposición, sobrestock y fruta que no se mueve. `lecturas` es la
- * temperatura de cada día; sin ninguna, cada día cuenta como uno normal y la fruta dura lo que dice la tabla.
+ * temperatura de cada día; sin ninguna, cada día cuenta como uno normal. Cuánto aguanta la fruta sale de lo que estimó la IA
+ * (`p.vidaEstimada`) y, si no hay, de la tabla.
  */
 export function evaluarProducto(p: ProductoInventario, hoy: Date, lecturas: readonly TemperaturaDia[] = []): EstadoProducto {
   const nombre = nombreProducto(p);
-  const vidaUtil = vidaUtilDias(p.nombre);
+  const tabla = vidaUtilDias(p.nombre);
+  const vidaUtil = p.vidaEstimada?.dias ?? tabla;
+  const origenVida: OrigenVida = p.vidaEstimada ? { fuente: "ia", dias: p.vidaEstimada.dias, dia: p.vidaEstimada.dia, motivo: p.vidaEstimada.motivo, tabla } : { fuente: "tabla" };
   const demandaDiaria = p.vendido7 / 7;
   // Con stock negativo (una merma mayor que lo contado) no alcanza para nada: 0 días, no «−4.2 días» (/chaos 2026-11-10).
   const coberturaDias = demandaDiaria > 0 ? Math.max(0, p.stock) / demandaDiaria : null;
@@ -110,7 +124,11 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date, lecturas: read
   // Cada llegada con su cuenta, primero la que se acaba antes: una que llegó madura ayer puede salir antes que una verde del lunes.
   // Las cajas que las entradas leídas no cubren son de hace más de 45 días: no se les hace la cuenta, piden revisarse hoy.
   const lotes: LoteEstimado[] = llegadasEnStock(p.stock, p.entradas, diaAnterior(hoyDia, DIAS_DE_ENTRADAS))
-    .map((l) => ({ ...l, ...(l.antes ? llegadaSinFecha(l.dia, hoyDia) : estimarLlegada(l.dia, vidaDeLlegada(p.nombre, l.estado), lecturas, hoyDia)) }))
+    .map((l) => {
+      if (l.antes) return { ...l, vida: null, ...llegadaSinFecha(l.dia, hoyDia) };
+      const vida = vidaDeLlegada(p.nombre, l.estado, vidaUtil);
+      return { ...l, vida, ...estimarLlegada(l.dia, vida, lecturas, hoyDia) };
+    })
     .sort((a, b) => (a.fin === b.fin ? 0 : a.fin < b.fin ? -1 : 1));
   const viejo = lotes[0] ?? null;
   const desgaste = viejo ? viejo.gastado : 0;
@@ -196,7 +214,7 @@ export function evaluarProducto(p: ProductoInventario, hoy: Date, lecturas: read
   }
 
   const partes: PartesProducto = { nombre: p.nombre, variedad: p.variedad, marca: p.marca, seleccion: p.seleccion, calibre: p.calibre, kgPorCaja: p.kgPorCaja };
-  return { id: p.id, nombre, detalle: detalleProducto(p), partes, stock: p.stock, demandaDiaria, coberturaDias, edadDias, vidaUtil, desgaste, lotes, alertas };
+  return { id: p.id, nombre, detalle: detalleProducto(p), partes, stock: p.stock, demandaDiaria, coberturaDias, edadDias, vidaUtil, origenVida, desgaste, lotes, alertas };
 }
 
 const ORDEN_TIPO: Record<TipoAlerta, number> = { deterioro: 0, reponer: 1, sobrestock: 2, sin_movimiento: 3 };

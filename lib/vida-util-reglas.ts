@@ -3,7 +3,7 @@
 // El problema: «el mango dura 7 días» depende de en qué punto llegó. Verde aguanta más de una semana; maduro, dos o tres
 // días. Con un solo número para los tres, al maduro se le avisa tarde y al verde, antes de tiempo.
 // Estos son valores de referencia para la demo, a temperatura normal (24°) y sin cámara de frío. No están medidos en el
-// puesto: se ajustan con el dueño, y la estimación con IA los reemplaza fruta por fruta (actividad 5).
+// puesto: se ajustan con el dueño, y la estimación de la IA los reemplaza fruta por fruta (lib/vida-estimada-reglas.ts, ADR-0021).
 
 /** Días que aguanta una caja en buen estado, por familia de fruta, si llegó pintona (o si no se dijo cómo llegó). */
 const VIDA_UTIL_DIAS: Record<string, number> = {
@@ -67,11 +67,11 @@ export const maduraEnLaCaja = (nombre: string): boolean => MADURAN_EN_LA_CAJA.ha
 const FACTOR_POR_ESTADO: Record<EstadoLlegada, number> = { verde: 1.4, pinton: 1, maduro: 0.5 };
 
 /**
- * Los días que aguanta una llegada a temperatura normal. Si no se dijo cómo llegó, o la fruta no madura en la caja, los de
- * la tabla. Nunca menos de un día: lo que llega, por lo menos hoy se puede vender.
+ * Los días que aguanta una llegada a temperatura normal. `base` es lo que aguanta esa fruta si llega pintona: lo que estimó la
+ * IA (lib/vida-estimada-reglas.ts) o, si no hay, la tabla. Si no se dijo cómo llegó, o la fruta no madura en la caja, queda la
+ * base. Nunca menos de un día: lo que llega, por lo menos hoy se puede vender.
  */
-export function vidaDeLlegada(nombre: string, estado: EstadoLlegada | null | undefined): number {
-  const base = vidaUtilDias(nombre);
+export function vidaDeLlegada(nombre: string, estado: EstadoLlegada | null | undefined, base = vidaUtilDias(nombre)): number {
   if (!estado || !maduraEnLaCaja(nombre)) return base;
   return Math.max(1, Math.round(base * FACTOR_POR_ESTADO[estado] * 10) / 10);
 }
