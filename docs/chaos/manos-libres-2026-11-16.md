@@ -38,7 +38,7 @@ Fructus dice los precios así («a 45 con 50 la caja»), y quien corrige lo repi
 
 Una venta confirmada por dos cuentas a la vez sobre el mismo comando queda bien guardada (una sola venta, invariantes en orden), pero el comando no queda marcado. Viene de antes de esta obra.
 
-- **Arreglado con OK:** migración `20261116182112_comando_de_quien_confirma` (aplicada al proyecto) y pgTAP 21.
+- **Arreglado con OK:** migración `20261116182112_comando_de_quien_confirma` (aplicada al proyecto) y pgTAP 25.
 - **El mismo ataque, con la misma semilla:** ahora resiste. Una cuenta no puede confirmar el dictado de otra, salvo el dueño o el administrador; la venta y su comando quedan bien.
 
 ## Riesgo aceptado (no es hallazgo)

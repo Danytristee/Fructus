@@ -6,9 +6,9 @@ import {
   evaluarProducto,
   juntarAlertas,
   listaDeStock,
+  porUrgencia,
   priorizarAlertas,
   resumirInventario,
-  veredictoDelStock,
   type ProductoInventario,
 } from "./inventario-reglas";
 import { vidaUtilDias } from "./vida-util-reglas";
@@ -138,6 +138,69 @@ describe("evaluarProducto", () => {
     });
   });
 
+  describe("la vida que estimó la IA (ADR-0021)", () => {
+    // Papaya: la tabla dice 5 días. Llegó hace 3: con la tabla le quedan 2 y no avisa.
+    const papaya = { nombre: "Papaya", variedad: null, stock: 10, vendido7: 35, entradas: [{ fecha: haceDias(3), cantidad: 10 }] };
+
+    it("sin estimación sigue la tabla, y lo dice", () => {
+      const e = evaluarProducto(producto(papaya), hoy);
+      expect(e.vidaUtil).toBe(5);
+      expect(e.origenVida).toEqual({ fuente: "tabla" });
+      expect(e.lotes[0]).toMatchObject({ vida: 5, restan: 1 });
+    });
+
+    it("con estimación cuenta con ella en vez de la tabla: la misma caja ya tiene que salir hoy", () => {
+      const vidaEstimada = { dias: 4, motivo: "Llega madura y se pasa rápido.", dia: "2026-10-27" };
+      const e = evaluarProducto(producto({ ...papaya, vidaEstimada }), hoy);
+      expect(e.vidaUtil).toBe(4);
+      expect(e.origenVida).toEqual({ fuente: "ia", dias: 4, dia: "2026-10-27", motivo: "Llega madura y se pasa rápido.", tabla: 5 });
+      expect(e.lotes[0]).toMatchObject({ vida: 4, restan: 0 });
+      expect(e.alertas.find((a) => a.tipo === "deterioro")).toMatchObject({ gravedad: "alta" });
+    });
+
+    it("cómo llegó se aplica sobre la estimación: la madura aguanta la mitad", () => {
+      const vidaEstimada = { dias: 6, motivo: "Aguanta un poco más.", dia: "2026-10-27" };
+      const e = evaluarProducto(producto({ ...papaya, vidaEstimada, entradas: [{ fecha: haceDias(1), cantidad: 10, estado: "maduro" }] }), hoy);
+      expect(e.lotes[0]!.vida).toBe(3);
+    });
+
+    it("de las cajas de hace más de 45 días no hay cuenta: tampoco días con los que se contó", () => {
+      const e = evaluarProducto(producto({ ...papaya, entradas: [] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ antes: true, vida: null });
+    });
+  });
+
+  describe("«Sigue buena»: la llegada que alguien revisó hoy", () => {
+    // Papaya (5 días) que llegó hace 7: su último día bueno fue hace dos días.
+    const papaya = { nombre: "Papaya", variedad: null, stock: 10, vendido7: 35, entradas: [{ fecha: haceDias(7), cantidad: 10 }] };
+    const llegadaDia = "2026-10-21";
+
+    it("sin revisar, tiene que salir hoy y pide mirarla", () => {
+      const e = evaluarProducto(producto(papaya), hoy);
+      expect(e.lotes[0]).toMatchObject({ dia: llegadaDia, restan: 0, revisada: false });
+      expect(e.lotes[0]!.atraso).toBeGreaterThan(0);
+      expect(e.alertas.find((a) => a.tipo === "deterioro")).toMatchObject({ gravedad: "alta" });
+    });
+
+    it("revisada hoy, ya no es para hoy: sale mañana, y el aviso dice que la revisaste", () => {
+      const e = evaluarProducto(producto({ ...papaya, revisiones: [{ llegadaDia, estado: null, dia: "2026-10-28" }] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ restan: 1, atraso: 0, revisada: true });
+      const aviso = e.alertas.find((a) => a.tipo === "deterioro")!;
+      expect(aviso).toMatchObject({ gravedad: "media", titulo: "Papaya sale mañana" });
+      expect(aviso.detalle).toContain("La revisaste hoy y sigue buena. Mañana vuelve a mirarla.");
+    });
+
+    it("la revisión de ayer ya no vale hoy: vuelve a pedir que la mires", () => {
+      const e = evaluarProducto(producto({ ...papaya, revisiones: [{ llegadaDia, estado: null, dia: "2026-10-27" }] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ restan: 0, revisada: false });
+    });
+
+    it("la revisión de otra llegada no cuenta para esta", () => {
+      const e = evaluarProducto(producto({ ...papaya, revisiones: [{ llegadaDia: "2026-10-20", estado: null, dia: "2026-10-28" }] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ restan: 0, revisada: false });
+    });
+  });
+
   it("kiwi con 80 cajas y 2 al día: sobrestock, no compres más", () => {
     const e = evaluarProducto(producto({ nombre: "Kiwi", variedad: "Cope", stock: 80, vendido7: 14, entradas: [{ fecha: haceDias(2), cantidad: 80 }] }), hoy);
     const a = e.alertas.find((x) => x.tipo === "sobrestock");
@@ -181,20 +244,6 @@ describe("cajas y días enteros, como se dice en el puesto", () => {
   });
 });
 
-describe("veredictoDelStock", () => {
-  type E = Parameters<typeof veredictoDelStock>[0][number];
-  const con = (stock: number, ...gravedades: string[]) => ({ stock, alertas: gravedades.map((gravedad) => ({ tipo: "reponer", gravedad })) }) as unknown as E;
-  it("cuenta las frutas con un aviso grave (la etiqueta «Hoy» de la lista); lo que puede esperar no", () => {
-    expect(veredictoDelStock([con(0, "alta"), con(80, "alta"), con(20, "media"), con(12)])).toEqual({ urgentes: 2, total: 4 });
-  });
-  it("una fruta con dos avisos graves se cuenta una vez", () => {
-    expect(veredictoDelStock([con(3, "alta", "alta")])).toEqual({ urgentes: 1, total: 1 });
-  });
-  it("una fruta sin stock y sin aviso no se cuenta: no se lleva", () => {
-    expect(veredictoDelStock([con(10), con(0)])).toEqual({ urgentes: 0, total: 1 });
-  });
-});
-
 describe("priorizarAlertas y resumirInventario", () => {
   const productos = [
     producto({ id: 1, stock: 6, vendido7: 70 }),
@@ -224,6 +273,30 @@ describe("cifras de urgencia que cuadran (/formidable 2026-11-10)", () => {
     const filtro = priorizarAlertas(estados).filter((a) => a.tipo === "deterioro").length;
     expect(porTipo.deterioro).toEqual({ total: filtro, hoy: 1 });
     expect(filtro).toBe(2);
+  });
+});
+
+describe("porUrgencia", () => {
+  // Decisión del 16-11, sobre maquetas: «Qué hacer» se parte en dos grupos y el título del grupo dice la urgencia. Antes cada
+  // tarjeta llevaba su etiqueta roja «Hoy» y la pestaña, un número que no cuadraba para quien lo veía por primera vez.
+  const productos = [
+    producto({ id: 1, nombre: "Papaya", variedad: null, stock: 10, vendido7: 14, entradas: [{ fecha: haceDias(5), cantidad: 20 }] }), // tiene que salir hoy
+    producto({ id: 2, stock: 0, vendido7: 14, entradas: [] }), // se acabó: comprar hoy
+    producto({ id: 3, nombre: "Kaki", variedad: null, stock: 4, vendido7: 0, entradas: [{ fecha: haceDias(7), cantidad: 4 }] }), // no se vende: puede esperar
+    producto({ id: 4, nombre: "Membrillo", variedad: null, stock: 3, vendido7: 0, entradas: [{ fecha: haceDias(7), cantidad: 3 }] }), // igual
+  ];
+  const alertas = priorizarAlertas(productos.map((p) => evaluarProducto(p, hoy)));
+
+  it("lo grave va en «para hoy» y lo demás en «puede esperar», cada grupo con sus tarjetas", () => {
+    const { paraHoy, puedeEsperar } = porUrgencia(alertas);
+    expect(paraHoy.map((g) => `${g.tipo} ${g.alertas.length}`)).toEqual(["deterioro 1", "reponer 1"]);
+    expect(puedeEsperar.map((g) => `${g.tipo} ${g.alertas.length}`)).toEqual(["sin_movimiento 2"]);
+    expect([...paraHoy, ...puedeEsperar].every((g) => g.gravedad === (paraHoy.includes(g) ? "alta" : "media"))).toBe(true);
+  });
+
+  it("cuenta los avisos que esperan, fruta por fruta, para el botón que los abre", () => {
+    expect(porUrgencia(alertas).avisosQueEsperan).toBe(2);
+    expect(porUrgencia([])).toEqual({ paraHoy: [], puedeEsperar: [], avisosQueEsperan: 0 });
   });
 });
 

@@ -13,6 +13,8 @@ const inicio = `http://127.0.0.1:${puerto}`;
 const puertoLucode = Number(puerto) + 200;
 // Y el servicio de avisos de mentira (tests/e2e/push-simulado.mjs), 300 más arriba: 3000 → 3300.
 const puertoPush = Number(puerto) + 300;
+// Y el modelo de mentira que estima la vida útil (tests/e2e/sonnet-simulado.mjs), 500 más arriba: 3000 → 3500 (el 3400 es de `pnpm e2e:prod`).
+const puertoSonnet = Number(puerto) + 500;
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -50,6 +52,9 @@ export default defineConfig({
         LUCODE_TOPE_MS: "2000",
         // El aviso del día sale hacia el servicio de avisos de mentira, no hacia Google, Apple ni Mozilla.
         PUSH_SIMULADOR_URL: `http://127.0.0.1:${puertoPush}`,
+        // La estimación de vida útil le pregunta al modelo de mentira, no a Anthropic: no gasta créditos y contesta siempre igual.
+        ANTHROPIC_API_KEY: "clave-de-prueba",
+        VIDA_UTIL_SIMULADOR_URL: `http://127.0.0.1:${puertoSonnet}`,
       },
     },
     {
@@ -65,6 +70,13 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 15_000,
       env: { PUERTO_PUSH: String(puertoPush) },
+    },
+    {
+      command: "node tests/e2e/sonnet-simulado.mjs",
+      url: `http://127.0.0.1:${puertoSonnet}/salud`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 15_000,
+      env: { PUERTO_SONNET: String(puertoSonnet) },
     },
   ],
 });

@@ -129,11 +129,41 @@ export function estimarLlegada(diaLlegada: string, vida: number, lecturas: reado
 }
 
 /**
+ * Qué parte de su vida llevaba gastada una llegada al terminar el día `dia`, sin tope: 0.6 es «iba por el 60 %»; 1.4, «ya había
+ * pasado su último día bueno hacía rato». Sirve para leer lo que pasó de verdad (una merma, un «Sigue buena») contra la cuenta.
+ */
+export const gastadoAl = (diaLlegada: string, vida: number, lecturas: readonly TemperaturaDia[], dia: string): number =>
+  estimarLlegada(diaLlegada, vida, lecturas, dia).dias.reduce((s, d) => s + d.gasto, 0);
+
+/**
  * La cuenta de una llegada de la que no se sabe el día (llegó `dia` o antes): no se le hace la cuenta día por día. Ya gastó su
  * vida, pide revisarse hoy y, al ordenar por la que se acaba antes, va primero.
  */
 export function llegadaSinFecha(dia: string, hoy: string): Estimacion {
   return { dias: [], gastado: 1, restan: 0, atraso: Math.max(1, diasEntre(dia, hoy)), fin: dia, finNormal: dia, perdidos: 0 };
+}
+
+/**
+ * «Sigue buena»: alguien miró una llegada que ya había pasado su último día bueno y la encontró vendible (`revisiones_frescura`).
+ * `llegadaDia` y `estado` dicen cuál llegada (sin día: las cajas de hace más de 45 días); `dia` es el día de Lima en que se revisó.
+ */
+export type Revision = { llegadaDia: string | null; estado: EstadoLlegada | null; dia: string };
+
+/** ¿Esa revisión es de esta llegada? */
+export const esDeEstaLlegada = (r: Pick<Revision, "llegadaDia" | "estado">, l: Pick<Llegada, "dia" | "estado" | "antes">): boolean =>
+  (l.antes ? r.llegadaDia === null : r.llegadaDia === l.dia) && r.estado === l.estado;
+
+/** ¿Ya pasó su último día bueno? Solo a esas se les pregunta si siguen buenas: a la que vence hoy todavía le queda su día. */
+export const sePasoDeSuDia = (e: Pick<Estimacion, "restan" | "atraso">): boolean => e.restan === 0 && e.atraso > 0;
+
+/**
+ * Lo que cambia en la cuenta de una llegada cuando alguien la revisó HOY y sigue buena: gana un día. Sale de «para hoy», queda
+ * como «sale mañana» y mañana se vuelve a preguntar. Lo que gastó no se toca: el calor fue el que fue. La revisión no alarga la
+ * vida de la fruta; eso lo decide la estimación de cada noche, que la toma como evidencia (lib/vida-estimada-reglas.ts).
+ * Mal hecho sería que el aviso siga igual después del toque (parece que no se guardó) o que desaparezca para siempre.
+ */
+export function conRevisionDeHoy(e: Estimacion, hoy: string): Estimacion {
+  return sePasoDeSuDia(e) ? { ...e, restan: 1, atraso: 0, fin: diaSiguiente(hoy) } : e;
 }
 
 const NOMBRE_DEL_DIA = new Intl.DateTimeFormat("es-PE", { weekday: "long", timeZone: "UTC" });

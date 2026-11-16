@@ -58,9 +58,9 @@ insert into temperaturas (grados) values (33);
 select is((select fecha from temperaturas where grados = 36), now(), 'una lectura fechada en el futuro queda con la hora del servidor');
 select is((select grados from v_temperatura_dia where dia = pg_temp.hoy()), 33.0, 'la corrección que viene después es la temperatura del día');
 
--- --- El ayudante registra, pero no cambia lo anotado (un update sin permiso no toca filas) ----
-update temperaturas set grados = 10 where grados = 31.5;
-select is((select count(*)::int from temperaturas where grados = 31.5), 1, 'el ayudante no puede cambiar una lectura ya anotada');
+-- --- El ayudante registra, pero no cambia lo anotado. Desde «temperaturas_solo_agregar» nadie tiene permiso de editar: falla
+-- con 42501 en vez de «no tocar filas» en silencio.
+select throws_ok($$ update temperaturas set grados = 10 where grados = 31.5 $$, '42501', null, 'el ayudante no puede cambiar una lectura ya anotada');
 
 -- --- Contador: solo lee -------------------------------------------------------------------
 select pg_temp.como('00000000-0000-0000-0000-000000000c18');

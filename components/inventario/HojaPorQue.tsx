@@ -1,15 +1,17 @@
 "use client";
 
 import { Check, Lightbulb, Sparkles, TriangleAlert } from "lucide-react";
+import { useState } from "react";
 import { cn } from "cn";
 
 import { Hoja } from "@/components/ui/Hoja";
 import { IconoFruta } from "@/components/ui/IconoFruta";
-import { comoYCuandoLlego, consejoDeLlegada, explicacionDelCalor, tonoDeLlegada, veredictoDeLlegada } from "@/lib/frescura-frases-reglas";
-import { DIAS_DE_ENTRADAS, diaCorto } from "@/lib/frescura-reglas";
+import { comoYCuandoLlego, consejoDeLlegada, explicacionDelCalor, origenDeLaCuenta, tonoDeLlegada, veredictoDeLlegada } from "@/lib/frescura-frases-reglas";
+import { DIAS_DE_ENTRADAS, diaCorto, sePasoDeSuDia } from "@/lib/frescura-reglas";
 import { cajas, type EstadoProducto, type LoteEstimado } from "@/lib/inventario-reglas";
 import { veredictoClima } from "@/lib/temperatura-reglas";
 import { MermaAMano } from "./MermaAMano";
+import { SigueBuena } from "./SigueBuena";
 
 const TONO = { hoy: "bg-deuda-fondo text-deuda", manana: "bg-sol/12 text-sol", bien: "bg-exito-fondo text-exito" } as const;
 const CALOR = { fuerte: "bg-deuda/75", calor: "bg-sol/60", normal: "bg-exito/60", fresco: "bg-exito/60" } as const;
@@ -38,6 +40,10 @@ export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistra
   const veredicto = veredictoDeLlegada(lote, hoy);
   const consejo = consejoDeLlegada(lote);
   const tono = tonoDeLlegada(lote.restan);
+  const origen = origenDeLaCuenta(lote, fruta.origenVida, hoy);
+  // «Sigue buena» solo se le pregunta a la llegada que ya pasó su último día bueno (y que nadie revisó hoy).
+  const preguntar = puedeRegistrar && sePasoDeSuDia(lote);
+  const [errorRevision, setErrorRevision] = useState<string | null>(null);
   const queda = Math.max(0, 1 - lote.dias.reduce((s, d) => s + d.gasto, 0));
   const conRotulos = lote.dias.length <= DIAS_CON_ROTULO;
   const algunaAnotada = lote.dias.some((d) => d.anotada);
@@ -50,7 +56,7 @@ export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistra
         </p>
 
         <p className={cn("flex items-center gap-3 rounded-control px-3.5 py-3 leading-snug", TONO[tono])}>
-          {tono === "bien" ? <Check aria-hidden className="size-7 shrink-0" /> : <TriangleAlert aria-hidden className="size-7 shrink-0" />}
+          {tono === "bien" || lote.revisada ? <Check aria-hidden className="size-7 shrink-0" /> : <TriangleAlert aria-hidden className="size-7 shrink-0" />}
           <span className="grid">
             <strong className="text-2xl leading-tight font-extrabold">{veredicto.titulo}</strong>
             <span>{veredicto.detalle}</span>
@@ -107,14 +113,29 @@ export function HojaPorQue({ abierta, alCambiar, fruta, lote, hoy, puedeRegistra
           </p>
         )}
 
-        {/* Si ya se malogró, se registra desde aquí: ya trae la fruta, solo falta decir cuántas cajas. Al guardar, esta hoja baja
-            con la de la merma y se ve Stock con lo que quedó: si seguía abierta con las cajas de antes, parecía que la merma no
-            había entrado y se registraba otra vez (/chaos 2026-11-14). */}
-        {puedeRegistrar && <MermaAMano producto={{ id: fruta.id, nombre: fruta.nombre }} variante="fila" alGuardar={() => alCambiar(false)} />}
+        {/* Lo que la persona vio al mirar la fruta, a un toque: si sigue buena, queda anotado y sale de «para hoy» (ADR-0021); si
+            ya se malogró, se registra desde aquí: ya trae la fruta, solo falta decir cuántas cajas. Al guardar la merma, esta hoja
+            baja con la suya y se ve Stock con lo que quedó: si seguía abierta con las cajas de antes, parecía que la merma no había
+            entrado y se registraba otra vez (/chaos 2026-11-14). */}
+        {puedeRegistrar && (
+          <div className="grid gap-2">
+            {preguntar && errorRevision && (
+              <p role="alert" className="rounded-control bg-superficie px-3.5 py-2.5 font-bold text-deuda ring-2 ring-deuda">
+                {errorRevision}
+              </p>
+            )}
+            {/* Lado a lado, como «Pagó / Lo debe». A menos de 400 px van sin dibujo: con él, «Sigue buena» se partía en dos líneas. */}
+            <div className={cn("grid gap-2", preguntar && "grid-cols-2 max-[399px]:[&_button_svg]:hidden")}>
+              {preguntar && <SigueBuena productoId={fruta.id} lote={lote} alError={setErrorRevision} />}
+              <MermaAMano producto={{ id: fruta.id, nombre: fruta.nombre }} variante="fila" alGuardar={() => alCambiar(false)} />
+            </div>
+          </div>
+        )}
 
         <p className="flex gap-2 text-[15px] leading-snug text-texto-suave">
           <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0 text-sol" />
-          <span>Es un cálculo aproximado. Mira la fruta antes de decidir.</span>
+          {/* De dónde sale la cuenta (ADR-0021): con cuántos días se contó y si lo dijo la tabla o la IA, con su motivo. */}
+          <span>{origen ? `${origen} ` : ""}Es un cálculo aproximado. Mira la fruta antes de decidir.</span>
         </p>
       </div>
     </Hoja>
