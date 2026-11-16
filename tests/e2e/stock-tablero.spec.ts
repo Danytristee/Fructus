@@ -2,55 +2,57 @@ import { expect, test } from "@playwright/test";
 
 import { baseLocal } from "./base";
 import { entrarComo } from "./cuentas";
-import { filtrosSinCortes, medir } from "./medir";
+import { medir } from "./medir";
 
-// El tablero de Stock (A8, /formidable del 5-11; en dos pestañas desde el 14-11): la cuenta de «Qué hacer» dice lo mismo que las
-// etiquetas «Hoy», las palabras son de puesto y los filtros no se esconden.
+// El tablero de Stock (A8, /formidable del 5-11; en dos pestañas desde el 14-11; en dos grupos desde el 16-11): «Qué hacer» abre
+// con lo de hoy, lo que puede esperar va plegado, y las palabras son de puesto.
 // Lee lo que haya en la base local; solo la última prueba crea frutas de prueba, y las deja inactivas.
 
 test.setTimeout(60_000);
 
-test("la pestaña «Qué hacer» dice cuántas frutas piden algo hoy, y cuenta lo mismo que las etiquetas «Hoy» de la lista", async ({ page }) => {
+test("«Qué hacer» se parte en «Para hoy» y «Puede esperar»: sin número en la pestaña, sin filtros y sin etiqueta roja en cada tarjeta", async ({ page }) => {
   await entrarComo(page, "duenio");
   await page.goto("/stock");
   await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
 
-  // La cuenta va en la pestaña (antes, en un anillo «X de Y frutas urgentes»). Sin nada urgente no lleva número: no dice «0».
+  // Decisión del 16-11, sobre maquetas: el número de la pestaña no cuadraba para quien lo veía por primera vez (2.ª prueba a
+  // ciegas) y los filtros, abajo, se encontraban tarde. El título del grupo dice la urgencia una sola vez.
   const pestana = page.getByRole("button", { name: /^Qué hacer/ });
   await expect(pestana).toHaveAttribute("aria-pressed", "true");
-  await expect(pestana).toHaveText(/^Qué hacer(\d+)?$/);
-  await expect(pestana).not.toContainText("%");
-  // Cuenta lo mismo que la lista: las frutas con la etiqueta roja «Hoy». Una tarjeta puede juntar varias frutas, y en «Todas»
-  // se ven las primeras y el resto a un toque (/formidable 2026-11-10): se abren todas y se cuentan frutas, no tarjetas.
-  const urgentes = Number((await pestana.innerText()).match(/(\d+)$/)?.[1] ?? 0);
-  await page.getByRole("button", { name: /^Todas/ }).click();
-  const verMas = page.getByRole("button", { name: /^Ver \d+ avisos? más/ });
-  if (await verMas.isVisible()) await verMas.click();
-  const conHoy = await page
-    .locator("li[data-productos]")
-    .filter({ has: page.getByText("Hoy", { exact: true }) })
-    .evaluateAll((tarjetas) => new Set(tarjetas.flatMap((t) => t.getAttribute("data-productos")!.split(" "))).size);
-  expect(urgentes).toBe(conHoy);
+  await expect(pestana).toHaveText("Qué hacer");
+  await expect(page.getByRole("group", { name: "Filtrar alertas" })).toHaveCount(0);
+  await expect(page.locator("li[data-productos]").getByText(/^(Hoy|Mañana|Pronto)$/)).toHaveCount(0);
+
+  // La semilla trae fruta que se acabó o que sobra: hay algo para hoy, a la vista y antes que lo demás.
+  const paraHoy = page.getByRole("region", { name: "Para hoy" });
+  await expect(paraHoy.locator("li[data-productos]").first()).toBeVisible();
+  // Lo que puede esperar va plegado detrás de un botón que dice cuántos avisos son; al tocarlo se ven.
+  const puedeEsperar = page.getByRole("region", { name: "Puede esperar" });
+  if ((await puedeEsperar.count()) > 0) {
+    const abrir = puedeEsperar.getByRole("button", { name: /^Ver \d+ avisos?$/ });
+    await expect(puedeEsperar.locator("li[data-productos]")).toHaveCount(0);
+    const cuantos = Number((await abrir.innerText()).match(/\d+/)![0]);
+    await abrir.click();
+    const frutas = await puedeEsperar.locator("li[data-productos]").evaluateAll((t) => new Set(t.flatMap((x) => x.getAttribute("data-productos")!.split(" "))).size);
+    expect(frutas, "el botón cuenta avisos, fruta por fruta").toBeLessThanOrEqual(cuantos);
+    expect((await paraHoy.boundingBox())!.y).toBeLessThan((await puedeEsperar.boundingBox())!.y);
+  }
   await expect(page.getByText("sin avisos", { exact: true })).toHaveCount(0);
-  await expect(page.getByText(/están bien/)).toHaveCount(0);
 });
 
 test("Stock habla como el puesto: «te sobra», no «sobrestock»", async ({ page }) => {
   await entrarComo(page, "duenio");
   await page.goto("/stock");
   await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
-  // La semilla trae fruta de más: el filtro lo dice con palabras de puesto.
-  await expect(page.getByRole("button", { name: /^Te sobra/ })).toBeVisible();
+  // La semilla trae fruta de más: la tarjeta lo dice con palabras de puesto.
+  await expect(page.locator("li[data-productos]").filter({ hasText: /^.*Te sobra/ }).first()).toBeVisible();
   await expect(page.getByText(/sobrestock/i)).toHaveCount(0);
 });
 
-test("los filtros de las alertas se ven enteros: lo que no entra en una fila pasa a la siguiente", async ({ page }) => {
+test("«Qué hacer» cabe en el celular: sin desborde y con controles de 48 px", async ({ page }) => {
   await entrarComo(page, "duenio");
   await page.goto("/stock");
   await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
-  const { cortados, desliza } = await filtrosSinCortes(page, "Filtrar alertas");
-  expect(cortados, "opciones cortadas").toEqual([]);
-  expect(desliza, "no debe deslizarse de lado").toBeLessThanOrEqual(0);
   const { desborde, chicos } = await medir(page);
   expect(desborde).toBeLessThanOrEqual(0);
   expect(chicos, "controles de menos de 48 px").toEqual([]);
@@ -81,8 +83,10 @@ test("una tarjeta que junta muchas frutas nombra 3 y las demás van en una hoja;
     await entrarComo(page, "duenio");
     await page.goto("/stock");
     await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole("button", { name: /^Sin movimiento/ }).click();
-    const tarjeta = page.locator("li[data-productos]").filter({ hasText: /frutas no se están vendiendo/ });
+    // «No se están vendiendo» puede esperar: va en el segundo grupo, plegado.
+    const puedeEsperar = page.getByRole("region", { name: "Puede esperar" });
+    await puedeEsperar.getByRole("button", { name: /^Ver \d+ avisos?$/ }).click();
+    const tarjeta = puedeEsperar.locator("li[data-productos]").filter({ hasText: /frutas no se están vendiendo/ });
     await expect(tarjeta).toBeVisible();
     // Las de hace 10 días están; la de hoy, no.
     const ids = (await tarjeta.getAttribute("data-productos"))!.split(" ").map(Number);

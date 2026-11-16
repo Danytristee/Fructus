@@ -59,13 +59,12 @@ test("con calor, la papaya que llegó hace 3 días tiene que salir hoy; la manza
 
     await page.goto("/stock");
     await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole("button", { name: /^Por malograrse/ }).click();
-    const tarjetas = page.locator("li[data-productos]");
+    // Lo que tiene que salir hoy está en el grupo «Para hoy», a la vista: ya no hay filtros ni etiqueta roja en cada tarjeta.
+    const tarjetas = page.getByRole("region", { name: "Para hoy" }).locator("li[data-productos]");
     const con = (id: number) => tarjetas.filter({ has: page.locator(`xpath=self::*[contains(concat(' ', @data-productos, ' '), ' ${id} ')]`) });
-    // La papaya (dura 5 días a temperatura normal) está en una tarjeta con la etiqueta «Hoy» y la frase nueva.
+    // La papaya (dura 5 días a temperatura normal) está en una tarjeta de «Para hoy», con la frase nueva.
     const dePapaya = con(papaya);
     await expect(dePapaya).toHaveCount(1);
-    await expect(dePapaya.getByText("Hoy", { exact: true })).toBeVisible();
     await expect(dePapaya).toContainText(/tienen? que salir hoy/);
     await expect(dePapaya).toContainText("Véndel"); // «Véndelo hoy…» o «Véndelas hoy…», si va junto a otras
     // La manzana (dura 30) llegó el mismo día y con el mismo calor: no tiene nada que avisar.
@@ -139,8 +138,7 @@ test("con más de 3 frutas por salir, las que no se nombran en la tarjeta tambi�
     await entrarComo(page, "duenio");
     await page.goto("/stock");
     await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole("button", { name: /^Por malograrse/ }).click();
-    const tarjeta = page.locator("li[data-productos]").filter({ hasText: /frutas tienen que salir hoy/ });
+    const tarjeta = page.getByRole("region", { name: "Para hoy" }).locator("li[data-productos]").filter({ hasText: /frutas tienen que salir hoy/ });
     await expect(tarjeta).toBeVisible();
     // Una de las cuatro que NO esté entre las tres que la tarjeta nombra.
     const nombradas = await tarjeta.locator("ul button").allInnerTexts();
@@ -174,10 +172,8 @@ test("las cajas de hace más de 45 días no se quedan calladas: salen en «Qué 
     await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
 
     // Antes solo salía como «Sin movimiento». Ahora está entre lo que tiene que salir hoy.
-    await page.getByRole("button", { name: /^Por malograrse/ }).click();
-    const tarjeta = page.locator("li[data-productos]").filter({ has: page.locator(`xpath=self::*[contains(concat(' ', @data-productos, ' '), ' ${fruta!.id} ')]`) });
+    const tarjeta = page.getByRole("region", { name: "Para hoy" }).locator("li[data-productos]").filter({ has: page.locator(`xpath=self::*[contains(concat(' ', @data-productos, ' '), ' ${fruta!.id} ')]`) });
     await expect(tarjeta).toHaveCount(1);
-    await expect(tarjeta.getByText("Hoy", { exact: true })).toBeVisible();
     await expect(tarjeta).toContainText(/tienen? que salir hoy/);
 
     // «Tu stock»: la fila tiene su llegada (antes no tenía ninguna), dice que no se sabe el día y pide revisarla.
@@ -211,8 +207,8 @@ test("el clima del puesto está al final de «Qué hacer», y desde ahí se anot
   // La semana en barras, con cada día dicho también para el lector de pantalla.
   await expect(clima.getByRole("img", { name: /^Temperatura de la semana: / })).toBeVisible();
   // Va después de lo que hay que hacer: lo principal no queda debajo de la temperatura.
-  const avisos = (await page.getByRole("group", { name: "Filtrar alertas" }).boundingBox())!;
-  expect((await clima.boundingBox())!.y).toBeGreaterThan(avisos.y);
+  const avisos = (await page.locator("li[data-productos]").first().boundingBox())!;
+  expect((await clima.boundingBox())!.y).toBeGreaterThan(avisos.y + avisos.height);
 
   // Otras pruebas anotan la de hoy en paralelo: el botón dice «Anotar» o «Corregir» según el caso, y abre la misma hoja.
   await clima.getByRole("button", { name: /^(Anotar la temperatura|Corregir la de hoy)$/ }).click();
