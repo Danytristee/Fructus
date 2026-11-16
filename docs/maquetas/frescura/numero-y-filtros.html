@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fructus · Stock · el número y los filtros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../bosque/tokens.css">
+<style>
+  /* Maqueta con DATOS DE DEMOSTRACIÓN (los mismos de la demo). No llama a la base: todo vive en esta página.
+     Tres maneras de resolver lo que dejó la 2.ª prueba a ciegas del 15-11: el número junto a «Qué hacer» no le cuadra a quien
+     lo ve por primera vez, los filtros (abajo) se encuentran tarde y no dicen lo mismo que las tarjetas, y la etiqueta roja
+     «Hoy» va en todas. Se elige una mirando, no leyendo. */
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 500 17px/1.4 "Manrope", system-ui; color: var(--texto); background: var(--marfil-calido); }
+  header.pagina { padding: 22px 24px 6px; max-width: 1240px; margin: 0 auto; }
+  header.pagina h1 { margin: 0 0 4px; font-size: 26px; font-weight: 800; }
+  header.pagina p { margin: 0; color: var(--texto-2); max-width: 70ch; }
+  .tres { display: grid; grid-template-columns: repeat(3, 384px); gap: 28px; justify-content: center; padding: 18px 24px 40px; }
+  .propuesta h2 { margin: 0 0 2px; font-size: 20px; font-weight: 800; }
+  .propuesta > p:not(.insignia) { margin: 0 0 12px; color: var(--texto-2); font-size: 16px; min-height: 46px; }
+  .telefono { width: 384px; padding: 12px; border-radius: 44px; background: #1b1f1d; box-shadow: 0 24px 60px rgb(var(--sombra) / .3); }
+  .pantalla { width: 360px; height: 760px; overflow: hidden; border-radius: 32px; background: var(--marfil); position: relative; }
+  .cabecera { background: linear-gradient(160deg, var(--bosque-2), var(--profundo) 70%); color: var(--sobre-bosque); padding: 22px 16px 46px; border-radius: 0 0 28px 28px; }
+  .cabecera b { display: block; font-size: 32px; font-weight: 800; line-height: 1.1; border-left: 4px solid var(--lima); padding-left: 12px; }
+  .cabecera span { display: block; color: var(--sobre-bosque-2); padding-left: 16px; font-size: 16px; }
+  .cuerpo { padding: 0 16px; margin-top: -30px; display: grid; gap: 10px; }
+  .pestanas { display: grid; grid-template-columns: 1fr 1fr; background: var(--tarjeta); border-radius: 999px; padding: 4px; box-shadow: 0 6px 18px rgb(var(--sombra) / .12); }
+  .pestanas > span { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; font-weight: 800; color: var(--texto-2); }
+  .pestanas .activa { background: var(--marfil); color: var(--texto); box-shadow: 0 2px 8px rgb(var(--sombra) / .14); }
+  .cuenta { background: var(--deuda); color: #fff; border-radius: 999px; padding: 1px 9px; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .frase { margin: 2px 2px 0; font-size: 17px; line-height: 1.35; }
+  .frase b { font-weight: 800; }
+  .grupo { margin: 8px 2px 0; font-size: 18px; font-weight: 800; display: flex; justify-content: space-between; align-items: baseline; }
+  .grupo small { font-size: 15px; font-weight: 700; color: var(--texto-2); }
+  .tarjeta { background: var(--tarjeta); border-radius: var(--r-tarjeta); padding: 14px; display: grid; gap: 10px; box-shadow: 0 4px 14px rgb(var(--sombra) / .08); }
+  .titulo { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; font-weight: 800; line-height: 1.2; }
+  .icono { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; }
+  .rojo { background: var(--deuda-fondo); color: var(--deuda); } .verde { background: var(--positivo-fondo); color: var(--positivo); } .gris { background: #ECEAE0; color: var(--texto-2); }
+  .hoy { background: var(--deuda); color: #fff; border-radius: 999px; padding: 3px 10px; font-size: 14px; font-weight: 800; }
+  .numero { min-width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--deuda-fondo); color: var(--deuda); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .fruta { min-height: 52px; display: grid; grid-template-columns: 32px 1fr 16px; gap: 10px; align-items: center; background: #F3F1E8; border-radius: var(--r-control); padding: 6px 10px; }
+  .fruta b { display: block; font-weight: 800; line-height: 1.15; } .fruta small { color: var(--texto-2); font-size: 16px; }
+  .consejo { background: #E9EDE4; border-radius: var(--r-control); padding: 9px 12px; font-size: 16px; line-height: 1.3; }
+  .detalle { color: var(--texto-2); font-size: 16px; line-height: 1.3; margin: -4px 0 0 50px; }
+  .filtros { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filtros span { min-height: 48px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 999px; background: var(--tarjeta); font-weight: 800; box-shadow: 0 2px 8px rgb(var(--sombra) / .08); }
+  .filtros .activo { background: var(--bosque); color: var(--sobre-bosque); }
+  .mas { min-height: 52px; display: grid; place-items: center; background: var(--tarjeta); border-radius: 999px; font-weight: 800; box-shadow: 0 2px 8px rgb(var(--sombra) / .08); }
+  .corte { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(transparent, var(--marfil)); }
+  .pros { margin: 14px 4px 0; padding: 0; list-style: none; font-size: 16px; display: grid; gap: 6px; }
+  .pros b { font-weight: 800; }
+  .insignia { height: 26px; margin: 0 0 4px; }
+  .recomendada { display: inline-block; background: var(--lima); color: var(--bosque); font-size: 14px; font-weight: 800; border-radius: 999px; padding: 2px 10px; }
+  @media (max-width: 1240px) { .tres { grid-template-columns: 384px; } }
+</style>
+</head>
+<body>
+<header class="pagina">
+  <h1>Stock · el número y los filtros</h1>
+  <p>Tres maneras de resolver lo que dejó la prueba a ciegas: el «9» junto a «Qué hacer» no le cuadró a quien lo vio por primera vez, y los filtros, abajo, los encontró tarde. Los datos son los de la demo.</p>
+</header>
+
+<main class="tres">
+  <!-- ============================== A ============================== -->
+  <section class="propuesta">
+    <p class="insignia"></p>
+    <h2>A · La cuenta, en una frase</h2>
+    <p>Sin número en la pestaña ni filtros. Una frase arriba dice cuánto hay de cada cosa.</p>
+    <div class="telefono"><div class="pantalla">
+      <div class="cabecera"><b>Stock</b><span>Tus cajas y lo que conviene hacer hoy</span></div>
+      <div class="cuerpo">
+        <div class="pestanas"><span class="activa">Qué hacer</span><span>Tu stock</span></div>
+        <p class="frase">Hoy: <b>2 frutas tienen que salir</b>, <b>1 se acabó</b> y <b>6 te sobran</b>.</p>
+        <div class="tarjeta">
+          <div class="titulo"><span class="icono rojo">⚠</span><span>2 frutas tienen que salir hoy</span></div>
+          <div class="fruta"><span>🍑</span><span><b>Durazno chileno cal. 40</b><small>7 cajas del martes</small></span><span>›</span></div>
+          <div class="fruta"><span>🍅</span><span><b>Caqui Super</b><small>6 cajas de hace 9 días</small></span><span>›</span></div>
+          <div class="consejo">Véndelas hoy, antes que lo nuevo. Si no salen, ofrécelas con rebaja.</div>
+        </div>
+        <div class="tarjeta">
+          <div class="titulo"><span class="icono rojo">🛒</span><span>Se acabó Albaricoque Extra</span></div>
+          <p class="detalle">Vendes unas 2 cajas al día y no te queda ninguna.</p>
+          <div class="consejo">Compra unas 7 cajas para cubrir 4 días.</div>
+        </div>
+        <div class="tarjeta">
+          <div class="titulo"><span class="icono verde">📦</span><span>Te sobran 6 frutas</span></div>
+        </div>
+      </div>
+      <div class="corte"></div>
+    </div></div>
+    <ul class="pros">
+      <li><b>Ganas:</b> la cuenta se lee y cuadra con las tarjetas (2, 1 y 6). Menos piezas.</li>
+      <li><b>Pagas:</b> desde «Tu stock» ya no se ve si algo urge, y no hay cómo ver un solo tipo.</li>
+    </ul>
+  </section>
+
+  <!-- ============================== B ============================== -->
+  <section class="propuesta">
+    <p class="insignia"></p>
+    <h2>B · El número dice qué cuenta</h2>
+    <p>El número se queda y cada tarjeta muestra el suyo. Los filtros hablan como las tarjetas.</p>
+    <div class="telefono"><div class="pantalla">
+      <div class="cabecera"><b>Stock</b><span>Tus cajas y lo que conviene hacer hoy</span></div>
+      <div class="cuerpo">
+        <div class="pestanas"><span class="activa">Qué hacer <span class="cuenta">9</span></span><span>Tu stock</span></div>
+        <p class="grupo">Para hoy <small>9 frutas</small></p>
+        <div class="tarjeta">
+          <div class="titulo"><span class="icono rojo">⚠</span><span>Tienen que salir hoy</span><span class="numero">2</span></div>
+          <div class="fruta"><span>🍑</span><span><b>Durazno chileno cal. 40</b><small>7 cajas del martes</small></span><span>›</span></div>
+          <div class="fruta"><span>🍅</span><span><b>Caqui Super</b><small>6 cajas de hace 9 días</small></span><span>›</span></div>
+          <div class="consejo">Véndelas hoy, antes que lo nuevo. Si no salen, ofrécelas con rebaja.</div>
+        </div>
+        <div class="tarjeta">
+          <div class="titulo"><span class="icono rojo">🛒</span><span>Se acabó Albaricoque Extra</span><span class="numero">1</span></div>
+          <div class="consejo">Compra unas 7 cajas para cubrir 4 días.</div>
+        </div>
+        <div class="tarjeta">
+          <div class="titulo"><span class="icono verde">📦</span><span>Te sobran</span><span class="numero">6</span></div>
+        </div>
+        <div class="filtros"><span class="activo">Todas</span><span>Salen hoy</span><span>Se acabó</span><span>Te sobran</span></div>
+      </div>
+      <div class="corte"></div>
+    </div></div>
+    <ul class="pros">
+      <li><b>Ganas:</b> 2 + 1 + 6 = 9 está a la vista, y el número sigue avisando desde «Tu stock».</li>
+      <li><b>Pagas:</b> más números en pantalla, y los filtros siguen abajo (con otras palabras).</li>
+    </ul>
+  </section>
+
+  <!-- ============================== C ============================== -->
+  <section class="propuesta">
+    <p class="insignia"><span class="recomendada">la que haría</span></p>
+    <h2>C · Dos grupos, sin número ni filtros</h2>
+    <p>«Para hoy» y «Puede esperar». El título del grupo reemplaza la etiqueta roja de cada tarjeta.</p>
+    <div class="telefono"><div class="pantalla">
+      <div class="cabecera"><b>Stock</b><span>Tus cajas y lo que conviene hacer hoy</span></div>
+      <div class="cuerpo">
+        <div class="pestanas"><span class="activa">Qué hacer</span><span>Tu stock</span></div>
+        <p class="grupo">Para hoy</p>
+        <div class="tarjeta">
+          <div class="titulo"><span class="icono rojo">⚠</span><span>2 frutas tienen que salir hoy</span></div>
+          <div class="fruta"><span>🍑</span><span><b>Durazno chileno cal. 40</b><small>7 cajas del martes</small></span><span>›</span></div>
+          <div class="fruta"><span>🍅</span><span><b>Caqui Super</b><small>6 cajas de hace 9 días</small></span><span>›</span></div>
+          <div class="consejo">Véndelas hoy, antes que lo nuevo. Si no salen, ofrécelas con rebaja.</div>
+        </div>
+        <div class="tarjeta">
+          <div class="titulo"><span class="icono rojo">🛒</span><span>Se acabó Albaricoque Extra</span></div>
+          <div class="consejo">Compra unas 7 cajas para cubrir 4 días.</div>
+        </div>
+        <div class="tarjeta">
+          <div class="titulo"><span class="icono verde">📦</span><span>Te sobran 6 frutas</span></div>
+        </div>
+        <p class="grupo">Puede esperar</p>
+        <div class="mas">Ver 3 avisos ⌄</div>
+      </div>
+      <div class="corte"></div>
+    </div></div>
+    <ul class="pros">
+      <li><b>Ganas:</b> no hay número que cuadrar ni filtro que buscar; «hoy» se dice una sola vez.</li>
+      <li><b>Pagas:</b> desde «Tu stock» ya no se ve si algo urge. Se pierde filtrar por tipo, que casi no se usa con 6 avisos.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
