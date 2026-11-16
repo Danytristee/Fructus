@@ -107,3 +107,19 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
   - Avisos de seguridad y de rendimiento: ninguno nuevo; son los que CLAUDE.md deja a propósito, más los de la obra de frescura.
 - **En la base local** se volvió a aplicar con psql sobre la versión vigente: antes había pisado ahí el `registrar_compra` de «cómo llegó la fruta».
   - pgTAP 20 (esta; antes 18, chocaba con `18_temperatura_diaria`), 19, 17 y 05 en verde.
+
+## Cierre · /formidable y /chaos
+
+- **/formidable:** de 8.5 a 8.8, con dos pruebas ciegas (`docs/formidable/manos-libres-2026-11-16.md`). Los tres cambios:
+  - la duda se dice en voz alta;
+  - escuchando en la venta, la línea dice «di «confirmo» o lo que hay que cambiar»;
+  - «repite» vuelve a leer.
+- **/chaos:** resistieron 9 de 11, con la semilla 2026111601 (`docs/chaos/manos-libres-2026-11-16.md`). Los dos hallazgos quedaron arreglados con OK:
+  1. **Al corregir, «45 con 50» salía 50 y a veces se perdía el cliente.** Ahora el celular manda la venta en datos (`ventaActual`) y el mensaje dice las dos reglas. `/voz-precision`: antes 9 de 12; después, las 17 respondidas, bien.
+  2. **Una cuenta podía confirmar el dictado de otra y dejar el comando «pendiente».** Ahora `registrar_venta` y `registrar_compra` lo rechazan, salvo el dueño o el administrador. Migración `20261116182112`, aplicada al proyecto, con pgTAP 21.
+- **La base local** se restauró al volcado de antes de los ataques. El N6 repetido se hizo en transacciones que se deshicieron.
+- **Pendiente:**
+  - **El cupo gratuito de Groq se acabó hoy** con `/voz-precision`: corrió dos veces seguidas y la segunda dio 429. Para la demo, medir con calma o tener la clave de Gemini como respaldo.
+  - `voz-respuesta-api.spec.ts` (Groq real) quedó sin correr después del cambio a la venta en datos.
+  - Abonos, mermas y gastos marcan el comando desde la acción del servidor: tienen el mismo patrón que el hallazgo 2 y queda para revisar.
+  - Ver si el dictado normal entiende «45 con 50»: toca el prompt de sistema.
