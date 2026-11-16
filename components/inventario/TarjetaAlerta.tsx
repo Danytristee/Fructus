@@ -9,11 +9,11 @@ import { Hoja } from "@/components/ui/Hoja";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import type { GrupoAlertas, TipoAlerta } from "@/lib/inventario-reglas";
 
-export const tipos: Record<TipoAlerta, { etiqueta: string; Icono: typeof Clock; clase: string }> = {
-  deterioro: { etiqueta: "Por malograrse", Icono: TriangleAlert, clase: "bg-deuda-fondo text-deuda" },
-  reponer: { etiqueta: "Reponer", Icono: ShoppingCart, clase: "bg-acento/12 text-acento-texto" },
-  sobrestock: { etiqueta: "Te sobra", Icono: PackageX, clase: "bg-exito-fondo text-exito" },
-  sin_movimiento: { etiqueta: "Sin movimiento", Icono: Clock, clase: "bg-texto/8 text-texto-suave" },
+const tipos: Record<TipoAlerta, { Icono: typeof Clock; clase: string }> = {
+  deterioro: { Icono: TriangleAlert, clase: "bg-deuda-fondo text-deuda" },
+  reponer: { Icono: ShoppingCart, clase: "bg-acento/12 text-acento-texto" },
+  sobrestock: { Icono: PackageX, clase: "bg-exito-fondo text-exito" },
+  sin_movimiento: { Icono: Clock, clase: "bg-texto/8 text-texto-suave" },
 };
 
 // Cuántas frutas se nombran dentro de una tarjeta que junta varias: el resto, en una hoja. Con el catálogo real una tarjeta llegó a
@@ -28,7 +28,10 @@ type Props = {
   alVerFruta?: (productoId: number) => void;
 };
 
-/** Una tarjeta de «Qué hacer hoy»: una alerta sola, o varias del mismo tipo juntas con una sola recomendación. */
+/**
+ * Una tarjeta de «Qué hacer hoy»: una alerta sola, o varias del mismo tipo juntas con una sola recomendación. La urgencia la dice
+ * el grupo en el que va («Para hoy» o «Puede esperar»), no una etiqueta en la tarjeta.
+ */
 export function TarjetaAlerta({ g, nombreDe, i, alVerFruta }: Props) {
   const [abierta, setAbierta] = useState(false);
   const { Icono, clase } = tipos[g.tipo];
@@ -44,7 +47,7 @@ export function TarjetaAlerta({ g, nombreDe, i, alVerFruta }: Props) {
       style={{ animationDelay: `${i * 50}ms` }}
     >
       {/* Con varias frutas el título va solo, a la altura del ícono; con una, encabeza su detalle. */}
-      <div className={cn("grid grid-cols-[auto_1fr_auto] gap-3", sola ? "items-start" : "items-center")}>
+      <div className={cn("grid grid-cols-[auto_1fr] gap-3", sola ? "items-start" : "items-center")}>
         {sola ? (
           <span className="relative">
             <IconoFruta nombre={nombreDe.get(sola.productoId) ?? sola.producto} tamano={44} />
@@ -70,10 +73,6 @@ export function TarjetaAlerta({ g, nombreDe, i, alVerFruta }: Props) {
               )}
             </>
           )}
-        </span>
-        <span className={cn("rounded-full px-2.5 py-1 text-sm font-extrabold whitespace-nowrap", g.gravedad === "alta" ? "bg-deuda text-superficie" : "bg-texto/8 text-texto")}>
-          {/* Lo que se acaba mañana tiene día: «Mañana». Lo demás que puede esperar, «Pronto». */}
-          {g.gravedad === "alta" ? "Hoy" : g.tipo === "deterioro" ? "Mañana" : "Pronto"}
         </span>
       </div>
       {/* Las frutas, a todo el ancho de la tarjeta: en la columna del medio el nombre se partía en tres líneas a 360 px y las filas

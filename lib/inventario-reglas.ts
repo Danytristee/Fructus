@@ -84,18 +84,8 @@ export type LoteEstimado = Llegada & Estimacion;
 export const cajas = (n: number) => (n > 0 && n < 1 ? "menos de una caja" : `${Math.round(n)} ${Math.round(n) === 1 ? "caja" : "cajas"}`);
 const dias = (n: number) => (n > 0 && n < 1 ? "menos de un día" : `${Math.round(n)} ${Math.round(n) === 1 ? "día" : "días"}`);
 
-/** Lo que pide hacer algo HOY: un aviso grave, el mismo que en la lista de Stock lleva la etiqueta roja «Hoy». */
+/** Lo que pide hacer algo HOY: un aviso grave. En Stock va en el grupo «Para hoy». */
 const esUrgente = (a: Pick<Alerta, "gravedad">) => a.gravedad === "alta";
-
-/**
- * El veredicto del anillo de Stock: de las frutas que lleva el puesto, cuántas piden algo hoy: las que tienen la etiqueta roja «Hoy» en la
- * lista de abajo (se acabó, por malograrse, o te sobra tanta que se malogra antes de venderse). Lo que puede esperar («Pronto») no cuenta. La primera versión contaba todos los avisos y decía «8 de 8 frutas con
- * aviso»: asustaba y no cuadraba con las cajitas (2.ª prueba a ciegas de /formidable 2026-11-09).
- */
-export function veredictoDelStock(estados: Pick<EstadoProducto, "stock" | "alertas">[]): { urgentes: number; total: number } {
-  const seguidas = estados.filter((e) => e.stock > 0 || e.alertas.length > 0);
-  return { urgentes: seguidas.filter((e) => e.alertas.some(esUrgente)).length, total: seguidas.length };
-}
 
 /** Por qué esa llegada tiene que salir, en una frase: lo que le quitó el calor, o que ya se pasó. */
 function porQueSale(lote: LoteEstimado, hoyMismo: boolean): string {
@@ -303,6 +293,17 @@ export function juntarAlertas(alertas: Alerta[]): GrupoAlertas[] {
       alertas: lista,
     };
   });
+}
+
+/**
+ * «Qué hacer» en dos grupos: lo que pide algo hoy y lo que puede esperar, cada uno con sus tarjetas (las del mismo tipo, juntas).
+ * `avisosQueEsperan` cuenta frutas, no tarjetas: es lo que dice el botón que abre el segundo grupo.
+ * Decisión del 16-11, sobre maquetas: el título del grupo dice la urgencia una sola vez. Antes cada tarjeta llevaba una etiqueta
+ * roja «Hoy» y la pestaña un número que no cuadraba para quien lo veía por primera vez (2.ª prueba a ciegas, 2026-11-15).
+ */
+export function porUrgencia(alertas: Alerta[]): { paraHoy: GrupoAlertas[]; puedeEsperar: GrupoAlertas[]; avisosQueEsperan: number } {
+  const esperan = alertas.filter((a) => !esUrgente(a));
+  return { paraHoy: juntarAlertas(alertas.filter(esUrgente)), puedeEsperar: juntarAlertas(esperan), avisosQueEsperan: esperan.length };
 }
 
 /**

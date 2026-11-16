@@ -4,7 +4,7 @@ import { useState } from "react";
 import { cn } from "cn";
 
 import { Segmento } from "@/components/ui/Segmento";
-import { veredictoDelStock, type Alerta, type EstadoProducto, type LoteEstimado } from "@/lib/inventario-reglas";
+import type { Alerta, EstadoProducto, LoteEstimado } from "@/lib/inventario-reglas";
 import type { TemperaturaDia } from "@/lib/temperatura-reglas";
 import { HojaPorQue } from "./HojaPorQue";
 import { ListaStock } from "./ListaStock";
@@ -23,14 +23,13 @@ type Props = {
 };
 
 // Stock en dos pestañas (decisión del 14-11, sobre maquetas): «Qué hacer» abre con lo que tiene que salir hoy, y «Tu stock»
-// guarda los totales y la lista. Antes lo principal quedaba debajo del anillo, los recuadros y la lista. En escritorio (ADR-0015)
+// guarda los totales y la lista. La pestaña no lleva número desde el 16-11: contaba frutas con aviso para hoy y no cuadraba con
+// las tarjetas para quien lo veía por primera vez. Antes lo principal quedaba debajo del anillo, los recuadros y la lista. En escritorio (ADR-0015)
 // no hay pestañas: las dos van lado a lado.
 export function TableroStock({ alertas, estados, resumen, hoy, lecturas, puedeRegistrar }: Props) {
   const [pestana, setPestana] = useState<Pestana>("hacer");
   const [elegida, setElegida] = useState<{ fruta: EstadoProducto; lote: LoteEstimado } | null>(null);
   const [abierta, setAbierta] = useState(false);
-  // Lo mismo que cuentan las etiquetas rojas «Hoy» de la lista: las frutas que piden algo hoy.
-  const { urgentes } = veredictoDelStock(estados);
   const ver = (fruta: EstadoProducto, lote: LoteEstimado) => {
     setElegida({ fruta, lote });
     setAbierta(true);
@@ -53,7 +52,7 @@ export function TableroStock({ alertas, estados, resumen, hoy, lecturas, puedeRe
           valor={pestana}
           alCambiar={setPestana}
           opciones={[
-            { valor: "hacer", etiqueta: "Qué hacer", cuenta: urgentes > 0 ? urgentes : undefined, urgente: true },
+            { valor: "hacer", etiqueta: "Qué hacer" },
             { valor: "stock", etiqueta: "Tu stock" },
           ]}
         />
