@@ -33,3 +33,31 @@ export function clasificarRespuesta(texto: string): Respuesta {
   const resto = p.filter((x) => !CONFIRMAN.has(x) && !RELLENO.has(x));
   return confirma && resto.length === 0 ? "confirmar" : "otra";
 }
+
+/** Lo que se respondió a «¿Pagó o lo debe?». */
+export type Pago = { condicion: "contado"; medio: "efectivo" | "yape" | "plin" | "transferencia" } | { condicion: "credito"; medio: null };
+
+/** Para Whisper, cuando se pregunta si pagó. */
+export const VOCABULARIO_PAGO = "Pagó. Lo debe. Yape. Plin. Efectivo. Transferencia. Fiado.";
+
+const PAGO = new Set(["pago", "pagado", "pagada", "contado", "cancelo", "cancelado", "efectivo", "yape", "yapeo", "yapeado", "plin", "transferencia", "transfirio", "deposito"]);
+const DEBE = new Set(["debe", "debo", "fiado", "fiada", "fio", "credito", "cuenta", "despues", "luego"]);
+const MEDIO: Record<string, Extract<Pago, { condicion: "contado" }>["medio"]> = {
+  yape: "yape", yapeo: "yape", yapeado: "yape", plin: "plin", transferencia: "transferencia", transfirio: "transferencia", deposito: "transferencia",
+};
+
+/**
+ * «Pagó», «con Yape», «lo debe», «fiado», «no pagó» → cómo quedó. null si no se entiende o dice las dos cosas: nunca se asume
+ * contado (principio 2). «Canceló» es pagó, como se dice en el puesto.
+ */
+export function clasificarPago(texto: string): Pago | null {
+  const p = palabras(texto);
+  const pago = p.some((x) => PAGO.has(x));
+  const debe = p.some((x) => DEBE.has(x));
+  const niega = p.includes("no");
+  if (debe && !pago && !niega) return { condicion: "credito", medio: null };
+  // «No pagó», «todavía no paga»: lo debe. «No debe nada» no se adivina: se pregunta otra vez.
+  if (pago && niega && !debe) return { condicion: "credito", medio: null };
+  if (pago && !debe && !niega) return { condicion: "contado", medio: p.map((x) => MEDIO[x]).find((m) => m !== undefined) ?? "efectivo" };
+  return null;
+}

@@ -30,6 +30,8 @@ async function abrirTarjeta(page: Page, tarjeta: unknown) {
   };
   await tocar();
   await expect(orbe).toHaveAttribute("data-bloqueado", "true", { timeout: 10_000 });
+  // «Bloqueado» llega al soltar el dedo; el micrófono, unos cientos de ms después. Tocar antes es tocar sin haber grabado nada.
+  await expect(orbe).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
   await page.waitForTimeout(800);
   await tocar();
   const hoja = page.getByRole("dialog", { name: "¿Así fue la venta?" });
@@ -59,13 +61,14 @@ test("tocar la tarjeta mientras lee la calla", async ({ page }) => {
   await expect(page.getByText("Te la estoy leyendo")).toHaveCount(0);
 });
 
-test("lo incompleto no se lee: si falta saber si pagó, se pide en la tarjeta", async ({ page }) => {
+test("lo incompleto no se lee: dice qué falta y se elige en la tarjeta", async ({ page }) => {
   await sintetizadorDePrueba(page, { manosLibres: true });
   await entrarComo(page, "duenio");
-  const hoja = await abrirTarjeta(page, { ...lista, condicion: null, falta: ["condicion"] });
-  await expect(hoja.getByRole("button", { name: "Primero: ¿pagó o lo debe?" })).toBeVisible();
-  await page.waitForTimeout(500);
-  expect(await dichas(page)).toEqual([]);
+  const sinPrecio = { ...lista, items: [{ ...lista.items[0]!, precio: { valor: null, sugerido: false }, subtotal: null }], total: null, falta: ["precio"] };
+  const hoja = await abrirTarjeta(page, sinPrecio);
+  await expect(hoja.getByText("Toca para poner el precio")).toBeVisible();
+  // Sin el total ni «¿Confirmo?»: lo que no está completo no se lee (si solo falta saber si pagó, se pregunta: voz-candados.spec.ts).
+  await expect.poll(() => distintas(page)).toEqual(["Falta elegir a cuánto la caja. Míralo en la tarjeta."]);
 });
 
 test("sin manos libres no se lee nada", async ({ page }) => {

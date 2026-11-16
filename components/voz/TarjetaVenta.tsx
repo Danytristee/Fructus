@@ -11,7 +11,7 @@ import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
-import { lecturaVenta } from "@/lib/voz/lectura-reglas";
+import { guionVenta, lecturaVenta } from "@/lib/voz/lectura-reglas";
 import { GUARDADO } from "@/lib/voz/manos-libres-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
@@ -56,14 +56,24 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const [saldo, setSaldo] = useState<number | null>(null);
   const { confirmar: enviar, guardando, error, guardado: guardada, encolado, incierto } = useConfirmar<{ ok: true; saldo: number | null; comprobante: string | null }>({ alGuardar, alCambiarGuardando });
-  // Manos libres (ADR-0020): la venta lista se lee en voz alta apenas se abre y se confirma diciendo «confirmo». Lo incompleto no
-  // se lee: se pide en la tarjeta. La tarjeta se monta solo en el navegador (la hoja no tiene SSR): se puede leer el celular al empezar.
-  const [lectura] = useState(() => (manosLibres() ? lecturaVenta(borradorDe(tarjeta)) : null));
-  const voz = useManosLibres({ lectura, alConfirmar: () => confirmar("voz") });
+  // Manos libres (ADR-0020): al abrirse, la venta lista se lee en voz alta y se confirma diciendo «confirmo»; si falta saber si pagó,
+  // se pregunta primero. Con dudas o si falta otro dato, solo se avisa y se toca. La tarjeta se monta solo en el navegador (la hoja no
+  // tiene SSR): se puede leer el celular al empezar.
+  const [guion] = useState(() => (manosLibres() ? guionVenta(borradorDe(tarjeta), tarjeta.dudas) : null));
+  const voz = useManosLibres({
+    guion,
+    alConfirmar: () => confirmar("voz"),
+    // «¿Pagó o lo debe?» respondido por voz: se anota en la tarjeta (se ve en la píldora) y se lee la venta completa para confirmarla.
+    alPago: (pago) => {
+      const nuevo = { ...borrador, condicion: pago.condicion, medio: pago.medio };
+      setBorrador(nuevo);
+      return lecturaVenta(nuevo);
+    },
+  });
   // «Guardado» solo cuando la base respondió (candado 6): lo que quedó en el celular sin señal no se anuncia como guardado.
   useEffect(() => {
-    if (guardada && lectura) hablar(GUARDADO);
-  }, [guardada, lectura]);
+    if (guardada && guion) hablar(GUARDADO);
+  }, [guardada, guion]);
 
   const clienteId = borrador.cliente?.id ?? null;
   useEffect(() => {

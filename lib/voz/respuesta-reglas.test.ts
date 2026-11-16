@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clasificarRespuesta } from "./respuesta-reglas";
+import { clasificarPago, clasificarRespuesta } from "./respuesta-reglas";
 
 describe("clasificarRespuesta", () => {
   it.each(["Confirmo.", "Correcto", "¡Acepto!", "Sí, correcto.", "Ya, confirmo", "Todo correcto", "Correcto, correcto.", "Está correcto"])(
@@ -24,5 +24,29 @@ describe("clasificarRespuesta", () => {
     expect(clasificarRespuesta("")).toBe("otra");
     expect(clasificarRespuesta("Gracias por ver el video.")).toBe("otra");
     expect(clasificarRespuesta("...")).toBe("otra");
+  });
+});
+
+describe("clasificarPago", () => {
+  it.each([
+    ["Pagó.", { condicion: "contado", medio: "efectivo" }],
+    ["Pagó con Yape", { condicion: "contado", medio: "yape" }],
+    ["Yape", { condicion: "contado", medio: "yape" }],
+    ["Plin", { condicion: "contado", medio: "plin" }],
+    ["Canceló", { condicion: "contado", medio: "efectivo" }],
+    ["Por transferencia", { condicion: "contado", medio: "transferencia" }],
+    ["Lo debe", { condicion: "credito", medio: null }],
+    ["Fiado", { condicion: "credito", medio: null }],
+    ["A cuenta", { condicion: "credito", medio: null }],
+    ["Me paga después", { condicion: "credito", medio: null }],
+    ["No pagó", { condicion: "credito", medio: null }],
+    ["Todavía no paga", null],
+  ])("«%s»", (dicho, esperado) => expect(clasificarPago(dicho)).toEqual(esperado));
+
+  it("lo que no se entiende, o dice las dos cosas, no se adivina: nunca se asume contado", () => {
+    expect(clasificarPago("Sí")).toBeNull();
+    expect(clasificarPago("")).toBeNull();
+    expect(clasificarPago("Pagó la mitad y lo demás lo debe")).toBeNull();
+    expect(clasificarPago("No debe nada")).toBeNull();
   });
 });

@@ -50,3 +50,18 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
   - pgTAP 01, 03, 04 y 11 fallan en la base compartida porque el catálogo real deja inactivo el producto 1; ya pasaba antes.
   - Sin probar con el audífono: qué tarda Android en abrir el micrófono Bluetooth después de leer, y si se come el principio del «confirmo».
   - `components/voz/TarjetaVenta.tsx` ya pasa las 250 líneas; la actividad 6 saca lo común a todas las tarjetas.
+
+## Actividad 4 · Los candados
+
+- **Qué cambió:**
+  - Al abrir la tarjeta, Fructus dice un guion (`guionVenta`, `lib/voz/lectura-reglas.ts`):
+    - si solo falta saber si pagó, lee la venta y pregunta «¿Pagó o lo debe?»; la respuesta (`clasificarPago`) se anota en la píldora y se lee la venta completa para confirmarla;
+    - con dudas del intérprete, o si falta otro dato, solo lo dice y no escucha: se confirma con el dedo.
+  - Sin señal no se abre el micrófono y la tarjeta lo dice.
+  - Ya estaban: «sí» suelto no confirma, el precio sugerido se lee «sugerido» y el silencio deja la tarjeta para tocar.
+- **Cómo se verificó:**
+  - Vitest: 239 de `lib/voz`, con 16 de las fases y 13 del pago.
+  - `voz-candados.spec.ts` (4) y toda la voz, 78 en verde a 412 y 360 px. `voz-lectura.spec.ts` repetida 4 veces: 48 de 48.
+- **Pendiente:**
+  - `voz-lectura.spec.ts` tocaba el orbe antes de que el micrófono grabara y fallaba 1 de cada 24 con la máquina cargada. Ya espera «escuchando».
+  - Una vez falló `voz-silencio.spec.ts:59` a 360 px: el toque de 60 ms no quedó bloqueado. Repetida, pasa. Si vuelve, mirar si con carga el toque llega como «mantener» (`lib/voz/gesto-reglas.ts`, 300 ms).

@@ -4,63 +4,95 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   CALLADO,
-  LEYENDO,
   REPREGUNTA,
+  REPREGUNTA_PAGO,
   SILENCIO_RESPUESTA_MS,
   TOPE_RESPUESTA_MS,
   VENTANA_RESPUESTA_MS,
+  leyendo,
   notaManosLibres,
   siguienteManosLibres,
   type EfectoManosLibres,
   type EventoManosLibres,
+  type Pregunta,
 } from "@/lib/voz/manos-libres-reglas";
+import type { Guion } from "@/lib/voz/lectura-reglas";
+import type { Pago } from "@/lib/voz/respuesta-reglas";
 import { callar, hablar } from "./hablar";
 import { vibrar } from "./senales";
 import { useGrabadora } from "./useGrabadora";
 
 // La respuesta pasa por Whisper (con su respaldo): más que esto y se deja para tocar.
 const TOPE_ENVIO_MS = 10_000;
+const MEDIOS = ["efectivo", "yape", "plin", "transferencia"];
 
-/** Lo que el servidor entendió de la respuesta corta. «fallo» si no respondió o no la entendió: nunca se guarda por las dudas. */
-async function entenderRespuesta(audio: Blob, duracionMs: number): Promise<"confirmar" | "otra" | "fallo"> {
+/** Lo que dijo el servidor del pago, revisado: lo que no tenga la forma esperada no se anota (nunca se asume contado). */
+function leerPago(x: unknown): Pago | null {
+  const p = x as { condicion?: unknown; medio?: unknown } | null;
+  if (p?.condicion === "credito") return { condicion: "credito", medio: null };
+  if (p?.condicion === "contado" && typeof p.medio === "string" && MEDIOS.includes(p.medio)) return { condicion: "contado", medio: p.medio as Extract<Pago, { condicion: "contado" }>["medio"] };
+  return null;
+}
+
+/**
+ * Lo que el servidor entendió de la respuesta corta, como evento. «fallo» si no respondió o no la entendió: nunca se guarda ni se
+ * anota por las dudas. Sin señal se dice así, para que la tarjeta lo explique.
+ */
+async function entender(audio: Blob, duracionMs: number, pregunta: Pregunta): Promise<EventoManosLibres> {
   const formulario = new FormData();
   formulario.append("audio", audio, audio.type.includes("mp4") ? "respuesta.m4a" : "respuesta.webm");
   formulario.append("duracion_ms", String(duracionMs));
+  formulario.append("pregunta", pregunta);
   try {
     const r = await fetch("/api/voz/respuesta", { method: "POST", body: formulario, signal: AbortSignal.timeout(TOPE_ENVIO_MS) });
-    const cuerpo = (await r.json().catch(() => null)) as { respuesta?: unknown } | null;
-    if (r.ok && (cuerpo?.respuesta === "confirmar" || cuerpo?.respuesta === "otra")) return cuerpo.respuesta;
+    const cuerpo = (await r.json().catch(() => null)) as { respuesta?: unknown; pago?: unknown } | null;
+    if (r.ok && pregunta === "pago" && cuerpo && "pago" in cuerpo) return { tipo: "pago", pago: leerPago(cuerpo.pago) };
+    if (r.ok && (cuerpo?.respuesta === "confirmar" || cuerpo?.respuesta === "otra")) return { tipo: "respuesta", respuesta: cuerpo.respuesta };
     console.error("voz: la respuesta no se entendió", { estado: r.status });
   } catch (e) {
     console.error("voz: no se pudo enviar la respuesta", { error: e instanceof Error ? e.name : "desconocido" });
   }
-  return "fallo";
+  if (!navigator.onLine) return { tipo: "sin_senal" };
+  return pregunta === "pago" ? { tipo: "pago", pago: "fallo" } : { tipo: "respuesta", respuesta: "fallo" };
 }
 
+type Opciones = {
+  /** Lo que se dice al abrir la tarjeta y qué se espera oír (lib/voz/lectura-reglas.ts). null: sin manos libres, la tarjeta de siempre. */
+  guion: Guion | null;
+  /** Dijo «confirmo»: la misma acción que el toque. */
+  alConfirmar: () => void;
+  /** Respondió si pagó: se anota en la tarjeta. Devuelve la lectura de la venta completa, o null si todavía falta algo. */
+  alPago: (pago: Pago) => string | null;
+};
+
 /**
- * Manos libres en una tarjeta (ADR-0020): lee `lectura` en voz alta, escucha la respuesta corta y, si dice «confirmo», llama a
- * `alConfirmar` (la misma acción que el toque). Las fases y sus reglas viven en lib/voz/manos-libres-reglas.ts; aquí se habla, se
- * abre el micrófono y se envía. Con `lectura` null no hace nada: la tarjeta es la de siempre.
+ * Manos libres en una tarjeta (ADR-0020): dice el guion en voz alta, escucha la respuesta corta y, si dice «confirmo», llama a
+ * `alConfirmar`; si respondió si pagó, lo anota con `alPago` y lee la venta completa. Las fases y sus reglas viven en
+ * lib/voz/manos-libres-reglas.ts; aquí se habla, se abre el micrófono y se envía.
  *
  * `tomarControl`: la persona tocó la tarjeta. Se calla, se apaga el micrófono y lo que llegue del servidor ya no guarda.
  */
-export function useManosLibres({ lectura, alConfirmar }: { lectura: string | null; alConfirmar: () => void }) {
-  const [estado, setEstado] = useState(() => (lectura ? LEYENDO : CALLADO));
+export function useManosLibres({ guion, alConfirmar, alPago }: Opciones) {
+  const [estado, setEstado] = useState(() => (guion ? leyendo(guion.pregunta) : CALLADO));
   const actual = useRef(estado);
   const relojes = useRef<number[]>([]);
   // Cada frase y cada escucha tiene su turno: lo que llega de una vieja (una frase cortada, un envío tardío) no cuenta.
   const turno = useRef(0);
   const confirmar = useRef(alConfirmar);
+  const anotar = useRef(alPago);
   useEffect(() => {
     confirmar.current = alConfirmar;
+    anotar.current = alPago;
   });
+  // La lectura de la venta completa, después de anotar el pago.
+  const relectura = useRef<string | null>(null);
   const grabadora = useGrabadora({ alCallarse: () => aplicar({ tipo: "callo" }), silencioMs: SILENCIO_RESPUESTA_MS });
 
   function aplicar(ev: EventoManosLibres) {
     const r = siguienteManosLibres(actual.current, ev);
     actual.current = r.estado;
     setEstado(r.estado);
-    ejecutar(r.efecto);
+    ejecutar(r.efecto, ev);
   }
 
   function limpiarRelojes() {
@@ -77,6 +109,8 @@ export function useManosLibres({ lectura, alConfirmar }: { lectura: string | nul
 
   async function escuchar() {
     const mio = ++turno.current;
+    // Sin señal la respuesta no se puede entender (Whisper está en el servidor): ni se abre el micrófono.
+    if (!navigator.onLine) return aplicar({ tipo: "sin_senal" });
     const falla = await grabadora.empezar();
     if (mio !== turno.current) return;
     if (falla) return aplicar({ tipo: "vencio" }); // sin micrófono no hay respuesta: se toca
@@ -94,14 +128,23 @@ export function useManosLibres({ lectura, alConfirmar }: { lectura: string | nul
     limpiarRelojes();
     const mio = ++turno.current;
     const g = await grabadora.terminar();
-    const respuesta = g.audio.size === 0 ? "fallo" : await entenderRespuesta(g.audio, g.duracionMs);
-    if (mio === turno.current) aplicar({ tipo: "respuesta", respuesta });
+    const pregunta = actual.current.pregunta;
+    const vacia: EventoManosLibres = pregunta === "pago" ? { tipo: "pago", pago: "fallo" } : { tipo: "respuesta", respuesta: "fallo" };
+    const ev = g.audio.size === 0 ? vacia : await entender(g.audio, g.duracionMs, pregunta);
+    if (mio === turno.current) aplicar(ev);
   }
 
-  function ejecutar(efecto: EfectoManosLibres) {
+  function ejecutar(efecto: EfectoManosLibres, ev: EventoManosLibres) {
     switch (efecto) {
       case "repreguntar":
-        return decir(REPREGUNTA);
+        return decir(actual.current.pregunta === "pago" ? REPREGUNTA_PAGO : REPREGUNTA);
+      case "anotar": {
+        if (ev.tipo !== "pago" || ev.pago === null || ev.pago === "fallo") return;
+        relectura.current = anotar.current(ev.pago);
+        return aplicar({ tipo: "anotado", lista: relectura.current !== null });
+      }
+      case "releer":
+        return relectura.current ? decir(relectura.current) : undefined;
       case "escuchar":
         return void escuchar();
       case "enviar":
@@ -129,14 +172,14 @@ export function useManosLibres({ lectura, alConfirmar }: { lectura: string | nul
     if (actual.current.fase === "leyendo") callar();
   }
 
-  // La lectura empieza apenas se abre la tarjeta. En desarrollo React monta dos veces: el turno deja sin efecto la primera.
+  // El guion se dice apenas se abre la tarjeta. En desarrollo React monta dos veces: el turno deja sin efecto la primera.
   useEffect(() => {
-    if (!lectura) return;
-    decir(lectura);
+    if (!guion) return;
+    decir(guion.texto);
     return soltar;
     // Solo al abrir la tarjeta: `decir` cambia en cada render pero lee todo de refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lectura]);
+  }, [guion]);
 
   return {
     fase: estado.fase,

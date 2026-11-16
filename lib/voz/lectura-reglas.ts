@@ -1,6 +1,6 @@
 // Lo que Fructus dice en voz alta antes de guardar una venta en manos libres (ADR-0020, candado 1): lo que se va a guardar, no la
 // transcripción. Es la misma tarjeta, dicha. Lógica pura: no importa React ni el sintetizador del navegador (components/voz/hablar.ts).
-import { faltaDe, totalDe, type Borrador, type Medio } from "./confirmar-venta-reglas";
+import { faltaDe, frasesFalta, totalDe, type Borrador, type Medio } from "./confirmar-venta-reglas";
 
 const MEDIOS: Record<Medio, string> = { efectivo: "en efectivo", yape: "con Yape", plin: "con Plin", transferencia: "por transferencia" };
 
@@ -47,6 +47,18 @@ function precioHablado(n: number): string {
   return centimos % 100 === 0 ? String(centimos / 100) : `${Math.trunc(centimos / 100)} con ${String(centimos % 100).padStart(2, "0")}`;
 }
 
+/** Lo que se va a guardar, dicho: las frutas, el cliente, el total y la rebaja. Sin el pago ni la pregunta del final. */
+function resumenHablado(b: Borrador, total: number): string {
+  const uno = b.items.length === 1;
+  // Con una sola fruta, «a 45 la caja»; con varias, solo «a 45» en cada una, o la lectura se hace eterna.
+  const items = b.items
+    .map((it) => `${cajasHabladas(it.cantidad)} de ${nombreHablado(it.producto)}, a ${precioHablado(it.precio!)}${uno ? " la caja" : ""}${it.sugerido ? ", precio sugerido" : ""}`)
+    .join(", y ");
+  const para = b.cliente ? `para ${b.cliente.nombre}` : "para un cliente de paso";
+  const rebaja = b.descuento > 0 ? `, con ${solesHablados(b.descuento)} de rebaja` : "";
+  return `${items}, ${para}. Total, ${solesHablados(total)}${rebaja}.`;
+}
+
 /**
  * La lectura de una venta lista para guardar. null si todavía falta algo (cliente, fruta, precio, si pagó): lo incompleto no se lee,
  * se pide.
@@ -56,14 +68,28 @@ function precioHablado(n: number): string {
 export function lecturaVenta(b: Borrador): string | null {
   const total = totalDe(b);
   if (faltaDe(b).length > 0 || total === null) return null;
-  const uno = b.items.length === 1;
-  // Con una sola fruta, «a 45 la caja»; con varias, solo «a 45» en cada una, o la lectura se hace eterna.
-  const items = b.items
-    .map((it) => `${cajasHabladas(it.cantidad)} de ${nombreHablado(it.producto)}, a ${precioHablado(it.precio!)}${uno ? " la caja" : ""}${it.sugerido ? ", precio sugerido" : ""}`)
-    .join(", y ");
-  const para = b.cliente ? `para ${b.cliente.nombre}` : "para un cliente de paso";
-  const rebaja = b.descuento > 0 ? `, con ${solesHablados(b.descuento)} de rebaja` : "";
   const pago = b.condicion === "credito" ? "Lo debe" : `Pagó ${MEDIOS[b.medio ?? "efectivo"]}`;
   const comprobante = b.comprobante === "boleta" ? " Con boleta." : b.comprobante === "factura" ? " Con factura." : "";
-  return `${items}, ${para}. Total, ${solesHablados(total)}${rebaja}. ${pago}.${comprobante} ¿Confirmo?`;
+  return `${resumenHablado(b, total)} ${pago}.${comprobante} ¿Confirmo?`;
+}
+
+/** Lo que pregunta, y qué espera oír: «confirmo», «pagó» o «lo debe», o nada (solo avisa y pide el toque). */
+export type Guion = { pregunta: "confirmar" | "pago" | "ninguna"; texto: string };
+
+export const DUDA_HABLADA = "Tengo una duda con esta venta. Revisa la tarjeta y toca Confirmar.";
+
+/**
+ * Qué dice Fructus al abrir la tarjeta en manos libres (ADR-0020, candado 4):
+ *   - con dudas del intérprete, no se confirma hablando: lo dice y pide el toque;
+ *   - si solo falta saber si pagó, lo lee y pregunta «¿Pagó o lo debe?» (nunca se asume contado);
+ *   - si falta otra cosa (el precio, la fruta), dice qué falta: se elige en la tarjeta;
+ *   - si no falta nada, lee lo que se va a guardar y pregunta «¿Confirmo?».
+ */
+export function guionVenta(b: Borrador, dudas: string[]): Guion {
+  if (dudas.length > 0) return { pregunta: "ninguna", texto: DUDA_HABLADA };
+  const falta = faltaDe(b);
+  const total = totalDe(b);
+  if (falta.length === 0 && total !== null) return { pregunta: "confirmar", texto: lecturaVenta(b)! };
+  if (falta.length === 1 && falta[0] === "condicion" && total !== null) return { pregunta: "pago", texto: `${resumenHablado(b, total)} ¿Pagó o lo debe?` };
+  return { pregunta: "ninguna", texto: `${frasesFalta(falta)} Míralo en la tarjeta.` };
 }

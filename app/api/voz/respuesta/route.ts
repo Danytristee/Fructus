@@ -2,11 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { permisosDe } from "@/lib/permisos-reglas";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
-import { VOCABULARIO_RESPUESTA, clasificarRespuesta } from "@/lib/voz/respuesta-reglas";
+import { VOCABULARIO_PAGO, VOCABULARIO_RESPUESTA, clasificarPago, clasificarRespuesta } from "@/lib/voz/respuesta-reglas";
 import { transcribir } from "@/lib/voz/stt";
 
-// POST /api/voz/respuesta: la respuesta corta después de oír la lectura de una venta (ADR-0020) → Whisper → ¿confirma? No guarda
-// nada: si confirma, el celular guarda por la misma acción que el toque. Nunca registra la transcripción en los logs.
+// POST /api/voz/respuesta: la respuesta corta después de oír la lectura de una venta (ADR-0020) → Whisper → ¿confirma?, o, si se
+// preguntó «¿Pagó o lo debe?» (`pregunta=pago`), cómo quedó el pago. No guarda nada: el celular anota el pago en la tarjeta y, si
+// confirma, guarda por la misma acción que el toque. Nunca registra la transcripción en los logs.
 
 // Una respuesta corta: el celular deja de escuchar a los 8 s.
 const TOPE_BYTES = 1024 * 1024;
@@ -31,7 +32,8 @@ export async function POST(request: NextRequest) {
   const duracionMs = Number(formulario?.get("duracion_ms")) || null;
   if (duracionMs !== null && duracionMs > TOPE_MS) return responder(413, { error: "La respuesta es muy larga." });
 
-  const texto = await transcribir(audio, { vocabulario: VOCABULARIO_RESPUESTA });
+  const pregunta = formulario?.get("pregunta") === "pago" ? "pago" : "confirmar";
+  const texto = await transcribir(audio, { vocabulario: pregunta === "pago" ? VOCABULARIO_PAGO : VOCABULARIO_RESPUESTA });
   if (!texto.ok) return responder(502, { error: "No te entendí." });
-  return responder(200, { respuesta: clasificarRespuesta(texto.texto) });
+  return pregunta === "pago" ? responder(200, { pago: clasificarPago(texto.texto) }) : responder(200, { respuesta: clasificarRespuesta(texto.texto) });
 }

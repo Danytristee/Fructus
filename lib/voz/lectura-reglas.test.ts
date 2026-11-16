@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Borrador } from "./confirmar-venta-reglas";
-import { cajasHabladas, lecturaVenta, nombreHablado, solesHablados } from "./lectura-reglas";
+import { DUDA_HABLADA, cajasHabladas, guionVenta, lecturaVenta, nombreHablado, solesHablados } from "./lectura-reglas";
 
 const venta = (cambios: Partial<Borrador> = {}): Borrador => ({
   cliente: { id: 1, nombre: "Luis Paredes" },
@@ -76,5 +76,27 @@ describe("cómo se dicen los datos", () => {
     expect(nombreHablado("Manzana Roja americana Premium cal. 113")).toBe("Manzana Roja americana Premium calibre 113");
     expect(nombreHablado("Manzana Delicia nacional 6ta")).toBe("Manzana Delicia nacional sexta");
     expect(nombreHablado("Mandarina 1era")).toBe("Mandarina primera");
+  });
+});
+
+describe("guionVenta", () => {
+  it("lista para guardar: la lee y pregunta «¿Confirmo?»", () => {
+    expect(guionVenta(venta(), [])).toEqual({ pregunta: "confirmar", texto: lecturaVenta(venta()) });
+  });
+
+  it("si solo falta saber si pagó, lo pregunta por voz: nunca se asume contado", () => {
+    expect(guionVenta(venta({ condicion: null }), [])).toEqual({
+      pregunta: "pago",
+      texto: "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. ¿Pagó o lo debe?",
+    });
+  });
+
+  it("con dudas del intérprete no se confirma hablando: pide el toque", () => {
+    expect(guionVenta(venta(), ["No sé si dijo 10 o 12 cajas"])).toEqual({ pregunta: "ninguna", texto: DUDA_HABLADA });
+  });
+
+  it("si falta otra cosa, dice qué y se elige en la tarjeta", () => {
+    const sinPrecio = venta({ items: [{ productoId: 1, producto: "Mango Kent", cantidad: 10, precio: null, sugerido: false }], condicion: null });
+    expect(guionVenta(sinPrecio, [])).toEqual({ pregunta: "ninguna", texto: "Falta elegir a cuánto la caja y si pagó o lo debe. Míralo en la tarjeta." });
   });
 });
