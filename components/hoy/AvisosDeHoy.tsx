@@ -7,7 +7,7 @@ import type { Alerta, ResumenInventario } from "@/lib/inventario-reglas";
 import { diaAnterior, hayQuePedirla, temperaturaDe, type TemperaturaDia } from "@/lib/temperatura-reglas";
 
 const plural = (n: number, una: string, varias: string) => `${n} ${n === 1 ? una : varias}`;
-// Para qué se pide la temperatura. Decía «Así sé qué fruta sale primero»: en la 2.ª prueba a ciegas se leyó «así se» y «sale
+// Para qué se pide la temperatura. El título dice «del puesto»: en la 2.ª prueba a ciegas preguntaron «¿de qué?». Decía «Así sé qué fruta sale primero»: en la 2.ª prueba a ciegas se leyó «así se» y «sale
 // primero» como «la que más se vende» (/formidable 2026-11-15).
 const PARA_QUE = "Con ella sé qué vender primero";
 
@@ -22,7 +22,7 @@ type Props = {
 };
 
 // Lo que el puesto pide hoy, en renglones justo debajo de lo vendido: la fruta que tiene que salir (a un toque de Stock) y la
-// temperatura, si falta la de hoy y esta semana ya se anotó alguna (lib/temperatura-reglas.ts). Sin nada que pedir, no ocupa lugar.
+// temperatura, si falta la de hoy (lib/temperatura-reglas.ts). Sin nada que pedir, no ocupa lugar.
 // Antes iban al final de «Hoy», detrás del botón de voz: en la prueba a ciegas nadie vio que la app pidiera algo
 // (/formidable 2026-11-14).
 export function AvisosDeHoy({ inventario, lecturas, hoy, className }: Props) {
@@ -38,7 +38,7 @@ export function AvisosDeHoy({ inventario, lecturas, hoy, className }: Props) {
       )}
       {pedir && (
         <li>
-          <TemperaturaAMano hoy={null} ayer={temperaturaDe(lecturas, diaAnterior(hoy))} etiqueta="Anota la temperatura" detalle={PARA_QUE} />
+          <TemperaturaAMano hoy={null} ayer={temperaturaDe(lecturas, diaAnterior(hoy))} etiqueta="Anota la temperatura del puesto" detalle={PARA_QUE} />
         </li>
       )}
     </ul>

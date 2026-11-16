@@ -7,6 +7,10 @@ import { baseLocal } from "./base";
 // de stock, la venta anulada devolvió lo que vendió y el número del comprobante lo entregó su serie (tomar_numero). Y no mueve el stock ni
 // las deudas de nadie: lo que se vende, se malogra o se debe se repone con una compra o se paga con un abono, y el cliente es uno propio.
 // Se siembra una sola vez por mes: la marca queda en un gasto, que es lo último que se escribe.
+//
+// La fecha se pone en dos pasos. Desde ADR-0019 la base no acepta al insertar una fecha de hace más de 48 horas (la cambia por
+// «ahora»), así que cada fila entra con la fecha de hoy y enseguida se mueve a su día del mes de prueba (`moverA`). Con la fecha en
+// el insert, todo el mes de prueba caía en «hoy»: el Excel del mes salía vacío y «Lo último» de «Hoy» se llenaba de gastos de prueba.
 
 const DUENIO = "10000000-0000-0000-0000-000000000001";
 const NOMBRE_DEL_CLIENTE = "Cliente prueba Excel";
@@ -54,6 +58,13 @@ export function serialDeLima(mes: string, dia: number, hora: number, minuto = 0)
   return Date.UTC(anio, delAnio - 1, dia, hora, minuto) / 86_400_000 + 25_569;
 }
 
+/** Mueve filas recién insertadas a su fecha del mes de prueba. La regla de la fecha solo corre al insertar. */
+async function moverA(db: Db, tabla: string, ids: number[], fecha: string, donde: string): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await db.from(tabla).update({ fecha }).in("id", ids);
+  if (error) falla(`la fecha de ${donde}`, error);
+}
+
 async function idDe(db: Db, tabla: string, filtros: Record<string, string>): Promise<number> {
   let consulta = db.from(tabla).select("id");
   for (const [columna, valor] of Object.entries(filtros)) consulta = consulta.eq(columna, valor);
@@ -80,7 +91,6 @@ async function sembrarVenta(
   const { data, error } = await db
     .from("ventas")
     .insert({
-      fecha: v.fecha,
       condicion: v.condicion,
       medio_pago: v.medio,
       cliente_id: v.cliente,
@@ -92,14 +102,16 @@ async function sembrarVenta(
     .single();
   if (error || !data) falla("una venta", error);
   const ventaId = data.id as number;
+  await moverA(db, "ventas", [ventaId], v.fecha, "una venta");
   const items = await db.from("venta_items").insert(v.lineas.map((l) => ({ venta_id: ventaId, producto_id: l.producto, cantidad: l.cajas, precio_unitario: l.precio, descuento: 0 })));
   if (items.error) falla("las líneas de una venta", items.error);
   const movimientos = v.lineas.flatMap((l) => [
-    { producto_id: l.producto, tipo: "salida_venta", cantidad: -l.cajas, venta_id: ventaId, fecha: v.fecha, registrado_por: DUENIO },
-    ...(v.anulada ? [{ producto_id: l.producto, tipo: "devolucion", cantidad: l.cajas, venta_id: ventaId, fecha: v.fecha, registrado_por: DUENIO }] : []),
+    { producto_id: l.producto, tipo: "salida_venta", cantidad: -l.cajas, venta_id: ventaId, registrado_por: DUENIO },
+    ...(v.anulada ? [{ producto_id: l.producto, tipo: "devolucion", cantidad: l.cajas, venta_id: ventaId, registrado_por: DUENIO }] : []),
   ]);
-  const stock = await db.from("movimientos_stock").insert(movimientos);
+  const stock = await db.from("movimientos_stock").insert(movimientos).select("id");
   if (stock.error) falla("el stock de una venta", stock.error);
+  await moverA(db, "movimientos_stock", stock.data.map((m) => m.id as number), v.fecha, "el stock de una venta");
   return ventaId;
 }
 
@@ -109,14 +121,16 @@ async function sembrarCompra(
 ) {
   const { data, error } = await db
     .from("compras")
-    .insert({ fecha: c.fecha, condicion: c.condicion, medio_pago: c.medio, proveedor_id: c.proveedor, numero_comprobante: c.numero, total: c.cajas * c.costo, registrado_por: DUENIO })
+    .insert({ condicion: c.condicion, medio_pago: c.medio, proveedor_id: c.proveedor, numero_comprobante: c.numero, total: c.cajas * c.costo, registrado_por: DUENIO })
     .select("id")
     .single();
   if (error || !data) falla("una compra", error);
+  await moverA(db, "compras", [data.id as number], c.fecha, "una compra");
   const items = await db.from("compra_items").insert({ compra_id: data.id, producto_id: c.producto, cantidad: c.cajas, costo_unitario: c.costo });
   if (items.error) falla("las líneas de una compra", items.error);
-  const stock = await db.from("movimientos_stock").insert({ producto_id: c.producto, tipo: "entrada_compra", cantidad: c.cajas, compra_id: data.id, fecha: c.fecha, registrado_por: DUENIO });
+  const stock = await db.from("movimientos_stock").insert({ producto_id: c.producto, tipo: "entrada_compra", cantidad: c.cajas, compra_id: data.id, registrado_por: DUENIO }).select("id");
   if (stock.error) falla("el stock de una compra", stock.error);
+  await moverA(db, "movimientos_stock", stock.data.map((m) => m.id as number), c.fecha, "el stock de una compra");
 }
 
 /** ¿Ya tiene este mes la marca? */
@@ -169,20 +183,26 @@ export async function sembrarMes(mes: string): Promise<void> {
   await sembrarCompra(db, { fecha: instanteDeLima(mes, 9, 8), condicion: "credito", medio: null, proveedor: agricola, numero: null, producto: edward, cajas: 4, costo: 40 });
   const merma = await db
     .from("movimientos_stock")
-    .insert({ producto_id: kent, tipo: "merma", cantidad: -3, motivo: "Se malogró (prueba)", fecha: instanteDeLima(mes, 15, 9), registrado_por: DUENIO });
+    .insert({ producto_id: kent, tipo: "merma", cantidad: -3, motivo: "Se malogró (prueba)", registrado_por: DUENIO })
+    .select("id");
   if (merma.error) falla("la merma", merma.error);
+  await moverA(db, "movimientos_stock", merma.data.map((m) => m.id as number), instanteDeLima(mes, 15, 9), "la merma");
 
   // La deuda del crédito se paga completa: el cliente queda en cero.
   const abono = await db
     .from("abonos")
-    .insert({ cliente_id: cliente, monto: 230, medio_pago: "yape", nota: "Pagó todo (prueba)", fecha: instanteDeLima(mes, 13, 9), registrado_por: DUENIO });
+    .insert({ cliente_id: cliente, monto: 230, medio_pago: "yape", nota: "Pagó todo (prueba)", registrado_por: DUENIO })
+    .select("id");
   if (abono.error) falla("el abono", abono.error);
+  await moverA(db, "abonos", abono.data.map((a) => a.id as number), instanteDeLima(mes, 13, 9), "el abono");
 
   // La marca va al final: si algo falló antes, el mes no queda marcado como completo.
   const gasto = await db
     .from("gastos")
-    .insert({ categoria: "flete", monto: 40, medio_pago: "efectivo", descripcion: `${MARCA_DE_DATOS} camión`, fecha: instanteDeLima(mes, 14, 9), registrado_por: DUENIO });
+    .insert({ categoria: "flete", monto: 40, medio_pago: "efectivo", descripcion: `${MARCA_DE_DATOS} camión`, registrado_por: DUENIO })
+    .select("id");
   if (gasto.error) falla("el gasto", gasto.error);
+  await moverA(db, "gastos", gasto.data.map((g) => g.id as number), instanteDeLima(mes, 14, 9), "el gasto");
 }
 
 /** El comprobante que se sembró en el mes: lo da la serie, así que se lee de la base en vez de suponerlo. */
@@ -200,14 +220,15 @@ export async function sembrarPaginas(mes: string, cuantos: number): Promise<void
   const db = baseLocal();
   const hay = await yaSembrado(db, mes, MARCA_DE_PAGINAS);
   if (hay >= cuantos) return;
-  const filas = Array.from({ length: cuantos - hay }, (_, i) => ({
-    categoria: "otros",
-    monto: 1,
-    medio_pago: "efectivo",
-    descripcion: `${MARCA_DE_PAGINAS} ${i + 1}`,
-    fecha: instanteDeLima(mes, 5, 9, i % 60),
-    registrado_por: DUENIO,
-  }));
-  const { error } = await db.from("gastos").insert(filas);
-  if (error) falla("los gastos de las páginas", error);
+  // Un minuto distinto por tanda, para que el orden por fecha no sea un empate entre los 1100.
+  const MINUTOS = 60;
+  for (let minuto = 0; minuto < MINUTOS; minuto++) {
+    const filas = Array.from({ length: cuantos - hay }, (_, i) => i)
+      .filter((i) => i % MINUTOS === minuto)
+      .map((i) => ({ categoria: "otros", monto: 1, medio_pago: "efectivo", descripcion: `${MARCA_DE_PAGINAS} ${i + 1}`, registrado_por: DUENIO }));
+    if (filas.length === 0) continue;
+    const { data, error } = await db.from("gastos").insert(filas).select("id");
+    if (error) falla("los gastos de las páginas", error);
+    await moverA(db, "gastos", data.map((g) => g.id as number), instanteDeLima(mes, 5, 9, minuto), "los gastos de las páginas");
+  }
 }

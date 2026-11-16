@@ -51,7 +51,14 @@ const herramientasVoz = {
             producto_texto: z.string().min(1),
             cantidad,
             costo_unitario: dinero.nullable(),
-            estado: z.enum(ESTADOS_LLEGADA).nullable().default(null).describe("Cómo llegó la fruta: verde, pintón o maduro. null si no lo dijo."),
+            estado: z
+              .enum(ESTADOS_LLEGADA)
+              .nullable()
+              .default(null)
+              .describe(
+                'Cómo llegó esa fruta, si lo dijo: "verde", "pintón" o "pintona" (pinton), "maduro" o "madura". Si no lo dijo, null. ' +
+                  'En "manzana verde" o "plátano verde", verde es parte del nombre de la fruta: va en producto_texto y aquí null.',
+              ),
           }),
         )
         .min(1),
@@ -73,15 +80,21 @@ const herramientasVoz = {
     }),
   },
   registrar_temperatura: {
-    descripcion: "La temperatura que marca el termómetro del puesto.",
+    descripcion: 'La temperatura del puesto: "hoy hizo 29 grados", "el termómetro marca 31", "estamos a 28 grados".',
     // Hasta tres cifras: un «290» mal oído llega a la tarjeta, que lo devuelve al rango con un toque. Un número más largo no es
     // una temperatura mal oída, y la cifra rompía la tarjeta a 360 px (/chaos 2026-11-14).
-    esquema: z.object({ grados: z.number().min(-99).max(999).describe("Grados Celsius que marca el termómetro.") }),
+    esquema: z.object({ grados: z.number().min(-99).max(999).describe('Grados Celsius que marca el termómetro, en cifras. "28 grados y medio" = 28.5.') }),
   },
   consultar: {
     descripcion: "Una pregunta sobre el negocio.",
     esquema: z.object({
-      consulta: z.enum(["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia", "que_sale_hoy"]),
+      consulta: z
+        .enum(["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia", "que_sale_hoy"])
+        .describe(
+          "Qué pregunta. ventas_hoy: cuánto vendió hoy. quien_me_debe: quiénes le deben. deuda_cliente: cuánto debe un cliente. " +
+            "stock: todo lo que tiene. stock_producto: cuántas cajas le quedan de UNA fruta. gastos_hoy: cuánto gastó hoy. " +
+            'resumen_dia: cómo va el día ("¿cómo voy?"). que_sale_hoy: qué fruta tiene que salir hoy o se va a malograr, qué vender primero.',
+        ),
       cliente_texto: z.string().nullable(),
       producto_texto: z.string().nullable(),
     }),

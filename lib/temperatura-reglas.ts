@@ -53,10 +53,11 @@ export function semanaDeTemperaturas(lecturas: readonly TemperaturaDia[], hoy: s
 }
 
 /**
- * ¿«Hoy» tiene que pedir la temperatura? Solo si hoy no se anotó y sí se anotó algún día de la semana: es un recordatorio para
- * quien ya tiene la costumbre (y el termómetro), no un aviso que persigue a quien todavía no lo usa.
+ * ¿«Hoy» tiene que pedir la temperatura? Siempre que falte la de hoy. Antes solo se le pedía a quien ya había anotado alguna esa
+ * semana, para no perseguir a quien no usaba el termómetro; pero así quien nunca la anotó no se enteraba de que podía, y a quien
+ * dejaba de anotarla una semana el pedido se le iba en silencio y la cuenta volvía a «cada día es normal» (/formidable 2026-11-14).
  */
-export const hayQuePedirla = (lecturas: readonly TemperaturaDia[], hoy: string): boolean => temperaturaDe(lecturas, hoy) === null && lecturas.some((l) => l.dia < hoy);
+export const hayQuePedirla = (lecturas: readonly TemperaturaDia[], hoy: string): boolean => temperaturaDe(lecturas, hoy) === null;
 
 /** ¿La lectura se aleja mucho de la de ayer? Sin la de ayer no hay con qué comparar. */
 export const saltoRaro = (grados: number, ayer: number | null): boolean => ayer !== null && Math.abs(grados - ayer) >= SALTO_RARO;

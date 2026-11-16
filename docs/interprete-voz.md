@@ -48,14 +48,6 @@ Cómo habla el negocio:
   en que lo dijeron en cliente_texto ("don Lucho", "la del puesto 12"). Escribe los
   números en cifras ("puesto doce" → "puesto 12").
 - "Malograda", "podrida", "se pasó", "se echó a perder" = merma.
-- "¿Qué tiene que salir hoy?", "¿qué se me va a malograr?", "¿qué vendo primero?" =
-  consultar con consulta "que_sale_hoy".
-- En una compra, "verde", "pintón" o "pintona", "maduro" o "madura" dicen cómo llegó esa
-  fruta: va en estado del ítem ("verde", "pinton", "maduro"). Si no lo dijo, estado = null.
-  Ojo: en "manzana verde" o "plátano verde", verde es parte del nombre de la fruta, no
-  cómo llegó: va en producto_texto y estado = null.
-- "Hoy hizo 29 grados", "el termómetro marca 31", "estamos a 28 grados" = registrar_temperatura
-  (la temperatura del puesto, en grados).
 
 Reglas que NO se rompen:
 1. Nunca inventes dinero. Si no dijo precio, precio_unitario = null (la app sugiere
@@ -92,6 +84,11 @@ el modelo responde `no_entendido` cuando la fruta no está en la lista («Produc
 probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, no que manda (`docs/bitacora/2026-10-30-dudas-y-cupo-groq.md`).
 
 ## 3. Herramientas (formato OpenAI / Groq)
+
+**Lo que es de una sola herramienta va aquí, no en el prompt de la sección 2:** en su descripción o en la de su campo (qué frases
+son la temperatura, cómo se dice que la fruta llegó verde, qué pregunta es cada `consulta`). El 14-11 se pusieron tres reglas así
+en el prompt general y el modelo dejó de entender «¿Cómo voy?», «¿Cuántas cajas de mango me quedan?» y «Le di 50 al cargador»
+(`docs/voz/precision-2026-11-16.md`). Con esas reglas en las descripciones, los tres vuelven a salir bien.
 
 ```json
 [
@@ -162,7 +159,7 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
                 "producto_texto": { "type": "string" },
                 "cantidad": { "type": "number" },
                 "costo_unitario": { "type": ["number", "null"] },
-                "estado": { "type": ["string", "null"], "enum": ["verde", "pinton", "maduro", null], "default": null, "description": "Cómo llegó la fruta: verde, pintón o maduro. null si no lo dijo." }
+                "estado": { "type": ["string", "null"], "enum": ["verde", "pinton", "maduro", null], "default": null, "description": "Cómo llegó esa fruta, si lo dijo: \"verde\", \"pintón\" o \"pintona\" (pinton), \"maduro\" o \"madura\". Si no lo dijo, null. En \"manzana verde\" o \"plátano verde\", verde es parte del nombre de la fruta: va en producto_texto y aquí null." }
               },
               "required": ["producto_texto", "cantidad", "costo_unitario"]
             }
@@ -211,11 +208,11 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
     "type": "function",
     "function": {
       "name": "registrar_temperatura",
-      "description": "La temperatura que marca el termómetro del puesto.",
+      "description": "La temperatura del puesto: \"hoy hizo 29 grados\", \"el termómetro marca 31\", \"estamos a 28 grados\".",
       "parameters": {
         "type": "object",
         "properties": {
-          "grados": { "type": "number", "minimum": -99, "maximum": 999, "description": "Grados Celsius que marca el termómetro." }
+          "grados": { "type": "number", "minimum": -99, "maximum": 999, "description": "Grados Celsius que marca el termómetro, en cifras. \"28 grados y medio\" = 28.5." }
         },
         "required": ["grados"]
       }
@@ -231,7 +228,8 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
         "properties": {
           "consulta": {
             "type": "string",
-            "enum": ["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia", "que_sale_hoy"]
+            "enum": ["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia", "que_sale_hoy"],
+            "description": "Qué pregunta. ventas_hoy: cuánto vendió hoy. quien_me_debe: quiénes le deben. deuda_cliente: cuánto debe un cliente. stock: todo lo que tiene. stock_producto: cuántas cajas le quedan de UNA fruta. gastos_hoy: cuánto gastó hoy. resumen_dia: cómo va el día (\"¿cómo voy?\"). que_sale_hoy: qué fruta tiene que salir hoy o se va a malograr, qué vender primero."
           },
           "cliente_texto": { "type": ["string", "null"] },
           "producto_texto": { "type": ["string", "null"] }
@@ -282,6 +280,8 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
 
 ## 5. Después de interpretar
 
+0. En una compra, quitar el estado que era parte del nombre (`lib/voz/como-llego-reglas.ts`): si la fruta se llama «manzana
+   verde» y la frase dijo «verde» una sola vez, no llegó verde. Se decide contando, no se le pide al modelo.
 1. Registrar el comando en `comandos_voz` (transcripción, intención, JSON, latencia).
 2. Resolver `cliente_texto` / `producto_texto` con `buscar_*`. Similitud ≥ 0.45 **y** al menos 0.15 por encima del segundo → se
    elige sola; si no, la tarjeta muestra las 3 mejores opciones para tocar una. El margen existe por el catálogo real (ADR-0016):
