@@ -1,7 +1,8 @@
 # ADR-0020 — Confirmar la venta hablando, con candados
 
-**Fecha:** 2026-11-14 · **Estado:** aceptado. Se construye después de «Hola Fructus» (actividades 5a a 5e); hasta entonces rige el
-toque.
+**Fecha:** 2026-11-14 · **Estado:** aceptado y construido el 2026-11-16, en la rama `claude/confirmar-hablando`. Al principio iba
+después de «Hola Fructus», pero esa obra se pausó mientras se decidía el nombre y esta no depende de la frase: se adelantó. Con un
+toque se dicta y todo lo demás va hablando; «Hola Fructus» quitará ese toque.
 
 ## Contexto
 
@@ -53,3 +54,16 @@ lectura.** Confirmar hablando solo vale con estos candados:
 - **CLAUDE.md:** el principio 1 y «La voz» se reescriben cuando la función exista, no antes.
 - **El audífono:** debe tener voz en banda ancha (HD Voice o mSBC, 16 kHz). Las grabaciones de «Hola Fructus» se hacen con ese mismo
   audífono, y hay que probar en el S25 que Chrome use su micrófono.
+
+## Cómo quedó (2026-11-16)
+
+- **La respuesta corta la reconoce Whisper en el servidor:** `POST /api/voz/respuesta` y `lib/voz/respuesta-reglas.ts`. Ya estaba en
+  el flujo y no suma modelos al celular. Pagas cerca de 1 s más por venta, y sin señal se confirma tocando.
+- **El celular deja de escuchar al callarse.** Lo mide por el volumen sobre el fondo (`lib/voz/silencio-reglas.ts`): 0.8 s en una
+  respuesta y 1.2 s en un dictado. Lo dicho apenas se abre el micrófono también cuenta.
+- **Corregir hablando:** el intérprete recibe la venta tal como se leyó y lo que se respondió (`mensajeCorreccion`), sin cambiar el
+  prompt de sistema. Solo en la venta.
+- **También abono, merma, gasto y compra.** La compra pregunta «¿La pagaste o la debes?».
+- **Las fases** (leer, abrir el micrófono, escuchar, entender, anotar, guardar, callado) son una regla pura,
+  `lib/voz/manos-libres-reglas.ts`. La ejecuta `components/voz/useManosLibres.ts`.
+- **Sin probar todavía:** con el audífono Bluetooth en el S25, y con el ruido real del puesto.

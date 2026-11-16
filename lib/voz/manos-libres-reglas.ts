@@ -26,7 +26,7 @@ export type Fase = "leyendo" | "abriendo" | "escuchando" | "entendiendo" | "anot
 /** Qué espera oír: «confirmo», «pagó» o «lo debe», o nada (solo se avisó). */
 export type Pregunta = "confirmar" | "pago" | "ninguna";
 /** Por qué quedó callado sin guardar: la tarjeta lo dice y pide el toque. */
-export type Motivo = "no_hablo" | "no_entendio" | "fallo" | "sin_senal" | "aviso" | "falta";
+type Motivo = "no_hablo" | "no_entendio" | "fallo" | "sin_senal" | "aviso" | "falta";
 export type EstadoManosLibres = { fase: Fase; pregunta: Pregunta; intento: number; motivo: Motivo | null };
 
 export type EventoManosLibres =

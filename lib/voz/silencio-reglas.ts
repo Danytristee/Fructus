@@ -11,7 +11,7 @@ export const SILENCIO_PARA_ENVIAR_MS = 1200;
 /** Voz mínima antes de que el silencio cuente: un golpe o una tos sueltos no envían nada. */
 export const VOZ_MINIMA_MS = 400;
 /** Un cuadro es voz si suena al menos esto por encima del fondo (dB). */
-export const SOBRE_EL_FONDO_DB = 12;
+const SOBRE_EL_FONDO_DB = 12;
 /** Por debajo de esto siempre es silencio (dB respecto del máximo del micrófono). */
 const SILENCIO_ABSOLUTO_DB = -60;
 /** Lo más bajo que se cuenta: el silencio digital es -∞. */
