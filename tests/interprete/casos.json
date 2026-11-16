@@ -900,6 +900,160 @@
           "producto_texto": "ciruela pink lady"
         }
       }
+    },
+    {
+      "id": "correccion-cantidad",
+      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "transcripcion": "No, son ocho cajas",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 8,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-precio",
+      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "transcripcion": "No, a cuarenta",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 40
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-pago",
+      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "transcripcion": "No, me pagó con Yape",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "correccion-cliente",
+      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "transcripcion": "No, es para don Lucho",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-fruta",
+      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "transcripcion": "No, eran de papaya",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "correccion-un-item-de-dos",
+      "correccionDe": "10 cajas de Mango Kent, a 45, y 5 cajas de Palta Fuerte, a 60, para Bodega Santa Ana. Total, 750 soles. Pagó en efectivo. ¿Confirmo?",
+      "transcripcion": "La palta a cincuenta y cinco",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "bodega santa ana",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            },
+            {
+              "producto_texto": "palta fuerte",
+              "cantidad": 5,
+              "precio_unitario": 55
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "correccion-cliente-de-paso",
+      "correccionDe": "3 cajas de Papaya, a 30 la caja, para un cliente de paso. Total, 90 soles. Pagó con Yape. ¿Confirmo?",
+      "transcripcion": "No, cuatro cajas",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": null,
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 4,
+              "precio_unitario": 30
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "correccion-no-corrige",
+      "correccionDe": "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+      "transcripcion": "Gracias por ver el video.",
+      "esperado": {
+        "herramienta": "no_entendido",
+        "datos": {}
+      }
     }
   ]
 }

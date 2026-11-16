@@ -83,6 +83,28 @@ datos clave y bajó la intención (`docs/voz/precision-2026-10-28-3.md`). `inter
 el modelo responde `no_entendido` cuando la fruta no está en la lista («Producto 'limón' no está en el catálogo»). Antes de volver a
 probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, no que manda (`docs/bitacora/2026-10-30-dudas-y-cupo-groq.md`).
 
+### 2c. Corregir hablando (ADR-0020)
+
+Con manos libres, Fructus lee la venta y pregunta «¿Confirmo?». Si en vez de confirmar la persona corrige («no, son ocho cajas», «a
+cuarenta», «es para don Lucho»), `POST /api/voz/respuesta` vuelve a llamar al intérprete. El **prompt de sistema no cambia**: lo que
+cambia es el mensaje del usuario, que lleva la venta tal como se leyó y lo que respondió (`mensajeCorreccion`, `lib/voz/prompt.ts`):
+
+```text
+CORRECCIÓN de una venta que todavía no se guarda. Fructus le leyó en voz alta esta venta:
+«10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?»
+y la persona respondió:
+«No, son ocho cajas»
+
+Llama registrar_venta con la venta COMPLETA ya corregida: copia tal cual lo que no cambió …
+```
+
+- La salida es un `registrar_venta` como el de una venta dictada. Pasa por Zod, por `resolver` y por `armarTarjeta`, y vuelve como
+  tarjeta nueva para leer y confirmar.
+- Una respuesta sin contenido («no», «sí») no llama al modelo (`pareceCorreccion`): se repregunta.
+- Si el modelo no devuelve una venta, la respuesta cuenta como «otra cosa».
+- Los casos viven en `tests/interprete/casos.json` con el campo `correccionDe`, que es la lectura. El 2026-11-16 pasaron 8 de 8 con
+  `openai/gpt-oss-120b` (`docs/voz/precision-2026-11-16.md`).
+
 ## 3. Herramientas (formato OpenAI / Groq)
 
 ```json

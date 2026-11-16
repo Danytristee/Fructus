@@ -18,7 +18,7 @@ const leida = { tipo: "leida", completa: true } as const;
 const abierto = { tipo: "abierto" } as const;
 const callo = { tipo: "callo" } as const;
 const oir = [leida, abierto, callo] as const;
-const respuesta = (r: "confirmar" | "otra" | "fallo") => ({ tipo: "respuesta", respuesta: r }) as const;
+const respuesta = (r: "confirmar" | "corregir" | "otra" | "fallo") => ({ tipo: "respuesta", respuesta: r }) as const;
 const lodebe = { tipo: "pago", pago: { condicion: "credito", medio: null } } as const;
 
 describe("siguienteManosLibres: «¿Confirmo?»", () => {
@@ -102,6 +102,31 @@ describe("siguienteManosLibres: «¿Pagó o lo debe?» y los avisos", () => {
     const r = recorrer([leida], leyendo("ninguna"));
     expect(r).toEqual({ estado: { ...leyendo("ninguna"), fase: "callado", motivo: "aviso" }, efectos: [] });
     expect(notaManosLibres(r.estado)).toBeNull();
+  });
+});
+
+describe("siguienteManosLibres: corregir hablando", () => {
+  it("«no, son ocho cajas»: rehace la tarjeta, la vuelve a leer y se confirma", () => {
+    const r = recorrer([...oir, respuesta("corregir"), { tipo: "corregida", pregunta: "confirmar" }, ...oir, respuesta("confirmar")]);
+    expect(r.efectos).toEqual(["escuchar", "enviar", "corregir", "releer", "escuchar", "enviar", "confirmar"]);
+    expect(r.estado.fase).toBe("guardando");
+  });
+
+  it("la venta corregida puede volver a corregirse, y no gasta la repregunta", () => {
+    const corregir = [...oir, respuesta("corregir"), { tipo: "corregida", pregunta: "confirmar" } as const];
+    const r = recorrer([...corregir, ...corregir, ...oir, respuesta("otra"), ...oir, respuesta("confirmar")]);
+    expect(r.efectos.filter((x) => x === "corregir")).toHaveLength(2);
+    expect(r.efectos).toContain("repreguntar");
+    expect(r.estado.fase).toBe("guardando");
+  });
+
+  it("si la corrección deja una duda, lo dice y no escucha: se confirma con el dedo", () => {
+    const r = recorrer([...oir, respuesta("corregir"), { tipo: "corregida", pregunta: "ninguna" }, leida]);
+    expect(r.estado).toMatchObject({ fase: "callado", motivo: "aviso" });
+  });
+
+  it("tocar mientras se rehace la tarjeta calla todo", () => {
+    expect(recorrer([...oir, respuesta("corregir"), { tipo: "tocaron" }, { tipo: "corregida", pregunta: "confirmar" }]).estado.fase).toBe("callado");
   });
 });
 

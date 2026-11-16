@@ -34,6 +34,14 @@ export function clasificarRespuesta(texto: string): Respuesta {
   return confirma && resto.length === 0 ? "confirmar" : "otra";
 }
 
+/**
+ * ¿Vale la pena pedirle al intérprete que corrija la venta con esto? Sí si, además de «no», «sí» o relleno, dijo algo («no, son
+ * ocho», «a cuarenta»). Un «no» o un «sí» sueltos no corrigen nada: se repregunta sin gastar una llamada al modelo.
+ */
+export function pareceCorreccion(texto: string): boolean {
+  return palabras(texto).some((x) => !CONFIRMAN.has(x) && !RELLENO.has(x) && !NIEGAN.has(x));
+}
+
 /** Lo que se respondió a «¿Pagó o lo debe?». */
 export type Pago = { condicion: "contado"; medio: "efectivo" | "yape" | "plin" | "transferencia" } | { condicion: "credito"; medio: null };
 

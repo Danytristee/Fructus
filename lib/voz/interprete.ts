@@ -6,7 +6,7 @@ import "server-only";
 import { fetchWithTimeout } from "../supabase/fetch-con-tope";
 import { bloqueCatalogo, type Catalogo } from "./catalogo-reglas";
 import { herramientasParaElModelo, leerInterpretacion, type Interpretacion } from "./esquemas";
-import { PROMPT_SISTEMA } from "./prompt";
+import { PROMPT_SISTEMA, mensajeCorreccion } from "./prompt";
 
 type Proveedor = { nombre: "groq" | "gemini"; url: string; clave: string | undefined; modelo: string; extra: Record<string, unknown> };
 
@@ -72,11 +72,12 @@ async function preguntar(p: Proveedor, sistema: string, transcripcion: string): 
 
 /**
  * Interpreta una transcripción. `catalogo` es lo que hay en el puesto (productos, clientes y proveedores).
+ * `correccionDe`: la venta que Fructus leyó en voz alta; la transcripción es la corrección que dijo la persona («no, son ocho»).
  * `soloGroq` y `modeloGroq` sirven para medir modelos con /voz-precision sin que el respaldo cambie los números.
  */
 export async function interpretar(
   transcripcion: string,
-  opciones: { catalogo?: Catalogo; modeloGroq?: string; soloGroq?: boolean } = {},
+  opciones: { catalogo?: Catalogo; modeloGroq?: string; soloGroq?: boolean; correccionDe?: string } = {},
 ): Promise<ResultadoInterprete> {
   const inicio = performance.now();
   // El prompt fijo más el catálogo del puesto (docs/interprete-voz.md, secciones 2 y 2b).
@@ -88,7 +89,7 @@ export async function interpretar(
       intentos.push({ modelo: p.modelo, error: "sin clave configurada" });
       continue;
     }
-    const r = await preguntar(p, sistema, transcripcion);
+    const r = await preguntar(p, sistema, opciones.correccionDe ? mensajeCorreccion(opciones.correccionDe, transcripcion) : transcripcion);
     if (r.ok) return { ok: true, interpretacion: r.interpretacion, modelo: p.modelo, latenciaMs: Math.round(performance.now() - inicio), intentos };
     console.error("interprete: un proveedor falló", { modelo: p.modelo, error: r.error.slice(0, 120) });
     intentos.push({ modelo: p.modelo, error: r.error });

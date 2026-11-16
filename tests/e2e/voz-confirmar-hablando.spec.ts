@@ -125,3 +125,33 @@ test("si el servidor no entiende la respuesta, no guarda por las dudas", async (
   await expect(hoja.getByText("No te entendí. Si está bien, toca Confirmar.")).toBeVisible();
   expect(await ventasDe(comandoId)).toHaveLength(0);
 });
+
+test("«no, son ocho cajas»: la tarjeta se corrige, se vuelve a leer y se confirma; queda corregida y por voz", async ({ page }, info) => {
+  test.slow();
+  const cliente = clientePorAncho[info.project.name as Ancho];
+  const ocho = { ...tarjeta(cliente), items: [{ ...tarjeta(cliente).items[0]!, cantidad: 8, subtotal: 360 }], total: 360 };
+  const lecturas: string[] = [];
+  let n = 0;
+  await page.route("/api/voz/respuesta", (r) => {
+    lecturas.push(r.request().postDataBuffer()?.toString("utf8").match(/name="lectura"\r\n\r\n([^\r]*)/)?.[1] ?? "");
+    return r.fulfill({ json: n++ === 0 ? { respuesta: "corregir", tarjeta: ocho } : { respuesta: "confirmar" } });
+  });
+  const comandoId = await crearComando();
+  const hoja = await hastaEscuchar(page, comandoId, cliente.nombre, cliente);
+
+  await responder(page); // «No, son ocho cajas»
+  await expect(hoja.getByText("8 cajas de Mango Kent")).toBeVisible();
+  await expect(hoja.getByText("S/ 360.00")).toBeVisible();
+  const corregida = `8 cajas de Mango Kent, a 45 la caja, para ${cliente.nombre}. Total, 360 soles. Lo debe. ¿Confirmo?`;
+  await expect.poll(() => dichas(page)).toContain(corregida);
+  await terminarFrase(page);
+  await expect(hoja.getByRole("status").filter({ hasText: "di «confirmo»" })).toBeVisible();
+  await responder(page);
+
+  await expect(page.getByText("Venta guardada")).toBeVisible();
+  // Al servidor viaja lo que se leyó, para que el intérprete corrija sobre eso; la segunda vez, ya la venta corregida.
+  expect(lecturas).toEqual([lectura(cliente.nombre), corregida]);
+  const ventas = (await base.from("ventas").select("total, venta_items(cantidad)").eq("comando_voz_id", comandoId)).data ?? [];
+  expect(ventas).toEqual([{ total: 360, venta_items: [{ cantidad: 8 }] }]);
+  expect(await confirmacion(comandoId)).toEqual({ resultado: "corregido", confirmado_por: "voz" });
+});

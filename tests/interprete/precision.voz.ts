@@ -11,7 +11,8 @@ import type { Catalogo } from "../../lib/voz/catalogo-reglas";
 import { interpretar } from "../../lib/voz/interprete";
 import { camposPrudentes, diferencias, inventos, percentil } from "../../lib/voz/precision-reglas";
 
-type Caso = { id: string; transcripcion: string; esperado: { herramienta: string; datos: Record<string, unknown> } };
+// `correccionDe`: la venta que Fructus leyó en voz alta; `transcripcion` es lo que la persona respondió para corregirla (ADR-0020).
+type Caso = { id: string; transcripcion: string; correccionDe?: string; esperado: { herramienta: string; datos: Record<string, unknown> } };
 type Fila = { id: string; intencion: boolean; datos: boolean; inventos: string[]; fallos: string[]; obtenido: string; dudas: string[]; ms: number };
 
 const archivo = JSON.parse(readFileSync(process.env.VOZ_CASOS ?? "tests/interprete/casos.json", "utf8")) as { catalogo?: Catalogo; casos: Caso[] };
@@ -24,11 +25,12 @@ const pct = (n: number, d: number) => (d === 0 ? "—" : `${((100 * n) / d).toFi
 async function medir(modelo: string) {
   const filas: Fila[] = [];
   for (const caso of casos) {
-    let r = await interpretar(caso.transcripcion, { catalogo, modeloGroq: modelo, soloGroq: true });
+    const opciones = { catalogo, modeloGroq: modelo, soloGroq: true, correccionDe: caso.correccionDe };
+    let r = await interpretar(caso.transcripcion, opciones);
     // Plan gratuito: una llamada a la vez; si Groq pide esperar, se espera y se reintenta (hasta 3 veces).
     for (let i = 0; i < 3 && !r.ok && r.intentos.some((x) => x.error.includes("429")); i++) {
       await espera(8_000 * (i + 1));
-      r = await interpretar(caso.transcripcion, { catalogo, modeloGroq: modelo, soloGroq: true });
+      r = await interpretar(caso.transcripcion, opciones);
     }
     if (!r.ok) {
       filas.push({ id: caso.id, intencion: false, datos: false, inventos: [], fallos: [r.intentos.map((x) => x.error).join(" · ").slice(0, 140)], obtenido: "(sin respuesta)", dudas: [], ms: r.latenciaMs });

@@ -65,3 +65,19 @@ en la rama `claude/confirmar-hablando`. La rama `claude/hola-fructus-viabilidad`
 - **Pendiente:**
   - `voz-lectura.spec.ts` tocaba el orbe antes de que el micrófono grabara y fallaba 1 de cada 24 con la máquina cargada. Ya espera «escuchando».
   - Una vez falló `voz-silencio.spec.ts:59` a 360 px: el toque de 60 ms no quedó bloqueado. Repetida, pasa. Si vuelve, mirar si con carga el toque llega como «mantener» (`lib/voz/gesto-reglas.ts`, 300 ms).
+
+## Actividad 5 · Corregir hablando
+
+- **Qué cambió:**
+  - Si a «¿Confirmo?» la persona corrige («no, son ocho cajas»), `/api/voz/respuesta` llama al intérprete con la venta tal como se leyó y lo que dijo (`mensajeCorreccion`, `docs/interprete-voz.md` 2c). La venta corregida vuelve como tarjeta nueva, se ve, se vuelve a leer y se confirma.
+  - El prompt de sistema no cambió.
+  - Al guardar queda `corregido`, porque se compara con lo dictado.
+- **Cómo se verificó:**
+  - Vitest: 253 de `lib/voz`.
+  - `/voz-precision`: 8 de 8 correcciones con `openai/gpt-oss-120b` (`docs/voz/precision-2026-11-16.md`).
+  - `voz-respuesta-api.spec.ts` con Whisper y el intérprete reales, sobre audios sintéticos.
+  - Toda la voz: 87 e2e en verde a 412 y 360 px.
+- **Pendiente:**
+  - **El acierto de datos clave del intérprete quedó en 87.1 %** (meta 90 %), por casos que no son de esta obra: los 3 que ya fallaban el 2026-10-31 y 6 del catálogo real que se sumaron después (`docs/voz/precision-2026-11-16.md`). Se corrige en el prompt de sistema, con su `/voz-precision` antes y después.
+  - `components/voz/TarjetaVenta.tsx` tiene 301 líneas: la actividad 6 saca lo de manos libres a una pieza común.
+  - Este worktree ya tiene `GROQ_API_KEY` en `.env.local`, fuera de git. Gemini sigue sin clave, así que no hay respaldo.

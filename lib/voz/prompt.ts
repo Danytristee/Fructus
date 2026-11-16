@@ -32,3 +32,19 @@ Reglas que NO se rompen:
    (frases cortas, en español, para mostrar en la tarjeta).
 6. Si la frase no es un comando del negocio o no se entiende, usa no_entendido.
 7. Una frase puede traer varios productos para el mismo cliente: van como varios items.`;
+
+/**
+ * Corregir hablando (ADR-0020, docs/interprete-voz.md sección 2c): Fructus leyó la venta en voz alta y la persona, en vez de
+ * «confirmo», dijo una corrección («no, son ocho cajas»). Se le pasa al intérprete la venta tal como se leyó y la respuesta, y se le
+ * pide la venta completa ya corregida con registrar_venta. El prompt de sistema no cambia: las frases dictadas se interpretan igual.
+ */
+export function mensajeCorreccion(lectura: string, dicho: string): string {
+  return `CORRECCIÓN de una venta que todavía no se guarda. Fructus le leyó en voz alta esta venta:
+«${lectura}»
+y la persona respondió:
+«${dicho}»
+
+Llama registrar_venta con la venta COMPLETA ya corregida: copia tal cual lo que no cambió (cliente, frutas, cajas, precios, si
+pagó y cómo) y cambia solo lo que la persona corrigió. «Para un cliente de paso» es cliente_texto null. «Lo debe» es crédito y
+«pagó …» es contado con ese medio. Si la respuesta no corrige nada de la venta, usa no_entendido.`;
+}

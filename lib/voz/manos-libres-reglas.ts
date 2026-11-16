@@ -6,7 +6,7 @@
 //      └─── «Para guardar, di confirmo» ◀───────────┘
 //
 // Si falta saber si pagó, la primera pregunta es «¿Pagó o lo debe?»: la respuesta se anota en la tarjeta y se lee la venta completa
-// para confirmarla. Con dudas del intérprete (o si falta otro dato) solo se avisa: no se escucha nada y se confirma con el dedo.
+// para confirmarla. Si en vez de «confirmo» corrige («no, son ocho cajas»), la tarjeta se rehace y se vuelve a leer. Con dudas del intérprete (o si falta otro dato) solo se avisa: no se escucha nada y se confirma con el dedo.
 // Tocar la tarjeta, en cualquier momento: callado (la persona toma el control).
 import type { Pago } from "./respuesta-reglas";
 
@@ -40,17 +40,20 @@ export type EventoManosLibres =
   | { tipo: "vencio" }
   /** No hay señal: la respuesta no se puede entender (Whisper está en el servidor). */
   | { tipo: "sin_senal" }
-  /** Lo que entendió el servidor de «¿Confirmo?»; «fallo» si no respondió o no la entendió. */
-  | { tipo: "respuesta"; respuesta: "confirmar" | "otra" | "fallo" }
+  /** Lo que entendió el servidor de «¿Confirmo?»: confirma, corrige la venta, otra cosa, o «fallo» si no respondió. */
+  | { tipo: "respuesta"; respuesta: "confirmar" | "corregir" | "otra" | "fallo" }
   /** Lo que entendió de «¿Pagó o lo debe?»; null si no se entendió, «fallo» si el servidor no respondió. */
   | { tipo: "pago"; pago: Pago | null | "fallo" }
   /** Se anotó el pago en la tarjeta: `lista`, la venta quedó completa y se lee para confirmarla. */
   | { tipo: "anotado"; lista: boolean }
+  /** La tarjeta se rehízo con la corrección: qué pregunta toca ahora (la venta corregida puede dejar dudas o faltar algo). */
+  | { tipo: "corregida"; pregunta: Pregunta }
   /** Tocó la tarjeta: toma el control. */
   | { tipo: "tocaron" };
 
-/** Qué hacer: hablar la repregunta, abrir el micrófono, enviar lo oído, tirarlo, anotar el pago, guardar, leer de nuevo o callar. */
-export type EfectoManosLibres = "repreguntar" | "escuchar" | "enviar" | "descartar" | "anotar" | "releer" | "confirmar" | "callar" | "nada";
+/** Qué hacer: hablar la repregunta, abrir el micrófono, enviar lo oído, tirarlo, anotar el pago, rehacer la tarjeta con la corrección,
+ * guardar, leer de nuevo o callar. */
+export type EfectoManosLibres = "repreguntar" | "escuchar" | "enviar" | "descartar" | "anotar" | "corregir" | "releer" | "confirmar" | "callar" | "nada";
 
 export const CALLADO: EstadoManosLibres = { fase: "callado", pregunta: "ninguna", intento: 1, motivo: null };
 export const leyendo = (pregunta: Pregunta): EstadoManosLibres => ({ fase: "leyendo", pregunta, intento: 1, motivo: null });
@@ -81,6 +84,7 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
       const otraVez = e.intento === 1 ? { estado: { ...e, fase: "leyendo" as const, intento: 2 }, efecto: "repreguntar" as const } : callado("no_entendio", "nada");
       if (ev.tipo === "respuesta" && e.pregunta === "confirmar") {
         if (ev.respuesta === "confirmar") return { estado: { ...e, fase: "guardando" }, efecto: "confirmar" };
+        if (ev.respuesta === "corregir") return { estado: { ...e, fase: "anotando" }, efecto: "corregir" };
         if (ev.respuesta === "fallo") return callado("fallo", "nada");
         // Oyó otra cosa («sí», un cliente que pregunta): se repregunta una vez. La segunda, se deja para tocar.
         return otraVez;
@@ -93,9 +97,11 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
       return quedar;
     }
     case "anotando":
-      if (ev.tipo !== "anotado") return quedar;
       // Ya se sabe si pagó: se lee la venta completa y se pregunta «¿Confirmo?», como si se hubiera dictado así.
-      return ev.lista ? { estado: leyendo("confirmar"), efecto: "releer" } : callado("falta", "nada");
+      if (ev.tipo === "anotado") return ev.lista ? { estado: leyendo("confirmar"), efecto: "releer" } : callado("falta", "nada");
+      // Corregida: se lee lo nuevo con su pregunta. Las respuestas cuentan desde cero: puede volver a corregir o confirmar.
+      if (ev.tipo === "corregida") return { estado: leyendo(ev.pregunta), efecto: "releer" };
+      return quedar;
     case "guardando":
     case "callado":
       return quedar;

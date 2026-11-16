@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clasificarPago, clasificarRespuesta } from "./respuesta-reglas";
+import { clasificarPago, clasificarRespuesta, pareceCorreccion } from "./respuesta-reglas";
 
 describe("clasificarRespuesta", () => {
   it.each(["Confirmo.", "Correcto", "¡Acepto!", "Sí, correcto.", "Ya, confirmo", "Todo correcto", "Correcto, correcto.", "Está correcto"])(
@@ -49,4 +49,14 @@ describe("clasificarPago", () => {
     expect(clasificarPago("Pagó la mitad y lo demás lo debe")).toBeNull();
     expect(clasificarPago("No debe nada")).toBeNull();
   });
+});
+
+describe("pareceCorreccion", () => {
+  it.each(["No, son ocho cajas", "A cuarenta", "No, es para don Lucho", "La palta a 55"])("«%s» corrige algo: va al intérprete", (dicho) =>
+    expect(pareceCorreccion(dicho)).toBe(true),
+  );
+
+  it.each(["No", "Sí", "No, no", "Ya, ok", "Espera", ""])("«%s» no corrige nada: se repregunta sin llamar al modelo", (dicho) =>
+    expect(pareceCorreccion(dicho)).toBe(false),
+  );
 });

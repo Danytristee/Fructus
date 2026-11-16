@@ -53,6 +53,8 @@ const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 // respondió. Un segundo toque no duplica: el botón se bloquea y registrar_venta es idempotente por comando.
 export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando }: Props) {
   const [borrador, setBorrador] = useState<Borrador>(() => borradorDe(tarjeta));
+  // La tarjeta que se muestra: la dictada, o la que dejó una corrección hablada (lo que se dijo, las opciones y las dudas).
+  const [vigente, setVigente] = useState(tarjeta);
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const [saldo, setSaldo] = useState<number | null>(null);
   const { confirmar: enviar, guardando, error, guardado: guardada, encolado, incierto } = useConfirmar<{ ok: true; saldo: number | null; comprobante: string | null }>({ alGuardar, alCambiarGuardando });
@@ -68,6 +70,15 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       const nuevo = { ...borrador, condicion: pago.condicion, medio: pago.medio };
       setBorrador(nuevo);
       return lecturaVenta(nuevo);
+    },
+    // «No, son ocho cajas»: la tarjeta corregida reemplaza a la dictada (lo que se ve, las opciones y las dudas) y se vuelve a leer.
+    // Al guardar cuenta como corregida, porque se compara con lo dictado al principio.
+    alCorregir: (nueva) => {
+      const b = borradorDe(nueva);
+      setVigente(nueva);
+      setBorrador(b);
+      setSaldo(null);
+      return guionVenta(b, nueva.dudas);
     },
   });
   // «Guardado» solo cuando la base respondió (candado 6): lo que quedó en el celular sin señal no se anuncia como guardado.
@@ -146,8 +157,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         {vista.tipo === "cliente" ? (
           <EditorBusqueda
             etiqueta="¿A quién le vendiste?"
-            inicial={borrador.cliente?.nombre ?? tarjeta.cliente.dicho ?? ""}
-            opciones={tarjeta.cliente.opciones.map((o) => ({ ...o, detalle: null }))}
+            inicial={borrador.cliente?.nombre ?? vigente.cliente.dicho ?? ""}
+            opciones={vigente.cliente.opciones.map((o) => ({ ...o, detalle: null }))}
             buscar={buscarClientes}
             alElegir={(o) => void elegirCliente({ id: o.id, nombre: o.nombre })}
             icono={(o) => <Avatar iniciales={iniciales(o.nombre)} tono={tonoDe(o.id)} />}
@@ -163,7 +174,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         ) : (
           <EditorItem
             item={borrador.items[vista.n]!}
-            opciones={tarjeta.items[vista.n]?.producto.opciones ?? []}
+            opciones={vigente.items[vista.n]?.producto.opciones ?? []}
             monto={{
               etiqueta: "Precio de la caja",
               leer: leerPrecio,
@@ -189,7 +200,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         style={pieza(0)}
         className="animate-pieza"
         cliente={cliente}
-        dicho={tarjeta.cliente.dicho}
+        dicho={vigente.cliente.dicho}
         falta={falta.includes("cliente")}
         sinNombre="Cliente de paso"
         alTocar={() => setVista({ tipo: "cliente" })}
@@ -214,7 +225,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         />
       ))}
 
-      <DudasVoz dudas={tarjeta.dudas} />
+      <DudasVoz dudas={vigente.dudas} />
 
       <div className="mx-1 mt-1 mb-1 flex animate-pieza items-baseline justify-between gap-3" style={pieza(borrador.items.length + 1)}>
         <span className="text-lg font-bold text-texto-suave">{borrador.descuento > 0 ? `Total, con ${formatearSoles(borrador.descuento)} de rebaja` : "Total"}</span>
@@ -234,7 +245,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       </div>
 
       {/* Solo si se pidió comprobante («… factura»): la persona ve lo que se entendió y lo cambia o lo quita de un toque. */}
-      {(tarjeta.comprobante !== "ninguno" || borrador.comprobante !== "ninguno") && (
+      {(vigente.comprobante !== "ninguno" || borrador.comprobante !== "ninguno") && (
         <div className="mt-1 grid animate-pieza gap-1.5">
           {/* Con su título: pegada a la fila de medios de pago (Efectivo, Yape…) se leía como la misma pregunta. */}
           <p className="mx-1 font-bold text-texto-suave">Comprobante</p>
