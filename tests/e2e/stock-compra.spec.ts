@@ -4,6 +4,7 @@ import { baseLocal } from "./base";
 import { entrarComo, type Rol } from "./cuentas";
 import { abastecer, stockDe } from "./dictar";
 import { medir } from "./medir";
+import { verTuStock } from "./stock";
 
 // Registrar una compra a mano (A8): la misma tarjeta que la compra por voz, llenada con lo que se toca. Nunca se asume que se
 // pagó, al crédito exige proveedor, y un doble toque o una respuesta perdida no duplican la compra ni las cajas. Cada prueba crea
@@ -284,6 +285,7 @@ test("la barra de Stock lleva «Compra» y «Merma» como píldoras compactas, j
   expect(b.x - (a.x + a.width), "separadas 8 px o más").toBeGreaterThanOrEqual(8);
   expect(Math.abs((a.x + b.x + b.width) / 2 - ancho / 2), "el par, centrado").toBeLessThan(2);
 
+  await verTuStock(page);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const ultima = await page.getByRole("heading", { name: "Tu stock" }).locator("xpath=following::ul[1]/li[last()]").boundingBox();
   expect(ultima!.y + ultima!.height).toBeLessThanOrEqual(Math.min(a.y, b.y));

@@ -4,7 +4,7 @@
 // Lo cablea lib/push/servidor.ts (server-only) y lo llama app/api/cron/resumen-diario/route.ts.
 import { diaDeLima } from "../formato";
 import type { ResumenHoy } from "../hoy-reglas";
-import { avisoDelDia, type Aviso, type ResultadoEnvio } from "../push-reglas";
+import { avisoDeFrescura, avisoDelDia, type Aviso, type PorSalir, type ResultadoEnvio } from "../push-reglas";
 
 /** Un teléfono que pidió el aviso, con lo que hace falta para mandárselo. La dirección es una llave: no se imprime ni se registra. */
 export type Destinatario = { id: number; endpoint: string; clave_p256dh: string; clave_auth: string };
@@ -14,6 +14,8 @@ export type Dependencias = {
   leerDestinatarios: () => Promise<Destinatario[]>;
   enviar: (destino: Destinatario, aviso: Aviso, opciones: { ttlSegundos: number; tema: string }) => Promise<ResultadoEnvio>;
   anotar: (id: number, resultado: ResultadoEnvio, ahora: Date) => Promise<void>;
+  /** Lo que tiene que salir mañana (aviso de frescura). Es opcional y, si falla, el resumen del día sale igual. */
+  leerPorSalir?: (ahora: Date) => Promise<PorSalir>;
 };
 
 export type Informe = {
@@ -40,21 +42,35 @@ export async function enviarElResumenDelDia(deps: Dependencias, ahora: Date): Pr
   const fecha = diaDeLima(ahora);
   const vacio = { fecha, destinatarios: 0, enviados: 0, caducadas: 0, fallos: 0 };
 
-  const aviso = avisoDelDia(await deps.leerResumen(fecha), fecha);
-  if (!aviso) return { ...vacio, motivo: "sin-movimiento" };
+  const resumen = avisoDelDia(await deps.leerResumen(fecha), fecha);
+  // Lo que tiene que salir mañana va en un aviso aparte, después del resumen. Un día sin ventas igual lo manda: la fruta se malogra
+  // lo mismo. Si no se puede leer, no frena el resumen (principio 8); solo se registra.
+  let frescura: Aviso | null = null;
+  if (deps.leerPorSalir) {
+    try {
+      frescura = avisoDeFrescura(await deps.leerPorSalir(ahora), fecha);
+    } catch (e) {
+      console.error("push: no se pudo leer lo que tiene que salir mañana", { error: e instanceof Error ? e.message : "desconocido" });
+    }
+  }
+  const avisos = [resumen, frescura].filter((a): a is Aviso => a !== null);
+  if (avisos.length === 0) return { ...vacio, motivo: "sin-movimiento" };
 
   const destinatarios = await deps.leerDestinatarios();
   if (destinatarios.length === 0) return { ...vacio, motivo: "sin-destinatarios" };
 
   const cuentas = { enviados: 0, caducadas: 0, fallos: 0 };
-  const opciones = { ttlSegundos: TTL_DEL_AVISO_SEGUNDOS, tema: aviso.tag };
 
   const avisarA = async (destino: Destinatario) => {
-    let resultado: ResultadoEnvio;
-    try {
-      resultado = await deps.enviar(destino, aviso, opciones);
-    } catch (e) {
-      resultado = { estado: "fallo", codigo: `inesperado:${e instanceof Error ? e.name : "desconocido"}` };
+    // Un teléfono cuenta una vez, aunque reciba dos avisos: «enviado» si le llegaron todos; si uno no sale, ese resultado y no se sigue.
+    let resultado: ResultadoEnvio = { estado: "enviado" };
+    for (const aviso of avisos) {
+      try {
+        resultado = await deps.enviar(destino, aviso, { ttlSegundos: TTL_DEL_AVISO_SEGUNDOS, tema: aviso.tag });
+      } catch (e) {
+        resultado = { estado: "fallo", codigo: `inesperado:${e instanceof Error ? e.name : "desconocido"}` };
+      }
+      if (resultado.estado !== "enviado") break;
     }
     if (resultado.estado === "enviado") cuentas.enviados++;
     else if (resultado.estado === "caducada") cuentas.caducadas++;

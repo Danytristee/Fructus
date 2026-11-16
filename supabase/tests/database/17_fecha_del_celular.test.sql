@@ -6,7 +6,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(12);
+select plan(13);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a8', 'ayudante17@fructus.test'),
@@ -48,6 +48,9 @@ select is((select fecha from abonos where cliente_id = (select id from cli)), no
 -- --- Casos borde: una hora que no es creíble se cambia por la del servidor, y la operación no se pierde ---------
 select is(fecha_del_celular(now() - interval '3 days'), now(), 'de hace 3 días: la del servidor');
 select is(fecha_del_celular(now() + interval '1 hour'), now(), 'del futuro (celular adelantado): la del servidor');
+-- Ni un minuto del futuro: lo que se anota no pudo pasar después de «ahora». Con cinco minutos de tolerancia, una lectura
+-- del termómetro con el reloj adelantado le ganaba a su corrección (/chaos 2026-11-14).
+select is(fecha_del_celular(now() + interval '2 minutes'), now(), 'dos minutos adelante (reloj adelantado): la del servidor');
 select is(fecha_del_celular(null), now(), 'sin hora: la del servidor');
 insert into gastos (categoria, monto, medio_pago, fecha) values ('flete', 15, 'efectivo', '2020-01-01');
 select is((select fecha from gastos where monto = 15 and categoria = 'flete' order by id desc limit 1), now(), 'un insert directo con una fecha vieja queda con la del servidor');

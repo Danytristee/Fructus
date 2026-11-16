@@ -11,7 +11,7 @@ import { sesion } from "@/lib/voz/accion-servidor";
 // veces. Se reconoce porque modelo_stt es «manual»: la precisión de la voz se mide sin ellos.
 
 // registrar_venta: para volver a anotar una venta que la base rechazó desde la cola sin conexión (ADR-0019).
-const INTENCIONES = ["registrar_venta", "registrar_abono", "registrar_merma", "registrar_compra", "registrar_gasto", "registrar_pago_proveedor"] as const;
+const INTENCIONES = ["registrar_venta", "registrar_abono", "registrar_merma", "registrar_compra", "registrar_gasto", "registrar_pago_proveedor", "registrar_temperatura"] as const;
 export type IntencionAMano = (typeof INTENCIONES)[number];
 
 export type ResultadoComandoAMano = { ok: true; comandoId: number } | { ok: false; error: string; sinSesion?: true };

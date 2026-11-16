@@ -1,6 +1,7 @@
 // Registrar a mano lo mismo que se registra por voz (A8): la misma tarjeta de confirmación, pero llenada con lo que la
 // persona toca en vez de con lo que oyó el intérprete. Una sola tarjeta por operación (una función, una pieza), así el
 // guardado, el doble toque y los errores se comportan igual con la voz y sin ella. Lógica pura.
+import { GRADOS_DE_PARTIDA } from "./temperatura-reglas";
 import type { ItemBorrador } from "./voz/confirmar-venta-reglas";
 import type { Tarjeta } from "./voz/tarjeta-reglas";
 
@@ -35,6 +36,14 @@ export function tarjetaMermaAMano(producto: Persona | null, sugeridos: Persona[]
   };
 }
 
+/**
+ * La tarjeta de la temperatura a mano. El botón necesita un número desde donde moverse: parte de la de hoy si se está
+ * corrigiendo, o de la de ayer (de un día a otro cambia poco), y la tarjeta dice de dónde salió para que no se confirme sin mirar.
+ */
+export function tarjetaTemperaturaAMano(hoy: number | null, ayer: number | null): Extract<Tarjeta, { tipo: "temperatura" }> {
+  return { tipo: "temperatura", grados: hoy ?? ayer ?? GRADOS_DE_PARTIDA, ayer };
+}
+
 /** Qué fruta ofrecer primero al registrar una merma: las que más se están gastando, de más a menos, y que tengan stock. */
 export function sugeridosParaMerma(frutas: { id: number; nombre: string; stock: number; desgaste: number }[], cuantos = 5): Persona[] {
   return frutas
@@ -51,14 +60,15 @@ export const itemCompraVacio = (): ItemBorrador => ({ productoId: null, producto
  * La tarjeta de una compra a mano: una fruta vacía, sin proveedor (se puede dejar así si fue en el mercado) y **sin saber si se
  * pagó**: nunca se asume contado (principio 2). Ofrece primero a los proveedores y a las frutas que más conviene reponer.
  */
-export function tarjetaCompraAMano(proveedores: Persona[] = [], frutas: Persona[] = []): Extract<Tarjeta, { tipo: "compra" }> {
+export function tarjetaCompraAMano(proveedores: Persona[] = [], frutas: Persona[] = [], temperatura: number | null = null): Extract<Tarjeta, { tipo: "compra" }> {
   return {
     tipo: "compra",
     proveedor: { dicho: null, elegido: null, opciones: proveedores },
-    items: [{ producto: { dicho: null, elegido: null, opciones: frutas }, cantidad: 0, costo: { valor: null, sugerido: false } }],
+    items: [{ producto: { dicho: null, elegido: null, opciones: frutas }, cantidad: 0, costo: { valor: null, sugerido: false }, estado: null }],
     condicion: null,
     dudas: [],
     falta: ["producto", "costo", "condicion"],
+    temperatura,
   };
 }
 

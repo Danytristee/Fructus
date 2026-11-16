@@ -1,0 +1,6 @@
+# 2026-11-14 · /formidable y /chaos del aviso de frescura
+
+- **Qué se hizo:** se corrieron las dos compuertas sobre lo construido hoy (pedido de temperatura en «Hoy», tarjeta de temperatura, Stock en dos pestañas, hoja «¿por qué?» y «¿Cómo llegó?»). No se cambió código: los informes proponen y esperan OK.
+- **/formidable** (`docs/formidable/frescura-2026-11-14.md`): nota 7.3. Medido a 412, 360 y 1280 px: 0 controles chicos, 0 desborde, «Hoy» en 153.6 KB de 180. El ciego puso 9 a la temperatura dictada y 4 a «Hoy»: el pedido queda bajo el pliegue y el aviso de las frutas, detrás del botón de voz.
+- **/chaos** (`docs/chaos/frescura-2026-11-14.md`, semilla 20261114): 19 ataques, 14 resistieron. Hallazgos: el reloj adelantado le gana a la corrección de la temperatura; la hoja «¿por qué?» no se entera de la merma registrada desde ella; las cajas de más de 45 días no tienen llegada ni aviso; un número absurdo rompe la tarjeta a 360 px. Invariantes limpias antes y después; la base local se rehízo y se recargó la demo.
+- **Pendiente:** el OK para los 3 cambios de `/formidable` y los 4 arreglos de `/chaos` (dos tocan reglas: la fecha del celular, ADR-0019, y qué avisa Stock). Sigue sin probar la voz contra el modelo real (`/voz-precision`, falta la clave de Groq) y sin hacer la actividad 5 (falta la clave de Anthropic).

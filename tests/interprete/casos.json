@@ -900,6 +900,111 @@
           "producto_texto": "ciruela pink lady"
         }
       }
+    },
+    {
+      "id": "temperatura-hoy-hizo",
+      "transcripcion": "Hoy hizo 29 grados",
+      "esperado": {
+        "herramienta": "registrar_temperatura",
+        "datos": {
+          "grados": 29
+        }
+      }
+    },
+    {
+      "id": "temperatura-termometro-en-letras",
+      "transcripcion": "El termómetro marca treinta y uno",
+      "esperado": {
+        "herramienta": "registrar_temperatura",
+        "datos": {
+          "grados": 31
+        }
+      }
+    },
+    {
+      "id": "temperatura-con-medio-grado",
+      "transcripcion": "Anota la temperatura, estamos a 28 grados y medio",
+      "esperado": {
+        "herramienta": "registrar_temperatura",
+        "datos": {
+          "grados": 28.5
+        }
+      }
+    },
+    {
+      "id": "compra-como-llego-verde",
+      "transcripcion": "Llegaron 30 cajas de mango kent verde a 32, lo pagué",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 30,
+              "costo_unitario": 32,
+              "estado": "verde"
+            }
+          ],
+          "condicion": "contado"
+        }
+      }
+    },
+    {
+      "id": "compra-manzana-verde-es-el-nombre",
+      "transcripcion": "Llegaron 20 cajas de manzana verde a 90",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "items": [
+            {
+              "producto_texto": "manzana verde",
+              "cantidad": 20,
+              "costo_unitario": 90,
+              "estado": null
+            }
+          ],
+          "condicion": null
+        }
+      }
+    },
+    {
+      "id": "compra-como-llego-maduro",
+      "transcripcion": "El de Chao me trajo 15 de papaya madura a 28, se lo debo",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": "el de chao",
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 15,
+              "costo_unitario": 28,
+              "estado": "maduro"
+            }
+          ],
+          "condicion": "credito"
+        }
+      }
+    },
+    {
+      "id": "consulta-que-sale-hoy",
+      "transcripcion": "¿Qué tiene que salir hoy?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "que_sale_hoy"
+        }
+      }
+    },
+    {
+      "id": "consulta-que-se-me-va-a-malograr",
+      "transcripcion": "¿Qué se me va a malograr?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "que_sale_hoy"
+        }
+      }
     }
   ]
 }

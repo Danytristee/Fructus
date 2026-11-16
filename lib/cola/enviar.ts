@@ -1,6 +1,7 @@
 // Envía una entrada de la cola sin conexión y dice qué pasó (ADR-0019). Usa las mismas server actions que las tarjetas
 // y el mismo POST /api/voz que el botón: no hay un camino aparte que pueda guardar distinto. Solo navegador.
 import { abrirComandoAMano, type IntencionAMano } from "@/app/(app)/acciones-a-mano";
+import { confirmarTemperatura } from "@/app/(app)/acciones-frescura";
 import { confirmarAbono, confirmarCompra, confirmarGasto, confirmarMerma } from "@/app/(app)/acciones-operaciones";
 import { confirmarVenta } from "@/app/(app)/acciones-voz";
 import { NO_ABRIO } from "@/lib/a-mano-reglas";
@@ -33,6 +34,8 @@ function confirmar(op: Operacion) {
       return confirmarGasto(op.entrada);
     case "compra":
       return confirmarCompra(op.entrada);
+    case "temperatura":
+      return confirmarTemperatura(op.entrada);
   }
 }
 

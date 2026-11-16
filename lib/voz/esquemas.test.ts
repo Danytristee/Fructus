@@ -5,13 +5,14 @@ import { herramientasParaElModelo, leerInterpretacion } from "./esquemas";
 describe("herramientasParaElModelo", () => {
   const herramientas = herramientasParaElModelo();
 
-  it("son las 7 del diseño, en formato de función", () => {
+  it("son las 8 del diseño, en formato de función", () => {
     expect(herramientas.map((h) => h.function.name)).toEqual([
       "registrar_venta",
       "registrar_abono",
       "registrar_compra",
       "registrar_merma",
       "registrar_gasto",
+      "registrar_temperatura",
       "consultar",
       "no_entendido",
     ]);
@@ -62,6 +63,29 @@ describe("leerInterpretacion", () => {
   it("rechaza una herramienta inventada o argumentos que no son JSON", () => {
     expect(leerInterpretacion("borrar_todo", {}).ok).toBe(false);
     expect(leerInterpretacion("registrar_venta", "{no es json").ok).toBe(false);
+  });
+
+  it("en una compra, cómo llegó la fruta es opcional: sin decirlo queda null, y una palabra que no es un estado no se usa", () => {
+    const compra = (estado?: unknown) => leerInterpretacion("registrar_compra", { proveedor_texto: null, items: [{ producto_texto: "mango", cantidad: 30, costo_unitario: 32, ...(estado === undefined ? {} : { estado }) }], condicion: null });
+    const sinDecir = compra();
+    expect(sinDecir.ok && sinDecir.interpretacion.herramienta === "registrar_compra" && sinDecir.interpretacion.datos.items[0]!.estado).toBeNull();
+    const verde = compra("verde");
+    expect(verde.ok && verde.interpretacion.herramienta === "registrar_compra" && verde.interpretacion.datos.items[0]!.estado).toBe("verde");
+    expect(compra("podrido").ok).toBe(false);
+  });
+
+  it("la temperatura es un número de grados; sin número no se usa", () => {
+    const r = leerInterpretacion("registrar_temperatura", { grados: 29 });
+    expect(r.ok && r.interpretacion.herramienta === "registrar_temperatura" && r.interpretacion.datos.grados).toBe(29);
+    expect(leerInterpretacion("registrar_temperatura", { grados: "mucho calor" }).ok).toBe(false);
+  });
+
+  it("un «290» mal oído llega a la tarjeta, que lo corrige; un número de más de tres cifras no es una temperatura", () => {
+    expect(leerInterpretacion("registrar_temperatura", { grados: 290 }).ok).toBe(true);
+    expect(leerInterpretacion("registrar_temperatura", { grados: -3 }).ok).toBe(true);
+    // Mil millones de grados rompían la tarjeta a 360 px (/chaos 2026-11-14).
+    expect(leerInterpretacion("registrar_temperatura", { grados: 1_000_000_000 }).ok).toBe(false);
+    expect(leerInterpretacion("registrar_temperatura", { grados: -1000 }).ok).toBe(false);
   });
 
   it("un gasto sin medio de pago es en efectivo", () => {

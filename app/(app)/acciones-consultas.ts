@@ -11,7 +11,7 @@ import { responderConsulta as responder } from "@/lib/voz/consultas";
 
 const pedido = z.object({
   comandoId: z.number().int().positive(),
-  consulta: z.enum(["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia"]),
+  consulta: z.enum(["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia", "que_sale_hoy"]),
   clienteId: z.number().int().positive().nullable(),
   productoId: z.number().int().positive().nullable(),
   latenciaMs: z.number().int().min(0).max(120_000),

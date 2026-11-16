@@ -101,6 +101,7 @@ declare
     [3,    "credito", null,            [[5, 4, 35]],              0.93]
   ]';
   v_v      jsonb;
+  v_n      int;
 begin
   perform set_config('request.jwt.claims', json_build_object('sub', '10000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
 
@@ -138,4 +139,11 @@ begin
   values (5, 'merma', -2, 'se malogró', v_desde + (v_hasta - v_desde) * 0.65);
   insert into abonos (cliente_id, monto, medio_pago, fecha)
   values (2, 200, 'efectivo', v_desde + (v_hasta - v_desde) * 0.78);
+
+  -- La temperatura de los cinco días anteriores, a las 7 a. m.: una semana de calor. La de hoy queda sin anotar, para que
+  -- «Hoy» la pida. Entra con la hora de ahora y se mueve a su día, como lo demás (la base no acepta lecturas de hace más de 48 horas).
+  for v_n in 1..5 loop
+    insert into temperaturas (grados) values ((array[27, 29, 31, 30, 30])[v_n]) returning id into v_id;
+    perform pg_temp.mover('temperaturas', v_id, v_hoy - make_interval(days => 6 - v_n) + interval '7 hours');
+  end loop;
 end $$;

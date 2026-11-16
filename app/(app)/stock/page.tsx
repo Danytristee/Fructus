@@ -3,7 +3,6 @@ import { Suspense } from "react";
 
 import { CompraAMano } from "@/components/inventario/CompraAMano";
 import { MermaAMano } from "@/components/inventario/MermaAMano";
-import { ResumenInventario } from "@/components/inventario/ResumenInventario";
 import { TableroStock } from "@/components/inventario/TableroStock";
 import { Encabezado } from "@/components/marco/Encabezado";
 import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
@@ -12,17 +11,23 @@ import { BarraFlotante } from "@/components/ui/BarraFlotante";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
 import { sugeridosParaCompra, sugeridosParaMerma } from "@/lib/a-mano-reglas";
+import { diaDeLima } from "@/lib/formato";
+import { temperaturaParaContar } from "@/lib/frescura-reglas";
 import { leerInventario } from "@/lib/inventario";
 import { exigirSesion } from "@/lib/sesion";
 
 export const metadata: Metadata = { title: "Stock · Fructus" };
 
-// El dashboard inteligente de inventario: existencias, frescura de cada lote, demanda y alertas con su recomendación.
+// El dashboard inteligente de inventario: lo que hay que hacer hoy (qué tiene que salir, qué reponer) y las existencias con lo que le
+// queda a cada llegada.
 async function Tablero() {
   const { supabase, permisos } = await exigirSesion();
   // Sin saber el rol no se decide qué botones hay: si la base no respondió, se dice que no hubo conexión (lib/sesion.ts: «sin-conexion»).
   if (!permisos) return <SesionSinConexion />;
-  const inventario = await leerInventario(supabase).catch((e: unknown) => {
+  // Un solo «hoy» para todo: con él se hace la cuenta de cada llegada y se dicen los días («del lunes», «hasta el jueves 19»).
+  const ahora = new Date();
+  const hoy = diaDeLima(ahora);
+  const inventario = await leerInventario(supabase, ahora).catch((e: unknown) => {
     console.error("stock: no se pudo leer el inventario", { error: e instanceof Error ? e.message : "desconocido" });
     return null;
   });
@@ -38,11 +43,21 @@ async function Tablero() {
   }
   return (
     <>
-      <ResumenInventario resumen={inventario.resumen} estados={inventario.estados} />
-      <TableroStock alertas={inventario.alertas} estados={inventario.estados} puedeRegistrar={permisos.registrar} />
+      <TableroStock
+        alertas={inventario.alertas}
+        estados={inventario.estados}
+        resumen={{ cajas: inventario.resumen.cajas, valor: inventario.resumen.valor }}
+        hoy={hoy}
+        lecturas={inventario.lecturas}
+        puedeRegistrar={permisos.registrar}
+      />
       {permisos.registrar && (
         <BarraFlotante>
-          <CompraAMano proveedores={proveedores} frutas={sugeridosParaCompra(inventario.estados)} />
+          <CompraAMano
+            proveedores={proveedores}
+            frutas={sugeridosParaCompra(inventario.estados)}
+            temperatura={inventario.lecturas.length > 0 ? temperaturaParaContar(inventario.lecturas, hoy).grados : null}
+          />
           <MermaAMano producto={null} sugeridos={sugeridosParaMerma(inventario.estados)} variante="flotante" />
         </BarraFlotante>
       )}

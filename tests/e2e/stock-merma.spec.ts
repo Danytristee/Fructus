@@ -4,6 +4,7 @@ import { baseLocal } from "./base";
 import { entrarComo, type Rol } from "./cuentas";
 import { abastecer, stockDe } from "./dictar";
 import { medir } from "./medir";
+import { verTuStock } from "./stock";
 
 // Registrar una merma a mano (A8): la misma tarjeta que la merma por voz, llenada con lo que se toca. Cada prueba crea su propia
 // fruta con stock, así las corridas en paralelo no se pisan; al terminar, esas frutas se desactivan (nunca se borran datos).
@@ -35,6 +36,7 @@ const mermasDe = async (productoId: number) =>
 async function abrirDesdeLaFila(page: Page, nombre: string, rol: Rol = "duenio") {
   await entrarComo(page, rol);
   await page.goto("/stock");
+  await verTuStock(page);
   // Cada fruta tiene su «Se malogró» dentro de su fila: se acota a la fila de esta fruta.
   const fila = page.getByRole("listitem").filter({ hasText: nombre });
   await fila.getByRole("button", { name: new RegExp(nombre) }).click();
@@ -181,6 +183,7 @@ test("el botón flotante es una píldora compacta que no tapa el último rengló
   expect(caja!.y).toBeGreaterThan((alto * 2) / 3);
 
   // Hasta abajo del todo, la última fruta queda por encima del botón, no debajo.
+  await verTuStock(page);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const ultima = await page.getByRole("heading", { name: "Tu stock" }).locator("xpath=following::ul[1]/li[last()]").boundingBox();
   expect(ultima!.y + ultima!.height).toBeLessThanOrEqual(caja!.y);
@@ -200,6 +203,7 @@ test("el contador ve el stock pero no «Registrar merma» ni «Se malogró»", a
   const f = await fruta(10);
   await entrarComo(page, "contador");
   await page.goto("/stock");
+  await verTuStock(page);
   const fila = page.getByRole("listitem").filter({ hasText: f.nombre });
   await fila.getByRole("button", { name: new RegExp(f.nombre) }).click();
   await expect(fila.getByText("Alcanza para")).toBeVisible();

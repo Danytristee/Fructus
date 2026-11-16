@@ -1,7 +1,9 @@
-// Las 7 herramientas del intérprete (docs/interprete-voz.md, sección 3), escritas una sola vez en Zod.
+// Las 8 herramientas del intérprete (docs/interprete-voz.md, sección 3), escritas una sola vez en Zod.
 // De aquí salen dos cosas: la validación de lo que devuelve el modelo y el JSON Schema que se le manda a Groq.
 // Así nunca hay dos versiones distintas de una herramienta. Lógica pura: no importa React ni Supabase.
 import { z } from "zod";
+
+import { ESTADOS_LLEGADA } from "../vida-util-reglas";
 
 const medio = z.enum(["efectivo", "yape", "plin", "transferencia"]);
 const condicion = z.enum(["contado", "credito"]);
@@ -44,7 +46,14 @@ const herramientasVoz = {
     esquema: z.object({
       proveedor_texto: z.string().nullable(),
       items: z
-        .array(z.object({ producto_texto: z.string().min(1), cantidad, costo_unitario: dinero.nullable() }))
+        .array(
+          z.object({
+            producto_texto: z.string().min(1),
+            cantidad,
+            costo_unitario: dinero.nullable(),
+            estado: z.enum(ESTADOS_LLEGADA).nullable().default(null).describe("Cómo llegó la fruta: verde, pintón o maduro. null si no lo dijo."),
+          }),
+        )
         .min(1),
       condicion: condicion.nullable(),
       dudas,
@@ -63,10 +72,16 @@ const herramientasVoz = {
       medio_pago: medio.default("efectivo"),
     }),
   },
+  registrar_temperatura: {
+    descripcion: "La temperatura que marca el termómetro del puesto.",
+    // Hasta tres cifras: un «290» mal oído llega a la tarjeta, que lo devuelve al rango con un toque. Un número más largo no es
+    // una temperatura mal oída, y la cifra rompía la tarjeta a 360 px (/chaos 2026-11-14).
+    esquema: z.object({ grados: z.number().min(-99).max(999).describe("Grados Celsius que marca el termómetro.") }),
+  },
   consultar: {
     descripcion: "Una pregunta sobre el negocio.",
     esquema: z.object({
-      consulta: z.enum(["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia"]),
+      consulta: z.enum(["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia", "que_sale_hoy"]),
       cliente_texto: z.string().nullable(),
       producto_texto: z.string().nullable(),
     }),

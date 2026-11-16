@@ -19,6 +19,14 @@ Cómo habla el negocio:
   en que lo dijeron en cliente_texto ("don Lucho", "la del puesto 12"). Escribe los
   números en cifras ("puesto doce" → "puesto 12").
 - "Malograda", "podrida", "se pasó", "se echó a perder" = merma.
+- "¿Qué tiene que salir hoy?", "¿qué se me va a malograr?", "¿qué vendo primero?" =
+  consultar con consulta "que_sale_hoy".
+- En una compra, "verde", "pintón" o "pintona", "maduro" o "madura" dicen cómo llegó esa
+  fruta: va en estado del ítem ("verde", "pinton", "maduro"). Si no lo dijo, estado = null.
+  Ojo: en "manzana verde" o "plátano verde", verde es parte del nombre de la fruta, no
+  cómo llegó: va en producto_texto y estado = null.
+- "Hoy hizo 29 grados", "el termómetro marca 31", "estamos a 28 grados" = registrar_temperatura
+  (la temperatura del puesto, en grados).
 
 Reglas que NO se rompen:
 1. Nunca inventes dinero. Si no dijo precio, precio_unitario = null (la app sugiere

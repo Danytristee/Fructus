@@ -48,6 +48,14 @@ Cómo habla el negocio:
   en que lo dijeron en cliente_texto ("don Lucho", "la del puesto 12"). Escribe los
   números en cifras ("puesto doce" → "puesto 12").
 - "Malograda", "podrida", "se pasó", "se echó a perder" = merma.
+- "¿Qué tiene que salir hoy?", "¿qué se me va a malograr?", "¿qué vendo primero?" =
+  consultar con consulta "que_sale_hoy".
+- En una compra, "verde", "pintón" o "pintona", "maduro" o "madura" dicen cómo llegó esa
+  fruta: va en estado del ítem ("verde", "pinton", "maduro"). Si no lo dijo, estado = null.
+  Ojo: en "manzana verde" o "plátano verde", verde es parte del nombre de la fruta, no
+  cómo llegó: va en producto_texto y estado = null.
+- "Hoy hizo 29 grados", "el termómetro marca 31", "estamos a 28 grados" = registrar_temperatura
+  (la temperatura del puesto, en grados).
 
 Reglas que NO se rompen:
 1. Nunca inventes dinero. Si no dijo precio, precio_unitario = null (la app sugiere
@@ -153,7 +161,8 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
               "properties": {
                 "producto_texto": { "type": "string" },
                 "cantidad": { "type": "number" },
-                "costo_unitario": { "type": ["number", "null"] }
+                "costo_unitario": { "type": ["number", "null"] },
+                "estado": { "type": ["string", "null"], "enum": ["verde", "pinton", "maduro", null], "default": null, "description": "Cómo llegó la fruta: verde, pintón o maduro. null si no lo dijo." }
               },
               "required": ["producto_texto", "cantidad", "costo_unitario"]
             }
@@ -201,6 +210,20 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
   {
     "type": "function",
     "function": {
+      "name": "registrar_temperatura",
+      "description": "La temperatura que marca el termómetro del puesto.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "grados": { "type": "number", "minimum": -99, "maximum": 999, "description": "Grados Celsius que marca el termómetro." }
+        },
+        "required": ["grados"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "consultar",
       "description": "Una pregunta sobre el negocio.",
       "parameters": {
@@ -208,7 +231,7 @@ probar, la redacción tiene que decir que la lista ayuda a escribir el nombre, n
         "properties": {
           "consulta": {
             "type": "string",
-            "enum": ["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia"]
+            "enum": ["ventas_hoy", "quien_me_debe", "deuda_cliente", "stock", "stock_producto", "gastos_hoy", "resumen_dia", "que_sale_hoy"]
           },
           "cliente_texto": { "type": ["string", "null"] },
           "producto_texto": { "type": ["string", "null"] }
@@ -246,9 +269,13 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 | "Llegaron 50 cajas de plátano isla del de Chao a 25" | registrar_compra | 50 × 25 |
 | "Se malograron 3 jabas de papaya" | registrar_merma | 3 |
 | "Pagué 80 de flete" | registrar_gasto | flete, 80 |
+| "Hoy hizo 29 grados" | registrar_temperatura | 29 |
+| "Llegaron 30 cajas de mango kent verde a 32, lo pagué" | registrar_compra | 30 × 32, estado verde, contado |
+| "Llegaron 20 cajas de manzana verde a 90" | registrar_compra | producto "manzana verde", estado null |
 | "¿Quién me debe?" | consultar | quien_me_debe |
 | "¿Cuánto me debe el flaco?" | consultar | deuda_cliente, "el flaco" |
 | "¿Cuántas cajas de mango me quedan?" | consultar | stock_producto, "mango" |
+| "¿Qué tiene que salir hoy?" | consultar | que_sale_hoy |
 | "Oye, ¿ya almorzaste?" | no_entendido | — |
 
 Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre contra el modelo real. La tasa de acierto es una métrica del proyecto universitario. Un caso que falla nunca se borra para mejorar el número.

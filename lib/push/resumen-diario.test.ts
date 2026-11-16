@@ -127,6 +127,51 @@ describe("enviarElResumenDelDia", () => {
   });
 });
 
+describe("el aviso de frescura, junto al resumen", () => {
+  const porSalir = { frutas: [{ nombre: "Mango Kent", cajas: 12 }], gradosHoy: 30 };
+
+  it("con fruta por salir mañana, cada teléfono recibe los dos avisos: el resumen y después el de frescura", async () => {
+    const { deps, enviados } = mundo({ telefonos: [telefono(1), telefono(2)], leerPorSalir: vi.fn(async () => porSalir) });
+    const informe = await enviarElResumenDelDia(deps, ahora);
+    expect(enviados.filter((e) => e.id === 1).map((e) => e.aviso.tag)).toEqual(["resumen-2026-11-09", "frescura-2026-11-09"]);
+    expect(enviados).toHaveLength(4);
+    // Un teléfono cuenta una vez, aunque reciba dos avisos.
+    expect(informe).toMatchObject({ motivo: "enviado", destinatarios: 2, enviados: 2, fallos: 0 });
+    // Cada aviso viaja con su propio tema: el de frescura no reemplaza al resumen en el teléfono.
+    expect(enviados.find((e) => e.aviso.tag.startsWith("frescura"))!.opciones).toEqual({ ttlSegundos: TTL_DEL_AVISO_SEGUNDOS, tema: "frescura-2026-11-09" });
+  });
+
+  it("un día sin ventas igual avisa lo que tiene que salir: la fruta se malogra lo mismo", async () => {
+    const { deps, enviados } = mundo({ leerResumen: vi.fn(async () => sinNada), leerPorSalir: vi.fn(async () => porSalir) });
+    const informe = await enviarElResumenDelDia(deps, ahora);
+    expect(enviados.map((e) => e.aviso.titulo)).toEqual(["Mañana tienen que salir 12 cajas"]);
+    expect(informe.motivo).toBe("enviado");
+  });
+
+  it("sin fruta por salir, sale solo el resumen de siempre", async () => {
+    const { deps, enviados } = mundo({ leerPorSalir: vi.fn(async () => ({ frutas: [], gradosHoy: null })) });
+    await enviarElResumenDelDia(deps, ahora);
+    expect(enviados.map((e) => e.aviso.tag)).toEqual(["resumen-2026-11-09"]);
+  });
+
+  it("si no se puede leer lo que tiene que salir, el resumen sale igual", async () => {
+    const consola = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { deps, enviados } = mundo({ leerPorSalir: vi.fn(async () => { throw new Error("la base no respondió"); }) });
+    const informe = await enviarElResumenDelDia(deps, ahora);
+    expect(enviados.map((e) => e.aviso.tag)).toEqual(["resumen-2026-11-09"]);
+    expect(informe).toMatchObject({ motivo: "enviado", enviados: 1 });
+    consola.mockRestore();
+  });
+
+  it("si la dirección de un teléfono caducó en el primer aviso, no se le manda el segundo", async () => {
+    const { deps, enviados } = mundo({ leerPorSalir: vi.fn(async () => porSalir), enviar: vi.fn(async () => ({ estado: "caducada" }) as ResultadoEnvio) });
+    const informe = await enviarElResumenDelDia(deps, ahora);
+    expect(deps.enviar).toHaveBeenCalledTimes(1);
+    expect(informe).toMatchObject({ caducadas: 1, enviados: 0 });
+    expect(enviados).toEqual([]);
+  });
+});
+
 describe("estadoHttpDelInforme", () => {
   const informe = (cambios: Partial<Informe>): Informe => ({ fecha: "2026-11-09", motivo: "enviado", destinatarios: 3, enviados: 0, caducadas: 0, fallos: 0, ...cambios });
 
