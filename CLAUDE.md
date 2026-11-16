@@ -31,7 +31,7 @@ Adaptados de los de CAYLA Retail, que ya probaron su valor allá.
 5. **La fruta se malogra.** La merma es un comando de primera clase, no un ajuste escondido.
 6. **Celular primero, de verdad.** Se diseña y se prueba a 360–412 px antes que a cualquier otro ancho. El escritorio se adapta; no manda.
 7. **Diseño excelente o no está terminado.** Una pantalla que funciona pero se ve mal, se lee mal al sol o pide más de dos toques no está lista (ver «Diseño»).
-8. **Todo puede fallar.** Groq, Gemini, Lucode, Supabase y la red del mercado pueden no responder ahora mismo. La app se degrada con gracia, dice qué pasó en lenguaje de puesto y nunca pierde lo que la persona dictó.
+8. **Todo puede fallar.** Groq, Gemini, Anthropic, Lucode, Supabase y la red del mercado pueden no responder ahora mismo. La app se degrada con gracia, dice qué pasó en lenguaje de puesto y nunca pierde lo que la persona dictó.
 9. **Simplicidad radical.** Muchas piezas pequeñas y componibles, no una pieza que «hace todo». Diseña para 60 ventas al día, no para un supermercado.
 10. **Pasos verificables.** Nada se construye en un salto de fe: cada paso se demuestra funcionando, en el navegador a ancho de celular, no solo con build y lint.
 11. **Cada decisión estructural se documenta.** Va en un ADR, en este archivo o en el comentario de la migración, nunca solo en un chat.
@@ -77,6 +77,7 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 | Voz a texto | **Groq** `whisper-large-v3-turbo` | Nivel gratuito real, rápido, acepta prompt de vocabulario. |
 | Interpretación | **LLM en Groq** con tool calling; **Gemini Flash** de respaldo | `temperature: 0`, `tool_choice: "required"`. Ver `docs/interprete-voz.md`. |
 | Respuesta hablada | **Web Speech API** (`speechSynthesis`) | Viene en el navegador, gratis. |
+| Vida útil de la fruta | **Claude Sonnet 5.5** (`@anthropic-ai/sdk`), una vez al día | Estima cuánto aguanta cada fruta; la tabla fija queda de respaldo. **Es de pago** (créditos de Anthropic, centavos al mes): la única excepción al costo 0 (ADR-0021). |
 | Comprobantes | **Sandbox de Lucode** (apisunat.pe) | Plan B gratis: servicio BETA de SUNAT con credenciales MODDATOS. |
 | PWA | `app/manifest.ts` de Next + íconos en `public/icons/` + un service worker mínimo en `public/sw.js` (ADR-0011) | Se instala como app, la pantalla queda fija (sin zoom), y sin señal se ve «Sin conexión». El resumen del día llega como aviso (Web Push con `web-push`, cron de Vercel y VAPID; ADR-0013). |
 | Excel | **SheetJS**, instalado desde su CDN oficial (`https://cdn.sheetjs.com/`) | El paquete `xlsx` de npm está congelado en una versión vieja. |
@@ -112,7 +113,7 @@ app/
     comprobantes/       emitir y reintentar en sandbox (solo servidor)
     exportar/route.ts   el mes en un .xlsx para el contador (solo lectura, con la sesión de quien lo pide; lee por páginas porque Supabase corta en 1000 filas)
     salud/route.ts      consulta real a la base, para el ping y para diagnosticar
-    cron/resumen-diario/route.ts   el aviso del día (Web Push), una vez al día; solo responde con el secreto de Vercel (ADR-0013)
+    cron/resumen-diario/route.ts   el aviso del día (Web Push) y la estimación de vida útil (ADR-0021), una vez al día; solo responde con el secreto de Vercel (ADR-0013)
   manifest.ts  layout.tsx  globals.css
 components/
   ui/                   UNA pieza por función: Boton, Hoja, Tarjeta, Campo, Monto, Insignia, Aviso, Vacio, Espera
@@ -123,6 +124,7 @@ lib/
   supabase/             servidor.ts (import "server-only"), navegador.ts, tipos-db.ts (generado)
   voz/                  stt.ts, interprete.ts, esquemas.ts (Zod), resolver.ts
   comprobantes/         lucode.ts (import "server-only")
+  vida-estimada/        sonnet.ts (import "server-only"), estimar-del-dia.ts, servidor.ts
   formato.ts            dinero (S/, es-PE), fechas y horas de Lima
   <tema>-reglas.ts      lógica pura de negocio, con <tema>-reglas.test.ts al lado
 supabase/
@@ -140,7 +142,7 @@ docs/
 - **La lógica de negocio es pura y vive en `lib/*-reglas.ts` con su prueba al lado.** No importa React ni Supabase. Ejemplos: armar la tarjeta a partir de la interpretación, calcular el precio sugerido, decidir si una similitud basta para elegir un cliente solo, formatear el resumen del día.
 - **Server Components por defecto.** `"use client"` solo donde hay interacción: el botón de voz, una hoja, un formulario.
 - **Un Server Component nunca llama como función algo que vive en un archivo `"use client"`.** Next no lo detecta al compilar y la pantalla se cae en el navegador (pasó dos veces en CAYLA Retail).
-- **Todo lo que toca una clave lleva `import "server-only"`:** clientes de Groq, Gemini y Lucode, y la secret key de Supabase.
+- **Todo lo que toca una clave lleva `import "server-only"`:** clientes de Groq, Gemini, Anthropic y Lucode, y la secret key de Supabase.
 - **Lecturas** desde Server Components o route handlers. **Escrituras** por RPC (`registrar_venta`, `registrar_compra`, `anular_venta`) o por insert directo cuando es una sola tabla (abonos, mermas, gastos). La RLS es la seguridad; la interfaz solo es comodidad.
 - **Archivos** en `kebab-case` (`ventas-reglas.ts`), **componentes** en `PascalCase` (`TarjetaConfirmacion.tsx`). Un componente por archivo. Un archivo de más de ~250 líneas pide partirse.
 - **Nombres:** tablas, columnas, funciones de la base y textos en español. Variables y funciones de TypeScript en español cuando son del negocio (`registrarVenta`, `saldoCliente`), en inglés cuando son de infraestructura (`fetchWithTimeout`).
@@ -289,7 +291,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
 
 ## Seguridad y claves
 
-- **Todas las claves viven solo en el servidor:** Groq, Gemini, Lucode, la secret key de Supabase y las VAPID privadas. Solo pueden ir al navegador las que empiezan con `NEXT_PUBLIC_`: la URL de Supabase y la publishable key.
+- **Todas las claves viven solo en el servidor:** Groq, Gemini, Anthropic, Lucode, la secret key de Supabase y las VAPID privadas. Solo pueden ir al navegador las que empiezan con `NEXT_PUBLIC_`: la URL de Supabase y la publishable key.
 - **Las claves se guardan en tres lugares, nunca en otro:** `.env.local` (fuera de git), las variables de Vercel y los *secrets* de GitHub. Nunca en un archivo versionado, en un log ni pegadas en el chat.
 - **Logs con ids, nunca con nombres, DNI, RUC ni teléfonos.** La transcripción de voz se guarda en la base (`comandos_voz`), no en logs del servidor.
 - **Un hallazgo de seguridad no se escribe en un archivo versionado.** Se le dice a quien dirige el proyecto por chat.

@@ -329,6 +329,38 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"revisiones_frescura": {
+                  Row: {
+                    "creado_en": string,"dia": string,"id": number,"llegada_dia": string | null,"llegada_estado": Database["public"]['Enums']["estado_llegada"] | null,"producto_id": number,"registrado_por": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creado_en"?: string,"dia"?: string,"id"?: never,"llegada_dia"?: string | null,"llegada_estado"?: Database["public"]['Enums']["estado_llegada"] | null,"producto_id": number,"registrado_por"?: string
+                  }
+                  Update: {
+                    "creado_en"?: string,"dia"?: string,"id"?: never,"llegada_dia"?: string | null,"llegada_estado"?: Database["public"]['Enums']["estado_llegada"] | null,"producto_id"?: number,"registrado_por"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "revisiones_frescura_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "productos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "revisiones_frescura_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "v_stock"
+      referencedColumns: ["producto_id"]
+    },{
+      foreignKeyName: "revisiones_frescura_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "perfiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"series_comprobante": {
                   Row: {
                     "serie": string,"tipo": string,"ultimo_numero": number
@@ -465,10 +497,62 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"vida_util_estimada": {
+                  Row: {
+                    "creado_en": string,"dia": string,"dias": number,"id": number,"modelo": string,"motivo": string,"producto_id": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "creado_en"?: string,"dia": string,"dias": number,"id"?: never,"modelo": string,"motivo": string,"producto_id": number
+                  }
+                  Update: {
+                    "creado_en"?: string,"dia"?: string,"dias"?: number,"id"?: never,"modelo"?: string,"motivo"?: string,"producto_id"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "vida_util_estimada_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "productos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "vida_util_estimada_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "v_stock"
+      referencedColumns: ["producto_id"]
+    }
+                  ]
                 }
           }
           Views: {
-            "v_saldo_clientes": {
+            "v_mermas_con_stock": {
+                  Row: {
+                    "cajas": number | null,"fecha": string,"id": number,"producto_id": number,"stock_antes": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                           "cajas"?: never,"fecha"?: string | null,"id"?: number | null,"producto_id"?: number | null,"stock_antes"?: never
+                         }
+                        Update: {
+                           "cajas"?: never,"fecha"?: string | null,"id"?: number | null,"producto_id"?: number | null,"stock_antes"?: never
+                         }
+                        Relationships: [
+                    {
+      foreignKeyName: "movimientos_stock_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "productos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "movimientos_stock_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "v_stock"
+      referencedColumns: ["producto_id"]
+    }
+                  ]
+                },"v_saldo_clientes": {
                   Row: {
                     "alias": (string)[],"cliente_id": number,"nombre": string,"saldo": number | null,"ultima_venta_credito": string | null,"ultimo_abono": string | null
                   }
@@ -499,6 +583,26 @@ isOneToOne: false
                   ComputedFields: never
                   Relationships: [
                     
+                  ]
+                },"v_vida_util": {
+                  Row: {
+                    "creado_en": string,"dia": string,"dias": number,"modelo": string,"motivo": string,"producto_id": number
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "vida_util_estimada_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "productos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "vida_util_estimada_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "v_stock"
+      referencedColumns: ["producto_id"]
+    }
                   ]
                 }
           }

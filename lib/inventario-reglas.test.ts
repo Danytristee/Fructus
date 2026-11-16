@@ -138,6 +138,69 @@ describe("evaluarProducto", () => {
     });
   });
 
+  describe("la vida que estimó la IA (ADR-0021)", () => {
+    // Papaya: la tabla dice 5 días. Llegó hace 3: con la tabla le quedan 2 y no avisa.
+    const papaya = { nombre: "Papaya", variedad: null, stock: 10, vendido7: 35, entradas: [{ fecha: haceDias(3), cantidad: 10 }] };
+
+    it("sin estimación sigue la tabla, y lo dice", () => {
+      const e = evaluarProducto(producto(papaya), hoy);
+      expect(e.vidaUtil).toBe(5);
+      expect(e.origenVida).toEqual({ fuente: "tabla" });
+      expect(e.lotes[0]).toMatchObject({ vida: 5, restan: 1 });
+    });
+
+    it("con estimación cuenta con ella en vez de la tabla: la misma caja ya tiene que salir hoy", () => {
+      const vidaEstimada = { dias: 4, motivo: "Llega madura y se pasa rápido.", dia: "2026-10-27" };
+      const e = evaluarProducto(producto({ ...papaya, vidaEstimada }), hoy);
+      expect(e.vidaUtil).toBe(4);
+      expect(e.origenVida).toEqual({ fuente: "ia", dias: 4, dia: "2026-10-27", motivo: "Llega madura y se pasa rápido.", tabla: 5 });
+      expect(e.lotes[0]).toMatchObject({ vida: 4, restan: 0 });
+      expect(e.alertas.find((a) => a.tipo === "deterioro")).toMatchObject({ gravedad: "alta" });
+    });
+
+    it("cómo llegó se aplica sobre la estimación: la madura aguanta la mitad", () => {
+      const vidaEstimada = { dias: 6, motivo: "Aguanta un poco más.", dia: "2026-10-27" };
+      const e = evaluarProducto(producto({ ...papaya, vidaEstimada, entradas: [{ fecha: haceDias(1), cantidad: 10, estado: "maduro" }] }), hoy);
+      expect(e.lotes[0]!.vida).toBe(3);
+    });
+
+    it("de las cajas de hace más de 45 días no hay cuenta: tampoco días con los que se contó", () => {
+      const e = evaluarProducto(producto({ ...papaya, entradas: [] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ antes: true, vida: null });
+    });
+  });
+
+  describe("«Sigue buena»: la llegada que alguien revisó hoy", () => {
+    // Papaya (5 días) que llegó hace 7: su último día bueno fue hace dos días.
+    const papaya = { nombre: "Papaya", variedad: null, stock: 10, vendido7: 35, entradas: [{ fecha: haceDias(7), cantidad: 10 }] };
+    const llegadaDia = "2026-10-21";
+
+    it("sin revisar, tiene que salir hoy y pide mirarla", () => {
+      const e = evaluarProducto(producto(papaya), hoy);
+      expect(e.lotes[0]).toMatchObject({ dia: llegadaDia, restan: 0, revisada: false });
+      expect(e.lotes[0]!.atraso).toBeGreaterThan(0);
+      expect(e.alertas.find((a) => a.tipo === "deterioro")).toMatchObject({ gravedad: "alta" });
+    });
+
+    it("revisada hoy, ya no es para hoy: sale mañana, y el aviso dice que la revisaste", () => {
+      const e = evaluarProducto(producto({ ...papaya, revisiones: [{ llegadaDia, estado: null, dia: "2026-10-28" }] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ restan: 1, atraso: 0, revisada: true });
+      const aviso = e.alertas.find((a) => a.tipo === "deterioro")!;
+      expect(aviso).toMatchObject({ gravedad: "media", titulo: "Papaya sale mañana" });
+      expect(aviso.detalle).toContain("La revisaste hoy y sigue buena. Mañana vuelve a mirarla.");
+    });
+
+    it("la revisión de ayer ya no vale hoy: vuelve a pedir que la mires", () => {
+      const e = evaluarProducto(producto({ ...papaya, revisiones: [{ llegadaDia, estado: null, dia: "2026-10-27" }] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ restan: 0, revisada: false });
+    });
+
+    it("la revisión de otra llegada no cuenta para esta", () => {
+      const e = evaluarProducto(producto({ ...papaya, revisiones: [{ llegadaDia: "2026-10-20", estado: null, dia: "2026-10-28" }] }), hoy);
+      expect(e.lotes[0]).toMatchObject({ restan: 0, revisada: false });
+    });
+  });
+
   it("kiwi con 80 cajas y 2 al día: sobrestock, no compres más", () => {
     const e = evaluarProducto(producto({ nombre: "Kiwi", variedad: "Cope", stock: 80, vendido7: 14, entradas: [{ fecha: haceDias(2), cantidad: 80 }] }), hoy);
     const a = e.alertas.find((x) => x.tipo === "sobrestock");

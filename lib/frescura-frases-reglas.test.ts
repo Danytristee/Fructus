@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { comoYCuandoLlego, consejoDeLlegada, etiquetaDeLlegada, explicacionDelCalor, fraseDeLlegadas, nombreDeLlegada, tonoDeLlegada, veredictoDeLlegada } from "./frescura-frases-reglas";
+import { comoYCuandoLlego, consejoDeLlegada, etiquetaDeLlegada, explicacionDelCalor, fraseDeLlegadas, nombreDeLlegada, origenDeLaCuenta, tonoDeLlegada, veredictoDeLlegada } from "./frescura-frases-reglas";
 import { estimarLlegada, llegadaSinFecha } from "./frescura-reglas";
 
 const HOY = "2026-11-14";
@@ -95,5 +95,51 @@ describe("veredictoDeLlegada y explicacionDelCalor", () => {
   it("con clima normal dice que no le quitó nada", () => {
     const fresca = [23, 24, 24, 23, 25, 24].map((grados, i) => ({ dia: `2026-11-${String(9 + i).padStart(2, "0")}`, grados }));
     expect(explicacionDelCalor(lote("2026-11-09", 8, 12, null, fresca), HOY)).toBe("El clima de estos días no le quitó ningún día.");
+  });
+});
+
+describe("una llegada revisada hoy («Sigue buena»)", () => {
+  const revisada = { ...lote("2026-11-09", 4, 6), restan: 1, atraso: 0, fin: "2026-11-15", revisada: true };
+
+  it("el veredicto dice que la revisaste y cuándo volver a mirarla", () => {
+    expect(veredictoDeLlegada(revisada, HOY)).toEqual({ titulo: "Sigue buena", detalle: "La revisaste hoy. Mañana vuelve a mirarla." });
+  });
+
+  it("el consejo es venderla hoy, aunque sea con rebaja", () => {
+    expect(consejoDeLlegada(revisada)).toBe("Ponla adelante y véndela hoy, aunque sea con rebaja.");
+  });
+});
+
+describe("origenDeLaCuenta", () => {
+  const ia = { fuente: "ia", dias: 36, dia: "2026-11-13", motivo: "La Fuji es más firme que otras manzanas.", tabla: 30 } as const;
+
+  it("con la tabla dice que sale de la tabla", () => {
+    expect(origenDeLaCuenta({ vida: 7 }, { fuente: "tabla" }, HOY)).toBe("Para estas cajas cuento unos 7 días con clima normal, según la tabla del sistema.");
+  });
+
+  it("con la estimación dice quién, cuándo y por qué", () => {
+    expect(origenDeLaCuenta({ vida: 36 }, ia, HOY)).toBe("Para estas cajas cuento unos 36 días con clima normal. Lo estimó la IA ayer: La Fuji es más firme que otras manzanas.");
+    expect(origenDeLaCuenta({ vida: 36 }, { ...ia, dia: HOY }, HOY)).toContain("Lo estimó la IA hoy:");
+    expect(origenDeLaCuenta({ vida: 36 }, { ...ia, dia: "2026-11-10" }, HOY)).toContain("Lo estimó la IA el martes:");
+    expect(origenDeLaCuenta({ vida: 36 }, { ...ia, dia: "2026-11-01" }, HOY)).toContain("Lo estimó la IA hace 13 días:");
+  });
+
+  it("si quedó igual que la tabla también dice su motivo: un ajuste que vuelve a ese número tiene su porqué", () => {
+    expect(origenDeLaCuenta({ vida: 30 }, { ...ia, dias: 30, motivo: "La revisaron pasada su fecha y seguía buena: le doy un día más." }, HOY)).toBe(
+      "Para estas cajas cuento unos 30 días con clima normal. Lo estimó la IA ayer: La revisaron pasada su fecha y seguía buena: le doy un día más.",
+    );
+  });
+
+  it("los días de la llegada se dicen enteros, y uno solo en singular", () => {
+    expect(origenDeLaCuenta({ vida: 9.8 }, { fuente: "tabla" }, HOY)).toContain("unos 10 días");
+    expect(origenDeLaCuenta({ vida: 1 }, { fuente: "tabla" }, HOY)).toContain("cuento un día");
+  });
+
+  it("al motivo que llega sin punto se le pone", () => {
+    expect(origenDeLaCuenta({ vida: 8 }, { ...ia, motivo: "Llega firme" }, HOY)).toMatch(/Llega firme\.$/);
+  });
+
+  it("de las cajas sin cuenta (hace más de 45 días) no dice nada", () => {
+    expect(origenDeLaCuenta({ vida: null }, ia, HOY)).toBeNull();
   });
 });

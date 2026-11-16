@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cuandoLlego, deCuando, diaCorto, diasEntre, estimarLlegada, factorCalor, hastaCuando, llegadaSinFecha, llegadasEnStock, temperaturaParaContar, ultimaAnotada } from "./frescura-reglas";
+import { conRevisionDeHoy, cuandoLlego, deCuando, diaCorto, diasEntre, esDeEstaLlegada, estimarLlegada, factorCalor, hastaCuando, llegadaSinFecha, llegadasEnStock, sePasoDeSuDia, temperaturaParaContar, ultimaAnotada } from "./frescura-reglas";
 
 // La semana de la maqueta: lunes 9 a sábado 14 de noviembre de 2026, con calor.
 const HOY = "2026-11-14";
@@ -166,5 +166,48 @@ describe("cómo se dice en el puesto", () => {
   it("diasEntre cuenta días enteros", () => {
     expect(diasEntre("2026-11-09", HOY)).toBe(5);
     expect(diasEntre(HOY, "2026-11-09")).toBe(-5);
+  });
+});
+
+describe("«Sigue buena»: una llegada que pasó su día y alguien revisó", () => {
+  // Papaya (5 días) que llegó el lunes 9 con calor: el sábado 14 su último día bueno ya pasó.
+  const pasada = estimarLlegada("2026-11-09", 5, calor, HOY);
+
+  it("solo se ofrece a la que ya pasó su último día bueno, o a las cajas de hace más de 45 días", () => {
+    expect(pasada.atraso).toBeGreaterThan(0);
+    expect(sePasoDeSuDia(pasada)).toBe(true);
+    expect(sePasoDeSuDia(llegadaSinFecha("2026-09-30", HOY))).toBe(true);
+    // Hoy es su último día bueno: todavía no se pasó.
+    const deHoy = estimarLlegada("2026-11-09", 8, calor, HOY);
+    expect([deHoy.restan, deHoy.atraso]).toEqual([0, 0]);
+    expect(sePasoDeSuDia(deHoy)).toBe(false);
+    expect(sePasoDeSuDia(estimarLlegada("2026-11-13", 5, calor, HOY))).toBe(false);
+  });
+
+  it("revisada hoy gana un día: sale mañana, y ya no cuenta como atrasada", () => {
+    const revisada = conRevisionDeHoy(pasada, HOY);
+    expect(revisada).toMatchObject({ restan: 1, atraso: 0, fin: "2026-11-15" });
+    // Lo que gastó no se toca: la cuenta del calor sigue diciendo lo mismo.
+    expect(revisada.gastado).toBe(pasada.gastado);
+    expect(revisada.dias).toBe(pasada.dias);
+  });
+
+  it("a una llegada que no se pasó, la revisión no le cambia nada", () => {
+    const buena = estimarLlegada("2026-11-13", 5, calor, HOY);
+    expect(conRevisionDeHoy(buena, HOY)).toBe(buena);
+  });
+
+  it("una revisión es de una llegada si coincide el día en que llegó y cómo llegó", () => {
+    const revision = { llegadaDia: "2026-11-09", estado: "maduro", dia: HOY } as const;
+    expect(esDeEstaLlegada(revision, { dia: "2026-11-09", estado: "maduro" })).toBe(true);
+    expect(esDeEstaLlegada(revision, { dia: "2026-11-09", estado: null })).toBe(false);
+    expect(esDeEstaLlegada(revision, { dia: "2026-11-10", estado: "maduro" })).toBe(false);
+  });
+
+  it("las cajas de hace más de 45 días no tienen día: su revisión tampoco lo lleva", () => {
+    const vieja = { dia: "2026-09-30", estado: null, antes: true } as const;
+    expect(esDeEstaLlegada({ llegadaDia: null, estado: null }, vieja)).toBe(true);
+    expect(esDeEstaLlegada({ llegadaDia: "2026-09-30", estado: null }, vieja)).toBe(false);
+    expect(esDeEstaLlegada({ llegadaDia: null, estado: null }, { dia: "2026-11-09", estado: null })).toBe(false);
   });
 });
