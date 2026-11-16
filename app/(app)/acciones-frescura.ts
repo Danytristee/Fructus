@@ -81,7 +81,7 @@ export async function anotarSigueBuena(entrada: z.input<typeof revision>): Promi
   const { productoId, llegadaDia, estado } = leido.data;
 
   const s = await sesion();
-  if (!s) return { ok: false, error: sinSesionAMano("que sigue buena"), sinSesion: true };
+  if (!s) return { ok: false, error: "Tu sesión terminó. Vuelve a entrar y anótalo otra vez.", sinSesion: true };
   const { supabase, permisos } = s;
   if (!permisos.registrar) return { ok: false, error: NO_PUEDE };
 
@@ -99,7 +99,8 @@ export async function anotarSigueBuena(entrada: z.input<typeof revision>): Promi
   const { error } = await supabase.from("revisiones_frescura").insert({ producto_id: productoId, llegada_dia: llegadaDia, llegada_estado: estado });
   if (error && error.code !== YA_GUARDADO) {
     console.error("frescura: no se pudo anotar la revisión", { productoId, codigo: error.code });
-    return { ok: false, error: error.code === "42501" ? NO_PUEDE : SIN_SENAL };
+    // 23514: esa llegada no existe (la base lo comprueba también, por si alguien escribe sin pasar por aquí).
+    return { ok: false, error: error.code === "42501" ? NO_PUEDE : error.code === "23514" ? YA_NO : SIN_SENAL };
   }
   return { ok: true };
 }

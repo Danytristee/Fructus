@@ -2,7 +2,7 @@
 
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { anotarSigueBuena } from "@/app/(app)/acciones-frescura";
 import { useCola } from "@/components/cola/ColaProveedor";
@@ -26,10 +26,14 @@ export function SigueBuena({ productoId, lote, alError }: Props) {
   const esperar = useEspera();
   const sinSenal = useCola()?.situacion.enLinea === false;
   const [guardando, setGuardando] = useState(false);
+  // El estado no alcanza para frenar cinco toques del mismo instante (todavía no se volvió a dibujar): la base no duplicaba,
+  // pero salían cinco pedidos (/chaos 2026-11-16).
+  const enCurso = useRef(false);
 
   async function anotar() {
-    if (guardando) return;
+    if (enCurso.current) return;
     if (sinSenal || !navigator.onLine) return alError(NECESITA_SENAL);
+    enCurso.current = true;
     setGuardando(true);
     alError(null);
     let reloj = 0;
@@ -39,6 +43,7 @@ export function SigueBuena({ productoId, lote, alError }: Props) {
     const pedido = anotarSigueBuena({ productoId, llegadaDia: lote.antes ? null : lote.dia, estado: lote.estado }).catch(() => ({ ok: false as const, error: SIN_SENAL }));
     const r = await esperar(Promise.race([pedido, tope]), "Anotando…");
     window.clearTimeout(reloj);
+    enCurso.current = false;
     setGuardando(false);
     if (!r.ok) return alError(r.error);
     vibrar(30);

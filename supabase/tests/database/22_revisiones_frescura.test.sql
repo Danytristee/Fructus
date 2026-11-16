@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(14);
+select plan(17);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000d22', 'duenio22@fructus.test'),
@@ -29,6 +29,20 @@ $$;
 create function pg_temp.hoy() returns date language sql as $$
   select (now() at time zone 'America/Lima')::date;
 $$;
+
+-- Las llegadas de la fruta: hace 6 días llegaron cajas maduras y otras sin decir cómo; hace 9 y hace 3, sin decir cómo.
+-- La base no acepta fechas de hace más de 48 horas al insertar: entran hoy y se mueven.
+create function pg_temp.llegaron(p_dias int, p_estado estado_llegada default null) returns void language plpgsql as $$
+declare v_id bigint;
+begin
+  insert into public.movimientos_stock (producto_id, tipo, cantidad, motivo, estado_llegada, registrado_por)
+  values (pg_temp.fruta(), 'ajuste', 5, 'prueba 22', p_estado, '00000000-0000-0000-0000-000000000d22') returning id into v_id;
+  update public.movimientos_stock set fecha = ((pg_temp.hoy() - p_dias)::timestamp + interval '10 hours') at time zone 'America/Lima' where id = v_id;
+end $$;
+select pg_temp.llegaron(6, 'maduro');
+select pg_temp.llegaron(6);
+select pg_temp.llegaron(9);
+select pg_temp.llegaron(3);
 
 set local role authenticated;
 
@@ -59,7 +73,7 @@ select throws_ok(
 
 -- --- Borde: la revisión es de hoy, y la llegada no puede ser del futuro -----------------------
 select throws_ok(
-  $$ insert into revisiones_frescura (producto_id, llegada_dia, dia) values (pg_temp.fruta(), pg_temp.hoy() - 2, pg_temp.hoy() + 1) $$,
+  $$ insert into revisiones_frescura (producto_id, llegada_dia, dia) values (pg_temp.fruta(), pg_temp.hoy() - 3, pg_temp.hoy() + 1) $$,
   '42501', null, 'no se anota una revisión con fecha de mañana: callaría el aviso sin mirar la fruta');
 select throws_ok(
   $$ insert into revisiones_frescura (producto_id, llegada_dia) values (pg_temp.fruta(), pg_temp.hoy() + 3) $$,
@@ -67,6 +81,18 @@ select throws_ok(
 select throws_ok(
   $$ insert into revisiones_frescura (producto_id, llegada_dia, registrado_por) values (pg_temp.fruta(), pg_temp.hoy() - 9, '00000000-0000-0000-0000-000000000d22') $$,
   '42501', null, 'nadie anota una revisión a nombre de otro');
+
+-- --- Borde: la revisión es de una llegada que existe (/chaos 2026-11-16) -----------------------
+select pg_temp.como('00000000-0000-0000-0000-000000000a22');
+select throws_ok(
+  $$ insert into revisiones_frescura (producto_id, llegada_dia) values (pg_temp.fruta(), pg_temp.hoy() - 40) $$,
+  '23514', null, 'no se anota la revisión de un día en que no llegó nada de esa fruta');
+select throws_ok(
+  $$ insert into revisiones_frescura (producto_id, llegada_dia, llegada_estado) values (pg_temp.fruta(), pg_temp.hoy() - 9, 'verde') $$,
+  '23514', null, 'ni de una llegada que ese día no llegó así (llegó sin decir cómo, no verde)');
+select throws_ok(
+  $$ insert into revisiones_frescura (producto_id, llegada_dia) values ((select id from productos where id <> pg_temp.fruta() limit 1), pg_temp.hoy() - 9) $$,
+  '23514', null, 'ni con la llegada de otra fruta');
 
 -- --- Rechazo por rol --------------------------------------------------------------------------
 select pg_temp.como('00000000-0000-0000-0000-000000000c22');

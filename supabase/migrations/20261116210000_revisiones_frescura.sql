@@ -14,6 +14,10 @@
 --   4. La revisión es de HOY: la política no deja anotar una con otro día. Una fechada mañana callaría el aviso de mañana
 --      sin que nadie haya mirado la fruta.
 --   5. Roles como en las mermas: dueño, administrador y ayudante registran; el contador solo lee.
+--   6. La revisión es de una llegada que existe: ese día entraron cajas de esa fruta, y llegaron así. La app ya mira el
+--      inventario antes de anotar, pero la app es comodidad: quien escribe por la API podía dejar la revisión de una
+--      llegada inventada, y esa revisión contaría como evidencia de que la fruta dura más (/chaos 2026-11-16). Las cajas
+--      de hace más de 45 días no llevan día de llegada: esas no se pueden comprobar.
 -- =============================================================================
 
 create table revisiones_frescura (
@@ -31,6 +35,31 @@ comment on table revisiones_frescura is
   '«Sigue buena»: alguien revisó una llegada que ya había pasado su último día bueno y sigue vendible. Solo se agregan; una por llegada y por día.';
 
 create index revisiones_frescura_dia on revisiones_frescura (dia);
+
+-- Una llegada es lo mismo que en Stock (lib/frescura-reglas.ts): cajas que entraron por compra o por un ajuste a favor,
+-- juntadas por día de Lima y por cómo llegaron.
+create function revision_de_una_llegada_que_existe() returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if new.llegada_dia is not null and not exists (
+    select 1
+      from movimientos_stock m
+     where m.producto_id = new.producto_id
+       and m.tipo in ('entrada_compra', 'ajuste')
+       and m.cantidad > 0
+       and (m.fecha at time zone 'America/Lima')::date = new.llegada_dia
+       and m.estado_llegada is not distinct from new.llegada_estado
+  ) then
+    raise exception 'Ese día no llegó esa fruta así: no hay llegada que revisar.' using errcode = '23514';
+  end if;
+  return new;
+end $$;
+revoke execute on function revision_de_una_llegada_que_existe() from public, anon;
+
+create trigger revisiones_frescura_llegada_existe before insert on revisiones_frescura
+  for each row execute function revision_de_una_llegada_que_existe();
 
 alter table revisiones_frescura enable row level security;
 
