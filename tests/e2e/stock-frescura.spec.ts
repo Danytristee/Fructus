@@ -126,6 +126,42 @@ test("con calor, la papaya que llegó hace 3 días tiene que salir hoy; la manza
   }
 });
 
+test("con más de 3 frutas por salir, las que no se nombran en la tarjeta también abren su porqué desde «Ver las N frutas»", async ({ page }) => {
+  const duenio = await idDelDuenio();
+  const marca = `E2E${Date.now()}${Math.floor(Math.random() * 1000)}`;
+  // Cuatro papayas (duran 5 días) que llegaron hace 9: las cuatro tienen que salir hoy, y la tarjeta solo nombra tres.
+  const { data: frutas } = await base
+    .from("productos")
+    .insert([1, 2, 3, 4].map((n) => ({ nombre: "Papaya", calibre: `${marca}-${n}`, unidad: "caja" })))
+    .select("id, calibre");
+  try {
+    for (const f of frutas!) await llegaron(f.id, 5, 9, duenio);
+    await entrarComo(page, "duenio");
+    await page.goto("/stock");
+    await expect(page.getByRole("heading", { name: "Qué hacer hoy" })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: /^Por malograrse/ }).click();
+    const tarjeta = page.locator("li[data-productos]").filter({ hasText: /frutas tienen que salir hoy/ });
+    await expect(tarjeta).toBeVisible();
+    // Una de las cuatro que NO esté entre las tres que la tarjeta nombra.
+    const nombradas = await tarjeta.locator("ul button").allInnerTexts();
+    const escondida = frutas!.find((f) => !nombradas.some((t) => t.includes(f.calibre!)))!;
+    expect(escondida, "alguna de las cuatro queda fuera de las tres nombradas").toBeTruthy();
+
+    await tarjeta.getByRole("button", { name: /^Ver las \d+ frutas$/ }).click();
+    const lista = page.getByRole("dialog", { name: /frutas tienen que salir hoy/ });
+    await expect(lista).toBeVisible({ timeout: 15_000 });
+    await lista.getByRole("button", { name: new RegExp(escondida.calibre!) }).click();
+    // La lista baja y sube el porqué de esa fruta.
+    const hoja = page.getByRole("dialog", { name: new RegExp(escondida.calibre!) });
+    await expect(hoja).toBeVisible({ timeout: 15_000 });
+    await expect(hoja.getByText("Revísala antes de vender")).toBeVisible();
+    await expect(hoja.getByText(/5 cajas · llegaron hace 9 días/)).toBeVisible();
+    await expect(lista).toBeHidden();
+  } finally {
+    await base.from("productos").update({ activo: false }).in("id", frutas!.map((f) => f.id));
+  }
+});
+
 test("las cajas de hace más de 45 días no se quedan calladas: salen en «Qué hacer» y tienen su llegada (/chaos 2026-11-14)", async ({ page }) => {
   const duenio = await idDelDuenio();
   const marca = `E2E${Date.now()}${Math.floor(Math.random() * 1000)}`;

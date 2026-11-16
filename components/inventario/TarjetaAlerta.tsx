@@ -122,15 +122,38 @@ export function TarjetaAlerta({ g, nombreDe, i, alVerFruta }: Props) {
       {resto > 0 && (
         <Hoja abierta={abierta} alCambiar={setAbierta} titulo={g.titulo} icono={<Icono aria-hidden className="size-5" />}>
           <ul className="vidrio mt-1 divide-y divide-border overflow-hidden rounded-tarjeta">
-            {g.alertas.map((a) => (
-              <li key={a.productoId} className="grid grid-cols-[auto_1fr] items-center gap-3 px-4 py-2.5">
-                <IconoFruta nombre={nombreDe.get(a.productoId) ?? a.producto} tamano={36} />
-                <span className="grid min-w-0">
-                  <span className="leading-tight font-extrabold wrap-anywhere">{a.producto}</span>
-                  <span className="text-base leading-snug text-texto-suave">{a.corto}</span>
-                </span>
-              </li>
-            ))}
+            {g.alertas.map((a) => {
+              const fila = (
+                <>
+                  <IconoFruta nombre={nombreDe.get(a.productoId) ?? a.producto} tamano={36} />
+                  <span className="grid min-w-0">
+                    <span className="leading-tight font-extrabold wrap-anywhere">{a.producto}</span>
+                    <span className="text-base leading-snug text-texto-suave">{a.corto}</span>
+                  </span>
+                </>
+              );
+              // Las frutas que tienen que salir abren su porqué también desde aquí: la lista baja y sube la hoja de esa fruta.
+              // Antes, la cuarta fruta de un aviso solo lo abría desde «Tu stock» (2.ª prueba a ciegas, 2026-11-15).
+              return verPorQue ? (
+                <li key={a.productoId}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAbierta(false);
+                      verPorQue(a.productoId);
+                    }}
+                    className="grid min-h-14 w-full grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 ease-out active:bg-acento/6"
+                  >
+                    {fila}
+                    <ChevronRight aria-hidden className="size-5 text-texto-suave" />
+                  </button>
+                </li>
+              ) : (
+                <li key={a.productoId} className="grid grid-cols-[auto_1fr] items-center gap-3 px-4 py-2.5">
+                  {fila}
+                </li>
+              );
+            })}
           </ul>
           <p className="mt-3 flex gap-2 rounded-control bg-acento/8 px-3 py-2.5 leading-snug">
             <Lightbulb aria-hidden className="mt-0.5 size-5 shrink-0 text-acento-texto" />

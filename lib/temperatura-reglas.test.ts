@@ -70,7 +70,10 @@ describe("semanaDeTemperaturas", () => {
 describe("hayQuePedirla", () => {
   it("la pide si hoy no se anotó y esta semana sí", () => expect(hayQuePedirla([{ dia: "2026-11-13", grados: 30 }], "2026-11-14")).toBe(true));
   it("no la pide si ya se anotó hoy", () => expect(hayQuePedirla([{ dia: "2026-11-13", grados: 30 }, { dia: "2026-11-14", grados: 29 }], "2026-11-14")).toBe(false));
-  it("no persigue a quien nunca la anotó", () => expect(hayQuePedirla([], "2026-11-14")).toBe(false));
+  // Antes solo se le pedía a quien ya había anotado alguna esa semana: quien nunca la anotó no se enteraba de que podía
+  // (primer uso, /formidable 2026-11-14), y al dejar de anotarla una semana el pedido desaparecía en silencio.
+  it("también la pide a quien nunca la anotó: es la puerta de entrada", () => expect(hayQuePedirla([], "2026-11-14")).toBe(true));
+  it("y a quien dejó de anotarla hace días", () => expect(hayQuePedirla([{ dia: "2026-11-02", grados: 30 }], "2026-11-14")).toBe(true));
 });
 
 describe("saltoRaro", () => {
