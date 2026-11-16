@@ -242,7 +242,8 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - Las dudas del intérprete salen como una línea discreta.
   - Un solo botón grande: **Confirmar**.
 - **Si algo falla, se dice qué hacer.**
-  - Si Groq no responde en **8 s** (`AbortSignal.timeout`), se intenta con Gemini.
+  - Si la cuenta de Groq se quedó sin cupo (429) o su clave no vale (401, 403), se prueba con la de respaldo (`GROQ_API_KEY_RESPALDO`, otra cuenta; `lib/voz/respaldo-reglas.ts`).
+  - Si Groq no responde en **8 s** (`AbortSignal.timeout`) o falla de otra forma, se intenta con Gemini, sin pasar por la otra cuenta.
   - Si tampoco responde, sale «No te entendí, inténtalo otra vez» y el audio se conserva.
   - Toda llamada externa lleva un tope de espera. Ningún `catch` se traga un error sin registrarlo.
 - **Responder hablando** en consultas («¿quién me debe?»), con `speechSynthesis` en `es-PE` o `es-US`. Sin manos libres, una venta se confirma con vibración, sonido y la tarjeta en verde; no hace falta voz.

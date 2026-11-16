@@ -1,37 +1,18 @@
 import "server-only";
 
 // Lo que dijo la persona (ya en texto) → una herramienta con sus datos, validada con Zod.
-// Groq primero; si no responde en 8 s o falla, Gemini (si hay clave). Ninguno inventa: si la respuesta no calza con el
-// esquema, no se usa. La transcripción nunca va a los logs (CLAUDE.md, «Seguridad y claves»).
+// Groq primero; si la cuenta se quedó sin cupo, la de respaldo; si no responde en 8 s o falla, Gemini (si hay clave). El orden
+// vive en respaldo-reglas.ts. Ninguno inventa: si la respuesta no calza con el esquema, no se usa. La transcripción nunca va a
+// los logs (CLAUDE.md, «Seguridad y claves»).
 import { fetchWithTimeout } from "../supabase/fetch-con-tope";
 import { bloqueCatalogo, type Catalogo } from "./catalogo-reglas";
 import { sinEstadoQueEsNombre } from "./como-llego-reglas";
 import { herramientasParaElModelo, leerInterpretacion, type Interpretacion, type VentaActual } from "./esquemas";
 import { PROMPT_SISTEMA, mensajeCorreccion } from "./prompt";
+import { cuentasGroq, probarEnOrden, type Intento, type Pedido, type Proveedor } from "./respaldo-reglas";
 
-type Proveedor = { nombre: "groq" | "gemini"; url: string; clave: string | undefined; modelo: string; extra: Record<string, unknown> };
-
-function proveedores(modeloGroq?: string): Proveedor[] {
-  return [
-    {
-      nombre: "groq",
-      url: "https://api.groq.com/openai/v1/chat/completions",
-      clave: process.env.GROQ_API_KEY,
-      modelo: modeloGroq ?? process.env.GROQ_MODELO_LLM ?? "openai/gpt-oss-120b",
-      // Los gpt-oss razonan antes de responder: «low» basta para elegir una herramienta y cuida la latencia.
-      extra: { reasoning_effort: "low" },
-    },
-    {
-      nombre: "gemini",
-      url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      clave: process.env.GEMINI_API_KEY,
-      modelo: process.env.GEMINI_MODELO_LLM ?? "gemini-2.5-flash",
-      extra: {},
-    },
-  ];
-}
-
-type Intento = { modelo: string; error: string };
+/** Un servicio que entiende el formato de chat de OpenAI. Groq y Gemini lo hablan los dos. */
+type Servicio = { url: string; modelo: string; extra: Record<string, unknown> };
 
 export type ResultadoInterprete =
   | { ok: true; interpretacion: Interpretacion; modelo: string; latenciaMs: number; intentos: Intento[] }
@@ -39,12 +20,12 @@ export type ResultadoInterprete =
 
 type RespuestaChat = { choices?: { message?: { tool_calls?: { function?: { name?: string; arguments?: string } }[] } }[] };
 
-async function preguntar(p: Proveedor, sistema: string, transcripcion: string): Promise<{ ok: true; interpretacion: Interpretacion } | { ok: false; error: string }> {
+async function preguntar(p: Servicio, clave: string, sistema: string, transcripcion: string): Promise<Pedido<Interpretacion>> {
   let respuesta: Response;
   try {
     respuesta = await fetchWithTimeout(p.url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${p.clave}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${clave}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: p.modelo,
         temperature: 0,
@@ -62,13 +43,13 @@ async function preguntar(p: Proveedor, sistema: string, transcripcion: string): 
   }
   if (!respuesta.ok) {
     const detalle = (await respuesta.text().catch(() => "")).slice(0, 160);
-    return { ok: false, error: `HTTP ${respuesta.status}${respuesta.status === 429 ? " (límite del plan gratuito)" : ""} ${detalle}` };
+    return { ok: false, estado: respuesta.status, error: `HTTP ${respuesta.status}${respuesta.status === 429 ? " (límite del plan gratuito)" : ""} ${detalle}` };
   }
   const cuerpo = (await respuesta.json()) as RespuestaChat;
   const llamada = cuerpo.choices?.[0]?.message?.tool_calls?.[0]?.function;
   if (!llamada?.name) return { ok: false, error: "no llamó ninguna herramienta" };
   const leida = leerInterpretacion(llamada.name, llamada.arguments ?? "{}");
-  return leida.ok ? leida : { ok: false, error: `respuesta inválida: ${leida.motivo.slice(0, 200)}` };
+  return leida.ok ? { ok: true, valor: leida.interpretacion } : { ok: false, error: `respuesta inválida: ${leida.motivo.slice(0, 200)}` };
 }
 
 /** Lo que no se le pide al modelo porque se puede decidir contando: en una compra, el «verde» que era parte del nombre de la fruta. */
@@ -81,7 +62,8 @@ function afinar(interpretacion: Interpretacion, transcripcion: string): Interpre
  * Interpreta una transcripción. `catalogo` es lo que hay en el puesto (productos, clientes y proveedores).
  * `correccionDe`: la venta que Fructus leyó en voz alta, en los campos de registrar_venta; la transcripción es la corrección que dijo
  * la persona («no, son ocho»).
- * `soloGroq` y `modeloGroq` sirven para medir modelos con /voz-precision sin que el respaldo cambie los números.
+ * `soloGroq` y `modeloGroq` sirven para medir modelos con /voz-precision sin que Gemini cambie los números. Las dos cuentas de
+ * Groq usan el mismo modelo, así que la de respaldo sí entra: solo suma cupo.
  */
 export async function interpretar(
   transcripcion: string,
@@ -90,17 +72,34 @@ export async function interpretar(
   const inicio = performance.now();
   // El prompt fijo más el catálogo del puesto (docs/interprete-voz.md, secciones 2 y 2b).
   const sistema = opciones.catalogo ? `${PROMPT_SISTEMA}\n\n${bloqueCatalogo(opciones.catalogo)}` : PROMPT_SISTEMA;
-  const intentos: Intento[] = [];
-  for (const p of proveedores(opciones.modeloGroq)) {
-    if (opciones.soloGroq && p.nombre !== "groq") break;
-    if (!p.clave) {
-      intentos.push({ modelo: p.modelo, error: "sin clave configurada" });
-      continue;
-    }
-    const r = await preguntar(p, sistema, opciones.correccionDe ? mensajeCorreccion(opciones.correccionDe, transcripcion) : transcripcion);
-    if (r.ok) return { ok: true, interpretacion: afinar(r.interpretacion, transcripcion), modelo: p.modelo, latenciaMs: Math.round(performance.now() - inicio), intentos };
-    console.error("interprete: un proveedor falló", { modelo: p.modelo, error: r.error.slice(0, 120) });
-    intentos.push({ modelo: p.modelo, error: r.error });
-  }
-  return { ok: false, motivo: "ningún proveedor respondió bien", latenciaMs: Math.round(performance.now() - inicio), intentos };
+  const mensaje = opciones.correccionDe ? mensajeCorreccion(opciones.correccionDe, transcripcion) : transcripcion;
+  const groq: Servicio = {
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    modelo: opciones.modeloGroq ?? process.env.GROQ_MODELO_LLM ?? "openai/gpt-oss-120b",
+    // Los gpt-oss razonan antes de responder: «low» basta para elegir una herramienta y cuida la latencia.
+    extra: { reasoning_effort: "low" },
+  };
+  const gemini: Servicio = {
+    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    modelo: process.env.GEMINI_MODELO_LLM ?? "gemini-2.5-flash",
+    extra: {},
+  };
+  const proveedores: Proveedor<Interpretacion>[] = [
+    ...cuentasGroq(process.env.GROQ_API_KEY, process.env.GROQ_API_KEY_RESPALDO).map(({ cuenta, clave }): Proveedor<Interpretacion> => ({
+      servicio: "groq",
+      modelo: groq.modelo,
+      cuenta,
+      clave,
+      pedir: (c) => preguntar(groq, c, sistema, mensaje),
+    })),
+    { servicio: "gemini", modelo: gemini.modelo, clave: process.env.GEMINI_API_KEY, pedir: (c) => preguntar(gemini, c, sistema, mensaje) },
+  ];
+  const r = await probarEnOrden(
+    proveedores.filter((p) => !opciones.soloGroq || p.servicio === "groq"),
+    (i) => console.error("interprete: un proveedor falló", { modelo: i.modelo, cuenta: i.cuenta, error: i.error.slice(0, 120) }),
+  );
+  const latenciaMs = Math.round(performance.now() - inicio);
+  return r.ok
+    ? { ok: true, interpretacion: afinar(r.valor, transcripcion), modelo: r.modelo, latenciaMs, intentos: r.intentos }
+    : { ok: false, motivo: "ningún proveedor respondió bien", latenciaMs, intentos: r.intentos };
 }
