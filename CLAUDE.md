@@ -77,6 +77,7 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 | Voz a texto | **Groq** `whisper-large-v3-turbo` | Nivel gratuito real, rápido, acepta prompt de vocabulario. |
 | Interpretación | **LLM en Groq** con tool calling; **Gemini Flash** de respaldo | `temperature: 0`, `tool_choice: "required"`. Ver `docs/interprete-voz.md`. |
 | Respuesta hablada | **Web Speech API** (`speechSynthesis`) | Viene en el navegador, gratis. |
+| Palabra de activación | **openWakeWord** (sus modelos ONNX y `hola-fructus.onnx`) con **onnxruntime-web** en un Web Worker | «Hola Fructus» se detecta en el celular, gratis y sin enviar audio hasta despertar. Se baja solo al prender el interruptor (ADR-0022). |
 | Vida útil de la fruta | **Claude Sonnet 5.5** (`@anthropic-ai/sdk`), una vez al día | Estima cuánto aguanta cada fruta; la tabla fija queda de respaldo. **Es de pago** (créditos de Anthropic, centavos al mes): la única excepción al costo 0 (ADR-0021). |
 | Comprobantes | **Sandbox de Lucode** (apisunat.pe) | Plan B gratis: servicio BETA de SUNAT con credenciales MODDATOS. |
 | PWA | `app/manifest.ts` de Next + íconos en `public/icons/` + un service worker mínimo en `public/sw.js` (ADR-0011) | Se instala como app, la pantalla queda fija (sin zoom), y sin señal se ve «Sin conexión». El resumen del día llega como aviso (Web Push con `web-push`, cron de Vercel y VAPID; ADR-0013). |
@@ -256,6 +257,18 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
     - otra cosa se repregunta una vez.
   - **Candados:** un «sí» suelto no confirma; con dudas del intérprete, si falta un dato o sin señal, solo se avisa y se confirma con el dedo; mientras habla, no escucha; tocar la tarjeta calla la voz.
   - Dice «Guardado» cuando la base respondió, y `comandos_voz.confirmado_por` registra si fue `toque` o `voz`.
+- **«Hola Fructus» (ADR-0022):** otro interruptor del menú, por celular y apagado de fábrica. Quita el último toque: el que empieza a dictar.
+  - Escucha solo en «Hoy» y con la pantalla a la vista; una oreja en el orbe lo dice. El detector corre en el celular
+    (`components/voz/escucha.worker.ts`), igual al de Python (`lib/voz/detector-palabra.paridad.test.ts`).
+  - Al oír la frase suena un «tin» y el orbe queda escuchando sin el dedo. Lo dicho se envía al callarse, con la frase incluida y la
+    marca `despertar`.
+  - No escucha con la tarjeta abierta, mientras entiende ni mientras se graba con el dedo. Con la pantalla oculta suelta el micrófono.
+  - **Segundo paso en el servidor** (`revisarFrase`): si Whisper oyó «frutas» en vez de la frase, se descarta sin guardar nada. No se
+    exige que escriba «Fructus»: la frase sola sale mal escrita y se tirarían órdenes reales.
+  - **Dos celulares, una tarjeta** (`tomar_frase`): una venta dicha en voz alta la oyen todos los celulares que escuchan; solo el
+    primero que la entiende abre su tarjeta, y el otro dice «Eso ya lo anotó otro celular».
+  - Al cambiar un modelo, se rehace la referencia de Python (`scripts/voz/palabra-activacion/referencia.py`) y se mide
+    `pnpm medir:escucha`.
 - **Precisión medible.** Los casos de `docs/interprete-voz.md` viven en `tests/interprete/casos.json`, y `/voz-precision` los corre contra el modelo real. Meta de la demo: **90 % o más de acierto** en intención y datos clave. Se mide antes de cada entrega.
 
 ## Base de datos
@@ -285,7 +298,10 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - Supabase da `EXECUTE` a `anon` y `authenticated` en toda función nueva (y Postgres a `public`). Revoca `anon` y `public` en la misma migración: ninguna función propia se ejecuta sin sesión. `supabase/tests/database/05_funciones_sin_anon.test.sql` falla en el CI si una queda abierta.
 - **Avisos del linter que se dejan a propósito:**
   - `series_comprobante` tiene RLS sin políticas porque solo la toca el servidor.
+  - `frases_tomadas` tiene RLS sin políticas porque solo la toca `tomar_frase` (security definer, ADR-0022).
   - `rol_actual()` es `security definer` y la pueden ejecutar los autenticados, porque las políticas la necesitan.
+  - `tomar_frase()` es `security definer` y la pueden ejecutar los autenticados: `/api/voz` la llama con la sesión de quien dicta, y la
+    función revisa el rol antes de tocar `frases_tomadas` (ADR-0022).
   - Los avisos de rendimiento (políticas permisivas múltiples, llaves foráneas sin índice) no importan a este volumen; se revisan antes de producción.
 - **IGV:** frutas frescas → afectación `20` (exonerado, Apéndice I de la Ley del IGV). Es configurable por producto.
 - **Invariantes:** `scripts/invariantes.sql` revisa lo que la base no impide sola. Por ejemplo, que el total de una venta sea la suma de sus ítems, que cada ítem tenga su salida de stock y que una venta anulada tenga su devolución. Sale con error si algo no cuadra. Corre en el CI y después de cada ataque de `/chaos`.
@@ -316,6 +332,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
 | Base (RPC, RLS, invariantes) | pgTAP en `supabase/tests/` + `scripts/invariantes.sql` | Cada migración trae su prueba: el caso feliz, el rechazo por rol y el caso borde (crédito sin cliente, venta sin ítems). |
 | Pantallas de punta a punta | Playwright en `tests/e2e/`, con el dispositivo emulado a 412 y 360 px | Los flujos críticos: dictar y confirmar una venta, registrar un abono, ver «quién me debe», cierre del día. |
 | Intérprete de voz | `/voz-precision` sobre `tests/interprete/casos.json` | Antes de cada entrega y al tocar el prompt o el modelo. |
+| «Hola Fructus» | `detector-palabra.paridad.test.ts` (igual a openWakeWord en Python) y `pnpm medir:escucha` (la CPU de escuchar) | Al cambiar un modelo o la cadena del detector (ADR-0022). |
 | Pantallas que guardan | `/chaos` | Al terminar cada pantalla u hoja que guarda. |
 | Diseño | `/formidable` | Al terminar o rediseñar cada pantalla u hoja. |
 | Código muerto | Knip | En el CI. |
@@ -420,12 +437,12 @@ Para el trabajo de varios pasos mandan `/construir`, `/decide` y `/abrir-pr`: tr
 - stock, cuaderno de clientes y cierre del día;
 - boleta y factura en sandbox;
 - roles, login y exportar el mes a Excel;
-- PWA instalable con resumen diario por Web Push y botón «Enviar por WhatsApp».
+- PWA instalable con resumen diario por Web Push y botón «Enviar por WhatsApp»;
+- manos libres: «Hola Fructus» en «Hoy» (ADR-0022) y confirmar hablando (ADR-0020).
 
 **Fuera, para la fase 2:**
 - leer facturas de proveedor con la cámara;
 - predicción de compras;
-- palabra de activación («Fructus, …»);
 - WhatsApp automático;
 - modo oscuro activado.
 
@@ -437,3 +454,8 @@ Para el trabajo de varios pasos mandan `/construir`, `/decide` y `/abrir-pr`: tr
 - Pasar de Vercel Hobby a un hosting que permita uso comercial, y Supabase a un plan que no se pause.
 - Salir de los niveles gratuitos de LLM que usan los datos para entrenar.
 - Revisar los avisos de rendimiento del linter y los índices.
+- «Hola Fructus» (ADR-0022):
+  - Reentrenar con las grabaciones del puesto y negativos propios. El modelo provisional usa voces de Piper de licencias distintas y
+    audio de YouTube (AudioSet).
+  - Confirmar la licencia de los dos modelos de rasgos de openWakeWord.
+  - Medir la batería y la CPU de un día escuchando en el celular del dueño y en uno de gama media.

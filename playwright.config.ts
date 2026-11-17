@@ -55,6 +55,8 @@ export default defineConfig({
         // La estimación de vida útil le pregunta al modelo de mentira, no a Anthropic: no gasta créditos y contesta siempre igual.
         ANTHROPIC_API_KEY: "clave-de-prueba",
         VIDA_UTIL_SIMULADOR_URL: `http://127.0.0.1:${puertoSonnet}`,
+        // Sin la consulta de avisos de npm (next.config.ts): con un aviso nuevo, la píldora de Next tapaba la barra de abajo y rompía las pruebas.
+        PRUEBAS_E2E: "1",
       },
     },
     {

@@ -173,6 +173,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"frases_tomadas": {
+                  Row: {
+                    "celular": string,"frase": string,"id": number,"tomada_en": string,"tomada_por": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "celular": string,"frase": string,"id"?: never,"tomada_en"?: string,"tomada_por"?: string
+                  }
+                  Update: {
+                    "celular"?: string,"frase"?: string,"id"?: never,"tomada_en"?: string,"tomada_por"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"gastos": {
                   Row: {
                     "categoria": string,"comando_voz_id": number | null,"descripcion": string | null,"fecha": string,"id": number,"medio_pago": Database["public"]['Enums']["medio_pago"],"monto": number,"registrado_por": string
@@ -645,6 +659,9 @@ isOneToOne: false
                            },
 "rol_actual":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["rol_usuario"]
+                           },
+"tomar_frase":
+{ Args: { "p_celular": string,"p_frase": string }; Returns: boolean
                            },
 "tomar_numero":
 { Args: { "p_serie": string }; Returns: number
