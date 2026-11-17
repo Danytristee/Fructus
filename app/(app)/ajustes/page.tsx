@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Apple, Users } from "lucide-react";
 
+import { HoraDeCierre } from "@/components/ajustes/HoraDeCierre";
 import { Encabezado } from "@/components/marco/Encabezado";
 import { SesionSinConexion } from "@/components/marco/SesionSinConexion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Avatar } from "@/components/ui/Avatar";
 import { BuscadorCatalogo } from "@/components/ui/BuscadorCatalogo";
+import { leerHoraDeCierre } from "@/lib/hora-cierre";
 import { compararProductos } from "@/lib/productos-reglas";
 import { nombreDelRol } from "@/lib/permisos-reglas";
 import { iniciales } from "@/lib/operaciones-reglas";
@@ -13,7 +15,8 @@ import { exigirSesion } from "@/lib/sesion";
 
 export const metadata: Metadata = { title: "Ajustes · Fructus" };
 
-// El catálogo del puesto y el equipo. Por ahora se lee; editar precios y dar acceso desde aquí llega en A12.
+// El catálogo del puesto, el equipo y la hora de cierre (ADR-0023). El catálogo y el equipo por ahora se leen; editar precios y dar acceso
+// desde aquí llega en A12. La hora de cierre sí se cambia aquí.
 export default async function Ajustes() {
   // La guarda va en el servidor: esconder el enlace del menú no basta, alguien puede escribir /ajustes.
   const { supabase, permisos } = await exigirSesion();
@@ -33,13 +36,25 @@ export default async function Ajustes() {
       </>
     );
   }
-  const [productos, equipo] = await Promise.all([
+  const [productos, equipo, hora] = await Promise.all([
     supabase.from("productos").select("id, nombre, variedad, marca, seleccion, calibre, kg_por_caja, costo_referencia, precio_referencia, alias").eq("activo", true),
     supabase.from("perfiles").select("id, nombre, rol, activo").order("nombre"),
+    leerHoraDeCierre(supabase).catch((e: unknown) => {
+      console.error("ajustes: no se pudo leer la hora de cierre", { error: e instanceof Error ? e.message : "desconocido" });
+      return null;
+    }),
   ]);
   return (
     <>
-      <Encabezado titulo="Ajustes" subtitulo="Tu catálogo y tu equipo" />
+      <Encabezado titulo="Ajustes" subtitulo="Tu catálogo, tu equipo y tu hora de cierre" />
+      {/* Un solo renglón arriba: abajo de 58 frutas no la encontraba nadie. */}
+      <section aria-label="Hora de cierre" className="mb-6 animate-subir lg:max-w-xl">
+        {hora === null ? (
+          <Aviso titulo="No pudimos leer tu hora de cierre">Revisa tu señal y vuelve a abrir Ajustes.</Aviso>
+        ) : (
+          <HoraDeCierre horaInicial={hora} />
+        )}
+      </section>
       {/* En escritorio (ADR-0015): el catálogo a la izquierda y el equipo al lado. */}
       <div className="lg:grid lg:grid-cols-12 lg:items-start lg:gap-6">
       <section aria-labelledby="catalogo" className="animate-subir lg:col-span-7">

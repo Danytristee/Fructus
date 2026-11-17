@@ -1,4 +1,4 @@
-import { BadgePercent, Ban, Check, Clock, HandCoins, Handshake, PackagePlus, ReceiptText, Repeat, Snowflake, Sparkles, TriangleAlert } from "lucide-react";
+import { BadgePercent, Ban, Check, Clock, HandCoins, Handshake, PackagePlus, PencilLine, ReceiptText, Repeat, Snowflake, Sparkles, TriangleAlert } from "lucide-react";
 import { cn } from "cn";
 
 const tipos = {
@@ -6,6 +6,8 @@ const tipos = {
   debe: { clase: "bg-deuda-fondo text-deuda", Icono: Clock },
   // «Sugerido» es un precio que nadie dijo: se marca en tono de aviso para que se revise (principio 2).
   sugerido: { clase: "bg-sol/12 text-sol", Icono: Sparkles },
+  // «corregido»: lo que cambió al corregir hablando («no, son ocho cajas»), lo mismo que dice la voz (/formidable 2026-11-17).
+  corregido: { clase: "bg-acento/12 text-acento-texto", Icono: PencilLine },
   aviso: { clase: "text-deuda px-0", Icono: TriangleAlert },
   abono: { clase: "bg-exito-fondo text-exito", Icono: HandCoins },
   compra: { clase: "bg-acento/12 text-acento-texto", Icono: PackagePlus },

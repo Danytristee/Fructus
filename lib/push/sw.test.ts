@@ -64,7 +64,7 @@ describe("public/sw.js · recibir el aviso", () => {
 
   it("lee las mismas llaves que arma el servidor: el aviso de activación también se muestra completo", async () => {
     const sw = cargarServiceWorker();
-    const aviso = avisoDeActivacion();
+    const aviso = avisoDeActivacion({ hora: 19, minuto: 0 });
     await sw.recibir(JSON.stringify(aviso));
     expect(sw.mostradas[0]).toMatchObject({ titulo: aviso.titulo, opciones: { body: aviso.cuerpo, tag: aviso.tag, data: { url: aviso.url } } });
   });

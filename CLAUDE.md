@@ -114,7 +114,7 @@ app/
     comprobantes/       emitir y reintentar en sandbox (solo servidor)
     exportar/route.ts   el mes en un .xlsx para el contador (solo lectura, con la sesión de quien lo pide; lee por páginas porque Supabase corta en 1000 filas)
     salud/route.ts      consulta real a la base, para el ping y para diagnosticar
-    cron/resumen-diario/route.ts   el aviso del día (Web Push) y la estimación de vida útil (ADR-0021), una vez al día; solo responde con el secreto de Vercel (ADR-0013)
+    cron/resumen-diario/route.ts   el aviso del día (Web Push) y la estimación de vida útil (ADR-0021), a la hora y minuto de cierre que elige el dueño: la llama el reloj de la base (pg_cron, con una ficha de un solo uso) y, de respaldo, un cron de Vercel por hora (ADR-0023, ADR-0024); solo responde con la ficha vigente o el secreto de Vercel (ADR-0013)
   manifest.ts  layout.tsx  globals.css
 components/
   ui/                   UNA pieza por función: Boton, Hoja, Tarjeta, Campo, Monto, Insignia, Aviso, Vacio, Espera
@@ -298,8 +298,11 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - Supabase da `EXECUTE` a `anon` y `authenticated` en toda función nueva (y Postgres a `public`). Revoca `anon` y `public` en la misma migración: ninguna función propia se ejecuta sin sesión. `supabase/tests/database/05_funciones_sin_anon.test.sql` falla en el CI si una queda abierta.
 - **Avisos del linter que se dejan a propósito:**
   - `series_comprobante` tiene RLS sin políticas porque solo la toca el servidor.
+  - `aviso_del_dia` tiene RLS sin políticas porque solo la tocan el servidor y el reloj de la base (ADR-0024).
   - `frases_tomadas` tiene RLS sin políticas porque solo la toca `tomar_frase` (security definer, ADR-0022).
   - `rol_actual()` es `security definer` y la pueden ejecutar los autenticados, porque las políticas la necesitan.
+  - `fijar_hora_cierre()` es `security definer` y la pueden ejecutar los autenticados: revisa el rol (dueño o administrador) antes de
+    tocar `ajustes_puesto`, que no tiene update directo (ADR-0023).
   - `tomar_frase()` es `security definer` y la pueden ejecutar los autenticados: `/api/voz` la llama con la sesión de quien dicta, y la
     función revisa el rol antes de tocar `frases_tomadas` (ADR-0022).
   - Los avisos de rendimiento (políticas permisivas múltiples, llaves foráneas sin índice) no importan a este volumen; se revisan antes de producción.
@@ -341,6 +344,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
 
 - **Pre-commit** (`.githooks/pre-commit`): revisa **solo lo que estás commiteando** (tipos, `vitest related` y ESLint), como en CAYLA Retail, porque un hook lento se termina salteando. Se activa con `pnpm install` (script `prepare`). Solo en una emergencia real: `git commit --no-verify`.
 - **CI** (`.github/workflows/ci.yml`): tipos, lint, pruebas, Knip y build. Hay un segundo trabajo que levanta Supabase con Docker y corre pgTAP y las invariantes. **Un PR en rojo no se fusiona.**
+  - **`pnpm ci:local` corre los dos trabajos en esta máquina igual que GitHub** (`scripts/ci-local.sh`): sobre una copia limpia del commit, sin `.env` locales, con el Node de `.nvmrc` y sobre una base nueva (`fructus-ci`, puertos 5692x), sin tocar la de nadie. Mientras Actions no arranque (la cuenta dueña quedó bloqueada por facturación el 2026-11-17), es el CI: se corre antes de pedir la fusión y su resultado va en el PR. Correr las pruebas en la carpeta de trabajo no alcanza, porque los `.env` locales esconden fallas: así se escondió por 9 días un Knip roto.
 - **Mantener viva la base:** `.github/workflows/mantener-despierta.yml` consulta la base cada 3 días para que el plan gratis no la pause. Necesita los secrets `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`.
 
 ## Flujo de trabajo

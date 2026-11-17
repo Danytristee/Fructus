@@ -5,9 +5,9 @@
 //      ▲                     │ no habló             │ otra cosa (1.ª vez)
 //      └─── «Para guardar, di confirmo» ◀───────────┘
 //
-// Si falta saber si pagó, la primera pregunta es «¿Pagó o lo debe?»: la respuesta se anota en la tarjeta y se lee la venta completa
-// para confirmarla. Si en vez de «confirmo» corrige («no, son ocho cajas»), la tarjeta se rehace y se vuelve a leer; si dice
-// «repite» o «¿qué?», se vuelve a leer igual (hasta REPETICIONES veces). Con dudas del intérprete (o si falta otro dato) solo se avisa: no se escucha nada y se confirma con el dedo.
+// Si falta saber si pagó, la primera pregunta es «¿Pagó o lo debe?»: la respuesta se anota en la tarjeta, se repite y se pregunta
+// «¿Confirmo?» (la venta ya se leyó al preguntar). Si en vez de «confirmo» corrige («no, son ocho cajas»), la tarjeta se rehace y
+// se dice lo que cambió; si dice «repite» o «¿qué?», se vuelve a leer entera (hasta REPETICIONES veces). Con dudas del intérprete (o si falta otro dato) solo se avisa: no se escucha nada y se confirma con el dedo.
 // Tocar la tarjeta, en cualquier momento: callado (la persona toma el control).
 import type { Pago } from "./respuesta-reglas";
 
@@ -47,7 +47,7 @@ export type EventoManosLibres =
   | { tipo: "respuesta"; respuesta: "confirmar" | "corregir" | "otra" | "fallo" }
   /** Lo que entendió de «¿Pagó o lo debe?»; null si no se entendió, «fallo» si el servidor no respondió. */
   | { tipo: "pago"; pago: Pago | null | "fallo" }
-  /** Se anotó el pago en la tarjeta: `lista`, la venta quedó completa y se lee para confirmarla. */
+  /** Se anotó el pago en la tarjeta: `lista`, la venta quedó completa y se pregunta «¿Confirmo?». */
   | { tipo: "anotado"; lista: boolean }
   /** La tarjeta se rehízo con la corrección: qué pregunta toca ahora (la venta corregida puede dejar dudas o faltar algo). */
   | { tipo: "corregida"; pregunta: Pregunta }
@@ -106,7 +106,7 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
       return quedar;
     }
     case "anotando":
-      // Ya se sabe si pagó: se lee la venta completa y se pregunta «¿Confirmo?», como si se hubiera dictado así.
+      // Ya se sabe si pagó: se repite la respuesta y se pregunta «¿Confirmo?». La venta se acaba de leer al preguntar.
       if (ev.tipo === "anotado") return ev.lista ? { estado: leyendo("confirmar"), efecto: "releer" } : callado("falta", "nada");
       // Corregida: se lee lo nuevo con su pregunta. Las respuestas cuentan desde cero: puede volver a corregir o confirmar.
       if (ev.tipo === "corregida") return { estado: leyendo(ev.pregunta), efecto: "releer" };
@@ -120,7 +120,9 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
 /**
  * La línea sobre Confirmar: qué está haciendo la voz o por qué se dejó para tocar. null si no hay nada que decir. `corrige`: la
  * tarjeta se puede corregir hablando (la venta), y escuchando lo enseña: nada en la pantalla decía que «no, son 8» funciona, y
- * «o toca Confirmar» sobraba con el botón justo abajo (/formidable 2026-11-16).
+ * «o toca Confirmar» sobraba con el botón justo abajo (/formidable 2026-11-16). También enseña «repite»: desde que tras responder o
+ * corregir solo se dice lo nuevo, pedirla es la única forma de oír la venta entera, y quien no oyó por un camión soltaba una caja
+ * para tocar (/formidable 2026-11-17).
  */
 export function notaManosLibres(e: EstadoManosLibres, { corrige = false }: { corrige?: boolean } = {}): string | null {
   const pago = e.pregunta === "pago";
@@ -131,8 +133,9 @@ export function notaManosLibres(e: EstadoManosLibres, { corrige = false }: { cor
       if (e.intento === 1) return "Te la estoy leyendo…";
       return pago ? "¿Pagó o lo debe?" : "Para guardar, di «confirmo».";
     case "escuchando":
-      if (pago) return "Te escucho: di «pagó» o «lo debe».";
-      return corrige ? "Te escucho: di «confirmo» o lo que hay que cambiar." : "Te escucho: di «confirmo» o toca Confirmar.";
+      // «Repite» también vale aquí (/api/voz/respuesta lo revisa en cualquier pregunta): se dice, o no se sabe (2.ª prueba ciega).
+      if (pago) return "Te escucho: di «pagó», «lo debe» o «repite».";
+      return corrige ? "Te escucho: di «confirmo», «repite» o lo que hay que cambiar." : "Te escucho: di «confirmo» o toca Confirmar.";
     case "entendiendo":
     case "anotando":
       return "Entendiendo…";

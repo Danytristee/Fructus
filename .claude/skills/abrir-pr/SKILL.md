@@ -27,6 +27,8 @@ Para cada archivo nuevo en `supabase/migrations/`:
 2. Si toca `supabase/`: `npx supabase db reset && npx supabase test db && psql "$DB_URL" -f scripts/invariantes.sql`.
 3. Si toca una pantalla: la prueba e2e de esa ruta (`pnpm exec playwright test tests/e2e/<ruta>`) y una **captura a 412 px**.
 4. Si toca la voz (`lib/voz/`, `docs/interprete-voz.md`, `tests/interprete/`): `/voz-precision` y su resultado.
+5. Con todo commiteado, `pnpm ci:local`: el CI entero sobre una copia limpia del commit y una base nueva, como en GitHub. Mientras
+   Actions no arranque, su resultado es el CI del PR y va en la descripción.
 
 Si algo falla y no es tuyo, dilo en la descripción. No lo arregles en este PR.
 
