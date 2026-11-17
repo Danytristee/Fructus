@@ -243,7 +243,8 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - Las dudas del intérprete salen como una línea discreta.
   - Un solo botón grande: **Confirmar**.
 - **Si algo falla, se dice qué hacer.**
-  - Si Groq no responde en **8 s** (`AbortSignal.timeout`), se intenta con Gemini.
+  - Si la cuenta de Groq se quedó sin cupo (429) o su clave no vale (401, 403), se prueba con la de respaldo (`GROQ_API_KEY_RESPALDO`, otra cuenta; `lib/voz/respaldo-reglas.ts`).
+  - Si Groq no responde en **8 s** (`AbortSignal.timeout`) o falla de otra forma, se intenta con Gemini, sin pasar por la otra cuenta.
   - Si tampoco responde, sale «No te entendí, inténtalo otra vez» y el audio se conserva.
   - Toda llamada externa lleva un tope de espera. Ningún `catch` se traga un error sin registrarlo.
 - **Responder hablando** en consultas («¿quién me debe?»), con `speechSynthesis` en `es-PE` o `es-US`. Sin manos libres, una venta se confirma con vibración, sonido y la tarjeta en verde; no hace falta voz.
@@ -287,6 +288,8 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
 - **Roles y RLS:**
   - **duenio** y **administrador** pueden hacer todo.
   - **ayudante** inserta operaciones, pero no edita ni anula.
+  - **Un dictado lo guarda quien lo dictó**, o el dueño o el administrador. La RLS de toda tabla con `comando_voz_id` lo exige (`comando_propio()`), y `registrar_venta` y `registrar_compra` lo revisan antes de guardar. Una tabla nueva con `comando_voz_id` lleva la misma condición en su política de inserción.
+  - **La firma (`registrado_por`) es de quien está conectado.** Con sesión, nadie guarda a nombre de otro ni cambia una firma, ni el dueño: el trigger `fijar_registrado_por()` rechaza con 42501. Sin sesión (semilla, pruebas, servidor) se respeta lo que venga. Una tabla nueva con `registrado_por` lleva el trigger (lo vigila `supabase/tests/database/27_registrado_por_es_quien_registra.test.sql`).
   - **contador** solo lee.
   - **comprobantes** y **series** solo los escribe el servidor (service role).
 - **Trampas de RLS que ya costaron caro:**

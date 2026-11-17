@@ -305,7 +305,7 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
    («membrillo de cuarta»). Un alias nunca es el nombre a secas de una fruta con varias selecciones.
 3. Precio null → `ultimo_precio(cliente, producto)`, marcado como "sugerido" en la tarjeta.
 4. Condición null → dos botones grandes: **Pagó** / **Lo debe**.
-5. Al confirmar → `registrar_venta` / `registrar_compra` con `comando_voz_id` (marcan el comando como `confirmado`). Abonos, mermas y gastos se insertan directo en su tabla y la app marca el comando.
+5. Al confirmar → `registrar_venta` / `registrar_compra` con `comando_voz_id` (marcan el comando como `confirmado`). Abonos, mermas y gastos se insertan directo en su tabla y la app marca el comando. En las dos formas, solo quien dictó el comando (o el dueño o el administrador) puede guardar con él: la RLS lo exige.
 6. Si el usuario editó algo de la tarjeta, marcar el comando como `corregido` **antes** de guardar (la RPC solo cambia comandos que siguen `pendiente`). Si lo descartó, `descartado`.
 
 ## 6. Dónde vive y cómo se mide
@@ -314,12 +314,20 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
 |---|---|---|
 | Herramientas y validación | `lib/voz/esquemas.ts` (Zod, genera el JSON Schema para Groq) | `lib/voz/esquemas.test.ts` |
 | Prompt de sistema | `lib/voz/prompt.ts` (idéntico a la sección 2; una prueba lo verifica) | `lib/voz/esquemas.test.ts` |
-| Voz a texto | `lib/voz/stt.ts` (Groq Whisper, Gemini de respaldo, tope de 8 s) | `pnpm voz:stt` → `docs/voz/stt-*.md` |
+| Voz a texto | `lib/voz/stt.ts` (Groq Whisper con dos cuentas, Gemini de respaldo, tope de 8 s) | `pnpm voz:stt` → `docs/voz/stt-*.md` |
 | Vocabulario y catálogo | `lib/voz/catalogo-reglas.ts`, `lib/voz/catalogo.ts` (caché de 5 min) | `lib/voz/catalogo-reglas.test.ts` |
-| Intérprete | `lib/voz/interprete.ts` (Groq `openai/gpt-oss-120b`, Gemini de respaldo, tope de 8 s) | `pnpm voz:precision` → `docs/voz/precision-*.md` |
+| Intérprete | `lib/voz/interprete.ts` (Groq `openai/gpt-oss-120b` con dos cuentas, Gemini de respaldo, tope de 8 s) | `pnpm voz:precision` → `docs/voz/precision-*.md` |
 | Tarjeta | `lib/voz/tarjeta-reglas.ts` (lógica pura) | `lib/voz/tarjeta-reglas.test.ts` |
 | Resolver | `lib/voz/resolver.ts` (buscar_*, ultimo_precio) | `tests/e2e/voz-api.spec.ts` |
 | Todo junto | `app/api/voz/route.ts` | `tests/e2e/voz-api.spec.ts` |
+
+**El orden de los proveedores** vive en `lib/voz/respaldo-reglas.ts`, con su prueba, y es el mismo para la voz a texto y para el
+intérprete: Groq con `GROQ_API_KEY` → Groq con `GROQ_API_KEY_RESPALDO` (otra cuenta, con su propio cupo gratuito) → Gemini.
+- La cuenta de respaldo solo se prueba si la principal respondió 429 (sin cupo), 401 o 403 (clave rechazada).
+- Si Groq no respondió en 8 s, se cayó o devolvió algo inválido, la otra cuenta daría lo mismo y sumaría otros 8 s de espera: se
+  pasa directo a Gemini.
+- `/voz-precision` (`soloGroq`) usa las dos cuentas: es el mismo modelo, así que los números no cambian y el cupo es el doble.
+- Medido el 2026-11-16 contra Groq real, con la principal rechazada: el intérprete respondió con la de respaldo en 1.2 s en total.
 
 El modelo del intérprete se eligió con números (`docs/voz/precision-2026-10-28.md`): `gpt-oss-120b` le ganó a `gpt-oss-20b` en
 intención y datos, con la misma latencia. Se cambia con `GROQ_MODELO_LLM`, y solo después de correr `/voz-precision`.
