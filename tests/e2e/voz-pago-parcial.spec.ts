@@ -38,10 +38,12 @@ test("dictado con pago parcial: dice cuánto pagó y cuánto debe, y guarda la v
   const antes = await saldoDe(cliente.id);
   const hoja = await dictar(page, comandoId, tarjeta(cliente), "¿Así fue la venta?");
 
-  await expect(hoja.getByRole("button", { name: "Debe el resto" })).toHaveAttribute("aria-pressed", "true");
+  // «Lo debe» no cambia de nombre (/formidable 2026-11-17): lo pagado va escrito justo debajo.
+  await expect(hoja.getByRole("button", { name: "Lo debe", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(hoja.getByRole("button", { name: /Pagó ahora/ })).toContainText(enSoles(1000));
-  await expect(hoja.getByText("Queda debiendo")).toBeVisible();
-  await expect(hoja.getByText(enSoles(4000), { exact: true })).toBeVisible();
+  // Con el cliente y su deuda a la vista, la tarjeta de deuda dice lo de hoy; no se repite en «Queda debiendo».
+  await expect(hoja.getByText(`+ ${enSoles(4000)} de hoy`)).toBeVisible();
+  await expect(hoja.getByText("Queda debiendo")).toHaveCount(0);
   await expect(hoja.getByRole("button", { name: "Efectivo" })).toHaveAttribute("aria-pressed", "true");
   await hoja.getByRole("button", { name: "Yape" }).click();
   await expect(hoja.getByRole("button", { name: "Yape" })).toHaveAttribute("aria-pressed", "true");
@@ -76,7 +78,7 @@ test("«Lo debe» sin pago dicho: se anota a mano lo que dejó, y pagar todo pid
   await campo.fill("1500");
   await hoja.getByRole("button", { name: "Listo" }).click();
 
-  await expect(hoja.getByText(enSoles(3500), { exact: true })).toBeVisible();
+  await expect(hoja.getByText(`+ ${enSoles(3500)} de hoy`)).toBeVisible();
   await hoja.getByRole("button", { name: "Confirmar venta" }).click();
   await expect(page.getByText("Venta guardada")).toBeVisible();
 
@@ -85,14 +87,14 @@ test("«Lo debe» sin pago dicho: se anota a mano lo que dejó, y pagar todo pid
   expect(await saldoDe(cliente.id)).toBe(antes + 3500);
 });
 
-test("con algo anotado, «No pagó nada» lo quita y la venta queda debiendo todo", async ({ page }, info) => {
+test("con algo anotado, «Quitar lo que pagó» lo quita y la venta queda debiendo todo", async ({ page }, info) => {
   test.slow();
   const cliente = clientePorAncho[info.project.name as Ancho];
   const comandoId = await crearComando();
   const antes = await saldoDe(cliente.id);
   const hoja = await dictar(page, comandoId, tarjeta(cliente), "¿Así fue la venta?");
 
-  await hoja.getByRole("button", { name: "No pagó nada" }).click();
+  await hoja.getByRole("button", { name: "Quitar lo que pagó" }).click();
   await expect(hoja.getByRole("button", { name: "Pagó una parte" })).toBeVisible();
   await hoja.getByRole("button", { name: "Confirmar venta" }).click();
   await expect(page.getByText("Venta guardada")).toBeVisible();

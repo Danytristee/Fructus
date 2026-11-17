@@ -12,7 +12,7 @@ type Props = {
   /** Lo que pagó al llevarse la fruta; null si todavía no se anotó nada. */
   pagado: number | null;
   medio: Medio | null;
-  /** Lo que queda debiendo con esta venta; null mientras falte un precio. */
+  /** Lo que queda debiendo con esta venta. null mientras falte un precio, o si la tarjeta de deuda del cliente ya lo dice. */
   debe: number | null;
   /** Abre el campo para escribir cuánto pagó. */
   alAnotar: () => void;
@@ -58,7 +58,7 @@ export function PagoParcial({ pagado, medio, debe, alAnotar, alCambiarMedio, alQ
         </p>
       )}
       <Boton variante="texto" onClick={alQuitar} className="justify-self-start px-1">
-        No pagó nada
+        Quitar lo que pagó
       </Boton>
     </div>
   );

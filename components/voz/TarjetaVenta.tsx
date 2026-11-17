@@ -35,9 +35,6 @@ import { useManosLibres } from "./useManosLibres";
 type Venta = Extract<Tarjeta, { tipo: "venta" }>;
 type Vista = { tipo: "tarjeta" } | { tipo: "cliente" } | { tipo: "item"; n: number } | { tipo: "pagado" };
 
-// Con lo que pagó al llevar, «Lo debe» es «Debe el resto»: la píldora dice lo mismo que el bloque de abajo (ADR-0023).
-const CON_PAGO_PARCIAL = { pregunta: "¿Pagó o lo debe?", contado: "Pagó", credito: "Debe el resto", conQue: "¿Con qué pagó?" };
-
 type Props = {
   tarjeta: Venta;
   comandoId: number;
@@ -205,6 +202,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   }
 
   const { cliente } = borrador;
+  // La tarjeta de deuda ya dice «+ S/ 4,000.00 de hoy» y el total: con ella a la vista, «Queda debiendo» repetía la cifra (/formidable 2026-11-17).
+  const conMedidor = cliente !== null && saldo !== null && total !== null && borrador.condicion !== null;
   // «Pagó / Lo debe» ya lleva su pregunta escrita encima: el pie no la repite (/formidable 2026-10-29).
   const aviso = frasesFalta(falta.filter((f) => f !== "condicion"));
   return (
@@ -254,7 +253,6 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         <PagoODebe
           condicion={borrador.condicion}
           medio={borrador.medio}
-          textos={pagado !== null ? CON_PAGO_PARCIAL : undefined}
           // Volver a «Lo debe» con algo anotado conserva con qué pagó lo que dejó.
           alCambiar={(condicion, medio) => setBorrador((b) => ({ ...b, condicion, medio: condicion === "credito" && b.pagado ? (b.medio ?? "efectivo") : medio }))}
         />
@@ -265,7 +263,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           <PagoParcial
             pagado={pagado}
             medio={borrador.medio}
-            debe={debe}
+            debe={conMedidor ? null : debe}
             alAnotar={() => setVista({ tipo: "pagado" })}
             alCambiarMedio={(medio) => setBorrador((b) => ({ ...b, medio }))}
             alQuitar={() => setBorrador((b) => ({ ...b, pagado: null, medio: null }))}
@@ -294,7 +292,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         </div>
       )}
 
-      {cliente && saldo !== null && total !== null && borrador.condicion !== null && (
+      {conMedidor && cliente && saldo !== null && (
         <div className="animate-pieza">
           <MedidorDeuda nombre={cliente.nombre} saldo={saldo} total={borrador.condicion === "credito" ? (debe ?? total) : total} alCredito={borrador.condicion === "credito"} />
         </div>
