@@ -122,3 +122,22 @@ Silero) ya existía desde el PR #39 (`lib/voz/silencio-reglas.ts`, por volumen):
   - con el detector caído se suelta el micrófono.
 
   Queda el 1, que es regla de dinero y espera decisión: **dos celulares escuchando guardan dos veces la misma venta**.
+
+## Las ventas dobles de dos celulares (decisión A, ADR-0022 punto 7)
+
+- **Qué cambió:**
+  - Migración `20261116193000_frases_tomadas` (tabla y `tomar_frase`, bajo un candado).
+  - `/api/voz` toma la frase antes de abrir la tarjeta; si otro celular ya tomó una casi igual en 10 s, responde `otro_celular` y «Hoy»
+    dice «Eso ya lo anotó otro celular».
+  - Cada celular manda su número al azar (`lib/voz/celular.ts`), también desde la cola sin señal.
+- **Cómo se verificó:**
+  - pgTAP `26_frases_tomadas`: 11 en verde. `05_funciones_sin_anon` en verde.
+  - Tipos regenerados.
+  - `voz-api.spec.ts` contra Groq real: dos celulares a la vez abren 1 tarjeta y dejan 1 comando. Ese día Whisper escribió «Hola
+    Fruptus», y la regla igual la reconoció.
+- **Una corrección:** en la 5d dije que las dos pruebas nuevas de `voz-api.spec.ts` contra Groq habían pasado, y no habían corrido. El
+  archivo corre en serie, y su primera prueba (la de «mango Quenta», que ya fallaba) detiene las demás. Corridas por nombre, pasan las 3.
+- **Pendiente:**
+  - **Aplicar la migración al proyecto con OK.** Después: renombrarla a la versión de Supabase, regenerar los tipos y correr
+    `get_advisors`.
+  - `voz-api.spec.ts`: la falla vieja de «mango Quenta» deja sin correr al resto del archivo (modo serie).

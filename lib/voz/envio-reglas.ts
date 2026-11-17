@@ -14,10 +14,12 @@ const SIN_SENAL = "Sin señal: no pude enviar lo que dijiste. Lo guardé para re
 export type Desenlace =
   | { tipo: "tarjeta"; comandoId: number; tarjeta: Tarjeta }
   /**
-   * Lo dicho después de «Hola Fructus» no era para Fructus (el segundo paso, lib/voz/palabra-reglas.ts): «parecida» si se oyó
-   * «frutas» en vez de la frase; «sin_orden» si dijo la frase y nada más. No se guardó nada y no hay nada que reintentar.
+   * Lo dicho después de «Hola Fructus» no abre tarjeta y no hay nada que reintentar:
+   * - «parecida»: se oyó «frutas» en vez de la frase (el segundo paso, lib/voz/palabra-reglas.ts);
+   * - «sin_orden»: dijo la frase y nada más;
+   * - «otro_celular»: otro celular del puesto oyó lo mismo y ya abrió su tarjeta (ADR-0022).
    */
-  | { tipo: "ignorado"; motivo: "parecida" | "sin_orden" }
+  | { tipo: "ignorado"; motivo: "parecida" | "sin_orden" | "otro_celular" }
   | {
       tipo: "error";
       mensaje: string;
@@ -32,7 +34,9 @@ export function desenlaceDeRespuesta(estado: number, cuerpo: unknown): Desenlace
   const c = esObjeto(cuerpo) ? cuerpo : {};
   const mensaje = typeof c.error === "string" ? c.error : null;
 
-  if (estado === 200 && (c.ignorado === "parecida" || c.ignorado === "sin_orden")) return { tipo: "ignorado", motivo: c.ignorado };
+  if (estado === 200 && (c.ignorado === "parecida" || c.ignorado === "sin_orden" || c.ignorado === "otro_celular")) {
+    return { tipo: "ignorado", motivo: c.ignorado };
+  }
 
   if (estado === 200 && typeof c.comandoId === "number" && esObjeto(c.tarjeta) && typeof c.tarjeta.tipo === "string") {
     const tarjeta = c.tarjeta as Tarjeta;

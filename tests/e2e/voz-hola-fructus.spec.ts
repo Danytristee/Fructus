@@ -46,7 +46,7 @@ async function escuchando(page: Page, { prendido = true } = {}) {
   if (prendido) await expect(orbe(page)).toHaveAttribute("data-palabra", "true", { timeout: 30_000 });
 }
 
-type Envio = { archivo: string; despertar: string | null; duracionMs: number };
+type Envio = { archivo: string; despertar: string | null; celular: string | null; duracionMs: number };
 
 /** Lo que llegó a /api/voz: el nombre del audio, la marca de «Hola Fructus» y la duración. */
 function leerEnvio(r: Route): Envio {
@@ -54,6 +54,7 @@ function leerEnvio(r: Route): Envio {
   return {
     archivo: cuerpo.match(/name="audio"; filename="([^"]+)"/)?.[1] ?? "",
     despertar: cuerpo.match(/name="despertar"\r\n\r\n([^\r]*)/)?.[1] ?? null,
+    celular: cuerpo.match(/name="celular"\r\n\r\n([^\r]*)/)?.[1] ?? null,
     duracionMs: Number(cuerpo.match(/name="duracion_ms"\r\n\r\n(\d+)/)?.[1]),
   };
 }
@@ -86,6 +87,8 @@ test("«Hola Fructus, vendí…» dicho de corrido: sin tocar nada, envía lo di
   await expect(hojaVenta(page)).toBeVisible({ timeout: 15_000 });
   expect(envios).toHaveLength(1);
   expect(envios[0]).toMatchObject({ archivo: "voz.wav", despertar: "1" });
+  // Con el número de este celular: si otro celular oyó lo mismo, el servidor abre una sola tarjeta (ADR-0022).
+  expect(envios[0]!.celular?.length).toBeGreaterThanOrEqual(8);
   expect(envios[0]!.duracionMs).toBeGreaterThan(6200);
   expect(envios[0]!.duracionMs).toBeLessThan(9000);
 });
@@ -129,6 +132,15 @@ test("si el servidor oyó «frutas» y no la frase (5d), vuelve a escuchar sin a
   await expect(orbe(page)).toHaveAttribute("data-palabra", "true"); // sigue escuchando
   await expect(hojaVenta(page)).toBeHidden();
   await expect(page.getByRole("button", { name: "Cerrar el aviso" })).toBeHidden(); // no es un error: no hay aviso que cerrar
+});
+
+test("si otro celular ya anotó lo mismo, lo dice y no abre otra tarjeta", async ({ page }) => {
+  test.slow();
+  await escuchando(page);
+  await page.route("/api/voz", (r) => r.fulfill({ json: { ignorado: "otro_celular" } }));
+  await decir(page, VENTA);
+  await expect(page.locator("#voz-texto")).toHaveText("Eso ya lo anotó otro celular.", { timeout: 15_000 });
+  await expect(hojaVenta(page)).toBeHidden();
 });
 
 test("si el servidor oyó solo la frase, dice que no oyó lo que seguía", async ({ page }) => {

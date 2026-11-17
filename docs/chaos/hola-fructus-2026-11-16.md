@@ -1,7 +1,7 @@
 # /chaos · «Hola Fructus» en «Hoy» (2026-11-16)
 
-**Rama:** `claude/hola-fructus-voice-commands-2e7437`. **Semilla:** 2026111603. **Ataques:** 9. **Resistieron:** 6. **Hallazgos:** 3. El 2 y
-el 3 quedaron arreglados con OK y su prueba; el 1 es regla de dinero y espera decisión.
+**Rama:** `claude/hola-fructus-voice-commands-2e7437`. **Semilla:** 2026111603. **Ataques:** 9. **Resistieron:** 6. **Hallazgos:** 3. Los 3
+quedaron arreglados con OK y su prueba (el 1, con la migración aplicada solo en local hasta el OK).
 
 **Base:** local y compartida, así que no se hizo `db reset`.
 - Antes: volcado de los datos de `public` y las 12 invariantes en orden.
@@ -25,7 +25,18 @@ Un solo «confirmo» guarda las dos.
 - **Evidencia:** `ventas` con los dos comandos: **2 filas de S/ 450**. Las invariantes no lo ven: cada venta es correcta sola.
 - **Por qué pasa:** cada celular escucha y confirma lo suyo, y nada le dice al servidor que dos comandos son la misma frase. Antes de
   «Hola Fructus» había que tocar cada celular para abrir una tarjeta, así que no pasaba solo.
-- **Es una regla de dinero:** la decide quien dirige el proyecto. Opciones en el chat del 2026-11-16.
+- **Es una regla de dinero:** la decidió quien dirige el proyecto el 2026-11-16, con la opción A: el servidor toma una sola vez la misma
+  frase oída por dos celulares (ADR-0022, decisión 7).
+- **Arreglado:**
+  - Migración `frases_tomadas`: la tabla y la función `tomar_frase`, que revisa y anota bajo un candado. **Se aplicó en local; al
+    proyecto, con OK.**
+  - `/api/voz` la llama antes de abrir la tarjeta.
+  - Regresiones:
+    - pgTAP `26_frases_tomadas.test.sql`, 11 pruebas;
+    - `voz-api.spec.ts`, «dos celulares que oyeron la misma venta», contra Groq real: dos envíos a la vez abren 1 tarjeta, el otro
+      responde `otro_celular`, y queda 1 comando.
+  - El ataque de la semilla simulaba /api/voz en cada celular, así que no pasa por el arreglo. La misma situación contra el servidor
+    real es la prueba de `voz-api.spec.ts`.
 
 ### 2 · Si la pantalla se oculta a mitad de lo dictado, el orbe queda «Te escucho…» sin grabar (gravedad 3)
 

@@ -264,6 +264,8 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - No escucha con la tarjeta abierta, mientras entiende ni mientras se graba con el dedo. Con la pantalla oculta suelta el micrófono.
   - **Segundo paso en el servidor** (`revisarFrase`): si Whisper oyó «frutas» en vez de la frase, se descarta sin guardar nada. No se
     exige que escriba «Fructus»: la frase sola sale mal escrita y se tirarían órdenes reales.
+  - **Dos celulares, una tarjeta** (`tomar_frase`): una venta dicha en voz alta la oyen todos los celulares que escuchan; solo el
+    primero que la entiende abre su tarjeta, y el otro dice «Eso ya lo anotó otro celular».
   - Al cambiar un modelo, se rehace la referencia de Python (`scripts/voz/palabra-activacion/referencia.py`) y se mide
     `pnpm medir:escucha`.
 - **Precisión medible.** Los casos de `docs/interprete-voz.md` viven en `tests/interprete/casos.json`, y `/voz-precision` los corre contra el modelo real. Meta de la demo: **90 % o más de acierto** en intención y datos clave. Se mide antes de cada entrega.
@@ -293,6 +295,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - Supabase da `EXECUTE` a `anon` y `authenticated` en toda función nueva (y Postgres a `public`). Revoca `anon` y `public` en la misma migración: ninguna función propia se ejecuta sin sesión. `supabase/tests/database/05_funciones_sin_anon.test.sql` falla en el CI si una queda abierta.
 - **Avisos del linter que se dejan a propósito:**
   - `series_comprobante` tiene RLS sin políticas porque solo la toca el servidor.
+  - `frases_tomadas` tiene RLS sin políticas porque solo la toca `tomar_frase` (security definer, ADR-0022).
   - `rol_actual()` es `security definer` y la pueden ejecutar los autenticados, porque las políticas la necesitan.
   - Los avisos de rendimiento (políticas permisivas múltiples, llaves foráneas sin índice) no importan a este volumen; se revisan antes de producción.
 - **IGV:** frutas frescas → afectación `20` (exonerado, Apéndice I de la Ley del IGV). Es configurable por producto.

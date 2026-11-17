@@ -7,6 +7,7 @@ import { confirmarVenta } from "@/app/(app)/acciones-voz";
 import { NO_ABRIO } from "@/lib/a-mano-reglas";
 import { desenlaceConfirmacion, sinComando, type Desenlace, type Entrada, type Operacion } from "@/lib/cola-reglas";
 import { formatearSoles } from "@/lib/formato";
+import { idDelCelular } from "@/lib/voz/celular";
 import { desenlaceDeRespuesta, nombreDelAudio } from "@/lib/voz/envio-reglas";
 import { actualizar } from "./almacen";
 
@@ -79,14 +80,17 @@ async function enviarAudio(audio: Blob, duracionMs: number, despertar?: true): P
   const formulario = new FormData();
   formulario.append("audio", audio, nombreDelAudio(audio.type));
   formulario.append("duracion_ms", String(duracionMs));
-  if (despertar) formulario.append("despertar", "1");
+  if (despertar) {
+    formulario.append("despertar", "1");
+    formulario.append("celular", idDelCelular()); // la cola envía desde el mismo celular que oyó (ADR-0022)
+  }
   const desde = performance.now();
   try {
     const r = await fetch("/api/voz", { method: "POST", body: formulario, signal: AbortSignal.timeout(TOPE_AUDIO_MS) });
     if (r.status === 401) return { tipo: "sin_sesion" };
     const d = desenlaceDeRespuesta(r.status, await r.json().catch(() => null));
     if (d.tipo === "tarjeta") return { tipo: "tarjeta", comandoId: d.comandoId, tarjeta: d.tarjeta, latenciaMs: Math.round(performance.now() - desde) };
-    // Lo que siguió a «Hola Fructus» no era para Fructus (se oyó «frutas», o nada más): no hay nada que mostrar ni que reintentar.
+    // Lo que siguió a «Hola Fructus» no abre tarjeta (se oyó «frutas», nada más, u otro celular ya la anotó): nada que reintentar.
     if (d.tipo === "ignorado") return { tipo: "hecho" };
     // Falló un servicio (Groq, la base): el mismo audio sirve más tarde. Si lo que se dijo no se entendió, no.
     return d.conservarAudio ? { tipo: "reintentar" } : { tipo: "rechazo", error: d.mensaje };

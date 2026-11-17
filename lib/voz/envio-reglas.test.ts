@@ -28,6 +28,7 @@ describe("desenlaceDeRespuesta", () => {
   it("lo que no era para Fructus (después de «Hola Fructus») no abre nada ni se reintenta", () => {
     expect(desenlaceDeRespuesta(200, { ignorado: "parecida" })).toEqual({ tipo: "ignorado", motivo: "parecida" });
     expect(desenlaceDeRespuesta(200, { ignorado: "sin_orden" })).toEqual({ tipo: "ignorado", motivo: "sin_orden" });
+    expect(desenlaceDeRespuesta(200, { ignorado: "otro_celular" })).toEqual({ tipo: "ignorado", motivo: "otro_celular" });
     // Otra cosa en «ignorado» no se inventa: es una respuesta rara, se trata como falla del servicio.
     expect(desenlaceDeRespuesta(200, { ignorado: "otro" })).toMatchObject({ tipo: "error", conservarAudio: true });
   });

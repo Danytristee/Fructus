@@ -51,6 +51,22 @@ las frases con «fruta»: un 11 % lo despierta (`docs/voz/palabra-activacion-202
      reales. El intérprete entiende igual la orden con ese saludo delante.
 6. **El vocabulario de Whisper no cambia.** Agregarle la frase no mejoró nada y lo empujaría a escribir «Fructus» donde se dijo
    «frutas».
+7. **Dos celulares que oyeron la misma venta abren una sola tarjeta** (`tomar_frase`, migración `frases_tomadas`). La eligió quien dirige
+   el proyecto el 2026-11-16, entre 3 opciones.
+   - **El problema:** /chaos mostró que una venta dicha en voz alta despierta a todos los celulares que escuchan en el puesto. Con manos
+     libres, un solo «confirmo» la guardaba dos veces.
+   - **La regla:**
+     - Antes de abrir la tarjeta, el servidor «toma» lo que se dijo después de la frase.
+     - Si en los últimos 10 s otro celular ya tomó una frase casi igual (similitud de 0.6 o más), esta no abre tarjeta y el celular dice
+       «Eso ya lo anotó otro celular».
+     - Cada celular manda un número al azar que guarda para sí (`lib/voz/celular.ts`). El mismo celular sí puede repetir la frase.
+     - Revisar y anotar va en una sola transacción, bajo un candado: dos envíos en el mismo instante no pasan los dos.
+     - Se toma solo lo que el intérprete entendió: un «no te entendí» no bloquea repetirlo.
+   - **Lo que se paga:**
+     - Dos ventas casi iguales dichas en dos celulares en menos de 10 s se toman como una. La segunda persona ve el aviso y la repite.
+     - `frases_tomadas` guarda lo dicho (lo mismo que `comandos_voz`), con RLS sin políticas: solo la toca la función, como
+       `series_comprobante`.
+   - Las opciones descartadas fueron que solo escuche un celular por cuenta (no cubre a un ayudante con su propia cuenta) y solo avisarlo.
 
 ## Consecuencias
 

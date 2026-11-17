@@ -8,6 +8,7 @@ import { descartarComando } from "@/app/(app)/acciones-voz";
 import { useCola } from "@/components/cola/ColaProveedor";
 
 import { borrarPendiente, guardarPendiente, leerPendiente } from "@/lib/voz/audio-pendiente";
+import { idDelCelular } from "@/lib/voz/celular";
 import { avisoDescarte, nombreOperacion } from "@/lib/voz/nombre-operacion-reglas";
 import { DURACION_MINIMA_MS, desenlaceDeRespuesta, desenlaceSinRed, nombreDelAudio, type Desenlace } from "@/lib/voz/envio-reglas";
 import { REPOSO, TOPE_ESCUCHA_MS, avanceAlCandado, siguienteGesto, textoEscuchando, type EventoGesto, type Gesto } from "@/lib/voz/gesto-reglas";
@@ -33,6 +34,8 @@ const TEXTO_CANCELADO = "Cancelado. No se envió nada.";
 const TEXTO_MUDO = "No te oí después de «Hola Fructus».";
 // Se ocultó la pantalla mientras escuchaba lo que seguía a la frase: el micrófono se soltó y no se envía nada.
 const TEXTO_OCULTA = "Se apagó la pantalla: no se envió nada.";
+// Otro celular del puesto oyó la misma frase y ya abrió su tarjeta (ADR-0022): aquí no se abre otra. Si era otra venta, se repite.
+const TEXTO_OTRO_CELULAR = "Eso ya lo anotó otro celular.";
 // Marca local del dispositivo: ya usó el botón una vez. Es solo comodidad de interfaz; si se borra, la ayuda vuelve.
 const MARCA_APRENDIO = "fructus:voz-aprendida";
 // Whisper con respaldo, más el intérprete con respaldo: el servidor puede tardar hasta ~20 s en el peor caso.
@@ -81,7 +84,10 @@ async function enviarAudio({ audio, duracionMs, despertar }: Grabacion): Promise
   const formulario = new FormData();
   formulario.append("audio", audio, nombreDelAudio(audio.type));
   formulario.append("duracion_ms", String(duracionMs));
-  if (despertar) formulario.append("despertar", "1");
+  if (despertar) {
+    formulario.append("despertar", "1");
+    formulario.append("celular", idDelCelular()); // dos celulares que oyeron lo mismo abren una sola tarjeta (ADR-0022)
+  }
   try {
     const r = await fetch("/api/voz", { method: "POST", body: formulario, signal: AbortSignal.timeout(TOPE_ENVIO_MS) });
     return desenlaceDeRespuesta(r.status, await r.json().catch(() => null));
@@ -345,10 +351,11 @@ export function VozHoy() {
       return;
     }
     // No era para Fructus (se oyó «frutas», no la frase): se vuelve a escuchar sin decir nada, no hubo error. Si solo dijo la frase,
-    // se dice que no oyó lo que seguía.
+    // se dice que no oyó lo que seguía; si otro celular ya la anotó, se dice, por si era otra venta y hay que repetirla.
     if (desenlace.tipo === "ignorado") {
       void borrarPendiente();
       if (desenlace.motivo === "sin_orden") decir(TEXTO_MUDO, 3500);
+      else if (desenlace.motivo === "otro_celular") decir(TEXTO_OTRO_CELULAR, 3500);
       else setTexto(TEXTO_LISTO);
       return;
     }
