@@ -48,16 +48,3 @@ export function historialDelProveedor(
   return { dias: [...dias.values()], hayMas: todas.length > tope };
 }
 
-/**
- * Un enlace para abrir WhatsApp con ese número (no manda nada solo: la persona escribe y envía). Un celular peruano de 9
- * dígitos que empieza con 9 se completa con el 51; con código de país, se respeta. null si el número no sirve.
- */
-export function enlaceWhatsApp(telefono: string | null, mensaje?: string): string | null {
-  const limpio = (telefono ?? "").replace(/[\s\-().]/g, "");
-  let numero: string | null = null;
-  if (/^9\d{8}$/.test(limpio)) numero = `51${limpio}`;
-  else if (/^\+\d{8,15}$/.test(limpio)) numero = limpio.slice(1);
-  else if (/^51 ?9\d{8}$/.test(limpio)) numero = limpio;
-  if (!numero) return null;
-  return `https://wa.me/${numero}${mensaje ? `?text=${encodeURIComponent(mensaje)}` : ""}`;
-}

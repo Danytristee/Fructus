@@ -1,4 +1,4 @@
-// La ficha de un cliente (A8): su veredicto de deuda, su historial día por día y cómo llamarlo. Lógica pura: no importa
+// La ficha de un cliente (A8): su veredicto de deuda, y su historial día por día (cómo hablarle, en contacto-reglas.ts). Lógica pura: no importa
 // React ni Supabase.
 import { diaDeLima, formatearFecha, formatearHace } from "./formato";
 import { deAbono, deVenta, type AbonoLeido, type Operacion, type VentaLeida } from "./operaciones-reglas";
@@ -63,8 +63,3 @@ export function historialDelCliente(
   return { dias: [...dias.values()], hayMas: todas.length > tope };
 }
 
-/** `tel:` para llamar con un toque; null si el número no sirve (vacío o con letras). */
-export function enlaceDeLlamada(telefono: string | null): string | null {
-  const limpio = (telefono ?? "").replace(/[\s\-().]/g, "");
-  return /^\+?\d{6,15}$/.test(limpio) ? `tel:${limpio}` : null;
-}

@@ -1,7 +1,4 @@
-import { MessageCircle, Phone } from "lucide-react";
-
-import { enlaceDeLlamada } from "@/lib/ficha-cliente-reglas";
-import { enlaceWhatsApp } from "@/lib/ficha-proveedor-reglas";
+import { Contactar } from "@/components/ui/Contactar";
 
 type Props = {
   contacto: string | null;
@@ -18,8 +15,6 @@ type Props = {
 // Cómo hablarle (llamar o escribirle por WhatsApp, a un toque) y lo que se sabe de él. Solo salen los datos que hay: nada de filas con «—».
 // WhatsApp se abre con un enlace: no se usa su API, que cobra por los mensajes (CLAUDE.md, «No se usa»).
 export function DatosProveedor({ contacto, telefono, ruc, origen, direccion, notas, mensaje, editar }: Props) {
-  const llamar = enlaceDeLlamada(telefono);
-  const whatsapp = enlaceWhatsApp(telefono, mensaje);
   const filas = [
     contacto && { clave: "contacto", etiqueta: "Contacto", valor: contacto },
     telefono && { clave: "telefono", etiqueta: "Teléfono", valor: telefono },
@@ -38,30 +33,7 @@ export function DatosProveedor({ contacto, telefono, ruc, origen, direccion, not
         </h2>
         {editar}
       </div>
-      {(llamar || whatsapp) && (
-        <div className="mb-2.5 grid grid-cols-2 gap-2">
-          {whatsapp && (
-            <a
-              href={whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex min-h-14 items-center justify-center gap-2 rounded-control bg-exito-fondo font-extrabold text-exito transition-transform duration-150 active:scale-[0.98]"
-            >
-              <MessageCircle aria-hidden className="size-5" />
-              WhatsApp
-            </a>
-          )}
-          {llamar && (
-            <a
-              href={llamar}
-              className="flex min-h-14 items-center justify-center gap-2 rounded-control bg-acento/12 font-extrabold text-acento-texto transition-transform duration-150 active:scale-[0.98]"
-            >
-              <Phone aria-hidden className="size-5" />
-              Llamar
-            </a>
-          )}
-        </div>
-      )}
+      <Contactar telefono={telefono} mensaje={mensaje} />
       {filas.length === 0 && <p className="vidrio rounded-tarjeta px-4 py-3 text-texto-suave">Todavía no tiene teléfono ni RUC.</p>}
       <dl className="vidrio divide-y divide-border rounded-tarjeta px-4 empty:hidden">
         {filas.map((f) => (
