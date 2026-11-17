@@ -69,9 +69,27 @@ function resumenHablado(b: Borrador, total: number): string {
 export function lecturaVenta(b: Borrador): string | null {
   const total = totalDe(b);
   if (faltaDe(b).length > 0 || total === null) return null;
+  return `${resumenHablado(b, total)} ${cierreVenta(b)}`;
+}
+
+/** El final de la lectura: cómo pagó, el comprobante si se pidió y la pregunta. «Lo debe. Con boleta. ¿Confirmo?» */
+function cierreVenta(b: Borrador): string {
   const pago = b.condicion === "credito" ? "Lo debe" : `Pagó ${MEDIOS_HABLADOS[b.medio ?? "efectivo"]}`;
   const comprobante = b.comprobante === "boleta" ? " Con boleta." : b.comprobante === "factura" ? " Con factura." : "";
-  return `${resumenHablado(b, total)} ${pago}.${comprobante} ¿Confirmo?`;
+  return `${pago}.${comprobante} ¿Confirmo?`;
+}
+
+/**
+ * Lo que se dice después de responder «¿Pagó o lo debe?», y la lectura entera para «repite». La venta se acaba de leer al
+ * preguntar: leerla otra vez hacía esperar toda la lectura por una palabra. Basta repetir la respuesta (ADR-0020, candado 4) con lo
+ * que todavía no se dijo (el comprobante) y preguntar.
+ */
+export type Relectura = { texto: string; entera: string };
+
+/** «Lo debe. ¿Confirmo?». null si todavía falta algo. */
+export function relecturaPago(b: Borrador): Relectura | null {
+  const entera = lecturaVenta(b);
+  return entera === null ? null : { texto: cierreVenta(b), entera };
 }
 
 /** Lo que pregunta, y qué espera oír: «confirmo», «pagó» o «lo debe», o nada (solo avisa y pide el toque). */

@@ -5,7 +5,7 @@ import { faltaAbono, frasesFaltaAbono, type BorradorAbono } from "./confirmar-ab
 import { faltaCompra, frasesFaltaCompra, totalCompra, type BorradorCompra } from "./confirmar-compra-reglas";
 import { faltaGasto, type BorradorGasto } from "./confirmar-gasto-reglas";
 import { faltaMerma, frasesFaltaMerma, type BorradorMerma } from "./confirmar-merma-reglas";
-import { MEDIOS_HABLADOS, cajasHabladas, dudaHablada, nombreHablado, precioHablado, solesHablados, type Guion } from "./lectura-reglas";
+import { MEDIOS_HABLADOS, cajasHabladas, dudaHablada, nombreHablado, precioHablado, solesHablados, type Guion, type Relectura } from "./lectura-reglas";
 
 const avisar = (falta: string | null): Guion => ({ pregunta: "ninguna", texto: `${falta ?? "Falta un dato."} Míralo en la tarjeta.` });
 
@@ -48,6 +48,13 @@ export function guionCompra(b: BorradorCompra, dudas: string[]): Guion {
   const total = totalCompra(b);
   if (falta.length === 1 && falta[0] === "condicion" && total !== null) return { pregunta: "pago", texto: `${resumenCompra(b, total)} ¿La pagaste o la debes?` };
   if (falta.length > 0 || total === null) return avisar(frasesFaltaCompra(falta));
-  const pago = b.condicion === "credito" ? "La debes" : `La pagaste ${MEDIOS_HABLADOS[b.medio ?? "efectivo"]}`;
-  return { pregunta: "confirmar", texto: `${resumenCompra(b, total)} ${pago}. ¿Confirmo?` };
+  return { pregunta: "confirmar", texto: `${resumenCompra(b, total)} ${cierreCompra(b)}` };
+}
+
+const cierreCompra = (b: BorradorCompra) => `${b.condicion === "credito" ? "La debes" : `La pagaste ${MEDIOS_HABLADOS[b.medio ?? "efectivo"]}`}. ¿Confirmo?`;
+
+/** Después de responder «¿La pagaste o la debes?»: «La debes. ¿Confirmo?», sin volver a leer la compra (como relecturaPago). */
+export function relecturaPagoCompra(b: BorradorCompra, dudas: string[]): Relectura | null {
+  const g = guionCompra(b, dudas);
+  return g.pregunta === "confirmar" ? { texto: cierreCompra(b), entera: g.texto } : null;
 }

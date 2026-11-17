@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Borrador } from "./confirmar-venta-reglas";
-import { cajasHabladas, dudaHablada, guionVenta, lecturaVenta, nombreHablado, solesHablados } from "./lectura-reglas";
+import { cajasHabladas, dudaHablada, guionVenta, lecturaVenta, nombreHablado, relecturaPago, solesHablados } from "./lectura-reglas";
 
 const venta = (cambios: Partial<Borrador> = {}): Borrador => ({
   cliente: { id: 1, nombre: "Luis Paredes" },
@@ -76,6 +76,22 @@ describe("cómo se dicen los datos", () => {
     expect(nombreHablado("Manzana Roja americana Premium cal. 113")).toBe("Manzana Roja americana Premium calibre 113");
     expect(nombreHablado("Manzana Delicia nacional 6ta")).toBe("Manzana Delicia nacional sexta");
     expect(nombreHablado("Mandarina 1era")).toBe("Mandarina primera");
+  });
+});
+
+describe("relecturaPago", () => {
+  it("después de «¿Pagó o lo debe?» solo repite la respuesta y pregunta: la venta se acaba de leer", () => {
+    expect(relecturaPago(venta())).toEqual({ texto: "Lo debe. ¿Confirmo?", entera: lecturaVenta(venta()) });
+    expect(relecturaPago(venta({ condicion: "contado", medio: "yape" }))?.texto).toBe("Pagó con Yape. ¿Confirmo?");
+  });
+
+  it("el comprobante no se dijo al preguntar: va en la respuesta corta", () => {
+    expect(relecturaPago(venta({ comprobante: "factura" }))?.texto).toBe("Lo debe. Con factura. ¿Confirmo?");
+  });
+
+  it("si todavía falta algo, no hay nada que leer", () => {
+    expect(relecturaPago(venta({ condicion: null }))).toBeNull();
+    expect(relecturaPago(venta({ cliente: null, condicion: "credito" }))).toBeNull();
   });
 });
 

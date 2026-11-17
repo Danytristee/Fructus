@@ -11,7 +11,7 @@ import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
-import { guionVenta, lecturaVenta } from "@/lib/voz/lectura-reglas";
+import { guionVenta, relecturaPago } from "@/lib/voz/lectura-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { DudasVoz } from "./DudasVoz";
@@ -64,11 +64,12 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const voz = useManosLibres({
     guion,
     alConfirmar: () => confirmar("voz"),
-    // «¿Pagó o lo debe?» respondido por voz: se anota en la tarjeta (se ve en la píldora) y se lee la venta completa para confirmarla.
+    // «¿Pagó o lo debe?» respondido por voz: se anota en la tarjeta (se ve en la píldora) y se repite la respuesta con «¿Confirmo?».
+    // La venta no se vuelve a leer entera: se acaba de oír al preguntar.
     alPago: (pago) => {
       const nuevo = { ...borrador, condicion: pago.condicion, medio: pago.medio };
       setBorrador(nuevo);
-      return lecturaVenta(nuevo);
+      return relecturaPago(nuevo);
     },
     // «No, son ocho cajas»: la tarjeta corregida reemplaza a la dictada (lo que se ve, las opciones y las dudas) y se vuelve a leer.
     // Al guardar cuenta como corregida, porque se compara con lo dictado al principio.

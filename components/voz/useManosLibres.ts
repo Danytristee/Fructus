@@ -18,7 +18,7 @@ import {
   type Pregunta,
 } from "@/lib/voz/manos-libres-reglas";
 import type { VentaActual } from "@/lib/voz/esquemas";
-import type { Guion } from "@/lib/voz/lectura-reglas";
+import type { Guion, Relectura } from "@/lib/voz/lectura-reglas";
 import type { Pago } from "@/lib/voz/respuesta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { callar, hablar } from "./hablar";
@@ -73,8 +73,11 @@ type Opciones = {
   guion: Guion | null;
   /** Dijo «confirmo»: la misma acción que el toque. */
   alConfirmar: () => void;
-  /** Respondió si pagó (venta y compra): se anota en la tarjeta. Devuelve la lectura completa, o null si todavía falta algo. */
-  alPago?: (pago: Pago) => string | null;
+  /**
+   * Respondió si pagó (venta y compra): se anota en la tarjeta. Devuelve lo que se dice ahora (solo la respuesta y «¿Confirmo?»: la
+   * venta se acaba de leer) y la lectura entera para «repite», o null si todavía falta algo.
+   */
+  alPago?: (pago: Pago) => Relectura | null;
   /** Corrigió la venta hablando: la tarjeta nueva reemplaza a la de la hoja. Devuelve qué se dice ahora. Solo en la venta. */
   alCorregir?: (corregida: Venta) => Guion;
   /** La venta de la tarjeta ahora, en los campos de registrar_venta: viaja con la respuesta para poder corregirla. Solo en la venta. */
@@ -85,7 +88,7 @@ type Opciones = {
 
 /**
  * Manos libres en una tarjeta (ADR-0020): dice el guion en voz alta, escucha la respuesta corta y, si dice «confirmo», llama a
- * `alConfirmar`; si respondió si pagó, lo anota con `alPago` y lee la venta completa. Las fases y sus reglas viven en
+ * `alConfirmar`; si respondió si pagó, lo anota con `alPago`, repite la respuesta y pregunta «¿Confirmo?». Las fases y sus reglas viven en
  * lib/voz/manos-libres-reglas.ts; aquí se habla, se abre el micrófono y se envía.
  *
  * `tomarControl`: la persona tocó la tarjeta. Se calla, se apaga el micrófono y lo que llegue del servidor ya no guarda.
@@ -106,8 +109,9 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, ventaAc
     corregir.current = alCorregir;
     actualDeLaTarjeta.current = ventaActual;
   });
-  // Lo que se dirá después de anotar el pago o rehacer la tarjeta, y lo último que se leyó (para «repite»).
-  const relectura = useRef<string | null>(null);
+  // Lo que se dirá después de anotar el pago o rehacer la tarjeta, y lo último que se leyó (para «repite»). Tras el pago se dice
+  // corto, pero «repite» lee la venta entera: quien pide que se repita es porque se perdió algo.
+  const relectura = useRef<Relectura | null>(null);
   const leido = useRef<string | null>(guion?.texto ?? null);
   // La tarjeta corregida que mandó el servidor, mientras se anota.
   const corregida = useRef<Venta | null>(null);
@@ -177,15 +181,15 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, ventaAc
         if (!corregida.current || !corregir.current) return aplicar({ tipo: "tocaron" });
         const g = corregir.current(corregida.current);
         corregida.current = null;
-        relectura.current = g.texto;
+        relectura.current = { texto: g.texto, entera: g.texto };
         return aplicar({ tipo: "corregida", pregunta: g.pregunta });
       }
-      case "repetir": // lo mismo que se leyó, entero: la venta, o la pregunta de si pagó
+      case "repetir": // lo que se leyó, entero: la venta, o la pregunta de si pagó
         return leido.current ? decir(leido.current) : aplicar({ tipo: "tocaron" });
       case "releer":
         if (!relectura.current) return;
-        leido.current = relectura.current;
-        return decir(relectura.current);
+        leido.current = relectura.current.entera;
+        return decir(relectura.current.texto);
       case "escuchar":
         return void escuchar();
       case "enviar":

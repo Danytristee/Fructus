@@ -28,13 +28,18 @@ const tarjeta = (cliente: { id: number; nombre: string }, cambios: Record<string
 const ventaDe = async (comandoId: number) =>
   (await base.from("ventas").select("condicion, medio_pago, comandos_voz(confirmado_por)").eq("comando_voz_id", comandoId)).data ?? [];
 
-/** Responde /api/voz/respuesta según la pregunta: «¿Pagó o lo debe?» o «¿Confirmo?». Cuenta las llamadas. */
-async function simularRespuestas(page: Page, porPregunta: { pago?: unknown; confirmar?: unknown }) {
+/**
+ * Responde /api/voz/respuesta según la pregunta: «¿Pagó o lo debe?» o «¿Confirmo?». Cuenta las llamadas. `antes`: respuestas a
+ * «¿Confirmo?» que se dan primero, en orden (por ejemplo, «repite»), antes de la de siempre.
+ */
+async function simularRespuestas(page: Page, porPregunta: { pago?: unknown; confirmar?: unknown; antes?: unknown[] }) {
   const llamadas: string[] = [];
+  const antes = [...(porPregunta.antes ?? [])];
   await page.route("/api/voz/respuesta", (r) => {
     const pregunta = r.request().postDataBuffer()?.toString("latin1").match(/name="pregunta"\r\n\r\n(\w+)/)?.[1] ?? "confirmar";
     llamadas.push(pregunta);
-    return r.fulfill({ json: pregunta === "pago" ? { pago: porPregunta.pago ?? null } : { respuesta: porPregunta.confirmar ?? "otra" } });
+    if (pregunta === "pago") return r.fulfill({ json: { pago: porPregunta.pago ?? null } });
+    return r.fulfill({ json: antes.shift() ?? { respuesta: porPregunta.confirmar ?? "otra" } });
   });
   return llamadas;
 }
@@ -44,10 +49,10 @@ test.beforeEach(async ({ page }) => {
   await sintetizadorDePrueba(page, { manosLibres: true });
 });
 
-test("si falta saber si pagó, lo pregunta por voz, lo anota en la tarjeta, lee la venta y se confirma hablando", async ({ page }, info) => {
+test("si falta saber si pagó, lo pregunta por voz, lo anota, repite solo la respuesta y se confirma hablando", async ({ page }, info) => {
   test.slow();
   const cliente = clientePorAncho[info.project.name as Ancho];
-  const llamadas = await simularRespuestas(page, { pago: { condicion: "credito", medio: null }, confirmar: "confirmar" });
+  const llamadas = await simularRespuestas(page, { pago: { condicion: "credito", medio: null }, antes: [{ repetir: true }], confirmar: "confirmar" });
   const comandoId = await crearComando();
   const hoja = await dictar(page, comandoId, tarjeta(cliente, { condicion: null, falta: ["condicion"] }), "¿Así fue la venta?");
 
@@ -56,15 +61,21 @@ test("si falta saber si pagó, lo pregunta por voz, lo anota en la tarjeta, lee 
   await expect(hoja.getByRole("status").filter({ hasText: "di «pagó» o «lo debe»" })).toBeVisible();
   await responder(page);
 
-  // Se anota en la píldora, a la vista, y se lee la venta completa para confirmarla.
+  // Se anota en la píldora, a la vista, y solo se repite la respuesta: la venta se acaba de leer al preguntar.
   await expect(hoja.getByRole("button", { name: "Lo debe", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => dichas(page)).toContain("Lo debe. ¿Confirmo?");
+  await terminarFrase(page);
+  await expect(hoja.getByRole("status").filter({ hasText: "di «confirmo»" })).toBeVisible();
+  await responder(page);
+
+  // «Repite»: quien lo pide se perdió algo, así que se lee la venta entera.
   await expect.poll(() => dichas(page)).toContain(`10 cajas de Mango Kent, a 45 la caja, para ${cliente.nombre}. Total, 450 soles. Lo debe. ¿Confirmo?`);
   await terminarFrase(page);
   await expect(hoja.getByRole("status").filter({ hasText: "di «confirmo»" })).toBeVisible();
   await responder(page);
 
   await expect(page.getByText("Venta guardada")).toBeVisible();
-  expect(llamadas).toEqual(["pago", "confirmar"]);
+  expect(llamadas).toEqual(["pago", "confirmar", "confirmar"]);
   expect(await ventaDe(comandoId)).toEqual([{ condicion: "credito", medio_pago: null, comandos_voz: { confirmado_por: "voz" } }]);
 });
 
@@ -77,7 +88,7 @@ test("decir si pagó no guarda: si después no confirma, la venta no entra", asy
   await terminarFrase(page);
   await expect(hoja.getByRole("status").filter({ hasText: "di «pagó» o «lo debe»" })).toBeVisible();
   await responder(page);
-  await expect.poll(() => dichas(page)).toContain(`10 cajas de Mango Kent, a 45 la caja, para ${cliente.nombre}. Total, 450 soles. Pagó con Yape. ¿Confirmo?`);
+  await expect.poll(() => dichas(page)).toContain("Pagó con Yape. ¿Confirmo?");
   await terminarFrase(page);
   await expect(hoja.getByRole("status").filter({ hasText: "di «confirmo»" })).toBeVisible();
   await responder(page);

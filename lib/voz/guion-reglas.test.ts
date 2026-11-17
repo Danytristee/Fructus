@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { guionAbono, guionCompra, guionGasto, guionMerma } from "./guion-reglas";
+import { guionAbono, guionCompra, guionGasto, guionMerma, relecturaPagoCompra } from "./guion-reglas";
 
 describe("guionAbono", () => {
   it("lee quién, cuánto y cómo, y pregunta «¿Confirmo?»", () => {
@@ -62,6 +62,12 @@ describe("guionCompra", () => {
       pregunta: "pago",
       texto: "Compra a Agrícola Chao: 50 cajas de Plátano Isla, a 25 la caja. Total, 1250 soles. ¿La pagaste o la debes?",
     });
+  });
+
+  it("después de responder si la pagó, solo repite la respuesta: la compra se acaba de leer", () => {
+    expect(relecturaPagoCompra(compra, [])).toEqual({ texto: "La debes. ¿Confirmo?", entera: guionCompra(compra, []).texto });
+    expect(relecturaPagoCompra({ ...compra, condicion: "contado", medio: "plin" }, [])?.texto).toBe("La pagaste con Plin. ¿Confirmo?");
+    expect(relecturaPagoCompra({ ...compra, items: [{ ...compra.items[0]!, precio: null }] }, [])).toBeNull();
   });
 
   it("con el costo sugerido lo dice; sin costo o con dudas, no se confirma hablando", () => {

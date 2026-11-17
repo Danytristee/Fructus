@@ -5,8 +5,8 @@
 //      ▲                     │ no habló             │ otra cosa (1.ª vez)
 //      └─── «Para guardar, di confirmo» ◀───────────┘
 //
-// Si falta saber si pagó, la primera pregunta es «¿Pagó o lo debe?»: la respuesta se anota en la tarjeta y se lee la venta completa
-// para confirmarla. Si en vez de «confirmo» corrige («no, son ocho cajas»), la tarjeta se rehace y se vuelve a leer; si dice
+// Si falta saber si pagó, la primera pregunta es «¿Pagó o lo debe?»: la respuesta se anota en la tarjeta, se repite y se pregunta
+// «¿Confirmo?» (la venta ya se leyó al preguntar). Si en vez de «confirmo» corrige («no, son ocho cajas»), la tarjeta se rehace y se vuelve a leer; si dice
 // «repite» o «¿qué?», se vuelve a leer igual (hasta REPETICIONES veces). Con dudas del intérprete (o si falta otro dato) solo se avisa: no se escucha nada y se confirma con el dedo.
 // Tocar la tarjeta, en cualquier momento: callado (la persona toma el control).
 import type { Pago } from "./respuesta-reglas";
@@ -47,7 +47,7 @@ export type EventoManosLibres =
   | { tipo: "respuesta"; respuesta: "confirmar" | "corregir" | "otra" | "fallo" }
   /** Lo que entendió de «¿Pagó o lo debe?»; null si no se entendió, «fallo» si el servidor no respondió. */
   | { tipo: "pago"; pago: Pago | null | "fallo" }
-  /** Se anotó el pago en la tarjeta: `lista`, la venta quedó completa y se lee para confirmarla. */
+  /** Se anotó el pago en la tarjeta: `lista`, la venta quedó completa y se pregunta «¿Confirmo?». */
   | { tipo: "anotado"; lista: boolean }
   /** La tarjeta se rehízo con la corrección: qué pregunta toca ahora (la venta corregida puede dejar dudas o faltar algo). */
   | { tipo: "corregida"; pregunta: Pregunta }
@@ -106,7 +106,7 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
       return quedar;
     }
     case "anotando":
-      // Ya se sabe si pagó: se lee la venta completa y se pregunta «¿Confirmo?», como si se hubiera dictado así.
+      // Ya se sabe si pagó: se repite la respuesta y se pregunta «¿Confirmo?». La venta se acaba de leer al preguntar.
       if (ev.tipo === "anotado") return ev.lista ? { estado: leyendo("confirmar"), efecto: "releer" } : callado("falta", "nada");
       // Corregida: se lee lo nuevo con su pregunta. Las respuestas cuentan desde cero: puede volver a corregir o confirmar.
       if (ev.tipo === "corregida") return { estado: leyendo(ev.pregunta), efecto: "releer" };

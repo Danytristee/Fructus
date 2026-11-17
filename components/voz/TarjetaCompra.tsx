@@ -18,7 +18,7 @@ import {
   totalCompra,
   type BorradorCompra,
 } from "@/lib/voz/confirmar-compra-reglas";
-import { guionCompra } from "@/lib/voz/guion-reglas";
+import { guionCompra, relecturaPagoCompra } from "@/lib/voz/guion-reglas";
 import type { ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { maduraEnLaCaja, NOMBRE_ESTADO } from "@/lib/vida-util-reglas";
@@ -74,12 +74,11 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
   // Manos libres (ADR-0020): al abrirse se lee y se confirma diciendo «confirmo». A mano no: quien escribe ya está mirando.
   const [guion] = useState(() => (manosLibres() && !aMano ? guionCompra(borradorCompra(tarjeta), tarjeta.dudas) : null));
   const voz = useManosLibres({ guion, alConfirmar: () => confirmar("voz"), guardado: guardado !== null,
-    // «¿La pagaste o la debes?» respondido por voz: se anota en la tarjeta y se lee la compra completa para confirmarla.
+    // «¿La pagaste o la debes?» respondido por voz: se anota en la tarjeta y se repite la respuesta con «¿Confirmo?».
     alPago: (pago) => {
       const nuevo = { ...borrador, condicion: pago.condicion, medio: pago.medio };
       setBorrador(nuevo);
-      const g = guionCompra(nuevo, tarjeta.dudas);
-      return g.pregunta === "confirmar" ? g.texto : null;
+      return relecturaPagoCompra(nuevo, tarjeta.dudas);
     }, });
 
   const total = totalCompra(borrador);
