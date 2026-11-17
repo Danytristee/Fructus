@@ -79,10 +79,12 @@ function Formulario({ proveedor, alCerrar, alCambiarGuardando }: { proveedor: Pr
       {campo("telefono", "Teléfono", { inputMode: "tel", placeholder: "987 654 321", maxLength: 20 })}
       {campo("origen", "De dónde trae la fruta", { placeholder: "Chao, La Libertad", maxLength: LIMITES_PROVEEDOR.origen })}
       {/* Si el error está aquí adentro, se abre solo y su campo sale en rojo: con «Más datos» cerrado, el pie pedía revisar algo que no se
-          veía (/chaos 2026-11-12). Se controla desde aquí, sin volver a montarlo: así el RUC no pierde el foco mientras se escribe. */}
+          veía (/chaos 2026-11-12). Se controla desde aquí, sin volver a montarlo: así el RUC no pierde el foco mientras se escribe.
+          Un toque para cerrarlo con el error adentro no se anota: si se anotara, al escribir el último número bueno se cerraría solo,
+          con el dedo todavía en el RUC (e2e proveedores-hoja, 2026-11-17). */}
       <Desplegable
         abierto={masDatos || enMasDatos}
-        alCambiar={setMasDatos}
+        alCambiar={(abrir) => setMasDatos(abrir || enMasDatos)}
         resumen={<span className="font-bold">Más datos: RUC, dirección y notas</span>}
       >
         <div className="grid gap-3 pb-2">
