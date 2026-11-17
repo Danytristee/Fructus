@@ -1,6 +1,6 @@
 # ADR-0013 — El resumen del día llega al teléfono como un aviso (Web Push), sin servicios nuevos
 
-**Fecha:** 2026-11-08 · **Estado:** aceptado
+**Fecha:** 2026-11-08 · **Estado:** aceptado · la hora fija del punto 2 la cambió ADR-0023 (la elige el dueño)
 
 ## Contexto
 

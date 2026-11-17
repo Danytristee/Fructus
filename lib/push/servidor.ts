@@ -65,7 +65,7 @@ export async function leerResumenDeLaBase(db: Servicio, fecha: string): Promise<
 
 /**
  * Lo que tiene que salir mañana, con la misma cuenta que Stock: las cajas de cada fruta cuyo último día bueno es mañana, hoy, o
- * ya pasó (a las 7 p. m. el puesto ya cerró: lo que tenía que salir hoy y sigue ahí, mañana es lo primero).
+ * ya pasó (a la hora de cierre el puesto ya cerró: lo que tenía que salir hoy y sigue ahí, mañana es lo primero).
  */
 export async function leerPorSalirDeLaBase(db: Servicio, ahora: Date): Promise<PorSalir> {
   const { estados, lecturas } = await leerInventario(db, ahora);
