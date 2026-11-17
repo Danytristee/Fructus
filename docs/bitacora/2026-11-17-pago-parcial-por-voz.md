@@ -11,10 +11,15 @@
 - **Arreglo de paso:** en manos libres, «pagó 500» como respuesta a «¿Pagó o lo debe?» se guardaba como pagado entero (`clasificarPago` borraba los números). Ahora con un monto o una parte no se anota nada: se repregunta.
 - **Pendiente:**
   - `components/voz/TarjetaVenta.tsx` tiene 319 líneas (ya pasaba las 250 antes de esto): pide partirse.
-  - Responder «pagó quinientos» a «¿Pagó o lo debe?» podría ir al intérprete como corrección (hoy se repregunta y se anota con el dedo): `app/api/voz/respuesta/route.ts:62`.
   - «Pagó la mitad» con precio dicho: Haiku deja el monto en null (no inventa, pero no calcula los S/ 120).
   - Revisar en la consola de Anthropic el costo real del intérprete después de una semana.
   - Medir Gemini como voz a texto con audios reales del puesto (`tests/interprete/audios/` está vacía; con voz sintética se equivocan todos, Whisper incluido).
   - Groq con los 104 casos quedó sin medir: la corrida se colgó por el cupo gratuito. Lo último medido: 87.1 % en 93 casos (`docs/voz/precision-2026-11-17-3.md`).
   - Avisos del linter que no son de esta rama ni están en `CLAUDE.md`: `aviso_del_dia` y `suscripciones_push` con RLS sin políticas, y `fijar_hora_cierre()` como `security definer` (los de la hora de cierre son de la otra rama).
   - /formidable dejó dos: lo de hoy en letra chica en `MedidorDeuda`, y la variante `texto` de `Boton` que se lee como título.
+- **Después, «pagó doscientos» hablado:** en manos libres, la respuesta a «¿Pagó o lo debe?» con un monto o una parte (`hablaDeUnaParte`) va al intérprete como corrección y vuelve la tarjeta con lo que pagó. Fructus dice «Corregido. Pagó 200 soles en efectivo y debe 250 soles. ¿Confirmo?». Responder la pregunta no cuenta como «corregido». Verificado:
+  - e2e `voz-pago-hablado` a 412 y 360 px, con la base;
+  - la ruta real con Whisper y Claude sobre un audio sintético («Pagó doscientos» → crédito con S/ 200);
+  - 5 casos nuevos de corrección por pago, 17 de 17 con Claude;
+  - `/voz-precision` con 109 casos: intención 100 %, datos 99.1 %, prudencia 100 %;
+  - 52 e2e de manos libres y pago parcial.

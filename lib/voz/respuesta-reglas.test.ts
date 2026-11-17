@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clasificarPago, clasificarRespuesta, pareceCorreccion } from "./respuesta-reglas";
+import { clasificarPago, clasificarRespuesta, pareceCorreccion, hablaDeUnaParte } from "./respuesta-reglas";
 
 describe("clasificarRespuesta", () => {
   it.each(["Confirmo.", "Correcto", "¡Acepto!", "Sí, correcto.", "Ya, confirmo", "Todo correcto", "Correcto, correcto.", "Está correcto"])(
@@ -34,6 +34,15 @@ describe("clasificarRespuesta", () => {
     expect(clasificarRespuesta("")).toBe("otra");
     expect(clasificarRespuesta("Gracias por ver el video.")).toBe("otra");
     expect(clasificarRespuesta("...")).toBe("otra");
+  });
+});
+
+describe("hablaDeUnaParte", () => {
+  it("un monto o una parte: va al intérprete como corrección", () => {
+    for (const t of ["Pagó 500", "Pagó quinientos", "Solo pagó mil", "Me dio la mitad", "Me yapeó doscientos y lo demás lo debe"]) expect(hablaDeUnaParte(t)).toBe(true);
+  });
+  it("«pagó», «lo debe» o «con Yape» no traen monto: no hace falta el intérprete", () => {
+    for (const t of ["Pagó", "Lo debe", "Con Yape", "Pagó todo en efectivo", "Fiado"]) expect(hablaDeUnaParte(t)).toBe(false);
   });
 });
 

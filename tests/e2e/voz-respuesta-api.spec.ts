@@ -55,6 +55,15 @@ test.describe("con Groq real", () => {
     const r = await page.request.post("/api/voz/respuesta", enviar("lo-debe", { pregunta: "pago" }));
     expect(await r.json()).toEqual({ pago: { condicion: "credito", medio: null } });
   });
+
+  // ADR-0025: antes los números se borraban y «pagó doscientos» se anotaba como «Pagó» (pagado entero).
+  test("a «¿Pagó o lo debe?», «pagó doscientos» rehace la venta al crédito con ese pago", async ({ page }) => {
+    const sinDecir = JSON.stringify({ ...JSON.parse(VENTA), condicion: null });
+    const r = await page.request.post("/api/voz/respuesta", enviar("pago-doscientos", { pregunta: "pago", venta: sinDecir }));
+    const { respuesta, tarjeta } = await r.json();
+    expect(respuesta).toBe("corregir");
+    expect(tarjeta).toMatchObject({ tipo: "venta", condicion: "credito", pagoParcial: 200, medio: "efectivo", total: 450 });
+  });
 });
 
 test("el contador no puede confirmar hablando", async ({ page }) => {
