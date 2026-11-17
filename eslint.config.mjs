@@ -24,6 +24,8 @@ const eslintConfig = defineConfig([
     "lib/supabase/tipos-db.ts",
     // Maquetas tocables (HTML, CSS y JS sueltos para mirar un diseño): no son código de la app.
     "docs/maquetas/**",
+    // El entorno de Python de «Hola Fructus» (scripts/voz/palabra-activacion/README.md): trae JS de sus paquetes, fuera de git.
+    "scripts/voz/palabra-activacion/.local/**",
   ]),
 ]);
 
