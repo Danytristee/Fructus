@@ -1,24 +1,26 @@
 "use client";
 
-// Responder hablando (CLAUDE.md, «La voz»): solo en consultas, con speechSynthesis, que viene en el navegador. Se prefiere
-// una voz de Perú; si el celular no la tiene, una de Latinoamérica, y si no, cualquiera en español.
-const PREFERIDAS = ["es-PE", "es-US", "es-419", "es-MX", "es-CO"];
+import { elegirVoz, RITMO, type Voz } from "@/lib/voz/voces-reglas";
+import { leerVoces, vozDelNavegador, vozGuardada } from "./voces";
+
+// Responder hablando (CLAUDE.md, «La voz»): con speechSynthesis, que viene en el navegador y suena al instante. La voz la elige
+// lib/voz/voces-reglas.ts: la que se escogió en el menú de este celular, o la mejor en español que tenga.
 
 /**
  * Dice el texto en voz alta, cortando lo que se estuviera diciendo. false si el navegador no sabe hablar. `alTerminar` se llama
  * una vez, cuando termina de decirlo o si no pudo (falló, o lo cortó otra frase o `callar`).
  */
-export function hablar(texto: string, alTerminar?: (completo: boolean) => void): boolean {
+export function hablar(texto: string, alTerminar?: (completo: boolean) => void, con?: Voz): boolean {
   const voz = typeof window === "undefined" ? undefined : window.speechSynthesis;
   if (!voz) return false;
   voz.cancel();
   const frase = new SpeechSynthesisUtterance(texto);
-  const voces = voz.getVoices();
-  const elegida =
-    PREFERIDAS.map((l) => voces.find((v) => v.lang.replace("_", "-") === l)).find((v) => v !== undefined) ??
-    voces.find((v) => v.lang.toLowerCase().startsWith("es"));
-  if (elegida) frase.voice = elegida;
-  frase.lang = elegida?.lang ?? "es-PE";
+  const elegida = con ?? elegirVoz(leerVoces(), vozGuardada());
+  const delNavegador = elegida && vozDelNavegador(elegida);
+  if (delNavegador) frase.voice = delNavegador;
+  frase.lang = delNavegador?.lang ?? "es-PE";
+  frase.rate = RITMO.velocidad;
+  frase.pitch = RITMO.tono;
   if (alTerminar) {
     let avisado = false;
     const avisar = (completo: boolean) => {

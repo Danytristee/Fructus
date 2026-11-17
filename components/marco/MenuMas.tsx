@@ -15,6 +15,7 @@ const Hoja = dynamic(() => import("@/components/ui/Hoja").then((m) => m.Hoja), {
 const AvisoDelDia = dynamic(() => import("./AvisoDelDia").then((m) => m.AvisoDelDia), { ssr: false });
 const ManosLibres = dynamic(() => import("./ManosLibres").then((m) => m.ManosLibres), { ssr: false });
 const HolaFructus = dynamic(() => import("./HolaFructus").then((m) => m.HolaFructus), { ssr: false });
+const VozDeFructus = dynamic(() => import("./VozDeFructus").then((m) => m.VozDeFructus), { ssr: false });
 
 const fila = filaDelMenu;
 const icono = iconoDelMenu;
@@ -84,6 +85,7 @@ export function MenuMas({ nombre, rol, verCierre, verAjustes, verManosLibres, cl
             )}
             {verManosLibres && <ManosLibres />}
             {verManosLibres && <HolaFructus />}
+            {verManosLibres && <VozDeFructus />}
             {verCierre && clavePush && <AvisoDelDia clavePublica={clavePush} />}
             <InstalarApp alElegir={cerrar} />
             <form action={salir}>
