@@ -13,7 +13,9 @@ import { decidirSoltar, duracionCierre, ejeDelGesto, opacidadVelo, resistencia, 
 // `translate` y `opacity` (ADR-0012).
 
 const ESCRITORIO = "(min-width: 768px)";
-const NO_ARRASTRA = "input, textarea, select, [contenteditable=''], [contenteditable='true'], [data-no-arrastra]";
+// Lo que el dedo ya usa para otra cosa: escribir, o girar una rueda (la hora de cierre) y mover un deslizador. Desde ahí no se arrastra la
+// hoja, aunque la rueda esté en su primer valor (arriba del todo): como en el reloj del celular, la rueda es del dedo.
+const NO_ARRASTRA = "input, textarea, select, [contenteditable=''], [contenteditable='true'], [role='spinbutton'], [role='slider'], [data-no-arrastra]";
 
 type Estado = "nada" | "pendiente" | "arrastra" | "nativo" | "ignora";
 

@@ -156,3 +156,22 @@ test.describe("en un celular bajito, con una hoja que no entra entera", () => {
     await expect(page).toHaveURL("/clientes");
   });
 });
+
+test("una rueda en su primer valor es del dedo: deslizarla hacia abajo no baja la hoja", async ({ page }) => {
+  await page.goto("/ajustes");
+  await page.getByRole("button", { name: /Hora de cierre/ }).click();
+  const hoja = page.getByRole("dialog", { name: "¿A qué hora cierras?" });
+  await expect(hoja).toBeVisible();
+  await hoja.evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).filter((a) => a.timeline === document.timeline).map((a) => a.finished)));
+  const minutos = hoja.getByRole("spinbutton", { name: "Minutos" });
+  await expect(minutos).toHaveAttribute("aria-valuetext", "00");
+  // La rueda está arriba del todo: antes, este gesto se lo llevaba la hoja y la cerraba.
+  expect(await minutos.evaluate((el) => el.scrollTop)).toBe(0);
+
+  const caja = (await minutos.boundingBox())!;
+  await deslizar(page, { x: caja.x + caja.width / 2, y: caja.y + caja.height / 2 }, 200, { soltar: false });
+  expect(await hoja.evaluate((h) => parseFloat(getComputedStyle(h).translate.split(" ")[1] ?? "0") || 0)).toBe(0);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await page.waitForTimeout(400);
+  await expect(hoja).toBeVisible();
+});
