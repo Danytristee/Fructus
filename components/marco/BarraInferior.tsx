@@ -15,6 +15,16 @@ const destinos = [
 
 const esActual = (href: string, ruta: string) => (href === "/" ? ruta === "/" : ruta === href || ruta.startsWith(`${href}/`));
 
+// Como en cualquier app: tocar la pestaña en la que ya estás te sube al inicio de la lista (desde una ficha, te lleva a la lista). Cada
+// toque en la barra vibra corto, para saber que se tocó sin mirar.
+function alTocar(e: React.MouseEvent, href: string, ruta: string) {
+  navigator.vibrate?.(8);
+  if (ruta !== href) return;
+  e.preventDefault();
+  const suave = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.scrollTo({ top: 0, behavior: suave ? "smooth" : "auto" });
+}
+
 export function BarraInferior() {
   const ruta = usePathname();
   const actual = destinos.findIndex((d) => esActual(d.href, ruta));
@@ -44,6 +54,7 @@ export function BarraInferior() {
             key={href}
             href={href}
             aria-current={i === actual ? "page" : undefined}
+            onClick={(e) => alTocar(e, href, ruta)}
             className={cn(
               "relative grid min-h-[60px] place-content-center justify-items-center gap-0.5 text-[13px] font-extrabold transition-[color,transform] duration-150 active:scale-95",
               i === 2 && "col-start-4", // Stock salta el hueco del centro; Ventas lo sigue
