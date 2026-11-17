@@ -485,3 +485,32 @@ html[data-teclado] [data-con-teclado="oculto"] {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* La rueda (components/ui/Rueda.tsx): cada posición gira como en un tambor según dónde está dentro de la rueda. La mueve el scroll, no el
+   reloj: con la rueda quieta no corre nada (ADR-0012). Solo transform y opacity. Sin animaciones atadas al scroll, la rueda queda plana y
+   los bordes se desvanecen igual (la máscara de la pieza). */
+@supports (animation-timeline: view()) {
+  .rueda-item {
+    animation: rueda-tambor linear both;
+    animation-timeline: view();
+  }
+}
+@keyframes rueda-tambor {
+  0% {
+    opacity: 0.4;
+    transform: perspective(360px) rotateX(-58deg) scale(0.84);
+  }
+  50% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0.4;
+    transform: perspective(360px) rotateX(58deg) scale(0.84);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rueda-item {
+    animation: none !important;
+  }
+}

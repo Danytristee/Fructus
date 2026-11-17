@@ -126,7 +126,7 @@ test("si el servidor no entiende la respuesta, no guarda por las dudas", async (
   expect(await ventasDe(comandoId)).toHaveLength(0);
 });
 
-test("«no, son ocho cajas»: la tarjeta se corrige, se vuelve a leer y se confirma; queda corregida y por voz", async ({ page }, info) => {
+test("«no, son ocho cajas»: la tarjeta se corrige, se dice solo lo que cambió y se confirma; queda corregida y por voz", async ({ page }, info) => {
   test.slow();
   const cliente = clientePorAncho[info.project.name as Ancho];
   const ocho = { ...tarjeta(cliente), items: [{ ...tarjeta(cliente).items[0]!, cantidad: 8, subtotal: 360 }], total: 360 };
@@ -134,23 +134,37 @@ test("«no, son ocho cajas»: la tarjeta se corrige, se vuelve a leer y se confi
   let n = 0;
   await page.route("/api/voz/respuesta", (r) => {
     enviadas.push(JSON.parse(r.request().postDataBuffer()?.toString("utf8").match(/name="venta"\r\n\r\n([^\r]*)/)?.[1] ?? "null"));
-    return r.fulfill({ json: n++ === 0 ? { respuesta: "corregir", tarjeta: ocho } : { respuesta: "confirmar" } });
+    const respuestas = [{ respuesta: "corregir", tarjeta: ocho }, { repetir: true }, { respuesta: "confirmar" }];
+    return r.fulfill({ json: respuestas[Math.min(n++, respuestas.length - 1)] });
   });
   const comandoId = await crearComando();
   const hoja = await hastaEscuchar(page, comandoId, cliente.nombre, cliente);
 
   await responder(page); // «No, son ocho cajas»
   await expect(hoja.getByText("8 cajas de Mango Kent")).toBeVisible();
-  await expect(hoja.getByText("S/ 360.00")).toBeVisible();
-  const corregida = `8 cajas de Mango Kent, a 45 la caja, para ${cliente.nombre}. Total, 360 soles. Lo debe. ¿Confirmo?`;
-  await expect.poll(() => dichas(page)).toContain(corregida);
+  await expect(hoja.getByText("S/ 360.00", { exact: true })).toBeVisible();
+  // La tarjeta marca lo mismo que dice la voz: la fruta y el total. El cliente no cambió, así que no se marca.
+  await expect(hoja.getByText("corregido", { exact: true })).toHaveCount(2);
+  // Junto a las cajas, que fue lo que cambió, y no pegada al precio, que sigue igual (2.ª prueba ciega).
+  await expect(hoja.getByRole("button", { name: /^8 cajas de Mango Kent\s*corregido\s*S\/\s45\.00 la caja$/ })).toBeVisible();
+  // Lo que ya debía es del cliente: sigue a la vista, con el total nuevo (antes desaparecía al corregir; /formidable 2026-11-17).
+  await expect(hoja.getByText(`Con esta venta, ${cliente.nombre} te debe`)).toBeVisible();
+  await expect(hoja.getByText("+ S/ 360.00 de hoy")).toBeVisible();
+  // Solo lo que cambió: la venta entera se acaba de oír.
+  await expect.poll(() => dichas(page)).toContain("Corregido. 8 cajas de Mango Kent, a 45 la caja. Total, 360 soles. ¿Confirmo?");
+  await terminarFrase(page);
+  await expect(hoja.getByRole("status").filter({ hasText: "di «confirmo»" })).toBeVisible();
+  await responder(page); // «¿Qué?»
+
+  // «Repite»: la venta corregida, entera.
+  await expect.poll(() => dichas(page)).toContain(`8 cajas de Mango Kent, a 45 la caja, para ${cliente.nombre}. Total, 360 soles. Lo debe. ¿Confirmo?`);
   await terminarFrase(page);
   await expect(hoja.getByRole("status").filter({ hasText: "di «confirmo»" })).toBeVisible();
   await responder(page);
 
   await expect(page.getByText("Venta guardada")).toBeVisible();
   // Al servidor viaja la venta de la tarjeta, en datos, para que el intérprete la corrija; la segunda vez, ya la corregida.
-  expect(enviadas.map((v) => [v.cliente_texto, v.items[0]!.cantidad])).toEqual([[cliente.nombre, 10], [cliente.nombre, 8]]);
+  expect(enviadas.map((v) => [v.cliente_texto, v.items[0]!.cantidad])).toEqual([[cliente.nombre, 10], [cliente.nombre, 8], [cliente.nombre, 8]]);
   const ventas = (await base.from("ventas").select("total, venta_items(cantidad)").eq("comando_voz_id", comandoId)).data ?? [];
   expect(ventas).toEqual([{ total: 360, venta_items: [{ cantidad: 8 }] }]);
   expect(await confirmacion(comandoId)).toEqual({ resultado: "corregido", confirmado_por: "voz" });
@@ -163,7 +177,7 @@ test("«repite»: la vuelve a leer entera y escucha otra vez; después «confirm
   const comandoId = await crearComando();
   const hoja = await hastaEscuchar(page, comandoId, cliente.nombre, cliente);
   // La línea enseña que se puede corregir hablando (/formidable 2026-11-16).
-  await expect(hoja.getByRole("status")).toHaveText("Te escucho: di «confirmo» o lo que hay que cambiar.");
+  await expect(hoja.getByRole("status")).toHaveText("Te escucho: di «confirmo», «repite» o lo que hay que cambiar.");
 
   const leidas = (await dichas(page)).filter((d) => d === lectura(cliente.nombre)).length;
   await responder(page); // «¿Qué?»

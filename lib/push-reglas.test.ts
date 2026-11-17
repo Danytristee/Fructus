@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import type { ResumenHoy } from "./hoy-reglas";
@@ -11,8 +10,6 @@ import {
   direccionDeAvisoValida,
   esquemaSuscripcion,
   estadoDelAviso,
-  HORA_DEL_AVISO_LIMA,
-  HORA_DEL_AVISO_TEXTO,
 } from "./push-reglas";
 
 /** La pantalla usa espacios duros («S/ », «58 cajas») para que no se parta un renglón: aquí se comparan como espacios normales. */
@@ -30,22 +27,6 @@ const dia = (cambios: Partial<ResumenHoy> = {}): ResumenHoy => ({
   compras: 0,
   gastos: 0,
   ...cambios,
-});
-
-describe("la hora del aviso", () => {
-  it("vercel.json la dice en UTC y es la misma de Lima: 7 p. m. en Lima es medianoche UTC", () => {
-    const { crons } = JSON.parse(readFileSync("vercel.json", "utf8")) as { crons?: { path: string; schedule: string }[] };
-    const cron = crons?.find((c) => c.path === "/api/cron/resumen-diario");
-    expect(cron, "vercel.json tiene que programar /api/cron/resumen-diario").toBeDefined();
-    const [minuto, hora, ...resto] = cron!.schedule.split(" ");
-    expect(resto).toEqual(["*", "*", "*"]); // una vez al día: el plan Hobby no deja más
-    expect(minuto).toBe("0");
-    expect((Number(hora) + 24 - 5) % 24).toBe(HORA_DEL_AVISO_LIMA); // Lima es UTC−5, sin horario de verano
-  });
-
-  it("en pantalla se dice «como a las 7 p. m.»: en Hobby el cron corre dentro de la hora, no a la hora exacta", () => {
-    expect(HORA_DEL_AVISO_TEXTO).toBe("como a las 7 p. m.");
-  });
 });
 
 describe("direccionDeAvisoValida", () => {
@@ -144,9 +125,10 @@ describe("avisoDelDia", () => {
 });
 
 describe("avisoDeActivacion", () => {
-  it("dice a qué hora llega y lleva al cierre", () => {
-    expect(avisoDeActivacion()).toMatchObject({ url: "/cierre", tag: "aviso-activado" });
-    expect(avisoDeActivacion().cuerpo).toContain("como a las 7 p. m.");
+  it("dice a qué hora llega (la que eligió el dueño) y lleva al cierre", () => {
+    expect(avisoDeActivacion({ hora: 19, minuto: 0 })).toMatchObject({ url: "/cierre", tag: "aviso-activado" });
+    expect(plano(avisoDeActivacion({ hora: 19, minuto: 0 }))!.cuerpo).toContain("a las 7 p. m.");
+    expect(plano(avisoDeActivacion({ hora: 16, minuto: 30 }))!.cuerpo).toContain("todos los días a las 4:30 p. m.");
   });
 });
 
