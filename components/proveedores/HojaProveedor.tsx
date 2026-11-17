@@ -7,7 +7,7 @@ import { Truck } from "lucide-react";
 import { guardarProveedor, type ResultadoGuardarProveedor } from "@/app/(app)/acciones-proveedores";
 import { Campo } from "@/components/ui/Campo";
 import { Desplegable } from "@/components/ui/Desplegable";
-import { Hoja } from "@/components/ui/Hoja";
+import { despuesDeCerrarHoja, Hoja } from "@/components/ui/Hoja";
 import { Guardado } from "@/components/voz/Guardado";
 import { PieConfirmar } from "@/components/voz/PieConfirmar";
 import { useConfirmar } from "@/components/voz/useConfirmar";
@@ -45,7 +45,8 @@ function Formulario({ proveedor, alCerrar, alCambiarGuardando }: { proveedor: Pr
     if (!guardado) return;
     const t = window.setTimeout(() => {
       alCerrar();
-      if (!proveedor) router.push(`/proveedores/${guardado.id}`);
+      // Primero se quita la página de la hoja del historial: así «atrás» en la ficha nueva vuelve a la lista.
+      if (!proveedor) despuesDeCerrarHoja(() => router.push(`/proveedores/${guardado.id}`));
     }, 1700);
     return () => window.clearTimeout(t);
   }, [guardado, proveedor, alCerrar, router]);
