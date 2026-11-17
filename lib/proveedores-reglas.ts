@@ -30,6 +30,8 @@ export type Posicion = "riesgo" | "socio" | "ventaja" | "ocasional" | "enfriado"
 export type FrutaDelProveedor = {
   productoId: number;
   fruta: string;
+  /** «Manzana»: para decirlo corto en la lista. */
+  grupo: string;
   cajas: number;
   ultimoCosto: number;
   /** El costo más bajo que te dio otro proveedor por la misma fruta, si hay otro. */
@@ -161,6 +163,7 @@ export function analizarProveedores(proveedores: ProveedorBase[], compras: Compr
           return {
             productoId: f.productoId,
             fruta: f.fruta,
+            grupo: f.grupo,
             cajas: f.cajas,
             ultimoCosto: f.ultimoCosto,
             mejorOtro: mejor ? { proveedorId: mejor.proveedorId!, costo: mejor.ultimoCosto } : null,
@@ -212,6 +215,8 @@ export type ResumenProveedores = {
   top3: number;
   deuda: number;
   conDeuda: number;
+  /** A quién le debes más: el veredicto de «Les debes» (ley 3). */
+  mayorDeuda: { nombre: string; saldo: number } | null;
   /** Proveedores a los que hoy les puedes pedir mejor precio. */
   paraNegociar: number;
   enRiesgo: number;
@@ -227,6 +232,7 @@ export function resumirProveedores(analisis: AnalisisProveedor[]): ResumenProvee
     top3: conCompras.slice(0, 3).reduce((s, a) => s + a.participacion, 0),
     deuda: deben.reduce((s, a) => s + a.saldo, 0),
     conDeuda: deben.length,
+    mayorDeuda: deben.reduce<{ nombre: string; saldo: number } | null>((m, a) => (m === null || a.saldo > m.saldo ? { nombre: a.nombre, saldo: a.saldo } : m), null),
     paraNegociar: analisis.filter((a) => a.posicion === "ventaja" || a.ahorroMensual >= AHORRO_MINIMO).length,
     enRiesgo: analisis.filter((a) => a.posicion === "riesgo").length,
   };

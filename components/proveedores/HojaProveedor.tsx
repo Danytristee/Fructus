@@ -11,7 +11,7 @@ import { despuesDeCerrarHoja, Hoja } from "@/components/ui/Hoja";
 import { Guardado } from "@/components/voz/Guardado";
 import { PieConfirmar } from "@/components/voz/PieConfirmar";
 import { useConfirmar } from "@/components/voz/useConfirmar";
-import { LIMITES_PROVEEDOR, PROVEEDOR_VACIO, validarProveedor, type BorradorProveedor, type CampoProveedor } from "@/lib/proveedor-reglas";
+import { avisoDeProveedor, LIMITES_PROVEEDOR, PROVEEDOR_VACIO, validarProveedor, type BorradorProveedor, type CampoProveedor } from "@/lib/proveedor-reglas";
 
 export type ProveedorEditable = { id: number; borrador: BorradorProveedor };
 
@@ -38,6 +38,7 @@ function Formulario({ proveedor, alCerrar, alCambiarGuardando }: { proveedor: Pr
   const inicial = proveedor?.borrador ?? PROVEEDOR_VACIO;
   const router = useRouter();
   const [b, setB] = useState<BorradorProveedor>(inicial);
+  const [masDatos, setMasDatos] = useState(false);
   const [tocados, setTocados] = useState<ReadonlySet<CampoProveedor>>(new Set());
   const { confirmar, guardando, error, guardado } = useConfirmar<Guardado_>({ alGuardar: () => undefined, alCambiarGuardando, boton: "Guardar proveedor" });
 
@@ -53,8 +54,7 @@ function Formulario({ proveedor, alCerrar, alCambiarGuardando }: { proveedor: Pr
 
   const validado = validarProveedor(b);
   const errores = validado.ok ? {} : validado.errores;
-  const cambio = (Object.keys(b) as (keyof BorradorProveedor)[]).some((k) => b[k].trim() !== inicial[k].trim());
-  const aviso = b.nombre.trim() === "" ? "Escribe el nombre del proveedor." : !validado.ok ? "Revisa lo marcado en rojo." : proveedor && !cambio ? "Todavía no cambiaste nada." : null;
+  const { aviso, enMasDatos } = avisoDeProveedor(b, proveedor?.borrador ?? null);
 
   const campo = (k: CampoProveedor, etiqueta: string, extra: Partial<React.ComponentProps<typeof Campo>> = {}) => (
     <Campo
@@ -78,7 +78,15 @@ function Formulario({ proveedor, alCerrar, alCambiarGuardando }: { proveedor: Pr
       {campo("contacto", "Con quién hablas", { placeholder: "don Wilmer", autoCapitalize: "words", maxLength: LIMITES_PROVEEDOR.contacto })}
       {campo("telefono", "Teléfono", { inputMode: "tel", placeholder: "987 654 321", maxLength: 20 })}
       {campo("origen", "De dónde trae la fruta", { placeholder: "Chao, La Libertad", maxLength: LIMITES_PROVEEDOR.origen })}
-      <Desplegable resumen={<span className="font-bold">Más datos: RUC, dirección y notas</span>}>
+      {/* Si el error está aquí adentro, se abre solo y su campo sale en rojo: con «Más datos» cerrado, el pie pedía revisar algo que no se
+          veía (/chaos 2026-11-12). Se controla desde aquí, sin volver a montarlo: así el RUC no pierde el foco mientras se escribe.
+          Un toque para cerrarlo con el error adentro no se anota: si se anotara, al escribir el último número bueno se cerraría solo,
+          con el dedo todavía en el RUC (e2e proveedores-hoja, 2026-11-17). */}
+      <Desplegable
+        abierto={masDatos || enMasDatos}
+        alCambiar={(abrir) => setMasDatos(abrir || enMasDatos)}
+        resumen={<span className="font-bold">Más datos: RUC, dirección y notas</span>}
+      >
         <div className="grid gap-3 pb-2">
           {campo("ruc", "RUC", { inputMode: "numeric", maxLength: 13 })}
           {campo("direccion", "Dirección", { maxLength: LIMITES_PROVEEDOR.direccion })}

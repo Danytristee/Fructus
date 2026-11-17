@@ -29,12 +29,13 @@
       (CLAUDE.md).
     - A Agrícola Chao y Transportes Piura Norte, que ya existían, se les pusieron datos de prueba: RUC 20999…, teléfonos
       900 000 1xx, contacto y notas.
-  - **`/formidable`** de Proveedores, la ficha y las dos hojas, y **`/chaos`** de la hoja de pago y de la de proveedor. Solo se probó
-    el doble toque.
+  - **`/formidable`** (`docs/formidable/proveedores-2026-11-12.md`): 8.2 → 8.8, con 3 cambios aplicados con OK. Quedan «Se enfrió» y
+    «Ocasional», que en la prueba a ciegas no se entendieron solos.
+  - **`/chaos`** (`docs/chaos/proveedores-2026-11-12.md`, semilla 1112): de 9 ataques, 8 resistieron. El hallazgo de gravedad 4 («Revisa lo
+    marcado en rojo» con el RUC escondido) ya está arreglado con OK: el aviso nombra el campo y «Más datos» se mantiene abierto
+    mientras tenga un error.
   - **Pago a proveedor por voz:** falta la herramienta en `docs/interprete-voz.md` y su tarjeta.
   - **Merma por proveedor**, para saber cuál trae fruta que se malogra antes. Hoy `movimientos_stock` no guarda de qué compra
     salió la merma.
   - Un proveedor sin compras sale como «Ocasional». Quizá debería decir «Nuevo» (`lib/proveedores-reglas.ts`, `posicionDe`).
-  - En la hoja de proveedor, un RUC mal escrito dentro de «Más datos» solo se marca en rojo si el desplegable está abierto
-    (`components/proveedores/HojaProveedor.tsx`).
   - La hoja de pago no tiene e2e de Playwright (`tests/e2e/`).
