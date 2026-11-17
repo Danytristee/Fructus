@@ -126,7 +126,7 @@ Silero) ya existía desde el PR #39 (`lib/voz/silencio-reglas.ts`, por volumen):
 ## Las ventas dobles de dos celulares (decisión A, ADR-0022 punto 7)
 
 - **Qué cambió:**
-  - Migración `20261116193000_frases_tomadas` (tabla y `tomar_frase`, bajo un candado).
+  - Migración `20261117013141_frases_tomadas` (tabla y `tomar_frase`, bajo un candado), aplicada al proyecto con OK el 2026-11-16.
   - `/api/voz` toma la frase antes de abrir la tarjeta; si otro celular ya tomó una casi igual en 10 s, responde `otro_celular` y «Hoy»
     dice «Eso ya lo anotó otro celular».
   - Cada celular manda su número al azar (`lib/voz/celular.ts`), también desde la cola sin señal.
@@ -135,9 +135,15 @@ Silero) ya existía desde el PR #39 (`lib/voz/silencio-reglas.ts`, por volumen):
   - Tipos regenerados.
   - `voz-api.spec.ts` contra Groq real: dos celulares a la vez abren 1 tarjeta y dejan 1 comando. Ese día Whisper escribió «Hola
     Fruptus», y la regla igual la reconoció.
+- **En el proyecto:** aplicada con OK, como versión `20261117013141`; el archivo y el historial de la base local llevan ese número. Los
+  tipos ya estaban regenerados (la base local tiene el mismo esquema).
+  - `get_advisors`, seguridad: 2 avisos nuevos, los dos a propósito.
+    - «RLS sin políticas» en `frases_tomadas`: solo la toca `tomar_frase`.
+    - «`tomar_frase` es security definer y la ejecutan los autenticados»: `/api/voz` la llama con la sesión de quien dicta, y la
+      función revisa el rol. Es el mismo caso de `rol_actual()`.
+  - Rendimiento: la llave foránea `tomada_por` sin índice y el índice `tomada_en` «sin usar» (recién creado). CLAUDE.md los deja para
+    antes de producción.
 - **Una corrección:** en la 5d dije que las dos pruebas nuevas de `voz-api.spec.ts` contra Groq habían pasado, y no habían corrido. El
   archivo corre en serie, y su primera prueba (la de «mango Quenta», que ya fallaba) detiene las demás. Corridas por nombre, pasan las 3.
 - **Pendiente:**
-  - **Aplicar la migración al proyecto con OK.** Después: renombrarla a la versión de Supabase, regenerar los tipos y correr
-    `get_advisors`.
   - `voz-api.spec.ts`: la falla vieja de «mango Quenta» deja sin correr al resto del archivo (modo serie).

@@ -1,7 +1,7 @@
 # /chaos · «Hola Fructus» en «Hoy» (2026-11-16)
 
 **Rama:** `claude/hola-fructus-voice-commands-2e7437`. **Semilla:** 2026111603. **Ataques:** 9. **Resistieron:** 6. **Hallazgos:** 3. Los 3
-quedaron arreglados con OK y su prueba (el 1, con la migración aplicada solo en local hasta el OK).
+quedaron arreglados con OK y su prueba (el 1 con la migración `20261117013141_frases_tomadas`, aplicada al proyecto con OK).
 
 **Base:** local y compartida, así que no se hizo `db reset`.
 - Antes: volcado de los datos de `public` y las 12 invariantes en orden.
@@ -28,8 +28,8 @@ Un solo «confirmo» guarda las dos.
 - **Es una regla de dinero:** la decidió quien dirige el proyecto el 2026-11-16, con la opción A: el servidor toma una sola vez la misma
   frase oída por dos celulares (ADR-0022, decisión 7).
 - **Arreglado:**
-  - Migración `frases_tomadas`: la tabla y la función `tomar_frase`, que revisa y anota bajo un candado. **Se aplicó en local; al
-    proyecto, con OK.**
+  - Migración `frases_tomadas`: la tabla y la función `tomar_frase`, que revisa y anota bajo un candado. **Aplicada al proyecto con
+    OK** (versión `20261117013141`).
   - `/api/voz` la llama antes de abrir la tarjeta.
   - Regresiones:
     - pgTAP `26_frases_tomadas.test.sql`, 11 pruebas;
