@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { stockDe } from "@/app/(app)/acciones-voz";
 import { Aviso } from "@/components/ui/Aviso";
 import type { ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
-import { avisosStock, SUGERENCIA_AVISO, textoAviso } from "@/lib/voz/stock-venta-reglas";
+import { avisosStock, mapaStock, SUGERENCIA_AVISO, textoAviso } from "@/lib/voz/stock-venta-reglas";
 
 type Props = {
   items: ItemBorrador[];
@@ -32,7 +32,7 @@ export function AvisosStock({ items, inicial, className }: Props) {
       .then((s) => s && setLeido((l) => ({ ...l, ...s })));
   }, [clave]);
 
-  const avisos = avisosStock(items, new Map(Object.entries(conocido).map(([id, cajas]) => [Number(id), cajas])));
+  const avisos = avisosStock(items, mapaStock(conocido));
   if (avisos.length === 0) return null;
   return (
     <div className={className}>

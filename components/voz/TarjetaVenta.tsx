@@ -65,7 +65,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   // Manos libres (ADR-0020): al abrirse, la venta lista se lee en voz alta y se confirma diciendo «confirmo»; si falta saber si pagó,
   // se pregunta primero. Con dudas o si falta otro dato, solo se avisa y se toca. La tarjeta se monta solo en el navegador (la hoja no
   // tiene SSR): se puede leer el celular al empezar.
-  const [guion] = useState(() => (manosLibres() ? guionVenta(borradorDe(tarjeta), tarjeta.dudas) : null));
+  // Con el stock que trajo la tarjeta: si la venta pide más, el aviso también se dice (con las manos llenas no se mira).
+  const [guion] = useState(() => (manosLibres() ? guionVenta(borradorDe(tarjeta), tarjeta.dudas, tarjeta.stock) : null));
   const voz = useManosLibres({
     guion,
     alConfirmar: () => confirmar("voz"),
@@ -74,7 +75,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
     alPago: (pago) => {
       const nuevo = { ...borrador, condicion: pago.condicion, medio: pago.medio };
       setBorrador(nuevo);
-      return relecturaPago(nuevo);
+      return relecturaPago(nuevo, vigente.stock);
     },
     // «No, son ocho cajas»: la tarjeta corregida reemplaza a la dictada (lo que se ve, las opciones y las dudas) y se dice solo lo que
     // cambió («Corregido. 8 cajas… Total, 360 soles. ¿Confirmo?»): el resto se acaba de oír. Al guardar cuenta como corregida, porque
@@ -87,7 +88,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       // Lo que ya debía es del cliente, no de la venta: solo se vuelve a pedir si la corrección cambió de cliente. Antes se borraba
       // siempre y, con el mismo cliente, «te debe» desaparecía y no volvía (/formidable 2026-11-17).
       if ((b.cliente?.id ?? null) !== (borrador.cliente?.id ?? null)) setSaldo(null);
-      return guionCorreccion(borrador, b, nueva.dudas);
+      return guionCorreccion(borrador, b, nueva.dudas, nueva.stock);
     },
     ventaActual: () => ventaActual(borrador),
     guardado: guardada !== null,

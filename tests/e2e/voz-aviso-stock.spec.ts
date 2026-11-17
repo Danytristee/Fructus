@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { baseLocal } from "./base";
 import { abastecer, crearComando, dictar, stockDe } from "./dictar";
+import { distintas, microfonoControlado, sintetizadorDePrueba } from "./manos-libres";
 
 // El aviso de stock en la tarjeta de venta (Informe T3): si la venta pide más cajas de las que hay, lo dice, pero no bloquea. La voz se
 // simula (/api/voz); el stock es el de la base local. Cada ancho usa su propia fruta para que las dos corridas no se pisen el stock.
@@ -74,4 +75,14 @@ test("una fruta elegida tocando trae su stock y su aviso", async ({ page }, info
   await hoja.getByRole("button", { name: fruta.nombre }).first().click();
   await hoja.getByRole("button", { name: "Listo" }).click();
   await expect(hoja.getByRole("status").filter({ hasText: aviso(fruta.stock, fruta.nombre, fruta.stock + 2) })).toBeVisible();
+});
+
+test("con manos libres, el aviso también se dice al leer la venta", async ({ page }, info) => {
+  await microfonoControlado(page);
+  await sintetizadorDePrueba(page, { manosLibres: true });
+  const fruta = await frutaConStock(info.project.name, 2);
+  const venta = tarjeta(fruta, fruta.stock + 4, { condicion: "credito", medio: null, cliente: { dicho: "luis", elegido: { id: 1, nombre: "Luis Paredes" }, opciones: [] }, stock: { [fruta.id]: fruta.stock } });
+  await dictar(page, await crearComando(), venta, "¿Así fue la venta?");
+  // Con las manos llenas no se mira: se oye antes de «¿Confirmo?». Nombre y cajas como se dicen (lectura-reglas.ts).
+  await expect.poll(async () => (await distintas(page)).join(" ")).toMatch(new RegExp(`Lo debe\\. Ojo: según la app te quedan ${fruta.stock} cajas de .+\\. ¿Confirmo\\?$`));
 });

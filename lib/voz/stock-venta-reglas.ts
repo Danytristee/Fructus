@@ -27,6 +27,10 @@ export function avisosStock(items: ItemBorrador[], stock: ReadonlyMap<number, nu
   });
 }
 
+/** El stock como viene en la tarjeta (un objeto por id, por JSON) a lo que pide avisosStock. */
+export const mapaStock = (stock?: Record<number, number>): ReadonlyMap<number, number> =>
+  new Map(Object.entries(stock ?? {}).map(([id, cajas]) => [Number(id), cajas]));
+
 const cifra = (n: number) => (Number.isInteger(n) ? String(n) : n.toLocaleString("es-PE", { maximumFractionDigits: 2 }));
 
 /**
