@@ -11,7 +11,7 @@ import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
-import { guionVenta, relecturaPago } from "@/lib/voz/lectura-reglas";
+import { guionCorreccion, guionVenta, relecturaPago } from "@/lib/voz/lectura-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { DudasVoz } from "./DudasVoz";
@@ -71,14 +71,15 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       setBorrador(nuevo);
       return relecturaPago(nuevo);
     },
-    // «No, son ocho cajas»: la tarjeta corregida reemplaza a la dictada (lo que se ve, las opciones y las dudas) y se vuelve a leer.
-    // Al guardar cuenta como corregida, porque se compara con lo dictado al principio.
+    // «No, son ocho cajas»: la tarjeta corregida reemplaza a la dictada (lo que se ve, las opciones y las dudas) y se dice solo lo que
+    // cambió («Corregido. 8 cajas… Total, 360 soles. ¿Confirmo?»): el resto se acaba de oír. Al guardar cuenta como corregida, porque
+    // se compara con lo dictado al principio.
     alCorregir: (nueva) => {
       const b = borradorDe(nueva);
       setVigente(nueva);
       setBorrador(b);
       setSaldo(null);
-      return guionVenta(b, nueva.dudas);
+      return guionCorreccion(borrador, b, nueva.dudas);
     },
     ventaActual: () => ventaActual(borrador),
     guardado: guardada !== null,

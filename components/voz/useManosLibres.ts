@@ -18,7 +18,7 @@ import {
   type Pregunta,
 } from "@/lib/voz/manos-libres-reglas";
 import type { VentaActual } from "@/lib/voz/esquemas";
-import type { Guion, Relectura } from "@/lib/voz/lectura-reglas";
+import type { Guion, GuionCorregido, Relectura } from "@/lib/voz/lectura-reglas";
 import type { Pago } from "@/lib/voz/respuesta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { callar, hablar } from "./hablar";
@@ -78,8 +78,11 @@ type Opciones = {
    * venta se acaba de leer) y la lectura entera para «repite», o null si todavía falta algo.
    */
   alPago?: (pago: Pago) => Relectura | null;
-  /** Corrigió la venta hablando: la tarjeta nueva reemplaza a la de la hoja. Devuelve qué se dice ahora. Solo en la venta. */
-  alCorregir?: (corregida: Venta) => Guion;
+  /**
+   * Corrigió la venta hablando: la tarjeta nueva reemplaza a la de la hoja. Devuelve qué se dice ahora (solo lo que cambió) y la
+   * venta entera para «repite». Solo en la venta.
+   */
+  alCorregir?: (corregida: Venta) => GuionCorregido;
   /** La venta de la tarjeta ahora, en los campos de registrar_venta: viaja con la respuesta para poder corregirla. Solo en la venta. */
   ventaActual?: () => VentaActual;
   /** La base respondió que se guardó: se dice «Guardado» (candado 6). Lo que quedó en el celular sin señal no cuenta. */
@@ -181,7 +184,7 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, ventaAc
         if (!corregida.current || !corregir.current) return aplicar({ tipo: "tocaron" });
         const g = corregir.current(corregida.current);
         corregida.current = null;
-        relectura.current = { texto: g.texto, entera: g.texto };
+        relectura.current = { texto: g.texto, entera: g.entera };
         return aplicar({ tipo: "corregida", pregunta: g.pregunta });
       }
       case "repetir": // lo que se leyó, entero: la venta, o la pregunta de si pagó

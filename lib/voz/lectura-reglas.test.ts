@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Borrador } from "./confirmar-venta-reglas";
-import { cajasHabladas, dudaHablada, guionVenta, lecturaVenta, nombreHablado, relecturaPago, solesHablados } from "./lectura-reglas";
+import { cajasHabladas, dudaHablada, guionCorreccion, guionVenta, lecturaVenta, nombreHablado, relecturaPago, solesHablados } from "./lectura-reglas";
 
 const venta = (cambios: Partial<Borrador> = {}): Borrador => ({
   cliente: { id: 1, nombre: "Luis Paredes" },
@@ -92,6 +92,63 @@ describe("relecturaPago", () => {
   it("si todavía falta algo, no hay nada que leer", () => {
     expect(relecturaPago(venta({ condicion: null }))).toBeNull();
     expect(relecturaPago(venta({ cliente: null, condicion: "credito" }))).toBeNull();
+  });
+});
+
+describe("guionCorreccion", () => {
+  const mango = { productoId: 1, producto: "Mango Kent", cantidad: 10, precio: 45, sugerido: false };
+  const palta = { productoId: 2, producto: "Palta Fuerte", cantidad: 4, precio: 60, sugerido: false };
+
+  it("«no, son ocho cajas»: solo esa fruta y el total nuevo, no la venta entera", () => {
+    const ocho = venta({ items: [{ ...mango, cantidad: 8 }] });
+    expect(guionCorreccion(venta(), ocho, [])).toEqual({
+      pregunta: "confirmar",
+      texto: "Corregido. 8 cajas de Mango Kent, a 45 la caja. Total, 360 soles. ¿Confirmo?",
+      entera: lecturaVenta(ocho),
+    });
+  });
+
+  it("con varias frutas, solo la que cambió", () => {
+    const antes = venta({ items: [mango, palta] });
+    const despues = venta({ items: [mango, { ...palta, precio: 55 }] });
+    expect(guionCorreccion(antes, despues, []).texto).toBe("Corregido. 4 cajas de Palta Fuerte, a 55. Total, 670 soles. ¿Confirmo?");
+  });
+
+  it("si cambió cuántas frutas hay, las dice todas", () => {
+    expect(guionCorreccion(venta(), venta({ items: [mango, palta] }), []).texto).toBe(
+      "Corregido. 10 cajas de Mango Kent, a 45, y 4 cajas de Palta Fuerte, a 60. Total, 690 soles. ¿Confirmo?",
+    );
+  });
+
+  it("otro cliente con el mismo precio: el cliente, sin total (no cambió el dinero)", () => {
+    expect(guionCorreccion(venta(), venta({ cliente: { id: 7, nombre: "Pedro Díaz" } }), []).texto).toBe("Corregido. Para Pedro Díaz. ¿Confirmo?");
+  });
+
+  it("la rebaja, el pago y el comprobante, cuando cambian", () => {
+    expect(guionCorreccion(venta(), venta({ descuento: 10 }), []).texto).toBe("Corregido. Con 10 soles de rebaja. Total, 440 soles. ¿Confirmo?");
+    expect(guionCorreccion(venta({ descuento: 10 }), venta(), []).texto).toBe("Corregido. Sin rebaja. Total, 450 soles. ¿Confirmo?");
+    expect(guionCorreccion(venta(), venta({ condicion: "contado", medio: "yape" }), []).texto).toBe("Corregido. Pagó con Yape. ¿Confirmo?");
+    expect(guionCorreccion(venta({ condicion: "contado", medio: "efectivo" }), venta({ condicion: "contado", medio: "plin" }), []).texto).toBe(
+      "Corregido. Pagó con Plin. ¿Confirmo?",
+    );
+    expect(guionCorreccion(venta(), venta({ comprobante: "boleta" }), []).texto).toBe("Corregido. Con boleta. ¿Confirmo?");
+  });
+
+  it("si todavía no se sabe si pagó, lo corregido y la pregunta del pago", () => {
+    const antes = venta({ condicion: null });
+    expect(guionCorreccion(antes, venta({ condicion: null, items: [{ ...mango, precio: 40 }] }), [])).toMatchObject({
+      pregunta: "pago",
+      texto: "Corregido. 10 cajas de Mango Kent, a 40 la caja. Total, 400 soles. ¿Pagó o lo debe?",
+    });
+  });
+
+  it("si no cambió nada que se pueda nombrar, lee la venta entera: tiene que oír qué quedó", () => {
+    expect(guionCorreccion(venta(), venta(), [])).toEqual({ pregunta: "confirmar", texto: lecturaVenta(venta()), entera: lecturaVenta(venta()) });
+  });
+
+  it("con dudas o si falta un dato, igual que al dictar: se mira la tarjeta", () => {
+    expect(guionCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 8 }] }), ["No sé si dijo 8 o 18."])).toMatchObject({ pregunta: "ninguna" });
+    expect(guionCorreccion(venta(), venta({ items: [{ ...mango, precio: null }] }), [])).toMatchObject({ pregunta: "ninguna" });
   });
 });
 

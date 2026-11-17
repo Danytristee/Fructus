@@ -6,8 +6,8 @@
 //      └─── «Para guardar, di confirmo» ◀───────────┘
 //
 // Si falta saber si pagó, la primera pregunta es «¿Pagó o lo debe?»: la respuesta se anota en la tarjeta, se repite y se pregunta
-// «¿Confirmo?» (la venta ya se leyó al preguntar). Si en vez de «confirmo» corrige («no, son ocho cajas»), la tarjeta se rehace y se vuelve a leer; si dice
-// «repite» o «¿qué?», se vuelve a leer igual (hasta REPETICIONES veces). Con dudas del intérprete (o si falta otro dato) solo se avisa: no se escucha nada y se confirma con el dedo.
+// «¿Confirmo?» (la venta ya se leyó al preguntar). Si en vez de «confirmo» corrige («no, son ocho cajas»), la tarjeta se rehace y
+// se dice lo que cambió; si dice «repite» o «¿qué?», se vuelve a leer entera (hasta REPETICIONES veces). Con dudas del intérprete (o si falta otro dato) solo se avisa: no se escucha nada y se confirma con el dedo.
 // Tocar la tarjeta, en cualquier momento: callado (la persona toma el control).
 import type { Pago } from "./respuesta-reglas";
 
