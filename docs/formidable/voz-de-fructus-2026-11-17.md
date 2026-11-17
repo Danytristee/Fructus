@@ -76,3 +76,31 @@ Un agente sin contexto, como el dueño, con 3 capturas a 412 px (voces de Androi
 
 **Aparte, sin ejecutar:**
 - El ciego no instalaría voces en «Texto a voz». Para el dueño, ese paso lo haría quien le instale la app.
+
+## 5 · Después, con el OK del 2026-11-17
+
+**Lo aplicado:**
+1. **Nombres y voces de internet:** los códigos de Android se numeran («Voz 1», «Voz 2»…), `es-US` se dice «Latinoamérica» y las voces que necesitan internet quedan fuera mientras haya alguna sin internet (`etiquetarVoces` y `vocesEnEspanol` en `lib/voz/voces-reglas.ts`, con 15 pruebas).
+2. **Lista a la vista y con forma de botón:** al abrir, la hoja baja sola hasta la lista (sin animación si se pidió movimiento reducido). Cada voz tiene borde y fondo, un parlante si no está elegida y el ✓ si lo está. Entre voces, 8 px.
+3. **Decir que quedó:** al tocar una voz, la primera línea dice «Listo: te leo las ventas con Voz 3», en verde y anunciada a lectores de pantalla.
+
+**Medido después** (voces de Android simuladas, igual que antes):
+- **Separación entre voces:** 8 px en 412, 360 y 1280 px (antes 4).
+- **Al abrir:** la lista queda entera a la vista, a 412 px (de 360 a 915) y a 360 px (de 221 a 800). Antes solo asomaba la primera voz.
+- **Contraste:** al medir con la transparencia del fondo, el país de la voz elegida daba 5.9:1 sobre su verde (la primera medición no contaba la transparencia). Ahora va en el texto pleno, y el mínimo de la lista es 7.1:1.
+- **Controles chicos y desborde:** ninguno, en los tres anchos.
+- **Al tocar «Voz 3»:** dice la frase de prueba con esa voz (velocidad y tono 1.05) y la guarda en el celular.
+- **Capturas:** las que empiezan con `despues-` en `capturas/voz-de-fructus-2026-11-17/`. Mismo ancho que antes: `412-al-abrir-android-simulada.jpg` → `despues-412-al-abrir.jpg`.
+
+**Segunda prueba ciega:** 6 → **7 de 10**.
+- **Ya sabe que quedó:** «por el "Listo: te leo las ventas con Voz 3" en verde, el check y porque arriba ya dice "Voz 3"».
+- **Ya no le confunden** los códigos repetidos ni «Estados Unidos». Descarta las de España («yo quiero una que hable como acá»).
+- **Sigue extrañando** saber si cada voz es de hombre o de mujer y cómo suena. El navegador no lo dice: solo se puede oír.
+- **Nuevo:** la voz elegida ya no muestra el parlante y no sabe cómo volver a oírla. Tocarla sí la vuelve a decir, pero no se nota.
+- **Le sigue dando un poco de miedo** que oírla ya la deje elegida, aunque el «Listo» lo tranquiliza.
+
+**Nota:** ley 1 de 6 a 7, ley 3 de 6 a 8, ley 4 de 6 a 8, ley 8 de 6 a 7, ley 9 de 7 a 8, celular de 8 a 9, oficio de 7 a 8. **Total: 7.2 → 7.9.**
+
+**Queda (sin ejecutar):**
+- Que la voz elegida muestre el parlante junto al ✓, para que se note que tocarla la vuelve a decir.
+- Mirar en el S25 Ultra qué nombres de voz entrega Chrome de verdad.

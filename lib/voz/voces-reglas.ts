@@ -18,7 +18,8 @@ export const FRASE_DE_PRUEBA = "Hola, soy Fructus. 10 cajas de mango Kent, a 45 
 const ORDEN_PAIS = ["es-PE", "es-US", "es-419", "es-MX", "es-CO"];
 const PAISES: Record<string, string> = {
   "es-PE": "Perú",
-  "es-US": "Estados Unidos",
+  // Es el español latino neutro de Google, no un acento gringo: «Estados Unidos» hacía creer eso (/formidable 2026-11-17).
+  "es-US": "Latinoamérica",
   "es-419": "Latinoamérica",
   "es-MX": "México",
   "es-CO": "Colombia",
@@ -32,7 +33,7 @@ const MEJORADA = /natural|neural|enhanced|mejorada|premium|wavenet/i;
 const DE_JUGUETE = /^(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley)\b/i;
 const calidad = (v: Voz) => (MEJORADA.test(v.nombre) ? 1 : DE_JUGUETE.test(v.nombre) ? -1 : 0);
 // Android nombra sus voces con un código: «es-us-x-sfb-local».
-const CODIGO_ANDROID = /^[a-z]{2,3}[-_][a-z]{2,4}-x-([a-z0-9]+)-(?:local|network)$/i;
+const CODIGO_ANDROID = /^[a-z]{2,3}[-_][a-z0-9]{2,4}-x-[a-z0-9]+-(?:local|network)$/i;
 
 const lang = (v: Voz) => {
   const [idioma = "", pais] = v.lang.replace("_", "-").split("-");
@@ -47,10 +48,14 @@ function rangoPais(v: Voz): number {
   return l === "es-ES" ? ORDEN_PAIS.length + 1 : ORDEN_PAIS.length;
 }
 
-/** Las voces en español, de la mejor a la peor: por país, luego la que no necesita internet, luego la de más calidad (las de juguete, al final). */
+/**
+ * Las voces en español, de la mejor a la peor: por país, luego la que no necesita internet, luego la de más calidad (las de juguete,
+ * al final). Las que necesitan internet quedan fuera si hay alguna sin internet: sin señal se quedarían calladas, y tardan en empezar.
+ */
 export function vocesEnEspanol(voces: Voz[]): Voz[] {
-  return voces
-    .filter(esEspanol)
+  const espanol = voces.filter(esEspanol);
+  const sinInternet = espanol.filter((v) => v.local);
+  return (sinInternet.length > 0 ? sinInternet : espanol)
     .map((v, i) => ({ v, i }))
     .sort(
       (a, b) =>
@@ -71,23 +76,33 @@ export function elegirVoz(voces: Voz[], guardada: string | null): Voz | undefine
   return buenas.find((v) => v.uri === guardada) ?? buenas[0];
 }
 
-/** Cómo se muestra una voz en la lista: «Paulina», «México · mejorada». */
-export function etiquetaVoz(v: Voz): { nombre: string; detalle: string } {
-  const codigo = v.nombre.match(CODIGO_ANDROID);
-  let nombre: string;
-  if (codigo?.[1]) nombre = `Voz ${codigo[1].toUpperCase()}`;
-  else if (/^google\b/i.test(v.nombre)) nombre = "Google";
-  else
-    nombre =
-      v.nombre
-        .replace(/^microsoft\s+/i, "")
-        .replace(/\s+-\s+.*$/, "")
-        .replace(/\s+online\b/i, "")
-        // Desde el primer paréntesis: macOS dice «Eddy (español (México))», con uno dentro de otro.
-        .replace(/\s*\(.*$/, "")
-        .trim() || v.nombre;
-  const detalle = [PAISES[lang(v)] ?? "Español", MEJORADA.test(v.nombre) && "mejorada", !v.local && "necesita internet"]
-    .filter(Boolean)
-    .join(" · ");
-  return { nombre, detalle };
+/** Una voz como se muestra en la lista: «Paulina», «México · mejorada». */
+export type Opcion = { voz: Voz; nombre: string; detalle: string };
+
+function nombreVisible(v: Voz): string {
+  if (/^google\b/i.test(v.nombre)) return "Google";
+  return (
+    v.nombre
+      .replace(/^microsoft\s+/i, "")
+      .replace(/\s+-\s+.*$/, "")
+      .replace(/\s+online\b/i, "")
+      // Desde el primer paréntesis: macOS dice «Eddy (español (México))», con uno dentro de otro.
+      .replace(/\s*\(.*$/, "")
+      .trim() || v.nombre
+  );
+}
+
+/**
+ * Las voces de vocesEnEspanol(), con el nombre y el detalle que se muestran. Los códigos de Android («es-us-x-sfb-local») «parecen
+ * placas de carro» (/formidable 2026-11-17): se numeran en el orden de la lista, «Voz 1», «Voz 2». Los nombres propios se quedan.
+ */
+export function etiquetarVoces(voces: Voz[]): Opcion[] {
+  let numero = 0;
+  return voces.map((v) => {
+    const nombre = CODIGO_ANDROID.test(v.nombre) ? `Voz ${++numero}` : nombreVisible(v);
+    const detalle = [PAISES[lang(v)] ?? "Español", MEJORADA.test(v.nombre) && "mejorada", !v.local && "necesita internet"]
+      .filter(Boolean)
+      .join(" · ");
+    return { voz: v, nombre, detalle };
+  });
 }
