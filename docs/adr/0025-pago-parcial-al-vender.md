@@ -1,4 +1,4 @@
-# ADR-0023 — Lo que el cliente paga al llevarse la fruta es un abono de esa venta
+# ADR-0025 — Lo que el cliente paga al llevarse la fruta es un abono de esa venta
 
 **Fecha:** 2026-11-17 · **Estado:** aceptado (cambia `registrar_venta`; la deuda se sigue contando igual)
 
@@ -50,4 +50,6 @@ medición del 17-11 la puso **al contado con S/ 4,000 de descuento**: la venta h
   efectivo»). El detalle de la venta los junta: «Pagó S/ 1,000.00 al llevar · debe S/ 4,000.00».
 - Con manos libres, una respuesta hablada con monto («pagó quinientos») no se anota como «Pagó»: se repregunta y la parte se anota
   con el dedo. Mandarla al intérprete como corrección queda pendiente.
-- La migración se aplica al proyecto de Supabase con el OK de quien dirige el proyecto.
+- Migración `20261117213424_venta_con_pago_al_llevar`, aplicada al proyecto con OK. Su comentario dice «ADR-0023»: se escribió antes de
+  fusionar main, donde ese número ya era la hora de cierre. No se edita una migración aplicada, así que la referencia correcta es esta,
+  ADR-0025.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Borrador } from "./confirmar-venta-reglas";
-import { cajasHabladas, dudaHablada, guionVenta, lecturaVenta, nombreHablado, solesHablados } from "./lectura-reglas";
+import { cajasHabladas, cambiosDeCorreccion, dudaHablada, guionCorreccion, guionVenta, lecturaVenta, nombreHablado, relecturaPago, solesHablados } from "./lectura-reglas";
 
 const venta = (cambios: Partial<Borrador> = {}): Borrador => ({
   cliente: { id: 1, nombre: "Luis Paredes" },
@@ -18,7 +18,7 @@ describe("lecturaVenta", () => {
     expect(lecturaVenta(venta())).toBe("10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?");
   });
 
-  it("con pago parcial dice cuánto pagó, cómo y cuánto queda debiendo (ADR-0023)", () => {
+  it("con pago parcial dice cuánto pagó, cómo y cuánto queda debiendo (ADR-0025)", () => {
     const items = [{ productoId: 1, producto: "Mango Kent", cantidad: 10, precio: 500, sugerido: false }];
     expect(lecturaVenta(venta({ items, pagado: 1000, medio: "yape" }))).toBe(
       "10 cajas de Mango Kent, a 500 la caja, para Luis Paredes. Total, 5000 soles. Pagó 1000 soles con Yape y debe 4000 soles. ¿Confirmo?",
@@ -83,6 +83,91 @@ describe("cómo se dicen los datos", () => {
     expect(nombreHablado("Manzana Roja americana Premium cal. 113")).toBe("Manzana Roja americana Premium calibre 113");
     expect(nombreHablado("Manzana Delicia nacional 6ta")).toBe("Manzana Delicia nacional sexta");
     expect(nombreHablado("Mandarina 1era")).toBe("Mandarina primera");
+  });
+});
+
+describe("relecturaPago", () => {
+  it("después de «¿Pagó o lo debe?» solo repite la respuesta y pregunta: la venta se acaba de leer", () => {
+    expect(relecturaPago(venta())).toEqual({ texto: "Lo debe. ¿Confirmo?", entera: lecturaVenta(venta()) });
+    expect(relecturaPago(venta({ condicion: "contado", medio: "yape" }))?.texto).toBe("Pagó con Yape. ¿Confirmo?");
+  });
+
+  it("el comprobante no se dijo al preguntar: va en la respuesta corta", () => {
+    expect(relecturaPago(venta({ comprobante: "factura" }))?.texto).toBe("Lo debe. Con factura. ¿Confirmo?");
+  });
+
+  it("si todavía falta algo, no hay nada que leer", () => {
+    expect(relecturaPago(venta({ condicion: null }))).toBeNull();
+    expect(relecturaPago(venta({ cliente: null, condicion: "credito" }))).toBeNull();
+  });
+});
+
+describe("guionCorreccion", () => {
+  const mango = { productoId: 1, producto: "Mango Kent", cantidad: 10, precio: 45, sugerido: false };
+  const palta = { productoId: 2, producto: "Palta Fuerte", cantidad: 4, precio: 60, sugerido: false };
+
+  it("«no, son ocho cajas»: solo esa fruta y el total nuevo, no la venta entera", () => {
+    const ocho = venta({ items: [{ ...mango, cantidad: 8 }] });
+    expect(guionCorreccion(venta(), ocho, [])).toEqual({
+      pregunta: "confirmar",
+      texto: "Corregido. 8 cajas de Mango Kent, a 45 la caja. Total, 360 soles. ¿Confirmo?",
+      entera: lecturaVenta(ocho),
+    });
+  });
+
+  it("con varias frutas, solo la que cambió", () => {
+    const antes = venta({ items: [mango, palta] });
+    const despues = venta({ items: [mango, { ...palta, precio: 55 }] });
+    expect(guionCorreccion(antes, despues, []).texto).toBe("Corregido. 4 cajas de Palta Fuerte, a 55. Total, 670 soles. ¿Confirmo?");
+  });
+
+  it("si cambió cuántas frutas hay, las dice todas", () => {
+    expect(guionCorreccion(venta(), venta({ items: [mango, palta] }), []).texto).toBe(
+      "Corregido. 10 cajas de Mango Kent, a 45, y 4 cajas de Palta Fuerte, a 60. Total, 690 soles. ¿Confirmo?",
+    );
+  });
+
+  it("otro cliente con el mismo precio: el cliente, sin total (no cambió el dinero)", () => {
+    expect(guionCorreccion(venta(), venta({ cliente: { id: 7, nombre: "Pedro Díaz" } }), []).texto).toBe("Corregido. Para Pedro Díaz. ¿Confirmo?");
+  });
+
+  it("la rebaja, el pago y el comprobante, cuando cambian", () => {
+    expect(guionCorreccion(venta(), venta({ descuento: 10 }), []).texto).toBe("Corregido. Con 10 soles de rebaja. Total, 440 soles. ¿Confirmo?");
+    expect(guionCorreccion(venta({ descuento: 10 }), venta(), []).texto).toBe("Corregido. Sin rebaja. Total, 450 soles. ¿Confirmo?");
+    expect(guionCorreccion(venta(), venta({ condicion: "contado", medio: "yape" }), []).texto).toBe("Corregido. Pagó con Yape. ¿Confirmo?");
+    expect(guionCorreccion(venta({ condicion: "contado", medio: "efectivo" }), venta({ condicion: "contado", medio: "plin" }), []).texto).toBe(
+      "Corregido. Pagó con Plin. ¿Confirmo?",
+    );
+    expect(guionCorreccion(venta(), venta({ comprobante: "boleta" }), []).texto).toBe("Corregido. Con boleta. ¿Confirmo?");
+  });
+
+  it("si todavía no se sabe si pagó, lo corregido y la pregunta del pago", () => {
+    const antes = venta({ condicion: null });
+    expect(guionCorreccion(antes, venta({ condicion: null, items: [{ ...mango, precio: 40 }] }), [])).toMatchObject({
+      pregunta: "pago",
+      texto: "Corregido. 10 cajas de Mango Kent, a 40 la caja. Total, 400 soles. ¿Pagó o lo debe?",
+    });
+  });
+
+  it("si no cambió nada que se pueda nombrar, lee la venta entera: tiene que oír qué quedó", () => {
+    expect(guionCorreccion(venta(), venta(), [])).toEqual({ pregunta: "confirmar", texto: lecturaVenta(venta()), entera: lecturaVenta(venta()) });
+  });
+
+  it("cambiosDeCorreccion: lo que la tarjeta marca «corregido», lo mismo que dice la voz", () => {
+    const nada = { frutas: [], cajas: [], precios: [], cliente: false, rebaja: false, total: false, pago: false, comprobante: false };
+    expect(cambiosDeCorreccion(venta(), venta())).toEqual(nada);
+    expect(cambiosDeCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 8 }] }))).toEqual({ ...nada, frutas: [0], cajas: [0], total: true });
+    expect(cambiosDeCorreccion(venta({ items: [mango, palta] }), venta({ items: [mango, { ...palta, precio: 55 }] }))).toEqual({ ...nada, frutas: [1], precios: [1], total: true });
+    expect(cambiosDeCorreccion(venta(), venta({ items: [mango, palta] }))).toMatchObject({ frutas: [0, 1], cajas: [0, 1], precios: [] });
+    // Cajas y precio a la vez: las dos marcas.
+    expect(cambiosDeCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 8, precio: 40 }] }))).toMatchObject({ cajas: [0], precios: [0] });
+    expect(cambiosDeCorreccion(venta(), venta({ cliente: { id: 7, nombre: "Pedro Díaz" } }))).toEqual({ ...nada, cliente: true });
+    expect(cambiosDeCorreccion(venta(), venta({ descuento: 10 }))).toEqual({ ...nada, rebaja: true, total: true });
+  });
+
+  it("con dudas o si falta un dato, igual que al dictar: se mira la tarjeta", () => {
+    expect(guionCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 8 }] }), ["No sé si dijo 8 o 18."])).toMatchObject({ pregunta: "ninguna" });
+    expect(guionCorreccion(venta(), venta({ items: [{ ...mango, precio: null }] }), [])).toMatchObject({ pregunta: "ninguna" });
   });
 });
 

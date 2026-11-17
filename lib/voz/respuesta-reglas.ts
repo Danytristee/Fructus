@@ -75,7 +75,7 @@ const MEDIO: Record<string, Extract<Pago, { condicion: "contado" }>["medio"]> = 
 };
 
 // Un monto o una parte en la respuesta («pagó 500», «solo pagó mil», «me dio la mitad») no es «Pagó»: es un pago parcial
-// (ADR-0023), y aquí no se adivina cuánto. Se repregunta y la parte se anota en la tarjeta.
+// (ADR-0025), y aquí no se adivina cuánto. Se repregunta y la parte se anota en la tarjeta.
 const PARTE = new Set(["solo", "nomas", "parte", "mitad", "resto", "dejo", "adelanto", "demas"]);
 const CIFRAS = new Set([
   "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce", "quince", "veinte", "treinta",

@@ -20,7 +20,7 @@ type Props = {
   alQuitar: () => void;
 };
 
-// Al crédito, lo que el cliente dejó al llevarse la fruta («pagó solo 1000», ADR-0023). Sin nada anotado es un botón debajo de
+// Al crédito, lo que el cliente dejó al llevarse la fruta («pagó solo 1000», ADR-0025). Sin nada anotado es un botón debajo de
 // «Lo debe»: lo raro va a un toque y no estorba lo de siempre. Con algo anotado, en grande: cuánto pagó (tocable para cambiarlo),
 // con qué, y cuánto queda debiendo, que es lo que el dueño necesita oír antes de confirmar.
 export function PagoParcial({ pagado, medio, debe, alAnotar, alCambiarMedio, alQuitar }: Props) {

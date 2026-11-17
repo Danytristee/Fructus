@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { baseLocal, enSoles } from "./base";
 import { comando, crearComando, dictar } from "./dictar";
 
-// «Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000» (ADR-0023): la tarjeta dice cuánto pagó y cuánto queda debiendo,
+// «Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000» (ADR-0025): la tarjeta dice cuánto pagó y cuánto queda debiendo,
 // y al confirmar la venta queda al crédito por S/ 5,000 con un abono de S/ 1,000 atado a ella. La voz se simula (/api/voz); la base
 // es la local. Cada ancho usa su propio cliente para que las dos corridas en paralelo no se pisen las deudas.
 

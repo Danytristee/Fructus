@@ -66,7 +66,8 @@ test("una compra sin decir si se pagó: lo pregunta, lo anota y se confirma habl
   const hoja = await dictar(page, comandoId, compra, "¿Así fue la compra?");
 
   await contestar(page, hoja, "Compra a Agrícola Chao: 5 cajas de Mango Kent, a 20 la caja. Total, 100 soles. ¿La pagaste o la debes?");
-  await contestar(page, hoja, "Compra a Agrícola Chao: 5 cajas de Mango Kent, a 20 la caja. Total, 100 soles. La debes. ¿Confirmo?");
+  // La compra se acaba de leer al preguntar: solo se repite la respuesta.
+  await contestar(page, hoja, "La debes. ¿Confirmo?");
   await expect(page.getByText("Compra guardada")).toBeVisible();
   expect((await base.from("compras").select("condicion, total").eq("comando_voz_id", comandoId)).data).toEqual([{ condicion: "credito", total: 100 }]);
   expect(await confirmadoPor(comandoId)).toEqual({ resultado: "confirmado", confirmado_por: "voz" });

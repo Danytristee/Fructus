@@ -1,6 +1,6 @@
 # /chaos · Tarjeta de venta con pago parcial · 2026-11-17
 
-- **Pantalla:** la hoja «¿Así fue la venta?» con «Pagó una parte» (`components/voz/TarjetaVenta.tsx`, `PagoParcial.tsx`) y `registrar_venta` con `pago_inicial` (ADR-0023).
+- **Pantalla:** la hoja «¿Así fue la venta?» con «Pagó una parte» (`components/voz/TarjetaVenta.tsx`, `PagoParcial.tsx`) y `registrar_venta` con `pago_inicial` (ADR-0025).
 - **Rama:** `claude/relaxed-ptolemy-4390e8`. **Semilla:** 1117. **Base:** local propia (`fructus-pago`), con un volcado antes y un `db reset` al terminar. Invariantes limpias antes y después de cada ataque que escribió.
 - **Conteo:** 12 ataques, 11 resistieron, 1 hallazgo.
 

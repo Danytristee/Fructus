@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
-import { baseLocal, entornoLocal } from "./base";
+import { baseLocal, devolverLaHoraDeCierre, entornoLocal, horaDeCierreAhora, soltarElDia } from "./base";
 import { entrarComo } from "./cuentas";
 import { verTuStock } from "./stock";
 
@@ -27,7 +27,11 @@ type Evidencia = { tipo: string; haceDias: number; gastado: number; cajas?: numb
 type Pedido = { modelo: string; esfuerzo?: string; formato?: string; conClave: boolean; frutas: { id: number; fruta: string; tabla: number; minimo: number; maximo: number; actual?: number; evidencia?: Evidencia[] }[] };
 const pedidos = async (): Promise<Pedido[]> => (await (await fetch(`${MODELO_SIMULADO}/recibidos`)).json()) as Pedido[];
 type InformeVida = { motivo: string; pedidas: number; ajustes: number; guardadas: number; recortadas: number; codigo?: string };
-const correrElCron = async (request: APIRequestContext) => ((await (await request.get(RUTA, { headers: conSecreto })).json()) as { vidaUtil: InformeVida }).vidaUtil;
+// El cron estima una vez por día (ADR-0024): cada corrida de la prueba hace de una noche nueva, así que antes se suelta el día.
+const correrElCron = async (request: APIRequestContext) => {
+  await soltarElDia(base);
+  return ((await (await request.get(RUTA, { headers: conSecreto })).json()) as { vidaUtil: InformeVida }).vidaUtil;
+};
 
 const frutas: Record<"menos" | "loca" | "falla", number> = { menos: 0, loca: 0, falla: 0 };
 
@@ -38,6 +42,8 @@ async function crearFruta(nombre: string, marca: string): Promise<number> {
 }
 
 test.beforeAll(async () => {
+  // La estimación corre en el cron de la hora de cierre (ADR-0023): se pone la de ahora. Antes de las 8 a. m. no se puede.
+  test.skip(!(await horaDeCierreAhora(base)), "antes de las 8 a. m. de Lima no se puede elegir como hora de cierre: el cron no estima");
   await fetch(`${MODELO_SIMULADO}/recibidos`, { method: "DELETE" });
   // Una papaya (la tabla dice 5 días) que el modelo de mentira va a estimar en 4, y que llegó hace 3 días con clima normal: con la
   // tabla le queda un día; con la estimación tiene que salir hoy. La base no acepta fechas viejas al insertar: entra hoy y se mueve.
@@ -51,6 +57,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  await devolverLaHoraDeCierre(base);
   // Las frutas de prueba no se borran (CLAUDE.md): quedan inactivas. Lo que «estimó» el modelo de mentira sí se quita de la base
   // local, para que quien use esta base después no vea motivos «Simulado» ni se quede sin la estimación de verdad.
   await base.from("vida_util_estimada").delete().like("motivo", "Simulado%");
@@ -145,6 +152,7 @@ test("se corrige sola: un «Sigue buena» entra al pedido de la noche siguiente,
 
 test("si el modelo falla, el cron contesta igual y la fruta nueva sigue con la tabla", async ({ request }) => {
   frutas.falla = await crearFruta("Chirimoya", "sim-falla");
+  await soltarElDia(base);
   const respuesta = await request.get(RUTA, { headers: conSecreto });
   expect(respuesta.status(), "el aviso de la noche no depende del modelo").toBeLessThan(500);
   const { vidaUtil } = (await respuesta.json()) as { vidaUtil: InformeVida };

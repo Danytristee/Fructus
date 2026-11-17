@@ -75,10 +75,10 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 | Validación | **Zod 4** | Toda salida del LLM, todo formulario y todo cuerpo de API se valida con un esquema antes de usarse. |
 | Datos y login | **Supabase** (Postgres 17 + Auth + RLS) con `@supabase/ssr` y `@supabase/supabase-js` | Ver «Base de datos». |
 | Voz a texto | **Groq** `whisper-large-v3-turbo` | Nivel gratuito real, rápido, acepta prompt de vocabulario. |
-| Interpretación | **Claude Haiku 5.5** (`@anthropic-ai/sdk`) con tool calling; **LLM en Groq** y **Gemini Flash** de respaldo | Una herramienta forzada, sin pensar, esfuerzo bajo. Acierta 97.8 % de los datos clave contra 84.9 % de Groq (ADR-0024). **Es de pago**: centavos al mes. Ver `docs/interprete-voz.md`. |
+| Interpretación | **Claude Haiku 5.5** (`@anthropic-ai/sdk`) con tool calling; **LLM en Groq** y **Gemini Flash** de respaldo | Una herramienta forzada, sin pensar, esfuerzo bajo. Acierta 97.8 % de los datos clave contra 84.9 % de Groq (ADR-0026). **Es de pago**: centavos al mes. Ver `docs/interprete-voz.md`. |
 | Respuesta hablada | **Web Speech API** (`speechSynthesis`) | Viene en el navegador, gratis. |
 | Palabra de activación | **openWakeWord** (sus modelos ONNX y `hola-fructus.onnx`) con **onnxruntime-web** en un Web Worker | «Hola Fructus» se detecta en el celular, gratis y sin enviar audio hasta despertar. Se baja solo al prender el interruptor (ADR-0022). |
-| Vida útil de la fruta | **Claude Sonnet 5.5** (`@anthropic-ai/sdk`), una vez al día | Estima cuánto aguanta cada fruta; la tabla fija queda de respaldo. **Es de pago** (créditos de Anthropic, centavos al mes): junto con el intérprete, las dos excepciones al costo 0 (ADR-0021, ADR-0024). |
+| Vida útil de la fruta | **Claude Sonnet 5.5** (`@anthropic-ai/sdk`), una vez al día | Estima cuánto aguanta cada fruta; la tabla fija queda de respaldo. **Es de pago** (créditos de Anthropic, centavos al mes): junto con el intérprete, las dos excepciones al costo 0 (ADR-0021, ADR-0026). |
 | Comprobantes | **Sandbox de Lucode** (apisunat.pe) | Plan B gratis: servicio BETA de SUNAT con credenciales MODDATOS. |
 | PWA | `app/manifest.ts` de Next + íconos en `public/icons/` + un service worker mínimo en `public/sw.js` (ADR-0011) | Se instala como app, la pantalla queda fija (sin zoom), y sin señal se ve «Sin conexión». El resumen del día llega como aviso (Web Push con `web-push`, cron de Vercel y VAPID; ADR-0013). |
 | Excel | **SheetJS**, instalado desde su CDN oficial (`https://cdn.sheetjs.com/`) | El paquete `xlsx` de npm está congelado en una versión vieja. |
@@ -114,7 +114,7 @@ app/
     comprobantes/       emitir y reintentar en sandbox (solo servidor)
     exportar/route.ts   el mes en un .xlsx para el contador (solo lectura, con la sesión de quien lo pide; lee por páginas porque Supabase corta en 1000 filas)
     salud/route.ts      consulta real a la base, para el ping y para diagnosticar
-    cron/resumen-diario/route.ts   el aviso del día (Web Push) y la estimación de vida útil (ADR-0021), una vez al día; solo responde con el secreto de Vercel (ADR-0013)
+    cron/resumen-diario/route.ts   el aviso del día (Web Push) y la estimación de vida útil (ADR-0021), a la hora y minuto de cierre que elige el dueño: la llama el reloj de la base (pg_cron, con una ficha de un solo uso) y, de respaldo, un cron de Vercel por hora (ADR-0023, ADR-0024); solo responde con la ficha vigente o el secreto de Vercel (ADR-0013)
   manifest.ts  layout.tsx  globals.css
 components/
   ui/                   UNA pieza por función: Boton, Hoja, Tarjeta, Campo, Monto, Insignia, Aviso, Vacio, Espera
@@ -243,7 +243,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - Las dudas del intérprete salen como una línea discreta.
   - Un solo botón grande: **Confirmar**.
 - **Si algo falla, se dice qué hacer.**
-  - El intérprete pregunta primero a Claude (ADR-0024). Si no responde en **8 s** o falla de cualquier forma, pasa a Groq.
+  - El intérprete pregunta primero a Claude (ADR-0026). Si no responde en **8 s** o falla de cualquier forma, pasa a Groq.
   - Si la cuenta de Groq se quedó sin cupo (429) o su clave no vale (401, 403), se prueba con la de respaldo (`GROQ_API_KEY_RESPALDO`, otra cuenta; `lib/voz/respaldo-reglas.ts`).
   - Si Groq no responde en **8 s** (`AbortSignal.timeout`) o falla de otra forma, se intenta con Gemini, sin pasar por la otra cuenta.
   - Si tampoco responde, sale «No te entendí, inténtalo otra vez» y el audio se conserva.
@@ -299,8 +299,11 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - Supabase da `EXECUTE` a `anon` y `authenticated` en toda función nueva (y Postgres a `public`). Revoca `anon` y `public` en la misma migración: ninguna función propia se ejecuta sin sesión. `supabase/tests/database/05_funciones_sin_anon.test.sql` falla en el CI si una queda abierta.
 - **Avisos del linter que se dejan a propósito:**
   - `series_comprobante` tiene RLS sin políticas porque solo la toca el servidor.
+  - `aviso_del_dia` tiene RLS sin políticas porque solo la tocan el servidor y el reloj de la base (ADR-0024).
   - `frases_tomadas` tiene RLS sin políticas porque solo la toca `tomar_frase` (security definer, ADR-0022).
   - `rol_actual()` es `security definer` y la pueden ejecutar los autenticados, porque las políticas la necesitan.
+  - `fijar_hora_cierre()` es `security definer` y la pueden ejecutar los autenticados: revisa el rol (dueño o administrador) antes de
+    tocar `ajustes_puesto`, que no tiene update directo (ADR-0023).
   - `tomar_frase()` es `security definer` y la pueden ejecutar los autenticados: `/api/voz` la llama con la sesión de quien dicta, y la
     función revisa el rol antes de tocar `frases_tomadas` (ADR-0022).
   - Los avisos de rendimiento (políticas permisivas múltiples, llaves foráneas sin índice) no importan a este volumen; se revisan antes de producción.
@@ -342,6 +345,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
 
 - **Pre-commit** (`.githooks/pre-commit`): revisa **solo lo que estás commiteando** (tipos, `vitest related` y ESLint), como en CAYLA Retail, porque un hook lento se termina salteando. Se activa con `pnpm install` (script `prepare`). Solo en una emergencia real: `git commit --no-verify`.
 - **CI** (`.github/workflows/ci.yml`): tipos, lint, pruebas, Knip y build. Hay un segundo trabajo que levanta Supabase con Docker y corre pgTAP y las invariantes. **Un PR en rojo no se fusiona.**
+  - **`pnpm ci:local` corre los dos trabajos en esta máquina igual que GitHub** (`scripts/ci-local.sh`): sobre una copia limpia del commit, sin `.env` locales, con el Node de `.nvmrc` y sobre una base nueva (`fructus-ci`, puertos 5692x), sin tocar la de nadie. Mientras Actions no arranque (la cuenta dueña quedó bloqueada por facturación el 2026-11-17), es el CI: se corre antes de pedir la fusión y su resultado va en el PR. Correr las pruebas en la carpeta de trabajo no alcanza, porque los `.env` locales esconden fallas: así se escondió por 9 días un Knip roto.
 - **Mantener viva la base:** `.github/workflows/mantener-despierta.yml` consulta la base cada 3 días para que el plan gratis no la pause. Necesita los secrets `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`.
 
 ## Flujo de trabajo

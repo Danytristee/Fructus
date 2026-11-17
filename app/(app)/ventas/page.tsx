@@ -92,7 +92,7 @@ async function Historial() {
           subtotal: Number(i.subtotal),
         })),
         registradaPor: v.registrador?.nombre ?? null,
-        // Lo que pagó al llevar (ADR-0023): a lo más uno por venta (abonos_uno_por_venta).
+        // Lo que pagó al llevar (ADR-0025): a lo más uno por venta (abonos_uno_por_venta).
         pagoAlLlevar: v.pago[0] ? { monto: Number(v.pago[0].monto), medio: v.pago[0].medio_pago as Medio } : null,
         anulacion: anulada ? { cuando: v.anulada_en ?? v.fecha, por: v.anulador?.nombre ?? null, motivo: v.motivo_anulacion ?? "" } : null,
         comprobante: comprobanteAMostrar(

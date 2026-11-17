@@ -71,7 +71,7 @@ describe("armarTarjeta · venta", () => {
       ...extra,
     });
 
-  it("lo que pagó al llevar deja la venta al crédito, con efectivo si no dijo cómo (ADR-0023)", () => {
+  it("lo que pagó al llevar deja la venta al crédito, con efectivo si no dijo cómo (ADR-0025)", () => {
     const t = armarTarjeta(venta({ pago_parcial: 1000 }), { ...nada, clientes: [lucho], productos: [[royal]], precios: [500] });
     if (t.tipo !== "venta") throw new Error("no es venta");
     expect(t.pagoParcial).toBe(1000);

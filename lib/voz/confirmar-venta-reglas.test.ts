@@ -224,7 +224,7 @@ describe("ventaActual", () => {
   });
 });
 
-// ADR-0023: «Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000». La venta va al crédito por el total y lo que pagó se
+// ADR-0025: «Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000». La venta va al crédito por el total y lo que pagó se
 // guarda como abono de esa venta: debe 4,000.
 describe("pago parcial", () => {
   const conPago = (pagoParcial: number | null, medio: Venta["medio"] = null) =>
@@ -290,8 +290,9 @@ describe("pago parcial", () => {
   });
 
   it("un borrador viejo de la cola, sin el campo, se guarda como antes", () => {
-    const { pagado: _, ...viejo } = borradorDe(conPago(null));
-    expect(pedidoVenta(viejo as Borrador, 7, false)!.pago_inicial).toBeNull();
+    const viejo: Borrador = borradorDe(conPago(null));
+    delete viejo.pagado;
+    expect(pedidoVenta(viejo, 7, false)!.pago_inicial).toBeNull();
   });
 
   it("lo que pagó se escribe como cualquier monto, y no puede llegar al total", () => {

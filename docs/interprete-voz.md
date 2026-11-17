@@ -94,7 +94,7 @@ cuarenta», «es para don Lucho»), `POST /api/voz/respuesta` vuelve a llamar al
   - lleva lo que respondió la persona;
   - dice dos reglas explícitas: el cliente es el mismo si no nombra a otro, y «45 con 50» es un precio de 45.50 (lo que va después de «con» son los céntimos).
 - **Por qué la venta va en datos:** al principio se mandaba la lectura en frases. El /chaos del 2026-11-16 encontró que en 3 de 12 corridas el modelo perdía al cliente, y que «No, a 45 con 50» salía 50 (una vez, «total 50 con 400 de rebaja»). Con la venta en datos y las dos reglas, las 17 correcciones que Groq respondió salieron bien: 12 de 12 y 5 de 5. El resto de esa corrida fueron cortes del plan gratuito (429).
-- **Lo que vuelve:** un `registrar_venta` como el de una venta dictada. Pasa por Zod, por `resolver` y por `armarTarjeta`, y vuelve como tarjeta nueva para leer y confirmar.
+- **Lo que vuelve:** un `registrar_venta` como el de una venta dictada. Pasa por Zod, por `resolver` y por `armarTarjeta`, y vuelve como tarjeta nueva para leer y confirmar. En voz alta se dice solo lo que cambió respecto de la tarjeta anterior, con el total si cambió el dinero (`guionCorreccion`, `lib/voz/lectura-reglas.ts`; ADR-0020, 2026-11-17). «Repite» lee la venta entera.
 - **Sin contenido no se llama al modelo:** una respuesta como «no» o «sí» se repregunta (`pareceCorreccion`). «Repite» o «¿qué?» vuelven a leer, también sin modelo (`pideQueRepita`).
 - **Si el modelo no devuelve una venta,** la respuesta cuenta como «otra cosa».
 - **Los casos** viven en `tests/interprete/casos.json`: los `correccion-*`, con `correccionDe`, que es la venta actual en datos.
@@ -281,7 +281,7 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 | "Diez de papaya para la del puesto doce, lo debe" | registrar_venta | cliente "la del puesto 12", precio null, crédito |
 | "5 de plátano seda y 3 de piña al Paraíso a 30 y 40, factura" | registrar_venta | 2 items, comprobante factura, condicion null |
 | "Mango a don Lucho, 8 jabas, le dejé a 42" | registrar_venta | precio_unitario 42 |
-| "Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000" | registrar_venta | 10 × 500, crédito, pago_parcial 1000, efectivo (nunca contado con S/ 4,000 de descuento: ADR-0023) |
+| "Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000" | registrar_venta | 10 × 500, crédito, pago_parcial 1000, efectivo (nunca contado con S/ 4,000 de descuento: ADR-0025) |
 | "Vendí 10 de mango a don Lucho a 45, a cuenta" | registrar_venta | crédito, pago_parcial null («a cuenta» sola es crédito) |
 | "Le vendí 10 cajas de mango a don Lucho, todo por 500, lo debe" | registrar_venta | precio_unitario null, total_item 500 (la tarjeta lo divide: 50) |
 | "Tres cajas de palta a don Lucho por 100 soles, lo debe" | registrar_venta | total_item 100: no se divide exacto, el precio queda por elegir (nunca 100 la caja) |
@@ -315,7 +315,7 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
    es ese total entre las cajas, contado en la tarjeta (`precioDeTotal`), y no se sugiere otro. Si no sale exacto en céntimos
    («3 por 100»), queda por elegir con la duda escrita. El modelo no divide: «3 cajas por 100» salía a 100 la caja.
 4. Condición null → dos botones grandes: **Pagó** / **Lo debe**.
-4b. `pago_parcial` (ADR-0023) → la venta va al crédito y la tarjeta dice cuánto pagó y cuánto queda debiendo. Si lo que pagó llega al
+4b. `pago_parcial` (ADR-0025) → la venta va al crédito y la tarjeta dice cuánto pagó y cuánto queda debiendo. Si lo que pagó llega al
    total con precios dichos («me dio 500 y le di 50 de vuelto»), es contado. Con un precio sugerido no se decide solo: si llega al
    total, la tarjeta pide corregirlo. Se guarda como abono atado a la venta (`registrar_venta`, `pago_inicial`).
 5. Al confirmar → `registrar_venta` / `registrar_compra` con `comando_voz_id` (marcan el comando como `confirmado`). Abonos, mermas y gastos se insertan directo en su tabla y la app marca el comando. En las dos formas, solo quien dictó el comando (o el dueño o el administrador) puede guardar con él: la RLS lo exige.
@@ -329,14 +329,14 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
 | Prompt de sistema | `lib/voz/prompt.ts` (idéntico a la sección 2; una prueba lo verifica) | `lib/voz/esquemas.test.ts` |
 | Voz a texto | `lib/voz/stt.ts` (Groq Whisper con dos cuentas, Gemini `gemini-3.1-flash-lite` de respaldo, tope de 8 s) | `pnpm voz:stt` → `docs/voz/stt-*.md` |
 | Vocabulario y catálogo | `lib/voz/catalogo-reglas.ts`, `lib/voz/catalogo.ts` (caché de 5 min) | `lib/voz/catalogo-reglas.test.ts` |
-| Intérprete | `lib/voz/interprete.ts`: Claude `claude-haiku-5-5` (`lib/voz/interprete-claude.ts`, ADR-0024), después Groq `openai/gpt-oss-120b` con dos cuentas y Gemini `gemini-3.1-flash-lite`; tope de 8 s cada uno | `pnpm voz:precision` → `docs/voz/precision-*.md` |
+| Intérprete | `lib/voz/interprete.ts`: Claude `claude-haiku-5-5` (`lib/voz/interprete-claude.ts`, ADR-0026), después Groq `openai/gpt-oss-120b` con dos cuentas y Gemini `gemini-3.1-flash-lite`; tope de 8 s cada uno | `pnpm voz:precision` → `docs/voz/precision-*.md` |
 | Tarjeta | `lib/voz/tarjeta-reglas.ts` (lógica pura) | `lib/voz/tarjeta-reglas.test.ts` |
 | Resolver | `lib/voz/resolver.ts` (buscar_*, ultimo_precio) | `tests/e2e/voz-api.spec.ts` |
 | Todo junto | `app/api/voz/route.ts` | `tests/e2e/voz-api.spec.ts` |
 
 **El orden de los proveedores** vive en `lib/voz/respaldo-reglas.ts`, con su prueba. Para la voz a texto: Groq con `GROQ_API_KEY` →
 Groq con `GROQ_API_KEY_RESPALDO` (otra cuenta, con su propio cupo gratuito) → Gemini. Para el intérprete va **Claude primero**
-(ADR-0024: Claude no escucha audio, pero entiende mejor el texto) y después el mismo orden; si Claude falla por lo que sea, se pasa a Groq.
+(ADR-0026: Claude no escucha audio, pero entiende mejor el texto) y después el mismo orden; si Claude falla por lo que sea, se pasa a Groq.
 - La cuenta de respaldo solo se prueba si la principal respondió 429 (sin cupo), 401 o 403 (clave rechazada).
 - Si Groq no respondió en 8 s, se cayó o devolvió algo inválido, la otra cuenta daría lo mismo y sumaría otros 8 s de espera: se
   pasa directo a Gemini.

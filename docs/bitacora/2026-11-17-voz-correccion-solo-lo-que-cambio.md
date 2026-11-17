@@ -1,0 +1,5 @@
+# 2026-11-17 · La corrección hablada dice solo lo que cambió
+
+- **Qué cambió:** en manos libres, «no, son ocho cajas» ya no relee la venta entera. Ahora dice «Corregido. 8 cajas de Mango Kent, a 45 la caja. Total, 360 soles. ¿Confirmo?». Se dicen las frutas que cambiaron y, si cambiaron, el cliente, la rebaja, el pago y el comprobante. El total va siempre que cambie el dinero. Si cambió cuántas frutas hay, se dicen todas; si no cambió nada que se pueda nombrar, se lee la venta entera. «Repite» lee la venta corregida completa. La regla es `guionCorreccion` (`lib/voz/lectura-reglas.ts`) y queda escrita en ADR-0020, en «Después de responder o corregir, solo lo nuevo».
+- **Cómo se verificó:** Vitest, 379 de `lib/voz` en verde (8 casos nuevos de la corrección); tipos y ESLint limpios. Playwright a 412 y 360 px: `voz-confirmar-hablando` y `voz-candados`, 22 de 22. La prueba de «no, son ocho cajas» comprueba la lectura corta y que «repite» trae la venta corregida entera.
+- **Pendiente:** probarlo en el celular con audífono. La corrección de una compra, un abono o un gasto no existe todavía: solo la venta se corrige hablando.

@@ -45,7 +45,7 @@ const herramientasVoz = {
         .min(1),
       descuento_total: dinero.nullable().default(null),
       condicion: condicion.nullable().describe("null si no dijo si pagó o si lo debe."),
-      // ADR-0023. Sin este campo, «pagó solo 1000» salía al contado con S/ 4,000 de descuento (/voz-precision 2026-11-17).
+      // ADR-0025. Sin este campo, «pagó solo 1000» salía al contado con S/ 4,000 de descuento (/voz-precision 2026-11-17).
       pago_parcial: z
         .number()
         .positive()

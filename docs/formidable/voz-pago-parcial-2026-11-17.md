@@ -1,6 +1,6 @@
 # /formidable · Hoja «¿Así fue la venta?» con pago parcial · 2026-11-17
 
-**Qué es:** la tarjeta que sale después de dictar una venta. Desde el ADR-0023 dice cuánto pagó el cliente al llevarse la fruta y cuánto
+**Qué es:** la tarjeta que sale después de dictar una venta. Desde el ADR-0025 dice cuánto pagó el cliente al llevarse la fruta y cuánto
 queda debiendo. **La usa** el dueño o el ayudante, en el celular, de pie y al sol.
 
 ## 1 · Medido (Playwright, 412 × 915, 360 × 800 y 1280 × 800, con pago y sin pago)

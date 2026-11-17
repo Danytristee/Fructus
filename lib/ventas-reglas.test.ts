@@ -100,7 +100,7 @@ describe("fraseDePago", () => {
     expect(fraseDePago({ condicion: "credito", medio: null })).toBe("Lo debe");
   });
 
-  it("al crédito con pago al llevar, debe el resto (ADR-0023)", () => {
+  it("al crédito con pago al llevar, debe el resto (ADR-0025)", () => {
     expect(fraseDePago({ condicion: "credito", medio: null, pagoAlLlevar: { monto: 1000, medio: "efectivo" } })).toBe("Debe el resto");
     expect(fraseDePago({ condicion: "credito", medio: null, pagoAlLlevar: null })).toBe("Lo debe");
   });

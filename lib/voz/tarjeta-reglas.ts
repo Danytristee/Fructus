@@ -40,7 +40,7 @@ export type Tarjeta =
       /** null: se pregunta con dos botones, Pagó / Lo debe. Nunca se asume contado. */
       condicion: "contado" | "credito" | null;
       medio: Medio | null;
-      /** Al crédito, lo que pagó al llevarse la fruta («pagó solo 1000», ADR-0023). null o ausente: no pagó nada al llevar. */
+      /** Al crédito, lo que pagó al llevarse la fruta («pagó solo 1000», ADR-0025). null o ausente: no pagó nada al llevar. */
       pagoParcial?: number | null;
       comprobante: "ninguno" | "boleta" | "factura";
       dudas: string[];
@@ -142,7 +142,7 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
       const descuento = d.descuento_total ?? 0;
       const sinPrecio = items.some((x) => x.subtotal === null);
       const total = sinPrecio ? null : redondear(items.reduce((s, x) => s + (x.subtotal ?? 0), 0) - descuento);
-      // Pagar una parte es dejar el resto debiendo: al crédito, aunque el intérprete no lo haya dicho (ADR-0023). Pagar el total o
+      // Pagar una parte es dejar el resto debiendo: al crédito, aunque el intérprete no lo haya dicho (ADR-0025). Pagar el total o
       // más («me dio 500 y le di 50 de vuelto») es al contado: no hay parte que deber.
       // Solo con precios dichos por caja. Con un precio sugerido, o sacado de dividir un total, no se decide solo que pagó todo: Gemini
       // tomó «a doscientos cincuenta» por un total, y con «pagó mil quinientos» la venta salía al contado (/voz-precision 2026-11-17).

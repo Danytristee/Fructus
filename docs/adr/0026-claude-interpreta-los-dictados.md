@@ -1,4 +1,4 @@
-# ADR-0024 — Claude Haiku 5.5 interpreta los dictados; Groq y Gemini quedan de respaldo
+# ADR-0026 — Claude Haiku 5.5 interpreta los dictados; Groq y Gemini quedan de respaldo
 
 **Fecha:** 2026-11-17 · **Estado:** aceptado (suma un uso de pago de Anthropic; ADR-0021 fue el primero)
 
@@ -6,7 +6,7 @@
 
 Se pidió que la voz «la entienda mejor una IA», con el ejemplo de «Vendí 10 cajas de mango a don Lucho y pagó solo 1000», y que se
 pruebe la API de Anthropic. El intérprete ya era un LLM (gpt-oss-120b en Groq, gratis), pero erraba en los datos: 87.8 % de datos
-clave el 16-11, por debajo de la meta de 90 %. El pago parcial no tenía dónde guardarse (eso lo resuelve ADR-0023, para cualquier
+clave el 16-11, por debajo de la meta de 90 %. El pago parcial no tenía dónde guardarse (eso lo resuelve ADR-0025, para cualquier
 modelo).
 
 Claude **no recibe audio** (la API acepta texto, imágenes y PDF; revisado en la documentación el 17-11). Whisper en Groq sigue pasando

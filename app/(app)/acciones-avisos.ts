@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 
+import { leerHoraDeCierre } from "@/lib/hora-cierre";
+import { HORA_DE_CIERRE_DE_FABRICA, type HoraDeCierre } from "@/lib/hora-cierre-reglas";
 import { enviarAviso } from "@/lib/push/enviar";
 import { anotarEnLaBase, desactivarSuscripcion, guardarSuscripcion, leerConfiguracionPush } from "@/lib/push/servidor";
 import { avisoDeActivacion, esquemaSuscripcion } from "@/lib/push-reglas";
@@ -46,8 +48,10 @@ export async function activarAvisos(datos: unknown): Promise<ResultadoAvisos> {
     return { ok: false, error: SIN_SENAL };
   }
 
+  // El aviso de prueba dice a qué hora llegará. Si no se puede leer, la de fábrica: es lo que el cron usaría con la base caída.
+  const hora = await leerHoraDeCierre(db).catch(() => HORA_DE_CIERRE_DE_FABRICA);
   const { endpoint, keys } = leida.data;
-  const resultado = await enviarAviso(vapid, { endpoint, clave_p256dh: keys.p256dh, clave_auth: keys.auth }, avisoDeActivacion(), { ttlSegundos: 300, tema: "aviso-activado", simulador });
+  const resultado = await enviarAviso(vapid, { endpoint, clave_p256dh: keys.p256dh, clave_auth: keys.auth }, avisoDeActivacion(hora), { ttlSegundos: 300, tema: "aviso-activado", simulador });
   try {
     await anotarEnLaBase(db, id, resultado, new Date());
   } catch (e) {
@@ -74,5 +78,20 @@ export async function apagarAvisos(datos: unknown): Promise<{ ok: true } | { ok:
   } catch (e) {
     console.error("push: no se pudo apagar el teléfono", { usuarioId: s.usuarioId, error: e instanceof Error ? e.message : "desconocido" });
     return { ok: false, error: "No se pudo apagar el aviso. Revisa tu señal e inténtalo otra vez." };
+  }
+}
+
+/**
+ * La hora de cierre, para que la fila «Aviso del día» diga a qué hora llega. Se pide al abrir el menú (no en cada pantalla: una consulta
+ * más en cada carga, para una fila que casi nadie mira). null si no se pudo leer: la fila lo dice sin hora.
+ */
+export async function leerHoraDelAviso(): Promise<HoraDeCierre | null> {
+  const s = await sesion();
+  if (!s || !s.permisos.cierre) return null;
+  try {
+    return await leerHoraDeCierre(s.supabase);
+  } catch (e) {
+    console.error("push: no se pudo leer la hora de cierre", { usuarioId: s.usuarioId, error: e instanceof Error ? e.message : "desconocido" });
+    return null;
   }
 }

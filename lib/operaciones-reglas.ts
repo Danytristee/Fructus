@@ -15,7 +15,7 @@ export type VentaLeida = {
   cliente: { id: number; nombre: string } | null;
   items: Item[];
 };
-/** `alLlevar`: lo pagó al llevarse la fruta en una venta al crédito («pagó solo 1000»), no fue un abono suelto (ADR-0023). */
+/** `alLlevar`: lo pagó al llevarse la fruta en una venta al crédito («pagó solo 1000»), no fue un abono suelto (ADR-0025). */
 export type AbonoLeido = { id: number; fecha: string; monto: number; medio: Medio; cliente: { id: number; nombre: string } | null; alLlevar?: boolean };
 export type CompraLeida = { id: number; fecha: string; total: number; proveedor: { nombre: string } | null; items: Item[] };
 export type MermaLeida = { id: number; fecha: string; cantidad: number; motivo: string | null; producto: Producto | null };

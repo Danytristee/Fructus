@@ -49,6 +49,34 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"ajustes_puesto": {
+                  Row: {
+                    "actualizado_en": string,"actualizado_por": string | null,"hora_cierre": number,"id": boolean,"minuto_cierre": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actualizado_en"?: string,"actualizado_por"?: string | null,"hora_cierre"?: number,"id"?: boolean,"minuto_cierre"?: number
+                  }
+                  Update: {
+                    "actualizado_en"?: string,"actualizado_por"?: string | null,"hora_cierre"?: number,"id"?: boolean,"minuto_cierre"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"aviso_del_dia": {
+                  Row: {
+                    "ficha": string | null,"ficha_vence": string | null,"id": boolean,"reclamado_dia": string | null,"reclamado_en": string | null,"url": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ficha"?: string | null,"ficha_vence"?: string | null,"id"?: boolean,"reclamado_dia"?: string | null,"reclamado_en"?: string | null,"url"?: string | null
+                  }
+                  Update: {
+                    "ficha"?: string | null,"ficha_vence"?: string | null,"id"?: boolean,"reclamado_dia"?: string | null,"reclamado_en"?: string | null,"url"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"clientes": {
                   Row: {
                     "activo": boolean,"alias": (string)[],"creado_en": string,"direccion": string | null,"id": number,"limite_credito": number | null,"nombre": string,"notas": string | null,"numero_documento": string | null,"telefono": string | null,"tipo_documento": string | null
@@ -651,6 +679,15 @@ isOneToOne: false
 "fecha_del_celular":
 { Args: { "p": string }; Returns: string
                            },
+"fijar_hora_cierre":
+{ Args: { "p_hora": number,"p_minuto"?: number }; Returns: number
+                           },
+"llamar_al_aviso_del_dia":
+{ Args: { "p_ahora"?: string }; Returns: undefined
+                           },
+"reclamar_resumen_del_dia":
+{ Args: { "p_ahora"?: string,"p_ficha"?: string }; Returns: string
+                           },
 "registrar_compra":
 { Args: { "p": Json }; Returns: number
                            },
@@ -666,6 +703,9 @@ isOneToOne: false
 "rol_actual":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["rol_usuario"]
                            },
+"soltar_resumen_del_dia":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "tomar_frase":
 { Args: { "p_celular": string,"p_frase": string }; Returns: boolean
                            },
@@ -674,6 +714,9 @@ isOneToOne: false
                            },
 "ultimo_precio":
 { Args: { "p_cliente_id": number,"p_producto_id": number }; Returns: number
+                           },
+"ya_es_hora_de_cierre":
+{ Args: { "p_ahora"?: string }; Returns: boolean
                            }
           }
           Enums: {

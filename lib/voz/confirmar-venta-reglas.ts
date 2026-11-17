@@ -1,7 +1,7 @@
 // De la tarjeta de venta (lo que se entendió) al borrador que la persona corrige, y del borrador a lo que recibe
 // registrar_venta. Reglas de dinero (CLAUDE.md, principio 2): no se guarda sin precio, sin saber si pagó, ni al crédito
 // sin cliente; la rebaja dicha para toda la venta se reparte entre las frutas según su peso en el total. Lo que pagó al llevar en
-// una venta al crédito («pagó solo 1000») va aparte del total y nunca llega a él (ADR-0023). Lógica pura.
+// una venta al crédito («pagó solo 1000») va aparte del total y nunca llega a él (ADR-0025). Lógica pura.
 import { formatearSoles } from "../formato";
 import type { EstadoLlegada } from "../vida-util-reglas";
 import { leerMonto, type LecturaMonto } from "./monto-reglas";
@@ -31,7 +31,7 @@ export type Borrador = {
   /** Cómo pagó: todo (al contado) o lo que pagó al llevar (al crédito con `pagado`). null si lo debe todo. */
   medio: Medio | null;
   /**
-   * Al crédito, lo que pagó al llevarse la fruta («pagó solo 1000»): se guarda como abono de esta venta (ADR-0023). null si no pagó
+   * Al crédito, lo que pagó al llevarse la fruta («pagó solo 1000»): se guarda como abono de esta venta (ADR-0025). null si no pagó
    * nada. Opcional: una venta que esperaba en la cola desde antes de esto no lo trae.
    */
   pagado?: number | null;
@@ -162,7 +162,7 @@ export type PedidoVenta = {
   cliente_id: number | null;
   condicion: "contado" | "credito";
   medio_pago: Medio | null;
-  /** Lo que pagó al llevar, en una venta al crédito (ADR-0023). null si no pagó nada. */
+  /** Lo que pagó al llevar, en una venta al crédito (ADR-0025). null si no pagó nada. */
   pago_inicial: { monto: number; medio_pago: Medio } | null;
   comando_voz_id: number;
   corregido: boolean;

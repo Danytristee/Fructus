@@ -21,7 +21,7 @@ export type DetalleVenta = {
   anulacion: { cuando: string; por: string | null; motivo: string } | null;
   /** Su boleta o factura vigente (pendiente, enviada o aceptada), si ya se emitió. */
   comprobante: ComprobanteVista | null;
-  /** Al crédito, lo que pagó al llevarse la fruta («pagó solo 1000», ADR-0023). null o ausente si no pagó nada al llevar. */
+  /** Al crédito, lo que pagó al llevarse la fruta («pagó solo 1000», ADR-0025). null o ausente si no pagó nada al llevar. */
   pagoAlLlevar?: { monto: number; medio: Medio } | null;
 };
 

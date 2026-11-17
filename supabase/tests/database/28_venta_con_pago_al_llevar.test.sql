@@ -1,5 +1,5 @@
 -- =============================================================================
--- Una venta al crédito con lo que pagó al llevar (ADR-0023) — pruebas pgTAP.
+-- Una venta al crédito con lo que pagó al llevar (ADR-0025) — pruebas pgTAP.
 -- «Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000»: la venta es de S/ 5,000 al crédito, entra un abono de S/ 1,000
 -- atado a ella, y don Lucho debe S/ 4,000. No depende del catálogo cargado.
 -- =============================================================================

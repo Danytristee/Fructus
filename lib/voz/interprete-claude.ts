@@ -1,6 +1,6 @@
 import "server-only";
 
-// El intérprete con Claude (ADR-0024): la misma pregunta que se le hace a Groq (el prompt, las 8 herramientas de esquemas.ts y la
+// El intérprete con Claude (ADR-0026): la misma pregunta que se le hace a Groq (el prompt, las 8 herramientas de esquemas.ts y la
 // frase), por el SDK oficial de Anthropic. Claude no escucha audio: la voz la pasa a texto Whisper (lib/voz/stt.ts) y aquí llega
 // el texto. La transcripción nunca va a un log (CLAUDE.md, «Seguridad y claves»).
 import Anthropic from "@anthropic-ai/sdk";

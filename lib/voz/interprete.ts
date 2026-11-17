@@ -1,7 +1,7 @@
 import "server-only";
 
 // Lo que dijo la persona (ya en texto) → una herramienta con sus datos, validada con Zod.
-// Claude Haiku 5.5 primero (ADR-0024: 97.8 % de datos clave contra 84.9 % de gpt-oss-120b); si no responde en 8 s o falla, Groq;
+// Claude Haiku 5.5 primero (ADR-0026: 97.8 % de datos clave contra 84.9 % de gpt-oss-120b); si no responde en 8 s o falla, Groq;
 // si esa cuenta se quedó sin cupo, la de respaldo; si Groq tampoco, Gemini (si hay clave). Cómo se pasa de uno a otro vive en
 // respaldo-reglas.ts. Ninguno inventa: si la respuesta no calza con el esquema, no se usa. La transcripción nunca va a
 // los logs (CLAUDE.md, «Seguridad y claves»).

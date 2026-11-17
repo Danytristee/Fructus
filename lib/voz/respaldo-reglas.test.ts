@@ -125,7 +125,7 @@ describe("probarEnOrden", () => {
     expect(r.intentos.at(-1)).toEqual({ modelo: "gemini-flash", error: "sin clave configurada" });
   });
 
-  // ADR-0024: el intérprete pregunta primero a Claude. Si falla, por lo que sea, Groq sigue: es otra empresa.
+  // ADR-0026: el intérprete pregunta primero a Claude. Si falla, por lo que sea, Groq sigue: es otra empresa.
   it("Claude primero; si se queda sin cupo o no responde, contesta Groq con su principal", async () => {
     for (const falla of [mal("HTTP 429 (sin cupo)", 429), mal("no respondió en 8 s")]) {
       const { proveedores, pedir } = tres(bien("venta de Groq"), bien("x"), bien("x"));

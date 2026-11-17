@@ -52,7 +52,7 @@ describe("consecuenciasDeAnular", () => {
   });
 
   // /chaos 2026-11-17: la hoja decía «te debe S/ 5,000 menos» y el cliente quedaba con S/ 1,000 a favor sin que nadie lo viera.
-  it("con lo que pagó al llevar, dice que eso le queda a favor (ADR-0023)", () => {
+  it("con lo que pagó al llevar, dice que eso le queda a favor (ADR-0025)", () => {
     const conPago = { ...credito, total: 5000, pagoAlLlevar: { monto: 1000, medio: "yape" as const } };
     expect(consecuenciasDeAnular(conPago, soles)).toEqual([
       "Vuelven al stock 10 cajas de mango kent.",

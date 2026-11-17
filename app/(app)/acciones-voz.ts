@@ -33,7 +33,7 @@ const borrador = z.object({
   descuento: z.number().min(0),
   condicion: z.enum(["contado", "credito"]).nullable(),
   medio: z.enum(["efectivo", "yape", "plin", "transferencia"]).nullable(),
-  // Lo que pagó al llevar en una venta al crédito (ADR-0023). Sin el campo aquí, Zod lo quitaba y la venta se guardaba debiendo todo.
+  // Lo que pagó al llevar en una venta al crédito (ADR-0025). Sin el campo aquí, Zod lo quitaba y la venta se guardaba debiendo todo.
   // Opcional: lo que esperaba en la cola desde antes no lo trae.
   pagado: z.number().positive().max(PRECIO_MAXIMO * 1_000).nullable().optional(),
   comprobante: z.enum(["ninguno", "boleta", "factura"]).default("ninguno"),
