@@ -14,6 +14,7 @@ const Hoja = dynamic(() => import("@/components/ui/Hoja").then((m) => m.Hoja), {
 // Lo mismo con el aviso del día: su código se baja solo cuando se abre el menú, no con «Hoy».
 const AvisoDelDia = dynamic(() => import("./AvisoDelDia").then((m) => m.AvisoDelDia), { ssr: false });
 const ManosLibres = dynamic(() => import("./ManosLibres").then((m) => m.ManosLibres), { ssr: false });
+const HolaFructus = dynamic(() => import("./HolaFructus").then((m) => m.HolaFructus), { ssr: false });
 
 const fila = filaDelMenu;
 const icono = iconoDelMenu;
@@ -24,7 +25,7 @@ type Props = {
   /** Lo decide el servidor con permisosDe(): aquí solo se obedece. */
   verCierre: boolean;
   verAjustes: boolean;
-  /** Puede dictar ventas: se le ofrece que Fructus se las lea en voz alta (ADR-0020). */
+  /** Puede dictar ventas: se le ofrece que Fructus se las lea en voz alta (ADR-0020) y que escuche «Hola Fructus». */
   verManosLibres: boolean;
   /** La clave pública del servidor para suscribir el teléfono al aviso del día; null si no está listo (no se ofrece). */
   clavePush: string | null;
@@ -82,6 +83,7 @@ export function MenuMas({ nombre, rol, verCierre, verAjustes, verManosLibres, cl
               </Link>
             )}
             {verManosLibres && <ManosLibres />}
+            {verManosLibres && <HolaFructus />}
             {verCierre && clavePush && <AvisoDelDia clavePublica={clavePush} />}
             <InstalarApp alElegir={cerrar} />
             <form action={salir}>

@@ -6,6 +6,7 @@ import { leerCatalogo } from "@/lib/voz/catalogo";
 import { pedidoDe, responderConsulta } from "@/lib/voz/consultas";
 import { vocabularioWhisper } from "@/lib/voz/catalogo-reglas";
 import { interpretar } from "@/lib/voz/interprete";
+import { revisarFrase } from "@/lib/voz/palabra-reglas";
 import { resolver } from "@/lib/voz/resolver";
 import { transcribir } from "@/lib/voz/stt";
 import { armarTarjeta } from "@/lib/voz/tarjeta-reglas";
@@ -13,6 +14,8 @@ import { armarTarjeta } from "@/lib/voz/tarjeta-reglas";
 // POST /api/voz: audio → texto (Whisper) → intención (LLM + Zod) → registro en comandos_voz → nombres y precios de la
 // base → tarjeta lista para mostrar. Todo lo sensible pasa aquí, en el servidor (CLAUDE.md, «La voz»). No guarda la
 // venta: eso pasa recién al confirmar la tarjeta (A5). Nunca registra la transcripción en los logs, solo ids y códigos.
+// Lo dictado después de «Hola Fructus» llega con `despertar=1` y trae la frase: si Whisper oyó «frutas» en vez de la frase, se
+// descarta sin guardar nada (el segundo paso, lib/voz/palabra-reglas.ts); si oyó la frase, se interpreta lo que siguió.
 
 const TOPE_BYTES = 10 * 1024 * 1024;
 const TOPE_MS = 60_000;
@@ -38,6 +41,9 @@ export async function POST(request: NextRequest) {
   if (audio.type && !audio.type.startsWith("audio/")) return responder(415, { error: "Eso no es un audio." });
   const duracionMs = Number(formulario?.get("duracion_ms")) || null;
   if (duracionMs !== null && duracionMs > TOPE_MS) return responder(413, { error: "El audio es muy largo. Dilo en menos de un minuto." });
+  const porPalabra = formulario?.get("despertar") === "1";
+  // De qué celular viene (lib/voz/celular.ts): dos celulares que oyeron la misma frase abren una sola tarjeta (paso 4b).
+  const celular = formulario?.get("celular");
 
   // 3. Voz a texto, con el vocabulario del puesto.
   let vocabulario: string | undefined;
@@ -50,9 +56,34 @@ export async function POST(request: NextRequest) {
   const texto = await transcribir(audio, { vocabulario });
   if (!texto.ok) return responder(502, { error: NO_TE_ENTENDI, conservarAudio: true });
 
-  // 4. Texto a intención.
-  const interpretacion = await interpretar(texto.texto);
+  // 3b. El segundo paso de «Hola Fructus». Una frase parecida («hola, ¿hay frutas?») no era para Fructus: no se interpreta ni se
+  //     guarda, porque sería guardar lo que se habla en el puesto. Con un toque nunca se descarta: la persona quiso dictar.
+  const frase = revisarFrase(texto.texto);
+  if (porPalabra && frase.veredicto === "parecida") {
+    console.info("voz: «Hola Fructus» descartado en el segundo paso (una frase parecida)");
+    return responder(200, { ignorado: "parecida" });
+  }
+  // Dijo la frase y nada más: no hay qué interpretar.
+  if (frase.veredicto === "dijo" && !frase.orden) return responder(200, { ignorado: "sin_orden" });
+
+  // 4. Texto a intención: lo que siguió a la frase, si se oyó; si no, todo (el intérprete pasa por alto un saludo).
+  const orden = frase.veredicto === "dijo" ? frase.orden : texto.texto;
+  const interpretacion = await interpretar(orden);
   const entendio = interpretacion.ok && interpretacion.interpretacion.herramienta !== "no_entendido";
+
+  // 4b. Una venta dicha en voz alta la oyen todos los celulares que escuchan «Hola Fructus» en el puesto: solo el primero que la
+  //     entiende abre su tarjeta (tomar_frase, ADR-0022). Si no, un solo «confirmo» la guardaba dos veces (/chaos 2026-11-16, 1).
+  if (porPalabra && entendio && typeof celular === "string" && celular.length >= 8) {
+    const { data: tomada, error: errorFrase } = await supabase.rpc("tomar_frase", { p_frase: orden, p_celular: celular.slice(0, 64) });
+    if (errorFrase) {
+      console.error("voz: no se pudo tomar la frase", { codigo: errorFrase.code });
+      return responder(503, { error: "No pudimos guardar lo que dijiste. Revisa tu señal e inténtalo otra vez.", conservarAudio: true });
+    }
+    if (tomada === false) {
+      console.info("voz: otro celular ya tomó esta frase");
+      return responder(200, { ignorado: "otro_celular" });
+    }
+  }
 
   // 5. El rastro en comandos_voz, siempre: sirve para medir la precisión con lo que de verdad se dice en el puesto.
   const { data: comando, error: errorComando } = await supabase

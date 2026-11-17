@@ -1,0 +1,11 @@
+# Audios, modelos y datos de entrenamiento: nunca al repo (voces de personas reales, varios GB).
+.local/
+grabaciones/
+ruido/
+salida/
+voces/
+*.wav
+*.npy
+*.onnx
+*.tflite
+__pycache__/

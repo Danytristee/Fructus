@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 
 // Ayudas para probar la voz sin voz: un micrófono que la prueba prende («habla») y apaga («se calla»), y un sintetizador que anota
@@ -28,6 +29,57 @@ export async function microfonoControlado(page: Page) {
       return destino.stream;
     };
   });
+}
+
+/**
+ * Un micrófono que «dice» audios de verdad, para «Hola Fructus»: la escucha corre de verdad (worker, onnxruntime-web y los modelos)
+ * sobre lo que se le hace oír con `decir`. Cada pedido de micrófono crea uno nuevo, y todo lo que se dice lo oyen todos los que
+ * están abiertos, como en el puesto. Tiene además el tono de `hablar` y `callar`, en todos a la vez, para las respuestas cortas.
+ */
+export async function microfonoQueDice(page: Page) {
+  await page.addInitScript(() => {
+    type Abierto = { ac: AudioContext; destino: MediaStreamAudioDestinationNode; volumen: GainNode };
+    const abiertos: Abierto[] = [];
+    navigator.mediaDevices.getUserMedia = async () => {
+      const ac = new AudioContext();
+      const destino = ac.createMediaStreamDestination();
+      const tono = ac.createOscillator();
+      tono.frequency.value = 220;
+      const volumen = ac.createGain();
+      volumen.gain.value = 0;
+      tono.connect(volumen).connect(destino);
+      tono.start();
+      void ac.resume();
+      abiertos.push({ ac, destino, volumen });
+      return destino.stream;
+    };
+    const microfono: Microfono = {
+      hablar: () => abiertos.forEach((m) => m.volumen.gain.setValueAtTime(0.3, m.ac.currentTime)),
+      callar: () => abiertos.forEach((m) => m.volumen.gain.setValueAtTime(0, m.ac.currentTime)),
+    };
+    Object.assign(window, { __microfono: microfono, __abiertos: abiertos });
+  });
+}
+
+/** Le hace oír un audio (WAV) a todos los micrófonos abiertos y espera a que termine. */
+export async function decir(page: Page, ruta: string) {
+  const datos = readFileSync(ruta).toString("base64");
+  await page.evaluate(async (b64) => {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const abiertos = (window as unknown as { __abiertos: { ac: AudioContext; destino: MediaStreamAudioDestinationNode }[] }).__abiertos;
+    await Promise.all(
+      abiertos.map(async ({ ac, destino }) => {
+        await ac.resume();
+        const fuente = ac.createBufferSource();
+        fuente.buffer = await ac.decodeAudioData(bytes.slice().buffer);
+        fuente.connect(destino);
+        await new Promise<void>((listo) => {
+          fuente.onended = () => listo();
+          fuente.start();
+        });
+      }),
+    );
+  }, datos);
 }
 
 export const hablar = (page: Page) => page.evaluate(() => (window as unknown as { __microfono: Microfono }).__microfono.hablar());

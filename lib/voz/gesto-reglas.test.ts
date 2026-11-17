@@ -73,6 +73,32 @@ describe("siguienteGesto", () => {
   });
 });
 
+describe("«Hola Fructus»", () => {
+  it("en reposo, deja el orbe escuchando sin el dedo, como un toque; callarse envía", () => {
+    expect(recorrer([{ tipo: "despertar" }])).toEqual({ fase: "bloqueado", efectos: ["despertar"] });
+    expect(recorrer([{ tipo: "despertar" }, { tipo: "silencio" }])).toEqual({ fase: "reposo", efectos: ["despertar", "enviar"] });
+  });
+
+  it("después, un toque envía y «Borrar» descarta, igual que sin el dedo", () => {
+    expect(recorrer([{ tipo: "despertar" }, { tipo: "bajar", en: 0 }, { tipo: "subir", en: 90 }]).efectos).toEqual(["despertar", "enviar"]);
+    expect(recorrer([{ tipo: "despertar" }, { tipo: "cancelar" }]).efectos).toEqual(["despertar", "descartar"]);
+  });
+
+  it("si después no dice nada, se descarta", () => {
+    expect(recorrer([{ tipo: "despertar" }, { tipo: "mudo" }])).toEqual({ fase: "reposo", efectos: ["despertar", "descartar"] });
+  });
+
+  it("mientras ya se graba con el dedo, la frase no hace nada", () => {
+    const presionado: Gesto = { fase: "presionado", desde: 0 };
+    expect(siguienteGesto(presionado, { tipo: "despertar" })).toEqual({ gesto: presionado, efecto: "nada" });
+    expect(siguienteGesto({ fase: "bloqueado" }, { tipo: "despertar" }).efecto).toBe("nada");
+  });
+
+  it("con el dedo encima para enviar, «no dijo nada» no descarta: manda el dedo", () => {
+    expect(siguienteGesto({ fase: "cerrando" }, { tipo: "mudo" }).efecto).toBe("nada");
+  });
+});
+
 describe("deslizar hacia arriba", () => {
   const manteniendo: Gesto = { fase: "presionado", desde: 0 };
 

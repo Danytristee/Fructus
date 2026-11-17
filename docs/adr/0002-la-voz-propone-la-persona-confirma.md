@@ -20,3 +20,9 @@ emitido obliga a sacar una nota de crédito. El ambiente del puesto tiene ruido 
 
 - Cada operación cuesta un toque más que un sistema «sin manos». A cambio, ningún error de reconocimiento llega a la base sin que alguien lo vea.
 - La palabra de activación («Fructus, …») queda para la fase 2. En un navegador, escuchar todo el tiempo gasta batería y se activa con el ruido.
+
+## Actualización 2026-11-16
+
+La palabra de activación entró a la demo como «Hola Fructus» (ADR-0022): se detecta en el celular, con un interruptor apagado de
+fábrica, y escucha solo en «Hoy» con la pantalla a la vista. La confirmación sigue siendo de la persona (con un toque o hablando,
+ADR-0020).

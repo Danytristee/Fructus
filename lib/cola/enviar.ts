@@ -7,7 +7,8 @@ import { confirmarVenta } from "@/app/(app)/acciones-voz";
 import { NO_ABRIO } from "@/lib/a-mano-reglas";
 import { desenlaceConfirmacion, sinComando, type Desenlace, type Entrada, type Operacion } from "@/lib/cola-reglas";
 import { formatearSoles } from "@/lib/formato";
-import { desenlaceDeRespuesta } from "@/lib/voz/envio-reglas";
+import { idDelCelular } from "@/lib/voz/celular";
+import { desenlaceDeRespuesta, nombreDelAudio } from "@/lib/voz/envio-reglas";
 import { actualizar } from "./almacen";
 
 // Los mismos topes que la tarjeta y el botón de voz: con la señal colgada, la cola no se queda esperando para siempre.
@@ -75,16 +76,22 @@ async function enviarConfirmacion(entrada: Entrada, op: Operacion): Promise<Dese
   return desenlaceConfirmacion(r);
 }
 
-async function enviarAudio(audio: Blob, duracionMs: number): Promise<Desenlace> {
+async function enviarAudio(audio: Blob, duracionMs: number, despertar?: true): Promise<Desenlace> {
   const formulario = new FormData();
-  formulario.append("audio", audio, audio.type.includes("mp4") ? "voz.m4a" : "voz.webm");
+  formulario.append("audio", audio, nombreDelAudio(audio.type));
   formulario.append("duracion_ms", String(duracionMs));
+  if (despertar) {
+    formulario.append("despertar", "1");
+    formulario.append("celular", idDelCelular()); // la cola envía desde el mismo celular que oyó (ADR-0022)
+  }
   const desde = performance.now();
   try {
     const r = await fetch("/api/voz", { method: "POST", body: formulario, signal: AbortSignal.timeout(TOPE_AUDIO_MS) });
     if (r.status === 401) return { tipo: "sin_sesion" };
     const d = desenlaceDeRespuesta(r.status, await r.json().catch(() => null));
     if (d.tipo === "tarjeta") return { tipo: "tarjeta", comandoId: d.comandoId, tarjeta: d.tarjeta, latenciaMs: Math.round(performance.now() - desde) };
+    // Lo que siguió a «Hola Fructus» no abre tarjeta (se oyó «frutas», nada más, u otro celular ya la anotó): nada que reintentar.
+    if (d.tipo === "ignorado") return { tipo: "hecho" };
     // Falló un servicio (Groq, la base): el mismo audio sirve más tarde. Si lo que se dijo no se entendió, no.
     return d.conservarAudio ? { tipo: "reintentar" } : { tipo: "rechazo", error: d.mensaje };
   } catch (e) {
@@ -96,6 +103,6 @@ async function enviarAudio(audio: Blob, duracionMs: number): Promise<Desenlace> 
 export function enviar(entrada: Entrada): Promise<Desenlace> {
   const c = entrada.contenido;
   if (c.clase === "confirmacion") return enviarConfirmacion(entrada, c.operacion);
-  if (c.clase === "audio") return enviarAudio(c.audio, c.duracionMs);
+  if (c.clase === "audio") return enviarAudio(c.audio, c.duracionMs, c.despertar);
   return Promise.resolve({ tipo: "hecho" }); // una tarjeta por confirmar no se envía: espera a la persona
 }
