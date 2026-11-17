@@ -6,6 +6,7 @@ import { estadoDeEscucha } from "@/lib/voz/escucha-reglas";
 import type { MensajeAlWorker, MensajeDelWorker } from "./escucha.worker";
 import { alCambiarHolaFructus, holaFructus, puedeEscuchar } from "./hola-fructus";
 import type { FallaGrabadora, Grabacion } from "./useGrabadora";
+import { usePantallaEncendida } from "./usePantallaEncendida";
 
 // La espera más larga por el WAV del worker: lo arma en milisegundos; si no llega en esto, algo se cayó y no se espera más.
 const TOPE_GRABACION_MS = 3000;
@@ -54,6 +55,8 @@ export function useHolaFructus({ hojaAbierta, voz, porPalabra, alDespertar, alCa
   const pantalla = useSyncExternalStore(alCambiarVisibilidad, visible, () => true);
   const escucha = estadoDeEscucha({ activa, visible: pantalla, hojaAbierta, voz, porPalabra });
   const encendida = escucha !== "apagada";
+  // Con el interruptor prendido, en «Hoy», la pantalla no se apaga sola: apagada no hay quién oiga la frase.
+  usePantallaEncendida(activa);
 
   const [cargada, setCargada] = useState(false);
   const [falla, setFalla] = useState<FallaGrabadora | "detector" | null>(null);
