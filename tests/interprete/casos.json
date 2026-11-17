@@ -1836,6 +1836,176 @@
           "medio_pago": "efectivo"
         }
       }
+    },
+    {
+      "id": "correccion-pago-quinientos",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "Pagó doscientos",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 200,
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "correccion-pago-cifra-yape",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "Me yapeó 100 y lo demás me lo debe",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 100,
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "correccion-pago-solo",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "Solo me dio 300",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 300,
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "correccion-pago-cubre-todo",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "Pagó los 450",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "contado",
+          "pago_parcial": null,
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "correccion-pago-credito-con-pago",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "transcripcion": "No, me dejó cien",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 100,
+          "medio_pago": "efectivo"
+        }
+      }
     }
   ]
 }

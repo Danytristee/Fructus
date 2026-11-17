@@ -85,6 +85,12 @@ const CIFRAS = new Set([
 const esParte = (texto: string, p: string[]) => /\d/.test(texto) || p.some((x) => PARTE.has(x) || CIFRAS.has(x));
 
 /**
+ * ¿La respuesta a «¿Pagó o lo debe?» trae un monto o una parte («pagó quinientos», «me dio la mitad»)? Entonces no se clasifica aquí:
+ * va al intérprete como corrección de la venta, que la rehace con lo que pagó al llevar (ADR-0025).
+ */
+export const hablaDeUnaParte = (texto: string) => esParte(texto, palabras(texto));
+
+/**
  * «Pagó», «con Yape», «lo debe», «fiado», «no pagó» → cómo quedó. null si no se entiende o dice las dos cosas: nunca se asume
  * contado (principio 2). «Canceló» es pagó, como se dice en el puesto.
  */

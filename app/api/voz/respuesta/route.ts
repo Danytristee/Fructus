@@ -5,7 +5,7 @@ import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { esquemaVentaActual } from "@/lib/voz/esquemas";
 import { interpretar } from "@/lib/voz/interprete";
 import { resolver } from "@/lib/voz/resolver";
-import { VOCABULARIO_PAGO, VOCABULARIO_RESPUESTA, clasificarPago, clasificarRespuesta, pareceCorreccion, pideQueRepita } from "@/lib/voz/respuesta-reglas";
+import { VOCABULARIO_PAGO, VOCABULARIO_RESPUESTA, clasificarPago, clasificarRespuesta, hablaDeUnaParte, pareceCorreccion, pideQueRepita } from "@/lib/voz/respuesta-reglas";
 import { transcribir } from "@/lib/voz/stt";
 import { armarTarjeta } from "@/lib/voz/tarjeta-reglas";
 
@@ -57,19 +57,33 @@ export async function POST(request: NextRequest) {
   if (!texto.ok) return responder(502, { error: "No te entendí." });
   // «Repite», «¿qué?»: se vuelve a leer, en cualquier pregunta, sin llamar al modelo.
   if (pideQueRepita(texto.texto)) return responder(200, { repetir: true });
-  if (pregunta === "pago") return responder(200, { pago: clasificarPago(texto.texto) });
+  const actual = leerVentaActual(formulario?.get("venta"));
+
+  if (pregunta === "pago") {
+    // «Pagó quinientos», «me dio la mitad»: trae lo que pagó al llevar. No se clasifica en «Pagó» o «Lo debe» (sería inventar que pagó
+    // todo, o perder lo que dejó): la venta se rehace con el intérprete, como cualquier corrección (ADR-0025). Si no sale, se repregunta.
+    if (actual && hablaDeUnaParte(texto.texto)) {
+      const tarjeta = await corregir(supabase, texto.texto, actual);
+      return responder(200, tarjeta ? { respuesta: "corregir", tarjeta } : { pago: null });
+    }
+    return responder(200, { pago: clasificarPago(texto.texto) });
+  }
 
   const respuesta = clasificarRespuesta(texto.texto);
-  const actual = leerVentaActual(formulario?.get("venta"));
   if (respuesta === "confirmar" || !actual || !pareceCorreccion(texto.texto)) return responder(200, { respuesta });
-  // Corrigió: la venta completa ya corregida, con los nombres y precios de la base, como una tarjeta dictada.
-  const corregida = await interpretar(texto.texto, { correccionDe: actual });
-  if (!corregida.ok || corregida.interpretacion.herramienta !== "registrar_venta") return responder(200, { respuesta: "otra" });
+  const tarjeta = await corregir(supabase, texto.texto, actual);
+  return responder(200, tarjeta ? { respuesta: "corregir", tarjeta } : { respuesta: "otra" });
+}
+
+/** La venta completa ya corregida, con los nombres y precios de la base, como una tarjeta dictada. null si el intérprete no la rehízo. */
+async function corregir(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, dicho: string, actual: NonNullable<ReturnType<typeof leerVentaActual>>) {
+  const corregida = await interpretar(dicho, { correccionDe: actual });
+  if (!corregida.ok || corregida.interpretacion.herramienta !== "registrar_venta") return null;
   try {
     const tarjeta = armarTarjeta(corregida.interpretacion, await resolver(supabase, corregida.interpretacion));
-    return responder(200, tarjeta.tipo === "venta" ? { respuesta: "corregir", tarjeta } : { respuesta: "otra" });
+    return tarjeta.tipo === "venta" ? tarjeta : null;
   } catch (e) {
     console.error("voz: no se pudo armar la corrección", { error: e instanceof Error ? e.message : "desconocido" });
-    return responder(200, { respuesta: "otra" });
+    return null;
   }
 }

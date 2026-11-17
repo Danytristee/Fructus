@@ -277,6 +277,11 @@ describe("pago parcial", () => {
     expect(pedidoVenta(b, 7, false)!.pago_inicial).toBeNull();
   });
 
+  it("anotar lo que pagó cuando no se dijo si pagó es responder la pregunta, no corregir", () => {
+    const sinDecir = venta({ condicion: null, pagoParcial: null });
+    expect(fueCorregido(sinDecir, { ...borradorDe(sinDecir), condicion: "credito", pagado: 200, medio: "efectivo" })).toBe(false);
+  });
+
   it("cambiar cuánto pagó cuenta como corregido", () => {
     const t = conPago(1000);
     expect(fueCorregido(t, borradorDe(t))).toBe(false);

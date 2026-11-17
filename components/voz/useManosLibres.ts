@@ -50,7 +50,8 @@ async function entender(audio: Blob, duracionMs: number, pregunta: Pregunta, ven
   formulario.append("audio", audio, audio.type.includes("mp4") ? "respuesta.m4a" : "respuesta.webm");
   formulario.append("duracion_ms", String(duracionMs));
   formulario.append("pregunta", pregunta);
-  if (venta && pregunta === "confirmar") formulario.append("venta", JSON.stringify(venta));
+  // Con «¿Pagó o lo debe?» también: «pagó quinientos» rehace la venta con lo que pagó al llevar (ADR-0025).
+  if (venta && pregunta !== "ninguna") formulario.append("venta", JSON.stringify(venta));
   try {
     const r = await fetch("/api/voz/respuesta", { method: "POST", body: formulario, signal: AbortSignal.timeout(TOPE_ENVIO_MS) });
     const cuerpo = (await r.json().catch(() => null)) as { respuesta?: unknown; pago?: unknown; repetir?: unknown; tarjeta?: { tipo?: unknown } } | null;

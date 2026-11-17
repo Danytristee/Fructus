@@ -60,5 +60,8 @@ Llama registrar_venta con la venta COMPLETA ya corregida:
 - Cambia solo lo que corrigió. Si nombra una fruta, el cambio es en esa fruta.
 - «45 con 50» o «cuarenta y cinco con cincuenta» es un precio de 45.50 por caja: lo que va después de «con» son los céntimos. No es
   un total ni una rebaja.
+- Si responde cuánto pagó («pagó quinientos», «me dio 200 y lo demás lo debe», «me yapeó 100»), es lo que pagó al llevarse la fruta:
+  va en pago_parcial, con condicion «credito» y medio_pago el que dijo (efectivo si no lo dijo). Si eso cubre todo el total, es
+  «contado» y pago_parcial va null. No cambies las frutas, las cajas ni los precios.
 - Si la respuesta no corrige nada de la venta, usa no_entendido.`;
 }

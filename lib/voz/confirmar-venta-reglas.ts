@@ -154,7 +154,8 @@ export function fueCorregido(t: Venta, b: Borrador): boolean {
   // Elegir cuando se preguntó no es corregir; cambiar lo que se dijo, sí.
   if (original.condicion !== null && original.condicion !== b.condicion) return true;
   if (original.comprobante !== b.comprobante) return true;
-  if ((original.pagado ?? null) !== pagadoDe(b) && !(original.condicion === null && pagadoDe(b) === null)) return true;
+  // Lo que pagó al llevar: cambiarlo es corregir; anotarlo cuando no se dijo si pagó es responder la pregunta, como tocar «Pagó».
+  if (original.condicion !== null && (original.pagado ?? null) !== pagadoDe(b)) return true;
   return original.condicion !== null && original.medio !== b.medio;
 }
 
