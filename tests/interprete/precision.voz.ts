@@ -2,6 +2,7 @@
 // lib/voz/interprete.ts que usa /api/voz, y escribe el informe en docs/voz/precision-AAAA-MM-DD.md.
 // Uso: pnpm voz:precision                       (modelos por defecto)
 //      VOZ_MODELOS=openai/gpt-oss-20b pnpm voz:precision
+//      VOZ_MODELOS=claude-haiku-5-5 pnpm voz:precision     (Claude, con ANTHROPIC_API_KEY)
 //      VOZ_CASOS=<otro.json> VOZ_INFORMES=<carpeta> pnpm voz:precision   (pruebas sueltas, sin tocar docs/voz)
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
@@ -27,7 +28,10 @@ const pct = (n: number, d: number) => (d === 0 ? "—" : `${((100 * n) / d).toFi
 async function medir(modelo: string) {
   const filas: Fila[] = [];
   for (const caso of casos) {
-    const opciones = { catalogo, modeloGroq: modelo, soloGroq: true, correccionDe: caso.correccionDe };
+    // Un modelo de Claude se mide solo contra Anthropic; cualquier otro, solo contra Groq.
+    const opciones = modelo.startsWith("claude-")
+      ? { catalogo, modeloClaude: modelo, solo: "anthropic" as const, correccionDe: caso.correccionDe }
+      : { catalogo, modeloGroq: modelo, solo: "groq" as const, correccionDe: caso.correccionDe };
     let r = await interpretar(caso.transcripcion, opciones);
     // Plan gratuito: una llamada a la vez; si Groq pide esperar, se espera y se reintenta (hasta 3 veces).
     for (let i = 0; i < 3 && !r.ok && r.intentos.some((x) => x.error.includes("429")); i++) {
@@ -66,7 +70,8 @@ async function medir(modelo: string) {
 }
 
 test("precisión del intérprete contra el modelo real", async () => {
-  expect(process.env.GROQ_API_KEY, "Falta GROQ_API_KEY en .env.local").toBeTruthy();
+  if (modelos.some((m) => !m.startsWith("claude-"))) expect(process.env.GROQ_API_KEY, "Falta GROQ_API_KEY en .env.local").toBeTruthy();
+  if (modelos.some((m) => m.startsWith("claude-"))) expect(process.env.ANTHROPIC_API_KEY, "Falta ANTHROPIC_API_KEY en .env.local").toBeTruthy();
   const resultados = [];
   for (const m of modelos) resultados.push(await medir(m));
 
@@ -78,7 +83,7 @@ test("precisión del intérprete contra el modelo real", async () => {
   const lineas = [
     `# /voz-precision · ${hoy}`,
     "",
-    `**Casos:** ${total} (\`tests/interprete/casos.json\`). **Proveedor:** Groq, sin respaldo (para comparar modelos limpio). **Catálogo en el prompt:** ${catalogo ? "sí (el de seed.sql)" : "no"}. **Medido:** solo el intérprete (texto → herramienta); la voz a texto se mide aparte.`,
+    `**Casos:** ${total} (\`tests/interprete/casos.json\`). **Proveedor:** Groq o Anthropic según el modelo, sin respaldo (para comparar modelos limpio). **Catálogo en el prompt:** ${catalogo ? "sí (el de seed.sql)" : "no"}. **Medido:** solo el intérprete (texto → herramienta); la voz a texto se mide aparte.`,
     "",
     "| Modelo | Intención (meta ≥ 95 %) | Datos clave (meta ≥ 90 %) | Prudencia con el dinero (meta 100 %) | Latencia p50 | p95 |",
     "|---|---|---|---|---|---|",

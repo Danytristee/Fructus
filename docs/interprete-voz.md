@@ -322,17 +322,18 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
 | Prompt de sistema | `lib/voz/prompt.ts` (idéntico a la sección 2; una prueba lo verifica) | `lib/voz/esquemas.test.ts` |
 | Voz a texto | `lib/voz/stt.ts` (Groq Whisper con dos cuentas, Gemini de respaldo, tope de 8 s) | `pnpm voz:stt` → `docs/voz/stt-*.md` |
 | Vocabulario y catálogo | `lib/voz/catalogo-reglas.ts`, `lib/voz/catalogo.ts` (caché de 5 min) | `lib/voz/catalogo-reglas.test.ts` |
-| Intérprete | `lib/voz/interprete.ts` (Groq `openai/gpt-oss-120b` con dos cuentas, Gemini de respaldo, tope de 8 s) | `pnpm voz:precision` → `docs/voz/precision-*.md` |
+| Intérprete | `lib/voz/interprete.ts`: Claude `claude-haiku-5-5` (`lib/voz/interprete-claude.ts`, ADR-0024), después Groq `openai/gpt-oss-120b` con dos cuentas y Gemini; tope de 8 s cada uno | `pnpm voz:precision` → `docs/voz/precision-*.md` |
 | Tarjeta | `lib/voz/tarjeta-reglas.ts` (lógica pura) | `lib/voz/tarjeta-reglas.test.ts` |
 | Resolver | `lib/voz/resolver.ts` (buscar_*, ultimo_precio) | `tests/e2e/voz-api.spec.ts` |
 | Todo junto | `app/api/voz/route.ts` | `tests/e2e/voz-api.spec.ts` |
 
-**El orden de los proveedores** vive en `lib/voz/respaldo-reglas.ts`, con su prueba, y es el mismo para la voz a texto y para el
-intérprete: Groq con `GROQ_API_KEY` → Groq con `GROQ_API_KEY_RESPALDO` (otra cuenta, con su propio cupo gratuito) → Gemini.
+**El orden de los proveedores** vive en `lib/voz/respaldo-reglas.ts`, con su prueba. Para la voz a texto: Groq con `GROQ_API_KEY` →
+Groq con `GROQ_API_KEY_RESPALDO` (otra cuenta, con su propio cupo gratuito) → Gemini. Para el intérprete va **Claude primero**
+(ADR-0024: Claude no escucha audio, pero entiende mejor el texto) y después el mismo orden; si Claude falla por lo que sea, se pasa a Groq.
 - La cuenta de respaldo solo se prueba si la principal respondió 429 (sin cupo), 401 o 403 (clave rechazada).
 - Si Groq no respondió en 8 s, se cayó o devolvió algo inválido, la otra cuenta daría lo mismo y sumaría otros 8 s de espera: se
   pasa directo a Gemini.
-- `/voz-precision` (`soloGroq`) usa las dos cuentas: es el mismo modelo, así que los números no cambian y el cupo es el doble.
+- `/voz-precision` mide cada modelo solo contra su servicio (`solo: "groq"` o `solo: "anthropic"`). Con Groq usa las dos cuentas: es el mismo modelo, así que los números no cambian y el cupo es el doble.
 - Medido el 2026-11-16 contra Groq real, con la principal rechazada: el intérprete respondió con la de respaldo en 1.2 s en total.
 
 El modelo del intérprete se eligió con números (`docs/voz/precision-2026-10-28.md`): `gpt-oss-120b` le ganó a `gpt-oss-20b` en
