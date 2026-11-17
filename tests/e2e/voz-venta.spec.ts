@@ -202,7 +202,7 @@ test("con la sesión vencida lo dice y ofrece entrar; al volver, la venta espera
   expect(await ventasDe(comandoId)).toHaveLength(0);
 
   await entrarComo(page, "duenio");
-  await page.getByRole("button", { name: "Verla" }).click();
+  await page.getByRole("button", { name: "Verla", exact: true }).click(); // exacto: si no, calza con «Open issues overlay» de Next
   await page.getByRole("dialog", { name: "¿Así fue la venta?" }).getByRole("button", { name: "Confirmar venta" }).click();
   await expect(page.getByText("Venta guardada")).toBeVisible({ timeout: 15_000 });
   expect(await ventasDe(comandoId)).toHaveLength(1);
@@ -214,6 +214,6 @@ test("recargar con la tarjeta abierta no pierde lo dictado", async ({ page }) =>
   await dictarVenta(page, comandoId, tarjeta(null, { condicion: "contado", medio: "efectivo", falta: [] }));
   await page.reload();
   await expect(page.getByText("Tienes una venta sin confirmar.")).toBeVisible();
-  await page.getByRole("button", { name: "Verla" }).click();
+  await page.getByRole("button", { name: "Verla", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "¿Así fue la venta?" }).getByText("10 cajas de Mango Kent")).toBeVisible();
 });

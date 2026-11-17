@@ -4,6 +4,13 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Playwright y el navegador de pruebas entran por 127.0.0.1, no por localhost.
   allowedDevOrigins: ["127.0.0.1"],
+  experimental: {
+    // Al arrancar, Next consulta los avisos de seguridad de npm. Si la versión instalada tiene uno, `pnpm dev` pinta una píldora sobre la
+    // barra de abajo que se roba los toques, y si lo corre un agente, se cierra. Un aviso nuevo rompía así las e2e sin que cambiara el código
+    // (16-11). Por eso, solo en el servidor que levantan las e2e (`PRUEBAS_E2E=1`, en playwright.config.ts), no se consulta.
+    // En todo lo demás el aviso sigue: `next build` y `pnpm dev` lo muestran.
+    agentUpgrade: process.env.PRUEBAS_E2E === "1" ? false : "security",
+  },
   async headers() {
     // Las ilustraciones y los íconos no llevan el hash en el nombre: una semana en el teléfono (y un día más mientras se revalida) evita
     // preguntarle al servidor por ellos en cada pantalla. Si alguno cambia, se ve en una semana a lo más.
