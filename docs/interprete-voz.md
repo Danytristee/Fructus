@@ -93,7 +93,7 @@ cuarenta», «es para don Lucho»), `POST /api/voz/respuesta` vuelve a llamar al
   - lleva lo que respondió la persona;
   - dice dos reglas explícitas: el cliente es el mismo si no nombra a otro, y «45 con 50» es un precio de 45.50 (lo que va después de «con» son los céntimos).
 - **Por qué la venta va en datos:** al principio se mandaba la lectura en frases. El /chaos del 2026-11-16 encontró que en 3 de 12 corridas el modelo perdía al cliente, y que «No, a 45 con 50» salía 50 (una vez, «total 50 con 400 de rebaja»). Con la venta en datos y las dos reglas, las 17 correcciones que Groq respondió salieron bien: 12 de 12 y 5 de 5. El resto de esa corrida fueron cortes del plan gratuito (429).
-- **Lo que vuelve:** un `registrar_venta` como el de una venta dictada. Pasa por Zod, por `resolver` y por `armarTarjeta`, y vuelve como tarjeta nueva para leer y confirmar.
+- **Lo que vuelve:** un `registrar_venta` como el de una venta dictada. Pasa por Zod, por `resolver` y por `armarTarjeta`, y vuelve como tarjeta nueva para leer y confirmar. En voz alta se dice solo lo que cambió respecto de la tarjeta anterior, con el total si cambió el dinero (`guionCorreccion`, `lib/voz/lectura-reglas.ts`; ADR-0020, 2026-11-17). «Repite» lee la venta entera.
 - **Sin contenido no se llama al modelo:** una respuesta como «no» o «sí» se repregunta (`pareceCorreccion`). «Repite» o «¿qué?» vuelven a leer, también sin modelo (`pideQueRepita`).
 - **Si el modelo no devuelve una venta,** la respuesta cuenta como «otra cosa».
 - **Los casos** viven en `tests/interprete/casos.json`: los `correccion-*`, con `correccionDe`, que es la venta actual en datos.

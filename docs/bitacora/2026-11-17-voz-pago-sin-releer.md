@@ -1,0 +1,5 @@
+# 2026-11-17 · Después de «¿Pagó o lo debe?», solo la respuesta
+
+- **Qué cambió:** en manos libres, al responder «lo debe» o «pagó con Yape», Fructus volvía a leer la venta entera antes de «¿Confirmo?», aunque la acababa de leer al preguntar. Ahora solo repite la respuesta (y el comprobante, si se pidió, que no se dijo al preguntar): «Lo debe. ¿Confirmo?». Igual en la compra: «La debes. ¿Confirmo?». Sigue el candado 4 de ADR-0020 («la respuesta se repite en la lectura»). Si dice «repite», se lee la venta entera: quien lo pide se perdió algo. Las reglas son `relecturaPago` (`lib/voz/lectura-reglas.ts`) y `relecturaPagoCompra` (`guion-reglas.ts`).
+- **Cómo se verificó:** Vitest, 371 de `lib/voz` en verde (4 casos nuevos); `tsc` y ESLint limpios. Playwright a 412 y 360 px: `voz-candados`, `voz-operaciones-hablando` y `voz-confirmar-hablando`, 30 de 30. La prueba del pago ahora pasa por «repite» y comprueba que vuelve la lectura entera.
+- **Pendiente:** una corrección hablada («no, son ocho cajas») todavía relee la venta entera. Es a propósito por ahora: cambia cajas y el total, y se lee lo que se va a guardar. Sin probar en el celular con audífono.

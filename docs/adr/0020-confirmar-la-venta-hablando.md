@@ -67,3 +67,19 @@ lectura.** Confirmar hablando solo vale con estos candados:
 - **Las fases** (leer, abrir el micrófono, escuchar, entender, anotar, guardar, callado) son una regla pura,
   `lib/voz/manos-libres-reglas.ts`. La ejecuta `components/voz/useManosLibres.ts`.
 - **Sin probar todavía:** con el audífono Bluetooth en el S25, y con el ruido real del puesto.
+
+## Después de responder o corregir, solo lo nuevo (2026-11-17)
+
+La venta se lee entera una vez, al abrir la tarjeta. Leerla otra vez entera después de cada respuesta hacía esperar toda la lectura por
+una palabra, y en el puesto eso es mucho tiempo. Ahora:
+
+- **Tras «¿Pagó o lo debe?»** se repite solo la respuesta, con el comprobante si se pidió: «Lo debe. ¿Confirmo?» (`relecturaPago`; en
+  la compra, `relecturaPagoCompra`). Así se cumple el candado 4: la respuesta se repite en la lectura.
+- **Tras una corrección** (candado 5) se dice solo lo que cambió: «Corregido. 8 cajas de Mango Kent, a 45 la caja. Total, 360 soles.
+  ¿Confirmo?» (`guionCorreccion`).
+  - El total se dice siempre que cambie una fruta, la rebaja o el total: es el dinero que se va a confirmar.
+  - Si cambió cuántas frutas hay, se dicen todas. Si no cambió nada que se pueda nombrar, se lee la venta entera.
+- **«Repite» lee la venta entera:** quien lo pide es porque se perdió algo.
+- **Lo que no cambia:** la lectura completa al abrir la tarjeta, que solo confirmen «confirmo», «correcto» o «acepto», y que con dudas
+  o si falta un dato se confirme con el dedo.
+- **Lo que se paga:** quien no oyó bien la primera lectura ya no la vuelve a oír completa. Tiene que decir «repite» o mirar la tarjeta.
