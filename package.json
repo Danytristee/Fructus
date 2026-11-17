@@ -26,6 +26,7 @@
     "medir:fluidez": "node scripts/entorno-local.mjs node scripts/medir-fluidez.mjs",
     "medir:pintura": "node scripts/entorno-local.mjs node scripts/medir-pintura.mjs",
     "medir:cpu": "node scripts/entorno-local.mjs node scripts/medir-cpu.mjs",
+    "medir:escucha": "node scripts/entorno-local.mjs node scripts/medir-escucha.mjs",
     "cuentas:invitar": "node --env-file=.env.local scripts/invitar.mjs",
     "push:claves": "node scripts/generar-claves-push.mjs",
     "voz:precision": "vitest run --config vitest.voz.config.ts tests/interprete/precision.voz.ts",

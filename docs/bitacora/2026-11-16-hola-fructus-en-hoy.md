@@ -95,3 +95,19 @@ Silero) ya existía desde el PR #39 (`lib/voz/silencio-reglas.ts`, por volumen):
 - **Pendiente:**
   - Con voces reales y el audífono, medir cuántas veces Whisper escribe bien la marca. Si casi siempre, la regla podría exigirla.
   - `voz-api.spec.ts:15` sigue fallando como en el PR #39: Whisper oye «mango kent a» como «mango Quenta». No es de esta rama.
+
+## Actividad 5e · Cierre
+
+- **Mediciones** (con el build de producción, `pnpm build:local`):
+  - `medir:js`: «Hoy» baja **157.7 KB** brotli, con tope de 180. Ninguno de sus 13 scripts trae ONNX Runtime: va en su propio
+    chunk. Turbopack publica el `.wasm` con hash en `/_next/static/media/`, sin copiarlo a mano.
+  - `medir:escucha` (nuevo, `scripts/medir-escucha.mjs`): «Hoy» en reposo, en esta computadora, gasta **15.2 % de un núcleo con la
+    escucha apagada y 26.4 % prendida**. Escuchar cuesta 11 %. En el build de producción el worker carga los modelos y el `.wasm`.
+- **Documentos:** ADR-0022 (la palabra de activación entra a la demo), actualización del ADR-0002 y CLAUDE.md (Stack, «La voz»,
+  alcance, calidad y «Antes de producción»).
+- **El build se detuvo una vez:** Next 16.4.3 frena `next build` para avisar de una vulnerabilidad conocida y sigue al reintentar. Se
+  deja como decisión aparte: actualizar Next toca toda la app.
+- **Pendiente:**
+  - Medir `medir:escucha` (o el uso de CPU de Chrome) en el S25 y en un Android de gama media. En una computadora, 11 % puede ser
+    varias veces más en un gama media. Si pesa, cuantizar el modelo de rasgos.
+  - Actualizar Next.js por el aviso de seguridad. También quita la píldora que rompe 4 e2e en desarrollo.

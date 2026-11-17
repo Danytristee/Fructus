@@ -14,6 +14,7 @@ const config: KnipConfig = {
     "public/voz/captura-worklet.js",
     // Se corren con `pnpm medir:*`, a través de scripts/entorno-local.mjs (ADR-0012): Knip no ve el script dentro de otro comando.
     "scripts/medir-cpu.mjs",
+    "scripts/medir-escucha.mjs",
     "scripts/medir-fluidez.mjs",
     "scripts/medir-pintura.mjs",
     // Lo usan el login y el botón de voz (A2 y A5). Se quita de aquí cuando A2 lo importe.
