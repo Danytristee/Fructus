@@ -46,8 +46,11 @@ test("si la venta pide más cajas de las que hay, lo avisa y la venta se guarda 
   await expect(hoja.getByText("¿Falta anotar una compra?")).toBeVisible();
   await expect(hoja.getByRole("button", { name: "Confirmar venta" })).toBeEnabled();
 
+  await expect(hoja.getByText("Igual puedes confirmarla. ¿Falta anotar una compra?")).toBeVisible();
   await hoja.getByRole("button", { name: "Confirmar venta" }).click();
   await expect(page.getByText("Venta guardada")).toBeVisible();
+  // El aviso se va con la tarjeta: el sello recuerda la compra que falta anotar.
+  await expect(page.getByText(`Falta anotar la compra de ${fruta.nombre}: díctala o anótala en Stock.`)).toBeVisible();
   // Avisar no frena: la venta entró y el stock quedó en 4 bajo cero, como en el puesto cuando la compra aún no se anotó.
   expect(await stockDe(fruta.id)).toBe(-4);
 });
@@ -85,4 +88,19 @@ test("con manos libres, el aviso también se dice al leer la venta", async ({ pa
   await dictar(page, await crearComando(), venta, "¿Así fue la venta?");
   // Con las manos llenas no se mira: se oye antes de «¿Confirmo?». Nombre y cajas como se dicen (lectura-reglas.ts).
   await expect.poll(async () => (await distintas(page)).join(" ")).toMatch(new RegExp(`Lo debe\\. Ojo: según la app te quedan ${fruta.stock} cajas de .+\\. ¿Confirmo\\?$`));
+});
+
+test("con dos frutas que no alcanzan, un solo aviso, y el total y el pago siguen a la vista", async ({ page }) => {
+  const { data } = await base.from("v_stock").select("producto_id, nombre").order("producto_id").limit(2);
+  const [a, b] = data!.map((x) => ({ id: x.producto_id!, nombre: x.nombre! }));
+  const item = (f: Fruta, cajas: number) => ({ producto: { dicho: "fruta", elegido: f, opciones: [] }, cantidad: cajas, precio: { valor: 45, sugerido: false }, subtotal: 45 * cajas });
+  // El stock va en la tarjeta (no se guarda nada): 6 de la primera y ninguna de la segunda.
+  const venta = tarjeta(a!, 10, { items: [item(a!, 10), item(b!, 3)], total: 585, condicion: null, medio: null, falta: ["condicion"], stock: { [a!.id]: 6, [b!.id]: -2 } });
+  const hoja = await dictar(page, await crearComando(), venta, "¿Así fue la venta?");
+
+  await expect(hoja.getByRole("status").filter({ hasText: `Según la app no alcanza: de ${a!.nombre} te quedan 6\u00a0cajas y vas a vender 10; de ${b!.nombre} no te queda.` })).toBeVisible();
+  await expect(hoja.getByText(/^Según la app/)).toHaveCount(1);
+  // Lo que se confirma manda: el total y «Pagó / Lo debe», sin deslizar (antes, a 360 px, quedaban bajo el pie).
+  await expect(hoja.getByText("S/ 585.00", { exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(hoja.getByRole("button", { name: "Lo debe", exact: true })).toBeInViewport({ ratio: 1 });
 });

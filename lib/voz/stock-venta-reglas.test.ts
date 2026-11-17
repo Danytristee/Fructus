@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ItemBorrador } from "./confirmar-venta-reglas";
-import { avisosStock, textoAviso } from "./stock-venta-reglas";
+import { avisosStock, recordatorioCompra, textoAviso, textoAvisos } from "./stock-venta-reglas";
 
 const mango = (cantidad: number): ItemBorrador => ({ productoId: 1, producto: "Mango Kent", cantidad, precio: 45, sugerido: false });
 const palta = (cantidad: number): ItemBorrador => ({ productoId: 2, producto: "Palta Fuerte", cantidad, precio: 60, sugerido: false });
@@ -51,5 +51,21 @@ describe("textoAviso", () => {
   it("sin stock o en negativo, nunca una cifra imposible", () => {
     expect(textoAviso({ productoId: 1, producto: "Mango Kent", vendes: 2, quedan: 0 })).toBe("Según la app no te queda Mango Kent.");
     expect(textoAviso({ productoId: 1, producto: "Mango Kent", vendes: 2, quedan: -4 })).toBe("Según la app no te queda Mango Kent.");
+  });
+});
+
+describe("un solo aviso y el recordatorio", () => {
+  const mango = { productoId: 1, producto: "Mango Kent", vendes: 10, quedan: 6 };
+  const palta = { productoId: 2, producto: "Palta Fuerte", vendes: 3, quedan: -2 };
+
+  it("con una fruta dice lo mismo que textoAviso; con varias, una sola frase", () => {
+    expect(textoAvisos([mango])).toBe(textoAviso(mango));
+    expect(textoAvisos([mango, palta])).toBe("Según la app no alcanza: de Mango Kent te quedan 6\u00a0cajas y vas a vender 10; de Palta Fuerte no te queda.");
+  });
+
+  it("el recordatorio al guardar nombra la fruta y dónde anotar la compra", () => {
+    expect(recordatorioCompra([])).toBeNull();
+    expect(recordatorioCompra([mango])).toBe("Falta anotar la compra de Mango Kent: díctala o anótala en Stock.");
+    expect(recordatorioCompra([mango, palta])).toBe("Falta anotar las compras de Mango Kent y Palta Fuerte: díctalas o anótalas en Stock.");
   });
 });

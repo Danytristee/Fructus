@@ -42,5 +42,34 @@ export function textoAviso(a: AvisoStock): string {
   return `Según la app te ${a.quedan === 1 ? "queda" : "quedan"} ${formatearCajas(a.quedan)} de ${a.producto} y vas a vender ${cifra(a.vendes)}.`;
 }
 
-/** Lo que se le ofrece al dueño: casi siempre es una compra que llegó y no se anotó. */
-export const SUGERENCIA_AVISO = "¿Falta anotar una compra?";
+/**
+ * Un solo aviso para toda la venta: con uno por fruta, a 360 px el total y «Pagó / Lo debe» se iban de la pantalla (/formidable
+ * 2026-11-17). Con una fruta es textoAviso; con varias, «Según la app no alcanza: de Mango Kent te quedan 6 cajas y vas a vender 10;
+ * de Palta Fuerte no te queda.»
+ */
+export function textoAvisos(avisos: AvisoStock[]): string {
+  if (avisos.length === 1) return textoAviso(avisos[0]!);
+  const partes = avisos.map((a) =>
+    a.quedan <= 0 ? `de ${a.producto} no te queda` : `de ${a.producto} te ${a.quedan === 1 ? "queda" : "quedan"} ${formatearCajas(a.quedan)} y vas a vender ${cifra(a.vendes)}`,
+  );
+  return `Según la app no alcanza: ${partes.join("; ")}.`;
+}
+
+/**
+ * Lo que se le ofrece al dueño: que confirme igual (la prueba ciega dudó si la venta iba a «rebotar») y que casi siempre es una compra
+ * que llegó y no se anotó.
+ */
+export const SUGERENCIA_AVISO = "Igual puedes confirmarla. ¿Falta anotar una compra?";
+
+/**
+ * Después de guardar: el aviso se iba con la tarjeta y la compra se olvidaba (prueba ciega). «Falta anotar la compra de Mango Kent:
+ * díctala o anótala en Stock.» Compra está en la barra de Stock y también se dicta.
+ */
+export function recordatorioCompra(avisos: AvisoStock[]): string | null {
+  if (avisos.length === 0) return null;
+  const nombres = avisos.map((a) => a.producto);
+  const frutas = nombres.length === 1 ? nombres[0]! : `${nombres.slice(0, -1).join(", ")} y ${nombres.at(-1)}`;
+  return avisos.length === 1
+    ? `Falta anotar la compra de ${frutas}: díctala o anótala en Stock.`
+    : `Falta anotar las compras de ${frutas}: díctalas o anótalas en Stock.`;
+}

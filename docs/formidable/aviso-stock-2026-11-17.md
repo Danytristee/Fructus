@@ -80,3 +80,49 @@ anotar la compra al llegar (voz: «llegaron 20 de mango»), no esconder el aviso
 **Lista aparte (sin ejecutar):**
 - Un botón «Anotar compra» dentro de la hoja abriría la compra a mano encima de la venta: es un flujo nuevo y cruza módulos.
 - Refrescar el stock si la tarjeta lleva mucho rato abierta. Hoy avisa con el de la apertura (/chaos E): es aceptable porque solo avisa.
+
+## Después (con OK, los 3 cambios)
+
+1. **Un solo aviso, debajo de «Pagó / Lo debe»** (`components/voz/AvisoStock.tsx`, `textoAvisos`). Con dos frutas dice: «Según la app no
+   alcanza: de Mango Kent te quedan 6 cajas y vas a vender 10; de Palta Fuerte no te queda.» El stock se lee ahora en un hook,
+   `useStockVenta`, para que el sello también lo use.
+2. **«Igual puedes confirmarla. ¿Falta anotar una compra?»**
+3. **El sello lo recuerda:** «Falta anotar la compra de Mango Kent: díctala o anótala en Stock.» (`recordatorioCompra`). Compra está en
+   la barra de Stock y también se dicta; no en «Hoy».
+
+**Medido** (capturas `despues-*`):
+- Con dos frutas, a 360 px el total termina en 482 px y «Lo debe» en 588, los dos sobre el pie fijo (660). A 412 px: 492 y 598, con el
+  pie en 775. Antes, a 360 px, los dos quedaban bajo el pie.
+- 0 controles bajo 48 px y 0 desborde.
+- El aviso empieza sobre el pie y se termina de leer deslizando: queda después de lo que se confirma.
+
+**Verificado:**
+- Vitest: 1019 en verde, con `textoAvisos` y `recordatorioCompra`.
+- Playwright a 412 y 360 px: `voz-aviso-stock`, `voz-venta`, `voz-confirmar-hablando` y `voz-candados`, 50 de 50.
+  - La de dos frutas espera un solo aviso, y el total y «Lo debe» dentro de la pantalla.
+  - La de guardar espera el recordatorio.
+- Invariantes en orden. La base se restauró después de las capturas.
+
+**2.ª prueba ciega (1 agente, solo las capturas de después):**
+- **Confirmar:** «no me asusta, porque abajo dice "Igual puedes confirmarla"». Toca Confirmar sin dudar.
+- **Ayudante a 360 px:** el total «se ve grande sin tocar nada», y sabe que primero va «Pagó» o «Lo debe». Ya la dejaría guardar.
+- **El sello:** entendió el recordatorio. «Lo de "díctala" sí lo entiendo».
+- **Lo que queda:**
+  - a 360 px, el aviso se lee a medias hasta deslizar («no sé si dice algo de la palta»);
+  - desde el sello no se ve «Stock», porque la hoja tapa la barra;
+  - dudó si convenía confirmar primero o descartar y anotar la compra antes. Confirmar primero es lo correcto: el stock se arregla al
+    anotar la compra.
+
+| Ley | Antes | Después |
+|---|---|---|
+| 1 · Sin manual | 7 | 8 |
+| 2 · Una pregunta, una respuesta | 7 | 8 |
+| 5 · Contenido primero | 5 | 8 |
+| 6 · Lo difícil, a un toque | 6 | 7 |
+| 8 · Quitar antes de agregar | 7 | 8 |
+| **Total** | **7.6** | **8.2** |
+
+**Siguiente (espera OK):**
+- A 360 px con varias frutas, el aviso podría resumirse en una línea («No alcanza el stock de 2 frutas») con el detalle a un toque.
+- Ofrecer «Anotar compra» desde el sello, que abra la compra a mano con esa fruta. Es un flujo nuevo y cruza módulos.
+- Decir en el recordatorio que se confirma primero y la compra se anota después.
