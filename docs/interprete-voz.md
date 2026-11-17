@@ -38,7 +38,7 @@ Cómo habla el negocio:
 - "a 45" o "a 45 soles" después de un producto = precio POR CAJA, no el total.
 - "le dejé a 40", "le rebajé 5", "le hice 20 de descuento" = rebaja. Si dice el precio
   final ("le dejé a 40"), ese es precio_unitario; si dice un monto descontado al total,
-  va en descuento_total.
+  va en descuento_total. Ojo: "ME dejó 200" o "me dio 200" es lo que el cliente PAGÓ, no una rebaja.
 - Crédito (condicion = "credito"): "lo debe", "al fiado", "a cuenta", "me apuntas",
   "anótalo", "me paga el sábado" (o cualquier día), "se lo debo" (en compras). Si aparece
   una de estas, condicion NO es null. Contado: "me pagó", "pagó", "cancelado".
@@ -55,8 +55,9 @@ Reglas que NO se rompen:
 2. Si no dijo si pagó o si lo debe, condicion = null. NO asumas contado. La app le
    preguntará con dos botones.
 3. Si dijo cómo le pagaron ("me yapeó", "me plineó", "en efectivo", "por transferencia",
-   "cancelado"), entonces pagó: condicion = "contado".
-4. Si dijo "pagó" pero no cómo, medio_pago = "efectivo".
+   "cancelado"), entonces pagó: condicion = "contado". Si pagó solo una parte, no es
+   contado: es "credito" con lo que pagó en pago_parcial.
+4. Si dijo "pagó" (todo o una parte) pero no cómo, medio_pago = "efectivo".
 5. Si algo es ambiguo, llénalo con tu mejor lectura y explica la duda en `dudas`
    (frases cortas, en español, para mostrar en la tarjeta).
 6. Si la frase no es un comando del negocio o no se entiende, usa no_entendido.
@@ -131,6 +132,7 @@ en el prompt general y el modelo dejó de entender «¿Cómo voy?», «¿Cuánta
           },
           "descuento_total": { "type": ["number", "null"] },
           "condicion": { "type": ["string", "null"], "enum": ["contado", "credito", null] },
+          "pago_parcial": { "type": ["number", "null"], "description": "Si pagó SOLO UNA PARTE al llevarse la fruta, cuánto pagó (condicion = credito). No es un descuento." },
           "medio_pago": { "type": ["string", "null"], "enum": ["efectivo", "yape", "plin", "transferencia", null] },
           "comprobante": { "type": "string", "enum": ["ninguno", "boleta", "factura"], "default": "ninguno" },
           "dudas": { "type": "array", "items": { "type": "string" } }
@@ -278,6 +280,8 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 | "Diez de papaya para la del puesto doce, lo debe" | registrar_venta | cliente "la del puesto 12", precio null, crédito |
 | "5 de plátano seda y 3 de piña al Paraíso a 30 y 40, factura" | registrar_venta | 2 items, comprobante factura, condicion null |
 | "Mango a don Lucho, 8 jabas, le dejé a 42" | registrar_venta | precio_unitario 42 |
+| "Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000" | registrar_venta | 10 × 500, crédito, pago_parcial 1000, efectivo (nunca contado con S/ 4,000 de descuento: ADR-0023) |
+| "Vendí 10 de mango a don Lucho a 45, a cuenta" | registrar_venta | crédito, pago_parcial null («a cuenta» sola es crédito) |
 | "Don Lucho me abonó 200 en efectivo" | registrar_abono | 200, efectivo |
 | "Llegaron 50 cajas de plátano isla del de Chao a 25" | registrar_compra | 50 × 25 |
 | "Se malograron 3 jabas de papaya" | registrar_merma | 3 |
@@ -305,6 +309,8 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
    («membrillo de cuarta»). Un alias nunca es el nombre a secas de una fruta con varias selecciones.
 3. Precio null → `ultimo_precio(cliente, producto)`, marcado como "sugerido" en la tarjeta.
 4. Condición null → dos botones grandes: **Pagó** / **Lo debe**.
+4b. `pago_parcial` (ADR-0023) → la venta va al crédito y la tarjeta dice cuánto pagó y cuánto queda debiendo. Si lo que pagó llega al
+   total, es contado; si lo pasa, la tarjeta lo pide corregir. Se guarda como abono atado a la venta (`registrar_venta`, `pago_inicial`).
 5. Al confirmar → `registrar_venta` / `registrar_compra` con `comando_voz_id` (marcan el comando como `confirmado`). Abonos, mermas y gastos se insertan directo en su tabla y la app marca el comando. En las dos formas, solo quien dictó el comando (o el dueño o el administrador) puede guardar con él: la RLS lo exige.
 6. Si el usuario editó algo de la tarjeta, marcar el comando como `corregido` **antes** de guardar (la RPC solo cambia comandos que siguen `pendiente`). Si lo descartó, `descartado`.
 

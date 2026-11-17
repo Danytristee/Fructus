@@ -27,7 +27,19 @@ const herramientasVoz = {
         .min(1),
       descuento_total: dinero.nullable().default(null),
       condicion: condicion.nullable().describe("null si no dijo si pagó o si lo debe."),
-      medio_pago: medio.nullable(),
+      // ADR-0023. Sin este campo, «pagó solo 1000» salía al contado con S/ 4,000 de descuento (/voz-precision 2026-11-17).
+      pago_parcial: z
+        .number()
+        .positive()
+        .nullable()
+        .default(null)
+        .describe(
+          'Si pagó SOLO UNA PARTE al llevarse la fruta, cuánto pagó, en soles: "pagó solo 1000", "me dejó 200 a cuenta", ' +
+            '"me dio 300 nomás", "me yapeó 100 y lo demás me paga el sábado". Entonces condicion = "credito" (el resto lo debe) y ' +
+            'medio_pago es cómo pagó esa parte. NO es un descuento: descuento_total no cambia. "Pagó la mitad" solo si dijo las cajas ' +
+            "y el precio (la mitad de cajas × precio); si no, null y la duda en dudas. null si pagó todo, si lo debe todo o si no lo dijo.",
+        ),
+      medio_pago: medio.nullable().describe("Cómo pagó: todo (contado) o la parte que pagó (pago_parcial). null si lo debe todo."),
       comprobante: z.enum(["ninguno", "boleta", "factura"]).default("ninguno"),
       dudas,
     }),

@@ -44,6 +44,12 @@ describe("inventos", () => {
     ]);
     expect(camposPrudentes(esperado)).toBe(3);
   });
+
+  it("un pago parcial o un descuento que no se dijeron también son inventos («pagó la mitad» sin precio)", () => {
+    const esperado = { pago_parcial: null, descuento_total: null };
+    expect(inventos(esperado, { pago_parcial: 120, descuento_total: 4000 })).toEqual(["pago_parcial = 120", "descuento_total = 4000"]);
+    expect(camposPrudentes(esperado)).toBe(2);
+  });
 });
 
 describe("percentil", () => {
