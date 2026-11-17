@@ -6,20 +6,11 @@
 // ignorarlo), o aceptar cualquier dirección que mande el navegador (el servidor terminaría mandando un POST a donde le diga cualquiera).
 import { z } from "zod";
 
-import { formatearHora, formatearSoles } from "./formato";
+import { formatearSoles } from "./formato";
+import { textoDeLaHora, type HoraDeCierre } from "./hora-cierre-reglas";
 import { textoVentas, type ResumenHoy } from "./hoy-reglas";
 import type { Sistema } from "./pwa-reglas";
 import { formatearGrados } from "./temperatura-reglas";
-
-/**
- * La hora de Lima a la que sale el aviso (las 7 p. m.: el puesto ya cerró y la gente que vende de mañana ya descansa).
- * vercel.json la dice en UTC (`0 0 * * *`): lib/push-reglas.test.ts falla si se separan. En Vercel Hobby el cron corre «dentro de la
- * hora», no a la hora exacta: por eso en pantalla se dice «como a las 7 p. m.».
- */
-export const HORA_DEL_AVISO_LIMA = 19;
-
-/** Cómo se dice en pantalla: «como a las 7 p. m.». */
-export const HORA_DEL_AVISO_TEXTO = `como a las ${formatearHora(HORA_DEL_AVISO_LIMA)}`;
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Qué direcciones se aceptan
@@ -122,11 +113,14 @@ export function avisoDeFrescura(p: PorSalir, fecha: string): Aviso | null {
   };
 }
 
-/** El aviso que sale al activarlo: así la persona ve en su teléfono cómo le va a llegar, sin esperar hasta las 7 p. m. */
-export function avisoDeActivacion(): Aviso {
+/**
+ * El aviso que sale al activarlo: así la persona ve en su teléfono cómo le va a llegar, sin esperar a la hora de cierre. `hora` es la que
+ * eligió el dueño (lib/hora-cierre-reglas.ts).
+ */
+export function avisoDeActivacion(hora: HoraDeCierre): Aviso {
   return {
     titulo: "Listo: el aviso del día está activado",
-    cuerpo: `Así te va a llegar, todos los días ${HORA_DEL_AVISO_TEXTO}. Tócalo para ver el cierre.`,
+    cuerpo: `Así te va a llegar, todos los días ${textoDeLaHora(hora)}. Tócalo para ver el cierre.`,
     url: "/cierre",
     tag: "aviso-activado",
   };
