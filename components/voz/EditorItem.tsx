@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Minus, Plus } from "lucide-react";
 import { cn } from "cn";
 
 import { buscarProductos } from "@/app/(app)/acciones-voz";
 import { Boton } from "@/components/ui/Boton";
+import { BotonPaso } from "@/components/ui/BotonPaso";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Insignia } from "@/components/ui/Insignia";
+import { seleccionarAlEnfocar } from "@/components/ui/seleccionar-al-enfocar";
 import { formatearSoles } from "@/lib/formato";
 import type { ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import type { LecturaMonto } from "@/lib/voz/monto-reglas";
@@ -74,26 +75,11 @@ export function EditorItem({ item, opciones, monto, alListo, comoLlego }: Props)
           Cajas
         </span>
         <div role="group" aria-labelledby="etiqueta-cajas" className="grid grid-cols-[56px_1fr_56px] items-center gap-2">
-          <button
-            type="button"
-            disabled={cajas <= 1}
-            onClick={() => setBorrador((b) => ({ ...b, cantidad: Math.max(1, b.cantidad - 1) }))}
-            className="grid size-14 place-items-center rounded-full bg-superficie transition-transform active:scale-95 disabled:opacity-40"
-          >
-            <Minus aria-hidden />
-            <span className="sr-only">Una caja menos</span>
-          </button>
+          <BotonPaso signo="menos" etiqueta="Una caja menos" disabled={cajas <= 1} alPasar={() => setBorrador((b) => ({ ...b, cantidad: Math.max(1, b.cantidad - 1) }))} />
           <output aria-live="polite" className="cifra text-center text-cifra font-extrabold">
             {cajas}
           </output>
-          <button
-            type="button"
-            onClick={() => setBorrador((b) => ({ ...b, cantidad: b.cantidad + 1 }))}
-            className="grid size-14 place-items-center rounded-full bg-superficie transition-transform active:scale-95"
-          >
-            <Plus aria-hidden />
-            <span className="sr-only">Una caja más</span>
-          </button>
+          <BotonPaso signo="mas" etiqueta="Una caja más" alPasar={() => setBorrador((b) => ({ ...b, cantidad: b.cantidad + 1 }))} />
         </div>
       </div>
 
@@ -117,6 +103,7 @@ export function EditorItem({ item, opciones, monto, alListo, comoLlego }: Props)
             <input
               id="precio-caja"
               inputMode="decimal"
+              {...seleccionarAlEnfocar}
               autoComplete="off"
               value={precioTexto}
               aria-invalid={errorPrecio ? true : undefined}
