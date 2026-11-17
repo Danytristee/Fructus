@@ -12,9 +12,11 @@ import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, debeDe, faltaDe, frasesFalta, fueCorregido, leerPagado, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
+import { recordatorioCompra } from "@/lib/voz/stock-venta-reglas";
 import { cambiosDeCorreccion, guionCorreccion, guionVenta, relecturaPago, type Cambios } from "@/lib/voz/lectura-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
+import { AvisoStock } from "./AvisoStock";
 import { DudasVoz } from "./DudasVoz";
 import { EditorItem } from "./EditorItem";
 import { EditorMonto } from "./EditorMonto";
@@ -32,6 +34,7 @@ import { PagoParcial } from "./PagoParcial";
 import { PieConfirmar } from "./PieConfirmar";
 import { useConfirmar } from "./useConfirmar";
 import { useManosLibres } from "./useManosLibres";
+import { useStockVenta } from "./useStockVenta";
 
 type Venta = Extract<Tarjeta, { tipo: "venta" }>;
 type Vista = { tipo: "tarjeta" } | { tipo: "cliente" } | { tipo: "item"; n: number } | { tipo: "pagado" };
@@ -66,7 +69,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   // Manos libres (ADR-0020): al abrirse, la venta lista se lee en voz alta y se confirma diciendo «confirmo»; si falta saber si pagó,
   // se pregunta primero. Con dudas o si falta otro dato, solo se avisa y se toca. La tarjeta se monta solo en el navegador (la hoja no
   // tiene SSR): se puede leer el celular al empezar.
-  const [guion] = useState(() => (manosLibres() ? guionVenta(borradorDe(tarjeta), tarjeta.dudas) : null));
+  // Con el stock que trajo la tarjeta: si la venta pide más, el aviso también se dice (con las manos llenas no se mira).
+  const [guion] = useState(() => (manosLibres() ? guionVenta(borradorDe(tarjeta), tarjeta.dudas, tarjeta.stock) : null));
   const voz = useManosLibres({
     guion,
     alConfirmar: () => confirmar("voz"),
@@ -75,7 +79,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
     alPago: (pago) => {
       const nuevo = { ...borrador, condicion: pago.condicion, medio: pago.medio };
       setBorrador(nuevo);
-      return relecturaPago(nuevo);
+      return relecturaPago(nuevo, vigente.stock);
     },
     // «No, son ocho cajas»: la tarjeta corregida reemplaza a la dictada (lo que se ve, las opciones y las dudas) y se dice solo lo que
     // cambió («Corregido. 8 cajas… Total, 360 soles. ¿Confirmo?»): el resto se acaba de oír. Al guardar cuenta como corregida, porque
@@ -88,7 +92,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       // Lo que ya debía es del cliente, no de la venta: solo se vuelve a pedir si la corrección cambió de cliente. Antes se borraba
       // siempre y, con el mismo cliente, «te debe» desaparecía y no volvía (/formidable 2026-11-17).
       if ((b.cliente?.id ?? null) !== (borrador.cliente?.id ?? null)) setSaldo(null);
-      return guionCorreccion(borrador, b, nueva.dudas);
+      return guionCorreccion(borrador, b, nueva.dudas, nueva.stock);
     },
     ventaActual: () => ventaActual(borrador),
     guardado: guardada !== null,
@@ -110,6 +114,9 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const debe = debeDe(borrador);
   const pagado = borrador.condicion === "credito" ? (borrador.pagado ?? null) : null;
   const falta = faltaDe(borrador);
+  // Las frutas que piden más de lo que hay: el aviso (debajo de «Pagó / Lo debe») y, al guardar, el recordatorio de la compra.
+  const avisosStock = useStockVenta(borrador.items, vigente.stock);
+  const recordatorio = recordatorioCompra(avisosStock);
   const marcas = corregida?.borrador === borrador ? corregida.cambios : null;
   const corregido = <Insignia tipo="corregido">corregido</Insignia>;
 
@@ -154,6 +161,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           ))}
         {/* En qué quedó el comprobante que se pidió: la venta ya está guardada pase lo que pase con él. */}
         {guardada.comprobante && <span className="mt-1 block">{guardada.comprobante}</span>}
+        {/* El aviso se va con la tarjeta: aquí se recuerda la compra que falta anotar (/formidable 2026-11-17). */}
+        {recordatorio && <span className="mt-1 block">{recordatorio}</span>}
       </Guardado>
     );
   }
@@ -298,6 +307,9 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           />
         </div>
       )}
+
+      {/* Si la venta pide más cajas de las que hay: avisa, no bloquea. Después del total y del pago, que mandan. */}
+      <AvisoStock avisos={avisosStock} className="animate-pieza" />
 
       {/* Solo si se pidió comprobante («… factura»): la persona ve lo que se entendió y lo cambia o lo quita de un toque. */}
       {(vigente.comprobante !== "ninguno" || borrador.comprobante !== "ninguno") && (

@@ -46,6 +46,11 @@ export type Tarjeta =
       dudas: string[];
       /** Lo que falta para poder confirmar: la tarjeta lo pide antes de dejar guardar. */
       falta: ("cliente" | "precio" | "condicion" | "producto")[];
+      /**
+       * Las cajas que hay de cada fruta elegida, por id, leídas al armar la tarjeta: para avisar si la venta pide más (no bloquea).
+       * Puede faltar (una tarjeta de antes, o si no se pudo leer): la tarjeta pide la que le falte.
+       */
+      stock?: Record<number, number>;
     }
   // monto null: un abono a mano (A8) arranca sin monto; el intérprete siempre trae uno.
   | { tipo: "abono"; cliente: Eleccion; monto: number | null; medio: Medio; dudas: string[]; falta: "cliente"[] }
@@ -90,6 +95,8 @@ export type Resolucion = {
   temperaturaAyer?: number | null;
   /** La temperatura con la que se cuenta hoy, solo para la tarjeta de la compra. */
   temperaturaHoy?: number | null;
+  /** Las cajas que hay de cada fruta elegida, solo para la tarjeta de la venta. */
+  stock?: Record<number, number>;
 };
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
@@ -169,6 +176,7 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
         comprobante: d.comprobante,
         dudas,
         falta,
+        ...(r.stock ? { stock: r.stock } : {}),
       };
     }
     case "registrar_abono": {

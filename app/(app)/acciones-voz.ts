@@ -6,7 +6,7 @@ import { notaDeComprobante } from "@/lib/comprobantes/comprobante-reglas";
 import { emitirComprobanteDeVenta } from "@/lib/comprobantes/emitir";
 import { CLIENTE_YA_NO_ESTA, conFecha, leerSaldo, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import { PRECIO_MAXIMO, pedidoVenta } from "@/lib/voz/confirmar-venta-reglas";
-import { preciosSugeridos } from "@/lib/voz/resolver";
+import { leerStock, preciosSugeridos } from "@/lib/voz/resolver";
 import { nombreProducto } from "@/lib/productos-reglas";
 
 // Lo que la tarjeta de voz le pide al servidor: guardar la venta, descartar el comando, buscar quién o qué fue, el precio
@@ -162,6 +162,18 @@ export async function sugerirPrecios(clienteId: number | null, productos: number
     console.error("voz: no se pudo sugerir el precio", { error: e instanceof Error ? e.message : "desconocido" });
     return null;
   }
+}
+
+/** Las cajas que hay de esas frutas, para avisar en la tarjeta de venta si no alcanzan. null si no se pudo leer: no se avisa. */
+export async function stockDe(productos: number[]): Promise<Record<number, number> | null> {
+  const ids = z.array(z.number().int().positive()).max(20).safeParse(productos);
+  if (!ids.success) return null;
+  const s = await sesion();
+  if (!s) return null;
+  return leerStock(s.supabase, ids.data).catch((e: unknown) => {
+    console.error("voz: no se pudo leer el stock", { error: e instanceof Error ? e.message : "desconocido" });
+    return null;
+  });
 }
 
 /** Cuánto debe hoy el cliente, para mostrar cómo queda con esta venta o este abono. */

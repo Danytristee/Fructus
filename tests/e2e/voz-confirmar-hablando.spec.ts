@@ -177,7 +177,8 @@ test("«repite»: la vuelve a leer entera y escucha otra vez; después «confirm
   const comandoId = await crearComando();
   const hoja = await hastaEscuchar(page, comandoId, cliente.nombre, cliente);
   // La línea enseña que se puede corregir hablando (/formidable 2026-11-16).
-  await expect(hoja.getByRole("status")).toHaveText("Te escucho: di «confirmo», «repite» o lo que hay que cambiar.");
+  // La línea de la voz, por su texto: el aviso de stock también es un «status» y sale si la base local tiene menos de 10 cajas.
+  await expect(hoja.getByRole("status").filter({ hasText: "Te escucho" })).toHaveText("Te escucho: di «confirmo», «repite» o lo que hay que cambiar.");
 
   const leidas = (await dichas(page)).filter((d) => d === lectura(cliente.nombre)).length;
   await responder(page); // «¿Qué?»
