@@ -58,7 +58,7 @@ test("si falta saber si pagó, lo pregunta por voz, lo anota, repite solo la res
 
   await expect.poll(() => distintas(page)).toEqual([`10 cajas de Mango Kent, a 45 la caja, para ${cliente.nombre}. Total, 450 soles. ¿Pagó o lo debe?`]);
   await terminarFrase(page);
-  await expect(hoja.getByRole("status").filter({ hasText: "di «pagó» o «lo debe»" })).toBeVisible();
+  await expect(hoja.getByRole("status").filter({ hasText: "di «pagó», «lo debe» o «repite»" })).toBeVisible();
   await responder(page);
 
   // Se anota en la píldora, a la vista, y solo se repite la respuesta: la venta se acaba de leer al preguntar.
@@ -86,7 +86,7 @@ test("decir si pagó no guarda: si después no confirma, la venta no entra", asy
   const hoja = await dictar(page, comandoId, tarjeta(cliente, { condicion: null, falta: ["condicion"] }), "¿Así fue la venta?");
   await expect.poll(() => dichas(page)).not.toEqual([]);
   await terminarFrase(page);
-  await expect(hoja.getByRole("status").filter({ hasText: "di «pagó» o «lo debe»" })).toBeVisible();
+  await expect(hoja.getByRole("status").filter({ hasText: "di «pagó», «lo debe» o «repite»" })).toBeVisible();
   await responder(page);
   await expect.poll(() => dichas(page)).toContain("Pagó con Yape. ¿Confirmo?");
   await terminarFrase(page);

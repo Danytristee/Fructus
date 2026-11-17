@@ -147,11 +147,13 @@ describe("guionCorreccion", () => {
   });
 
   it("cambiosDeCorreccion: lo que la tarjeta marca «corregido», lo mismo que dice la voz", () => {
-    const nada = { frutas: [], cliente: false, rebaja: false, total: false, pago: false, comprobante: false };
+    const nada = { frutas: [], cajas: [], precios: [], cliente: false, rebaja: false, total: false, pago: false, comprobante: false };
     expect(cambiosDeCorreccion(venta(), venta())).toEqual(nada);
-    expect(cambiosDeCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 8 }] }))).toEqual({ ...nada, frutas: [0], total: true });
-    expect(cambiosDeCorreccion(venta({ items: [mango, palta] }), venta({ items: [mango, { ...palta, precio: 55 }] }))).toEqual({ ...nada, frutas: [1], total: true });
-    expect(cambiosDeCorreccion(venta(), venta({ items: [mango, palta] })).frutas).toEqual([0, 1]);
+    expect(cambiosDeCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 8 }] }))).toEqual({ ...nada, frutas: [0], cajas: [0], total: true });
+    expect(cambiosDeCorreccion(venta({ items: [mango, palta] }), venta({ items: [mango, { ...palta, precio: 55 }] }))).toEqual({ ...nada, frutas: [1], precios: [1], total: true });
+    expect(cambiosDeCorreccion(venta(), venta({ items: [mango, palta] }))).toMatchObject({ frutas: [0, 1], cajas: [0, 1], precios: [] });
+    // Cajas y precio a la vez: las dos marcas.
+    expect(cambiosDeCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 8, precio: 40 }] }))).toMatchObject({ cajas: [0], precios: [0] });
     expect(cambiosDeCorreccion(venta(), venta({ cliente: { id: 7, nombre: "Pedro Díaz" } }))).toEqual({ ...nada, cliente: true });
     expect(cambiosDeCorreccion(venta(), venta({ descuento: 10 }))).toEqual({ ...nada, rebaja: true, total: true });
   });

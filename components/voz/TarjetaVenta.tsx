@@ -222,14 +222,26 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           falta={item.productoId === null || item.precio === null}
           onClick={() => setVista({ tipo: "item", n })}
           icono={<IconoFruta nombre={item.producto || "?"} tamano={48} />}
-          grande={item.productoId === null ? `¿${item.producto}?` : `${formatearCajas(item.cantidad)} de ${item.producto}`}
+          grande={
+            <>
+              {item.productoId === null ? `¿${item.producto}?` : `${formatearCajas(item.cantidad)} de ${item.producto}`}
+              {/* Junto a lo que cambió: las cajas o la fruta aquí, el precio abajo (/formidable 2026-11-17). */}
+              {/* Un espacio y no un margen: si la insignia baja de renglón, queda alineada con el texto. */}
+              {marcas?.cajas.includes(n) && (
+                <>
+                  {" "}
+                  <span className="inline-block align-middle">{corregido}</span>
+                </>
+              )}
+            </>
+          }
           chico={
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="cifra">
                 {item.productoId === null ? "Toca para elegir la fruta" : item.precio === null ? "Toca para poner el precio" : `${formatearSoles(item.precio)} la caja`}
               </span>
               {item.sugerido && <InsigniaSugerido />}
-              {marcas?.frutas.includes(n) && corregido}
+              {marcas?.precios.includes(n) && corregido}
             </span>
           }
         />

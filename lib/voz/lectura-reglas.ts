@@ -110,15 +110,31 @@ const mismoItem = (a: ItemBorrador, b: ItemBorrador) =>
  */
 /**
  * Qué cambió entre la venta de antes y la corregida. Lo usan la voz (guionCorreccion) y la tarjeta, que marca «corregido» en lo
- * mismo que se dice: así la pantalla y el oído cuentan lo mismo (/formidable 2026-11-17). `frutas`: las posiciones que cambiaron
- * en la corregida; todas, si cambió cuántas hay.
+ * mismo que se dice: así la pantalla y el oído cuentan lo mismo (/formidable 2026-11-17). Las posiciones son de la corregida:
+ *   - `frutas`: las que cambiaron en algo (la voz las dice enteras); todas, si cambió cuántas hay;
+ *   - `cajas`: las que cambiaron de fruta o de cajas, y las nuevas;
+ *   - `precios`: las que cambiaron de precio. La marca va junto a lo que cambió: pegada al precio, con las cajas corregidas, hacía
+ *     creer que había cambiado el precio (2.ª prueba ciega).
  */
-export type Cambios = { frutas: number[]; cliente: boolean; rebaja: boolean; total: boolean; pago: boolean; comprobante: boolean };
+export type Cambios = {
+  frutas: number[];
+  cajas: number[];
+  precios: number[];
+  cliente: boolean;
+  rebaja: boolean;
+  total: boolean;
+  pago: boolean;
+  comprobante: boolean;
+};
 
 export function cambiosDeCorreccion(antes: Borrador, despues: Borrador): Cambios {
   const mismasFilas = antes.items.length === despues.items.length;
+  const previo = (n: number) => (mismasFilas ? antes.items[n]! : null);
+  const posiciones = (cambio: (a: ItemBorrador | null, b: ItemBorrador) => boolean) => despues.items.flatMap((it, n) => (cambio(previo(n), it) ? [n] : []));
   return {
-    frutas: despues.items.flatMap((it, n) => (mismasFilas && mismoItem(antes.items[n]!, it) ? [] : [n])),
+    frutas: posiciones((a, b) => a === null || !mismoItem(a, b)),
+    cajas: posiciones((a, b) => a === null || a.productoId !== b.productoId || a.producto !== b.producto || a.cantidad !== b.cantidad),
+    precios: posiciones((a, b) => a !== null && (a.precio !== b.precio || a.sugerido !== b.sugerido)),
     cliente: (antes.cliente?.id ?? null) !== (despues.cliente?.id ?? null),
     rebaja: antes.descuento !== despues.descuento,
     total: totalDe(antes) !== totalDe(despues),

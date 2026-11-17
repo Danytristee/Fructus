@@ -133,7 +133,8 @@ export function notaManosLibres(e: EstadoManosLibres, { corrige = false }: { cor
       if (e.intento === 1) return "Te la estoy leyendo…";
       return pago ? "¿Pagó o lo debe?" : "Para guardar, di «confirmo».";
     case "escuchando":
-      if (pago) return "Te escucho: di «pagó» o «lo debe».";
+      // «Repite» también vale aquí (/api/voz/respuesta lo revisa en cualquier pregunta): se dice, o no se sabe (2.ª prueba ciega).
+      if (pago) return "Te escucho: di «pagó», «lo debe» o «repite».";
       return corrige ? "Te escucho: di «confirmo», «repite» o lo que hay que cambiar." : "Te escucho: di «confirmo» o toca Confirmar.";
     case "entendiendo":
     case "anotando":

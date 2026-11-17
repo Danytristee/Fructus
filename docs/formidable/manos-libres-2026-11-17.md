@@ -154,3 +154,24 @@ que el micrófono se abra a tiempo después de «¿Confirmo?» y no se coma el p
 2. Enseñar «repite» también al preguntar el pago: «Te escucho: di «pagó», «lo debe» o «repite».»
 3. Lo que sigue de antes: probarlo con audífono en el S25, en el puesto, y la corrección más corta («Corregido. 8 cajas de Mango Kent.
    Total, 360 soles.»).
+
+## Segunda vuelta (con OK, los 2 hallazgos de la 2.ª prueba ciega)
+
+1. **«corregido» junto a lo que cambió de la fruta.** `cambiosDeCorreccion` separa ahora `cajas` (cambió la fruta o las cajas, o la fila es
+   nueva) de `precios` (cambió el precio). Con las cajas corregidas, la marca va junto a «8 cajas de Mango Kent»; con el precio, junto a
+   «S/ 40.00 la caja»; si cambian las dos cosas, salen las dos. Va después de un espacio y no de un margen, para que al bajar de renglón
+   quede alineada con el texto.
+2. **«Repite» también al preguntar el pago:** «Te escucho: di «pagó», «lo debe» o «repite».»
+
+**Medido** (`despues2-*`):
+- Con las cajas corregidas, la fila se lee «8 cajas de Mango Kent · corregido · S/ 45.00 la caja», a 412 y 360 px.
+- Con el precio corregido, se lee «10 cajas de Mango Kent · S/ 40.00 la caja · corregido».
+- 0 controles bajo 48 px y 0 desborde. Confirmar empieza al 86 % de la altura a 412 px y al 84 % a 360.
+- La línea del pago pasa de 1 a 2 renglones, igual que la de confirmar.
+
+**Verificado:**
+- Vitest: 380 de `lib/voz` en verde, con los casos de cajas, precio y los dos a la vez.
+- Playwright a 412 y 360 px: `voz-confirmar-hablando`, `voz-candados` y `voz-venta`, 40 de 40. La de «no, son ocho cajas» espera
+  «corregido» entre las cajas y el precio.
+
+No se corrió una tercera prueba ciega: los dos cambios responden a lo que dijo la segunda. La nota queda en **8.8**.
