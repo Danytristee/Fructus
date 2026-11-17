@@ -11,6 +11,7 @@ import { itemCompraVacio } from "@/lib/a-mano-reglas";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import {
   borradorCompra,
+  compraActual,
   faltaCompra,
   frasesFaltaCompra,
   fueCorregidaCompra,
@@ -18,7 +19,8 @@ import {
   totalCompra,
   type BorradorCompra,
 } from "@/lib/voz/confirmar-compra-reglas";
-import { guionCompra, relecturaPagoCompra } from "@/lib/voz/guion-reglas";
+import { guionCompra, guionCompraRespondida, relecturaPagoCompra } from "@/lib/voz/guion-reglas";
+import { faltaPorPreguntarCompra, opcionesDeCompra } from "@/lib/voz/pregunta-falta-reglas";
 import type { ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { maduraEnLaCaja, NOMBRE_ESTADO } from "@/lib/vida-util-reglas";
@@ -69,17 +71,36 @@ function IconoProveedor() {
 // se sugiere el último que se pagó y se marca.
 export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando, aMano = false }: Props) {
   const [borrador, setBorrador] = useState<BorradorCompra>(() => borradorCompra(tarjeta));
+  // La tarjeta que se muestra: la dictada, o la que dejó una respuesta hablada (lo que se dijo, las opciones y las dudas).
+  const [vigente, setVigente] = useState(tarjeta);
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const { confirmar: enviar, guardando, error, guardado, encolado, incierto } = useConfirmar<{ ok: true; compraId: number }>({ alGuardar, alCambiarGuardando });
-  // Manos libres (ADR-0020): al abrirse se lee y se confirma diciendo «confirmo». A mano no: quien escribe ya está mirando.
-  const [guion] = useState(() => (manosLibres() && !aMano ? guionCompra(borradorCompra(tarjeta), tarjeta.dudas) : null));
-  const voz = useManosLibres({ guion, alConfirmar: () => confirmar("voz"), guardado: guardado !== null,
-    // «¿La pagaste o la debes?» respondido por voz: se anota en la tarjeta y se repite la respuesta con «¿Confirmo?».
+  // Manos libres (ADR-0020): al abrirse se lee y se confirma diciendo «confirmo». Si falta la fruta, las cajas, el costo o a quién se
+  // le debe, lo pregunta y la respuesta completa la tarjeta; también se corrige hablando (ADR-0027). A mano no: quien escribe ya está
+  // mirando.
+  const [guion] = useState(() => (manosLibres() && !aMano ? guionCompra(borradorCompra(tarjeta), tarjeta.dudas, opcionesDeCompra(tarjeta)) : null));
+  const voz = useManosLibres<Compra>({
+    guion,
+    alConfirmar: () => confirmar("voz"),
+    guardado: guardado !== null,
+    // «¿La pagaste o la debes?» respondido por voz: se anota en la tarjeta y se repite la respuesta con «¿Confirmo?» (o a quién se le
+    // debe, si no se sabe).
     alPago: (pago) => {
       const nuevo = { ...borrador, condicion: pago.condicion, medio: pago.medio };
       setBorrador(nuevo);
-      return relecturaPagoCompra(nuevo, tarjeta.dudas);
-    }, });
+      return relecturaPagoCompra(nuevo, vigente.dudas, opcionesDeCompra(vigente));
+    },
+    alCorregir: (nueva, pregunta) => {
+      const b = borradorCompra(nueva);
+      // registrar_compra no trae con qué se pagó: si sigue pagada, se queda el medio que ya se había dicho («con Plin»).
+      const nuevo = b.condicion === "contado" && borrador.condicion === "contado" ? { ...b, medio: borrador.medio } : b;
+      setVigente(nueva);
+      setBorrador(nuevo);
+      return guionCompraRespondida(borrador, nuevo, nueva.dudas, opcionesDeCompra(nueva), pregunta);
+    },
+    actual: () => compraActual(borrador, vigente.proveedor.dicho),
+    faltaActual: () => faltaPorPreguntarCompra(borrador, opcionesDeCompra(vigente)),
+  });
 
   const total = totalCompra(borrador);
   const falta = faltaCompra(borrador);
@@ -124,8 +145,8 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
         {vista.tipo === "proveedor" ? (
           <EditorBusqueda
             etiqueta="¿Quién te la trajo?"
-            inicial={proveedor?.nombre ?? tarjeta.proveedor.dicho ?? ""}
-            opciones={tarjeta.proveedor.opciones.map((o) => ({ ...o, detalle: null }))}
+            inicial={proveedor?.nombre ?? vigente.proveedor.dicho ?? ""}
+            opciones={vigente.proveedor.opciones.map((o) => ({ ...o, detalle: null }))}
             buscar={buscarProveedoresVoz}
             alElegir={(o) => {
               setBorrador((b) => ({ ...b, proveedor: { id: o.id, nombre: o.nombre } }));
@@ -150,7 +171,7 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
         ) : (
           <EditorItem
             item={borrador.items[vista.n]!}
-            opciones={tarjeta.items[vista.n]?.producto.opciones ?? []}
+            opciones={vigente.items[vista.n]?.producto.opciones ?? []}
             monto={COSTO}
             comoLlego={{ temperatura }}
             alListo={(item: ItemBorrador) => {
@@ -163,7 +184,7 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
     );
   }
 
-  const dicho = tarjeta.proveedor.dicho;
+  const dicho = vigente.proveedor.dicho;
   // «¿La pagaste o la debes?» ya lleva su pregunta escrita encima: el pie no la repite.
   const aviso = frasesFaltaCompra(falta.filter((f) => f !== "condicion"));
   return (
@@ -245,7 +266,7 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
         </div>
       )}
 
-      <DudasVoz dudas={tarjeta.dudas} />
+      <DudasVoz dudas={vigente.dudas} />
 
       <div className="mx-1 mt-1 mb-1 flex animate-pieza items-baseline justify-between gap-3" style={pieza(borrador.items.length + 1)}>
         <span className="text-lg font-bold text-texto-suave">Total</span>

@@ -3,6 +3,7 @@
 // contado), ni al crédito sin proveedor. Lógica pura.
 import { maduraEnLaCaja, type EstadoLlegada } from "../vida-util-reglas";
 import { PRECIO_MAXIMO, type ItemBorrador, type Medio } from "./confirmar-venta-reglas";
+import type { OperacionActual } from "./esquemas";
 import { leerMonto } from "./monto-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
@@ -106,5 +107,20 @@ export function pedidoCompra(b: BorradorCompra, comandoId: number, corregido: bo
     corregido,
     // Cómo llegó solo se guarda en la fruta que madura en la caja: en las demás no cambia nada.
     items: b.items.map((it) => ({ producto_id: it.productoId!, cantidad: it.cantidad, costo_unitario: it.precio!, estado_llegada: maduraEnLaCaja(it.producto) ? (it.estado ?? null) : null })),
+  };
+}
+
+/**
+ * La compra de la tarjeta en los campos de registrar_compra, para corregirla o completarla hablando (ADR-0027). Sin proveedor elegido
+ * va lo que se dijo (`dicho`).
+ */
+export function compraActual(b: BorradorCompra, dicho: string | null): Extract<OperacionActual, { operacion: "compra" }> {
+  return {
+    operacion: "compra",
+    datos: {
+      proveedor_texto: b.proveedor?.nombre ?? dicho ?? null,
+      items: b.items.map((it) => ({ producto_texto: it.producto, cantidad: it.cantidad, costo_unitario: it.precio, estado: it.estado ?? null })),
+      condicion: b.condicion,
+    },
   };
 }

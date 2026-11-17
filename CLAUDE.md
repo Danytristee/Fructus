@@ -258,7 +258,8 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
     - otra cosa se repregunta una vez.
   - **Si falta un dato (ADR-0027),** la fruta, las cajas, el precio o a quién se le fía, dice qué falta y lo pregunta, con las opciones si
     hay varias parecidas («Las 10 cajas de mango, ¿cuál es? ¿Mango Kent o Mango Edward?»). La respuesta completa la tarjeta por el
-    intérprete, que sabe qué se preguntó, y al quedar completa la lee entera antes de «¿Confirmo?».
+    intérprete, que sabe qué se preguntó, y al quedar completa la lee entera antes de «¿Confirmo?». Igual en el abono (quién pagó y
+    cuánto) y en la compra (la fruta, las cajas, el costo y a quién se le debe), que también se corrigen hablando.
   - **Candados:** un «sí» suelto no confirma; con dudas del intérprete, si falta algo que no se pregunta o sin señal, solo se avisa y se confirma con el dedo; mientras habla, no escucha; tocar la tarjeta calla la voz.
   - Dice «Guardado» cuando la base respondió, y `comandos_voz.confirmado_por` registra si fue `toque` o `voz`.
 - **«Hola Fructus» (ADR-0022):** otro interruptor del menú, por celular y apagado de fábrica. Quita el último toque: el que empieza a dictar.

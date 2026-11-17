@@ -8,7 +8,7 @@ import "server-only";
 import { fetchWithTimeout } from "../supabase/fetch-con-tope";
 import { bloqueCatalogo, type Catalogo } from "./catalogo-reglas";
 import { sinEstadoQueEsNombre } from "./como-llego-reglas";
-import { herramientasParaElModelo, leerInterpretacion, type FaltaPreguntada, type Interpretacion, type VentaActual } from "./esquemas";
+import { herramientasParaElModelo, leerInterpretacion, type FaltaPreguntada, type Interpretacion, type OperacionActual } from "./esquemas";
 import { precioQueEraTotal } from "./total-dicho-reglas";
 import { MODELO_CLAUDE, preguntarAClaude } from "./interprete-claude";
 import { PROMPT_SISTEMA, mensajeCorreccion } from "./prompt";
@@ -69,15 +69,15 @@ function afinar(interpretacion: Interpretacion, transcripcion: string): Interpre
 
 /**
  * Interpreta una transcripción. `catalogo` es lo que hay en el puesto (productos, clientes y proveedores).
- * `correccionDe`: la venta que Fructus leyó en voz alta, en los campos de registrar_venta; la transcripción es la corrección que dijo
- * la persona («no, son ocho»). `falta`: con la venta incompleta, el dato que Fructus preguntó («¿A cuánto la caja?»): la transcripción
- * es la respuesta.
+ * `correccionDe`: la venta, el abono o la compra que Fructus leyó en voz alta, en los campos de su herramienta; la transcripción es la
+ * corrección que dijo la persona («no, son ocho»). `falta`: con la operación incompleta, el dato que Fructus preguntó («¿A cuánto la
+ * caja?»): la transcripción es la respuesta.
  * `solo`, `modeloGroq` y `modeloClaude` sirven para medir modelos con /voz-precision sin que otro servicio cambie los números. Las
  * dos cuentas de Groq usan el mismo modelo, así que la de respaldo sí entra: solo suma cupo.
  */
 export async function interpretar(
   transcripcion: string,
-  opciones: { catalogo?: Catalogo; modeloGroq?: string; modeloClaude?: string; solo?: "groq" | "anthropic" | "gemini"; correccionDe?: VentaActual; falta?: FaltaPreguntada } = {},
+  opciones: { catalogo?: Catalogo; modeloGroq?: string; modeloClaude?: string; solo?: "groq" | "anthropic" | "gemini"; correccionDe?: OperacionActual; falta?: FaltaPreguntada } = {},
 ): Promise<ResultadoInterprete> {
   const inicio = performance.now();
   // El prompt fijo más el catálogo del puesto (docs/interprete-voz.md, secciones 2 y 2b).

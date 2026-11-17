@@ -69,7 +69,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   // tarjeta (ADR-0027). Con dudas, solo se avisa y se toca. La tarjeta se monta solo en el navegador (la hoja no tiene SSR): se puede
   // leer el celular al empezar.
   const [guion] = useState(() => (manosLibres() ? guionVenta(borradorDe(tarjeta), tarjeta.dudas, opcionesDeVenta(tarjeta)) : null));
-  const voz = useManosLibres({
+  const voz = useManosLibres<Venta>({
     guion,
     alConfirmar: () => confirmar("voz"),
     // «¿Pagó o lo debe?» respondido por voz: se anota en la tarjeta (se ve en la píldora) y se repite la respuesta con «¿Confirmo?».
@@ -94,7 +94,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       if (pregunta === "falta") return guionCompletado(borrador, b, nueva.dudas, opcionesDeVenta(nueva));
       return guionCorreccion(borrador, b, nueva.dudas, opcionesDeVenta(nueva));
     },
-    ventaActual: () => ventaActual(borrador),
+    actual: () => ({ operacion: "venta", datos: ventaActual(borrador) }),
     faltaActual: () => faltaPorPreguntar(borrador, opcionesDeVenta(vigente)),
     guardado: guardada !== null,
   });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { borradorAbono, faltaAbono, frasesFaltaAbono, fueCorregidoAbono, leerAbono, pedidoAbono, saldoTrasAbono } from "./confirmar-abono-reglas";
+import { abonoActual, borradorAbono, faltaAbono, frasesFaltaAbono, fueCorregidoAbono, leerAbono, pedidoAbono, saldoTrasAbono } from "./confirmar-abono-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
 type Abono = Extract<Tarjeta, { tipo: "abono" }>;
@@ -76,5 +76,15 @@ describe("pedidoAbono", () => {
   it("si falta algo, no hay pedido: nunca se guarda un abono a medias", () => {
     expect(pedidoAbono({ cliente: null, monto: 80, medio: "plin" }, 33)).toBeNull();
     expect(pedidoAbono({ cliente: lucho, monto: null, medio: "plin" }, 33)).toBeNull();
+  });
+});
+
+describe("abonoActual (ADR-0027)", () => {
+  it("el abono en los campos de registrar_abono; sin cliente elegido, lo que se dijo", () => {
+    expect(abonoActual({ cliente: { id: 1, nombre: "Luis Paredes" }, monto: 200, medio: "yape" }, "lucho")).toEqual({
+      operacion: "abono",
+      datos: { cliente_texto: "Luis Paredes", monto: 200, medio_pago: "yape" },
+    });
+    expect(abonoActual({ cliente: null, monto: 200, medio: "efectivo" }, "lucho").datos.cliente_texto).toBe("lucho");
   });
 });

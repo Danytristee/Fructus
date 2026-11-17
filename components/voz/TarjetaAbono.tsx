@@ -10,6 +10,7 @@ import { Monto } from "@/components/ui/Monto";
 import { formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import {
+  abonoActual,
   borradorAbono,
   faltaAbono,
   frasesFaltaAbono,
@@ -18,7 +19,8 @@ import {
   saldoTrasAbono,
   type BorradorAbono,
 } from "@/lib/voz/confirmar-abono-reglas";
-import { guionAbono } from "@/lib/voz/guion-reglas";
+import { guionAbono, guionAbonoRespondido } from "@/lib/voz/guion-reglas";
+import { faltaPorPreguntarAbono, opcionesDeAbono } from "@/lib/voz/pregunta-falta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { DudasVoz } from "./DudasVoz";
 import { EditorBusqueda } from "./EditorBusqueda";
@@ -53,12 +55,28 @@ const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 // Si paga más de lo que debe se deja guardar, pero se dice en grande antes de Confirmar (decisión del 31-10).
 export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando, aMano = false }: Props) {
   const [borrador, setBorrador] = useState<BorradorAbono>(() => borradorAbono(tarjeta));
+  // La tarjeta que se muestra: la dictada, o la que dejó una respuesta hablada (lo que se dijo, las opciones y las dudas).
+  const [vigente, setVigente] = useState(tarjeta);
   const [vista, setVista] = useState<"tarjeta" | "cliente" | "monto">("tarjeta");
   const [saldo, setSaldo] = useState<number | null>(null);
   const { confirmar: enviar, guardando, error, guardado, encolado, incierto } = useConfirmar<{ ok: true; saldo: number | null }>({ alGuardar, alCambiarGuardando });
-  // Manos libres (ADR-0020): al abrirse se lee y se confirma diciendo «confirmo». A mano no: quien escribe ya está mirando.
-  const [guion] = useState(() => (manosLibres() && !aMano ? guionAbono(borradorAbono(tarjeta), tarjeta.dudas) : null));
-  const voz = useManosLibres({ guion, alConfirmar: () => confirmar("voz"), guardado: guardado !== null });
+  // Manos libres (ADR-0020): al abrirse se lee y se confirma diciendo «confirmo». Si falta quién pagó o cuánto, lo pregunta, y la
+  // respuesta completa la tarjeta; también se corrige hablando («no, fueron 300»; ADR-0027). A mano no: quien escribe ya está mirando.
+  const [guion] = useState(() => (manosLibres() && !aMano ? guionAbono(borradorAbono(tarjeta), tarjeta.dudas, opcionesDeAbono(tarjeta)) : null));
+  const voz = useManosLibres<Abono>({
+    guion,
+    alConfirmar: () => confirmar("voz"),
+    guardado: guardado !== null,
+    alCorregir: (nueva, pregunta) => {
+      const b = borradorAbono(nueva);
+      setVigente(nueva);
+      setBorrador(b);
+      if ((b.cliente?.id ?? null) !== (borrador.cliente?.id ?? null)) setSaldo(null);
+      return guionAbonoRespondido(borrador, b, nueva.dudas, opcionesDeAbono(nueva), pregunta);
+    },
+    actual: () => abonoActual(borrador, vigente.cliente.dicho),
+    faltaActual: () => faltaPorPreguntarAbono(borrador, opcionesDeAbono(vigente)),
+  });
 
   const clienteId = borrador.cliente?.id ?? null;
   useEffect(() => {
@@ -114,8 +132,8 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         {vista === "cliente" ? (
           <EditorBusqueda
             etiqueta="¿Quién te pagó?"
-            inicial={cliente?.nombre ?? tarjeta.cliente.dicho ?? ""}
-            opciones={tarjeta.cliente.opciones.map((o) => ({ ...o, detalle: null }))}
+            inicial={cliente?.nombre ?? vigente.cliente.dicho ?? ""}
+            opciones={vigente.cliente.opciones.map((o) => ({ ...o, detalle: null }))}
             buscar={buscarClientes}
             alElegir={(o) => {
               setSaldo(null);
@@ -148,7 +166,7 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         style={pieza(0)}
         className="animate-pieza"
         cliente={cliente}
-        dicho={tarjeta.cliente.dicho}
+        dicho={vigente.cliente.dicho}
         falta={!aMano && falta.includes("cliente")}
         pendiente={aMano && falta.includes("cliente")}
         sinCliente={aMano ? "¿Quién te pagó?" : undefined}
@@ -175,7 +193,7 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         <SelectorMedio medio={borrador.medio} alCambiar={(medio) => setBorrador((b) => ({ ...b, medio }))} pregunta="¿Con qué te pagó?" />
       </div>
 
-      <DudasVoz dudas={tarjeta.dudas} />
+      <DudasVoz dudas={vigente.dudas} />
 
       {cliente && tras && (
         <div className="animate-pieza" style={pieza(3)}>

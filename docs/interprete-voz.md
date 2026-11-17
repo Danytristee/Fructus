@@ -112,6 +112,9 @@ caja de Mango Kent?»). La respuesta va a `POST /api/voz/respuesta` con `pregunt
 - **Qué se pregunta y cómo:** `lib/voz/pregunta-falta-reglas.ts`. **Qué se dice después:** `guionCompletado` (`lectura-reglas.ts`):
   «Anotado» y lo siguiente, o la venta entera cuando queda completa.
 - **Los casos** son los `falta-*` de `tests/interprete/casos.json`, con `correccionDe` y `falta`.
+- **Abono y compra:** el mismo camino. La operación viaja en el campo con su nombre (`venta`, `abono` o `compra`) y el mensaje lleva las
+  reglas de cada una (`REGLAS` en `lib/voz/prompt.ts`). Así el abono y la compra también se corrigen hablando. Los casos llevan
+  `"operacion": "abono"` o `"compra"` (sin eso, son de venta).
 
 ## 3. Herramientas (formato OpenAI / Groq)
 

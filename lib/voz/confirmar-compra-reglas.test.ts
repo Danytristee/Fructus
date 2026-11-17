@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { borradorCompra, faltaCompra, frasesFaltaCompra, fueCorregidaCompra, leerCosto, pedidoCompra, totalCompra, type BorradorCompra } from "./confirmar-compra-reglas";
+import { borradorCompra, compraActual, faltaCompra, frasesFaltaCompra, fueCorregidaCompra, leerCosto, pedidoCompra, totalCompra, type BorradorCompra } from "./confirmar-compra-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
 type Compra = Extract<Tarjeta, { tipo: "compra" }>;
@@ -131,5 +131,15 @@ describe("cómo llegó la fruta", () => {
     const sinDecir = conEstado(null);
     const b2 = borradorCompra(sinDecir);
     expect(fueCorregidaCompra(sinDecir, { ...b2, items: [{ ...b2.items[0]!, estado: "maduro" }] })).toBe(false);
+  });
+});
+
+describe("compraActual (ADR-0027)", () => {
+  it("la compra en los campos de registrar_compra; sin proveedor elegido, lo que se dijo", () => {
+    const b = { proveedor: null, items: [{ productoId: 3, producto: "Plátano Isla", cantidad: 50, precio: null, sugerido: false, estado: "verde" as const }], condicion: null, medio: null };
+    expect(compraActual(b, "el de chao")).toEqual({
+      operacion: "compra",
+      datos: { proveedor_texto: "el de chao", items: [{ producto_texto: "Plátano Isla", cantidad: 50, costo_unitario: null, estado: "verde" }], condicion: null },
+    });
   });
 });

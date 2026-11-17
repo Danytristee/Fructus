@@ -17,7 +17,7 @@ import {
   type EventoManosLibres,
   type Pregunta,
 } from "@/lib/voz/manos-libres-reglas";
-import type { FaltaPreguntada, VentaActual } from "@/lib/voz/esquemas";
+import type { FaltaPreguntada, OperacionActual } from "@/lib/voz/esquemas";
 import type { Guion, Relectura } from "@/lib/voz/lectura-reglas";
 import type { Pago } from "@/lib/voz/respuesta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
@@ -29,9 +29,10 @@ import { useGrabadora } from "./useGrabadora";
 const TOPE_ENVIO_MS = 10_000;
 const MEDIOS = ["efectivo", "yape", "plin", "transferencia"];
 
-type Venta = Extract<Tarjeta, { tipo: "venta" }>;
+/** Las tarjetas que se corrigen o completan hablando (ADR-0027). */
+type Corregible = Extract<Tarjeta, { tipo: OperacionActual["operacion"] }>;
 /** Lo que entendió el servidor, y la tarjeta corregida cuando la respuesta fue una corrección («no, son ocho cajas»). */
-type Entendido = { ev: EventoManosLibres; corregida?: Venta };
+type Entendido = { ev: EventoManosLibres; corregida?: Corregible };
 
 /** Lo que dijo el servidor del pago, revisado: lo que no tenga la forma esperada no se anota (nunca se asume contado). */
 function leerPago(x: unknown): Pago | null {
@@ -43,24 +44,25 @@ function leerPago(x: unknown): Pago | null {
 
 /**
  * Lo que el servidor entendió de la respuesta corta, como evento. «fallo» si no respondió o no la entendió: nunca se guarda ni se
- * anota por las dudas. Sin señal se dice así, para que la tarjeta lo explique. `venta`: la venta actual, para poder corregirla.
+ * anota por las dudas. Sin señal se dice así, para que la tarjeta lo explique. `actual`: la operación actual, para poder corregirla.
  * `falta`: lo que se preguntó porque faltaba, para que el intérprete sepa a qué responde un «cuarenta» suelto.
  */
-async function entender(audio: Blob, duracionMs: number, pregunta: Pregunta, venta: VentaActual | null, falta: FaltaPreguntada | null): Promise<Entendido> {
+async function entender(audio: Blob, duracionMs: number, pregunta: Pregunta, actual: OperacionActual | null, falta: FaltaPreguntada | null): Promise<Entendido> {
   const formulario = new FormData();
   formulario.append("audio", audio, audio.type.includes("mp4") ? "respuesta.m4a" : "respuesta.webm");
   formulario.append("duracion_ms", String(duracionMs));
   formulario.append("pregunta", pregunta);
   // Con «¿Pagó o lo debe?» también: «pagó quinientos» rehace la venta con lo que pagó al llevar (ADR-0025).
-  if (venta && pregunta !== "ninguna") formulario.append("venta", JSON.stringify(venta));
+  // Viaja en el campo con su nombre: `venta`, `abono` o `compra`.
+  if (actual && pregunta !== "ninguna") formulario.append(actual.operacion, JSON.stringify(actual.datos));
   if (falta && pregunta === "falta") formulario.append("falta", JSON.stringify(falta));
   try {
     const r = await fetch("/api/voz/respuesta", { method: "POST", body: formulario, signal: AbortSignal.timeout(TOPE_ENVIO_MS) });
     const cuerpo = (await r.json().catch(() => null)) as { respuesta?: unknown; pago?: unknown; repetir?: unknown; tarjeta?: { tipo?: unknown } } | null;
     if (r.ok && cuerpo?.repetir === true) return { ev: { tipo: "repetir" } };
     if (r.ok && pregunta === "pago" && cuerpo && "pago" in cuerpo) return { ev: { tipo: "pago", pago: leerPago(cuerpo.pago) } };
-    if (r.ok && cuerpo?.respuesta === "corregir" && cuerpo.tarjeta?.tipo === "venta") {
-      return { ev: { tipo: "respuesta", respuesta: "corregir" }, corregida: cuerpo.tarjeta as Venta };
+    if (r.ok && cuerpo?.respuesta === "corregir" && actual && cuerpo.tarjeta?.tipo === actual.operacion) {
+      return { ev: { tipo: "respuesta", respuesta: "corregir" }, corregida: cuerpo.tarjeta as Corregible };
     }
     if (r.ok && (cuerpo?.respuesta === "confirmar" || cuerpo?.respuesta === "otra")) return { ev: { tipo: "respuesta", respuesta: cuerpo.respuesta } };
     console.error("voz: la respuesta no se entendió", { estado: r.status });
@@ -71,7 +73,7 @@ async function entender(audio: Blob, duracionMs: number, pregunta: Pregunta, ven
   return { ev: pregunta === "pago" ? { tipo: "pago", pago: "fallo" } : { tipo: "respuesta", respuesta: "fallo" } };
 }
 
-type Opciones = {
+type Opciones<T extends Corregible> = {
   /** Lo que se dice al abrir la tarjeta y qué se espera oír (lib/voz/lectura-reglas.ts). null: sin manos libres, la tarjeta de siempre. */
   guion: Guion | null;
   /** Dijo «confirmo»: la misma acción que el toque. */
@@ -85,12 +87,12 @@ type Opciones = {
   /**
    * Corrigió la venta hablando, o respondió lo que faltaba (`pregunta`: qué se le había preguntado): la tarjeta nueva reemplaza a la
    * de la hoja. Devuelve qué se dice ahora (lo que cambió, o la venta entera si recién quedó completa) y lo que se lee con «repite».
-   * Solo en la venta.
+   * En la venta, el abono y la compra.
    */
-  alCorregir?: (corregida: Venta, pregunta: Pregunta) => Relectura;
-  /** La venta de la tarjeta ahora, en los campos de registrar_venta: viaja con la respuesta para poder corregirla. Solo en la venta. */
-  ventaActual?: () => VentaActual;
-  /** El dato que falta y se pregunta ahora (ADR-0027): viaja con la respuesta. Solo en la venta. */
+  alCorregir?: (corregida: T, pregunta: Pregunta) => Relectura;
+  /** La operación de la tarjeta ahora, en los campos de su herramienta: viaja con la respuesta para poder corregirla. */
+  actual?: () => OperacionActual;
+  /** El dato que falta y se pregunta ahora (ADR-0027): viaja con la respuesta. */
   faltaActual?: () => FaltaPreguntada | null;
   /** La base respondió que se guardó: se dice «Guardado» (candado 6). Lo que quedó en el celular sin señal no cuenta. */
   guardado: boolean;
@@ -103,7 +105,7 @@ type Opciones = {
  *
  * `tomarControl`: la persona tocó la tarjeta. Se calla, se apaga el micrófono y lo que llegue del servidor ya no guarda.
  */
-export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, ventaActual, faltaActual, guardado }: Opciones) {
+export function useManosLibres<T extends Corregible>({ guion, alConfirmar, alPago, alCorregir, actual: operacionActual, faltaActual, guardado }: Opciones<T>) {
   const [estado, setEstado] = useState(() => (guion ? leyendo(guion.pregunta) : CALLADO));
   const actual = useRef(estado);
   const relojes = useRef<number[]>([]);
@@ -112,13 +114,13 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, ventaAc
   const confirmar = useRef(alConfirmar);
   const anotar = useRef(alPago);
   const corregir = useRef(alCorregir);
-  const actualDeLaTarjeta = useRef(ventaActual);
+  const actualDeLaTarjeta = useRef(operacionActual);
   const faltaDeLaTarjeta = useRef(faltaActual);
   useEffect(() => {
     confirmar.current = alConfirmar;
     anotar.current = alPago;
     corregir.current = alCorregir;
-    actualDeLaTarjeta.current = ventaActual;
+    actualDeLaTarjeta.current = operacionActual;
     faltaDeLaTarjeta.current = faltaActual;
   });
   // Lo que se dirá después de anotar el pago o rehacer la tarjeta, y lo último que se leyó (para «repite»). Tras el pago se dice
@@ -128,7 +130,7 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, ventaAc
   // La pregunta sola por lo que falta («¿A cuánto la caja?»), para repreguntar sin repetir todo lo que falta.
   const repregunta = useRef<string | null>(guion?.repregunta ?? null);
   // La tarjeta corregida que mandó el servidor, mientras se anota.
-  const corregida = useRef<Venta | null>(null);
+  const corregida = useRef<T | null>(null);
   const grabadora = useGrabadora({ alCallarse: () => aplicar({ tipo: "callo" }), silencioMs: SILENCIO_RESPUESTA_MS });
 
   function aplicar(ev: EventoManosLibres) {
@@ -173,12 +175,12 @@ export function useManosLibres({ guion, alConfirmar, alPago, alCorregir, ventaAc
     const g = await grabadora.terminar();
     const pregunta = actual.current.pregunta;
     const vacia: EventoManosLibres = pregunta === "pago" ? { tipo: "pago", pago: "fallo" } : { tipo: "respuesta", respuesta: "fallo" };
-    // La venta viaja solo si esta tarjeta sabe corregirse hablando (la venta): sin ella, el servidor no intenta corregir.
-    const venta = corregir.current && actualDeLaTarjeta.current ? actualDeLaTarjeta.current() : null;
+    // La operación viaja solo si esta tarjeta sabe corregirse hablando: sin ella, el servidor no intenta corregir.
+    const operacion = corregir.current && actualDeLaTarjeta.current ? actualDeLaTarjeta.current() : null;
     const falta = pregunta === "falta" ? (faltaDeLaTarjeta.current?.() ?? null) : null;
-    const r = g.audio.size === 0 ? { ev: vacia } : await entender(g.audio, g.duracionMs, pregunta, venta, falta);
+    const r = g.audio.size === 0 ? { ev: vacia } : await entender(g.audio, g.duracionMs, pregunta, operacion, falta);
     if (mio !== turno.current) return;
-    corregida.current = r.corregida ?? null;
+    corregida.current = (r.corregida as T | undefined) ?? null;
     aplicar(r.ev);
   }
 

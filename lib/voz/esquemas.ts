@@ -142,6 +142,14 @@ const herramientasVoz = {
  */
 export const esquemaVentaActual = herramientasVoz.registrar_venta.esquema.omit({ dudas: true });
 export type VentaActual = z.input<typeof esquemaVentaActual>;
+/** El abono y la compra que se están confirmando, igual: para corregirlos o completarlos hablando (ADR-0027). */
+export const esquemaAbonoActual = herramientasVoz.registrar_abono.esquema.omit({ dudas: true });
+export const esquemaCompraActual = herramientasVoz.registrar_compra.esquema.omit({ dudas: true });
+/** La operación de la tarjeta, en los campos de su herramienta. `operacion` es también el nombre del campo con que viaja. */
+export type OperacionActual =
+  | { operacion: "venta"; datos: VentaActual }
+  | { operacion: "abono"; datos: z.input<typeof esquemaAbonoActual> }
+  | { operacion: "compra"; datos: z.input<typeof esquemaCompraActual> };
 
 /**
  * El dato que Fructus preguntó en manos libres porque faltaba («¿A cuánto la caja de Mango Kent?»): viaja con la respuesta para que el
@@ -149,7 +157,7 @@ export type VentaActual = z.input<typeof esquemaVentaActual>;
  * los nombres que se leyeron para elegir, si había varios parecidos.
  */
 export const esquemaFaltaPreguntada = z.object({
-  dato: z.enum(["producto", "cantidad", "precio", "cliente"]),
+  dato: z.enum(["producto", "cantidad", "precio", "cliente", "monto", "proveedor", "costo"]),
   item: z.number().int().min(0).max(50).nullable(),
   opciones: z.array(z.string().max(120)).max(3),
 });

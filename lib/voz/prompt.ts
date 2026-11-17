@@ -1,4 +1,4 @@
-import type { FaltaPreguntada, VentaActual } from "./esquemas";
+import type { FaltaPreguntada, OperacionActual } from "./esquemas";
 
 // El prompt de sistema del intérprete, igual que en docs/interprete-voz.md (sección 2). Si cambia, cambian los dos
 // y se corre /voz-precision antes y después.
@@ -39,56 +39,81 @@ Reglas que NO se rompen:
 6. Si la frase no es un comando del negocio o no se entiende, usa no_entendido.
 7. Una frase puede traer varios productos para el mismo cliente: van como varios items.`;
 
-/**
- * Corregir hablando (ADR-0020, docs/interprete-voz.md sección 2c): Fructus leyó la venta en voz alta y la persona, en vez de
- * «confirmo», dijo una corrección («no, son ocho cajas»). Se le pasa al intérprete la venta actual en los mismos campos de
- * registrar_venta y lo que respondió, y se le pide la venta completa ya corregida. El prompt de sistema no cambia.
- *
- * Antes se le pasaba la lectura en frases y en 3 de 12 corridas perdía al cliente; «45 con 50» salía 50, o un total de 50 con 400 de
- * rebaja (/chaos 2026-11-16). Por eso va la venta en datos y las dos reglas, escritas.
- */
 /** Lo que Fructus preguntó porque faltaba, dicho para el intérprete. */
 const PREGUNTADO: Record<FaltaPreguntada["dato"], string> = {
   producto: "qué fruta es",
   cantidad: "cuántas cajas son",
   precio: "a cuánto es la caja (el precio por caja)",
-  cliente: "para quién es la venta (a quién se le fía)",
+  cliente: "quién es el cliente",
+  monto: "cuánto pagó (el monto del abono)",
+  proveedor: "quién es el proveedor (a quién se le compró)",
+  costo: "a cuánto costó la caja (el costo por caja)",
+};
+
+/** Cómo se nombra cada operación en el mensaje: «la venta», «una venta», «A la venta», «COMPLETA ya corregida». */
+const NOMBRE: Record<OperacionActual["operacion"], { la: string; una: string; a: string; completa: string }> = {
+  venta: { la: "la venta", una: "una venta", a: "A la venta", completa: "COMPLETA ya corregida" },
+  abono: { la: "el abono", una: "un abono", a: "Al abono", completa: "COMPLETO ya corregido" },
+  compra: { la: "la compra", una: "una compra", a: "A la compra", completa: "COMPLETA ya corregida" },
 };
 
 /** «A la venta le falta un dato, y Fructus preguntó a cuánto es la caja de la fruta 1 (Mango Kent).» */
-function preguntaDeFalta(actual: VentaActual, f: FaltaPreguntada): string {
-  const item = f.item === null ? null : actual.items[f.item];
+function preguntaDeFalta(actual: OperacionActual, f: FaltaPreguntada): string {
+  const items: { producto_texto: string }[] = actual.operacion === "abono" ? [] : actual.datos.items;
+  const item = f.item === null ? null : items[f.item];
   const deFruta = item ? ` de la fruta ${f.item! + 1} de items${item.producto_texto ? ` (${item.producto_texto})` : ""}` : "";
   const opciones = f.opciones.length > 0 ? `, y leyó estas opciones: ${f.opciones.join(" · ")}` : "";
-  return `A la venta le falta un dato, y Fructus preguntó ${PREGUNTADO[f.dato]}${deFruta}${opciones}.`;
+  return `${NOMBRE[actual.operacion].a} le falta un dato, y Fructus preguntó ${PREGUNTADO[f.dato]}${deFruta}${opciones}.`;
 }
 
-/**
- * `falta`: la venta estaba incompleta y Fructus preguntó ese dato en manos libres; la respuesta lo completa. Sin él, la persona oyó la
- * venta y la corrige («no, son ocho cajas»).
- */
-export function mensajeCorreccion(actual: VentaActual, dicho: string, falta?: FaltaPreguntada): string {
-  const pregunta = falta
-    ? `${preguntaDeFalta(actual, falta)}
-- La respuesta es ese dato: ponlo en su lugar. Un número solo («cuarenta», «ocho») es lo que se preguntó: el precio por caja si se
-  preguntó el precio, las cajas si se preguntó cuántas. Si nombra una de las opciones («el Kent», «la segunda», «don Lucho»), usa el
-  nombre completo de esa opción.
-`
-    : "";
-  return `CORRECCIÓN de una venta que todavía no se guarda. Esta es la venta tal como está ahora (los campos de registrar_venta):
-${JSON.stringify(actual)}
-${pregunta}
-La persona respondió:
-«${dicho}»
-
-Llama registrar_venta con la venta COMPLETA ya corregida:
-- Copia tal cual todo lo que la persona no corrigió. El cliente es el mismo si no nombra a otro; las frutas, las cajas, los precios,
+/** Lo que vale para cada operación al corregirla: qué se copia y cómo se leen los números. */
+const REGLAS: Record<OperacionActual["operacion"], string> = {
+  venta: `- Copia tal cual todo lo que la persona no corrigió. El cliente es el mismo si no nombra a otro; las frutas, las cajas, los precios,
   si pagó y cómo, y el comprobante, también.
 - Cambia solo lo que corrigió. Si nombra una fruta, el cambio es en esa fruta.
 - «45 con 50» o «cuarenta y cinco con cincuenta» es un precio de 45.50 por caja: lo que va después de «con» son los céntimos. No es
   un total ni una rebaja.
 - Si responde cuánto pagó («pagó quinientos», «me dio 200 y lo demás lo debe», «me yapeó 100»), es lo que pagó al llevarse la fruta:
   va en pago_parcial, con condicion «credito» y medio_pago el que dijo (efectivo si no lo dijo). Si eso cubre todo el total, es
-  «contado» y pago_parcial va null. No cambies las frutas, las cajas ni los precios.
-- Si la respuesta no corrige nada de la venta, usa no_entendido.`;
+  «contado» y pago_parcial va null. No cambies las frutas, las cajas ni los precios.`,
+  abono: `- Copia tal cual todo lo que la persona no corrigió: el cliente es el mismo si no nombra a otro; el monto y el medio, también.
+- Cambia solo lo que corrigió. «Con Yape», «por Plin» cambian el medio; un número cambia el monto.
+- «200 con 50» o «doscientos con cincuenta» es un monto de 200.50: lo que va después de «con» son los céntimos.`,
+  compra: `- Copia tal cual todo lo que la persona no corrigió. El proveedor es el mismo si no nombra a otro; las frutas, las cajas, los
+  costos, cómo llegó y si se pagó, también.
+- Cambia solo lo que corrigió. Si nombra una fruta, el cambio es en esa fruta.
+- «25 con 50» o «veinticinco con cincuenta» es un costo de 25.50 por caja: lo que va después de «con» son los céntimos.
+- «La pagué», «al contado» es condicion «contado»; «la debo», «a crédito», «me fió» es «credito».`,
+};
+
+/**
+ * Corregir hablando (ADR-0020, docs/interprete-voz.md sección 2c): Fructus leyó la operación en voz alta y la persona, en vez de
+ * «confirmo», dijo una corrección («no, son ocho cajas»). Se le pasa al intérprete la operación actual en los mismos campos de su
+ * herramienta y lo que respondió, y se le pide la operación completa ya corregida. El prompt de sistema no cambia.
+ *
+ * Antes se le pasaba la lectura en frases y en 3 de 12 corridas perdía al cliente; «45 con 50» salía 50, o un total de 50 con 400 de
+ * rebaja (/chaos 2026-11-16). Por eso va la operación en datos y las reglas, escritas.
+ *
+ * `falta`: la operación estaba incompleta y Fructus preguntó ese dato en manos libres; la respuesta lo completa (ADR-0027). La venta
+ * se corrige así desde ADR-0020; el abono y la compra, desde ADR-0027.
+ */
+export function mensajeCorreccion(actual: OperacionActual, dicho: string, falta?: FaltaPreguntada): string {
+  const herramienta = `registrar_${actual.operacion}`;
+  const nombre = NOMBRE[actual.operacion];
+  const pregunta = falta
+    ? `${preguntaDeFalta(actual, falta)}
+- La respuesta es ese dato: ponlo en su lugar. Un número solo («cuarenta», «ocho») es lo que se preguntó: el precio o el costo por caja
+  si se preguntó eso, las cajas si se preguntó cuántas, el monto si se preguntó cuánto pagó. Si nombra una de las opciones («el Kent»,
+  «la segunda», «don Lucho»), usa el nombre completo de esa opción.
+`
+    : "";
+  return `CORRECCIÓN de ${nombre.una} que todavía no se guarda. Esta es ${nombre.la} tal como está ahora (los campos de ${herramienta}):
+${JSON.stringify(actual.datos)}
+${pregunta}
+La persona respondió:
+«${dicho}»
+
+Llama ${herramienta} con ${nombre.la} ${nombre.completa}:
+${REGLAS[actual.operacion]}
+- Si la respuesta no corrige nada de ${nombre.la}, usa no_entendido.`;
 }

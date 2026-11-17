@@ -59,5 +59,21 @@ Sin inventos de dinero en ninguna corrida.
   tarda unos 5 s más que tocándolos, pero sin soltar las cajas.
 - **Whisper recibe el vocabulario del puesto** (y las opciones leídas) al transcribir la respuesta, porque puede ser un nombre.
 - **`pareceCorreccion` ahora cuenta las cifras:** «40» o «8» escritos por Whisper también van al intérprete. Antes se perdían.
-- **Solo en la venta.** La compra, el abono, la merma y el gasto todavía solo avisan lo que falta: no se corrigen hablando.
+- **Primero solo en la venta** (PR 52). El abono y la compra se sumaron después (ver abajo). La merma y el gasto todavía solo avisan
+  lo que falta.
 - **Sin probar todavía** en el S25 con audífono ni con el ruido real del puesto.
+
+## El abono y la compra (2026-11-17, después)
+
+Lo mismo, con sus palabras. El canal de corrección (`mensajeCorreccion`, `/api/voz/respuesta`) pasó a recibir la operación con su
+nombre (`venta`, `abono` o `compra`, en los campos de su herramienta), así que el abono y la compra también se **corrigen hablando**
+(«no, fueron trescientos», «no, fueron cuarenta cajas»).
+
+- **Abono:** «Falta el cliente. ¿Quién te pagó? ¿Luis Paredes o Luis Pérez?», «¿Cuánto te dio Luis Paredes?».
+- **Compra:** la fruta, las cajas, el costo y, si se debe, a quién: «Falta el costo y si la pagaste. ¿A cuánto te costó la caja de
+  Mango Kent?», «La debes. ¿A quién se la compraste? ¿Agrícola Chao o Transportes Piura Norte?».
+- **Después de responder o corregir se lee la operación entera,** con «Anotado.» o «Corregido.» delante: son cortas, y el abono y la
+  compra no tenían una lectura «solo de lo que cambió» como la venta.
+- **La compra guarda el medio con que se pagó** aunque se corrija: `registrar_compra` no lo trae, y un «con Plin» ya dicho no se pierde.
+- **El mensaje de la venta sin pista no cambió** (comprobado palabra por palabra); con la pista, la regla del número ahora nombra el costo
+  y el monto.

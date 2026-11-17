@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { guionAbono, guionCompra, guionGasto, guionMerma, relecturaPagoCompra } from "./guion-reglas";
+import { guionAbono, guionAbonoRespondido, guionCompra, guionCompraRespondida, guionGasto, guionMerma, relecturaPagoCompra } from "./guion-reglas";
 
 describe("guionAbono", () => {
   it("lee quién, cuánto y cómo, y pregunta «¿Confirmo?»", () => {
@@ -10,8 +10,24 @@ describe("guionAbono", () => {
     });
   });
 
-  it("sin cliente o con dudas no se confirma hablando", () => {
-    expect(guionAbono({ cliente: null, monto: 200, medio: "efectivo" }, [])).toMatchObject({ pregunta: "ninguna" });
+  it("sin cliente, lo pregunta (ADR-0027); con las opciones parecidas, las lee", () => {
+    expect(guionAbono({ cliente: null, monto: 200, medio: "efectivo" }, [])).toEqual({
+      pregunta: "falta",
+      texto: "Falta el cliente. ¿Quién te pagó?",
+      repregunta: "¿Quién te pagó?",
+    });
+    const opciones = { cliente: { dicho: "lucho", opciones: ["Luis Paredes", "Luis Pérez"] } };
+    expect(guionAbono({ cliente: null, monto: 200, medio: "efectivo" }, [], opciones).texto).toBe("Falta el cliente. ¿Quién te pagó? ¿Luis Paredes o Luis Pérez?");
+    expect(guionAbono({ cliente: null, monto: 200, medio: "efectivo" }, [], { cliente: { dicho: "Pocho", opciones: [] } }).texto).toBe(
+      "Falta el cliente. No encontré a Pocho. ¿Quién te pagó?",
+    );
+  });
+
+  it("sin monto, pregunta cuánto te dio", () => {
+    expect(guionAbono({ cliente: { id: 1, nombre: "Luis Paredes" }, monto: null, medio: "efectivo" }, []).texto).toBe("Falta cuánto te dio. ¿Cuánto te dio Luis Paredes?");
+  });
+
+  it("con dudas no se confirma hablando", () => {
     expect(guionAbono({ cliente: { id: 1, nombre: "Luis Paredes" }, monto: 200, medio: "efectivo" }, ["¿200 o 300?"])).toEqual({
       pregunta: "ninguna",
       texto: "Tengo una duda: ¿200 o 300? Revisa la tarjeta y toca Confirmar.",
@@ -67,12 +83,87 @@ describe("guionCompra", () => {
   it("después de responder si la pagó, solo repite la respuesta: la compra se acaba de leer", () => {
     expect(relecturaPagoCompra(compra, [])).toEqual({ pregunta: "confirmar", texto: "La debes. ¿Confirmo?", entera: guionCompra(compra, []).texto });
     expect(relecturaPagoCompra({ ...compra, condicion: "contado", medio: "plin" }, [])?.texto).toBe("La pagaste con Plin. ¿Confirmo?");
-    expect(relecturaPagoCompra({ ...compra, items: [{ ...compra.items[0]!, precio: null }] }, [])).toBeNull();
+    expect(relecturaPagoCompra({ ...compra, items: [{ ...compra.items[0]!, precio: 50_000 }] }, [], { proveedor: { dicho: null, opciones: [] }, productos: [] })?.pregunta).toBe("falta");
   });
 
-  it("con el costo sugerido lo dice; sin costo o con dudas, no se confirma hablando", () => {
+  it("«la debo», pero no se sabe a quién: repite la respuesta y pregunta a quién (ADR-0027)", () => {
+    const opciones = { proveedor: { dicho: "chao", opciones: ["Agrícola Chao", "Frutos Chao"] }, productos: [] };
+    expect(relecturaPagoCompra({ ...compra, proveedor: null }, [], opciones)).toEqual({
+      pregunta: "falta",
+      texto: "La debes. ¿A quién se la compraste? ¿Agrícola Chao o Frutos Chao?",
+      entera: "Falta el proveedor. ¿A quién se la compraste? ¿Agrícola Chao o Frutos Chao?",
+      repregunta: "¿A quién se la compraste? ¿Agrícola Chao o Frutos Chao?",
+    });
+  });
+
+  it("con el costo sugerido lo dice; con dudas, no se confirma hablando", () => {
     expect(guionCompra({ ...compra, items: [{ ...compra.items[0]!, sugerido: true }] }, []).texto).toContain("a 25 la caja, costo sugerido.");
-    expect(guionCompra({ ...compra, items: [{ ...compra.items[0]!, precio: null }] }, [])).toMatchObject({ pregunta: "ninguna" });
     expect(guionCompra(compra, ["¿Isla o seda?"])).toMatchObject({ pregunta: "ninguna" });
+  });
+});
+
+describe("compra: lo que falta (ADR-0027)", () => {
+  const compra = {
+    proveedor: { id: 2, nombre: "Agrícola Chao" },
+    items: [{ productoId: 3, producto: "Plátano Isla", cantidad: 50, precio: 25, sugerido: false }],
+    condicion: "credito" as const,
+    medio: null,
+  };
+  const sinOpciones = { proveedor: { dicho: null, opciones: [] }, productos: [] };
+
+  it("sin costo: dice lo que falta y pregunta a cuánto te costó", () => {
+    expect(guionCompra({ ...compra, items: [{ ...compra.items[0]!, precio: null }], condicion: null }, [])).toEqual({
+      pregunta: "falta",
+      texto: "Falta el costo y si la pagaste. ¿A cuánto te costó la caja de Plátano Isla?",
+      repregunta: "¿A cuánto te costó la caja de Plátano Isla?",
+    });
+  });
+
+  it("la fruta con opciones: cuál de ellas", () => {
+    const b = { ...compra, items: [{ ...compra.items[0]!, productoId: null, producto: "plátano" }] };
+    const opciones = { proveedor: sinOpciones.proveedor, productos: [{ dicho: "plátano", opciones: ["Plátano Isla", "Plátano de seda"] }] };
+    expect(guionCompra(b, [], opciones).texto).toBe("Falta la fruta. Las 50 cajas de plátano, ¿cuál es? ¿Plátano Isla o Plátano de seda?");
+  });
+
+  it("respondido el costo, si solo falta si la pagaste, «Anotado» y la compra entera con la pregunta", () => {
+    const antes = { ...compra, items: [{ ...compra.items[0]!, precio: null }], condicion: null };
+    expect(guionCompraRespondida(antes, { ...compra, condicion: null }, [], sinOpciones, "falta")).toEqual({
+      pregunta: "pago",
+      texto: "Anotado. Compra a Agrícola Chao: 50 cajas de Plátano Isla, a 25 la caja. Total, 1250 soles. ¿La pagaste o la debes?",
+      entera: "Compra a Agrícola Chao: 50 cajas de Plátano Isla, a 25 la caja. Total, 1250 soles. ¿La pagaste o la debes?",
+    });
+  });
+
+  it("una respuesta que no cambió nada no se entendió; corregir hablando dice «Corregido» y la compra entera", () => {
+    const antes = { ...compra, items: [{ ...compra.items[0]!, precio: null }] };
+    expect(guionCompraRespondida(antes, antes, [], sinOpciones, "falta")).toMatchObject({ pregunta: "falta", sinCambio: true });
+    expect(guionCompraRespondida(compra, { ...compra, items: [{ ...compra.items[0]!, cantidad: 40 }] }, [], sinOpciones, "confirmar").texto).toBe(
+      "Corregido. Compra a Agrícola Chao: 40 cajas de Plátano Isla, a 25 la caja. Total, 1000 soles. La debes. ¿Confirmo?",
+    );
+  });
+});
+
+describe("abono: lo que falta y corregir (ADR-0027)", () => {
+  const luis = { id: 1, nombre: "Luis Paredes" };
+  const opciones = { cliente: { dicho: "lucho", opciones: ["Luis Paredes", "Luis Pérez"] } };
+
+  it("respondido el cliente, «Anotado» y el abono entero", () => {
+    expect(guionAbonoRespondido({ cliente: null, monto: 200, medio: "yape" }, { cliente: luis, monto: 200, medio: "yape" }, [], opciones, "falta")).toEqual({
+      pregunta: "confirmar",
+      texto: "Anotado. Abono de Luis Paredes: 200 soles con Yape. ¿Confirmo?",
+      entera: "Abono de Luis Paredes: 200 soles con Yape. ¿Confirmo?",
+    });
+  });
+
+  it("corregido el monto, «Corregido» y el abono entero; sin cambio, se repregunta", () => {
+    expect(guionAbonoRespondido({ cliente: luis, monto: 200, medio: "yape" }, { cliente: luis, monto: 300, medio: "yape" }, [], opciones, "confirmar").texto).toBe(
+      "Corregido. Abono de Luis Paredes: 300 soles con Yape. ¿Confirmo?",
+    );
+    const sin = { cliente: null, monto: 200, medio: "yape" as const };
+    expect(guionAbonoRespondido(sin, sin, [], opciones, "falta")).toMatchObject({ pregunta: "falta", sinCambio: true });
+  });
+
+  it("si la respuesta dejó una duda, la dice y se toca", () => {
+    expect(guionAbonoRespondido({ cliente: null, monto: 200, medio: "yape" }, { cliente: luis, monto: 200, medio: "yape" }, ["¿200 o 300?"], opciones, "falta").pregunta).toBe("ninguna");
   });
 });
