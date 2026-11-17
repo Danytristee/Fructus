@@ -164,9 +164,9 @@ Se prueba con Playwright y en el navegador a estos anchos, en este orden:
    - Cifras clave (total, deuda, stock) de 28 px o más, con `tabular-nums`.
    - Contraste de **7:1** para textos y cifras importantes (WCAG AAA) y de 4.5:1 para el resto.
    - El color nunca es la única señal: siempre acompaña un texto o un icono.
-4. **Hojas, no ventanas.** En celular, todo diálogo sube desde abajo (hoja) con un solo `<Hoja>` (`components/ui/Hoja.tsx`). En escritorio, el mismo componente se ve centrado.
+4. **Hojas, no ventanas.** En celular, todo diálogo sube desde abajo (hoja) con un solo `<Hoja>` (`components/ui/Hoja.tsx`). En escritorio, el mismo componente se ve centrado. La hoja se porta como la de un celular (ADR-0023): sigue al dedo, se cierra al deslizarla y el botón atrás la cierra sin salir de la pantalla. Quien cierra una hoja y navega lo hace con `despuesDeCerrarHoja`.
 5. **Navegación de abajo** con 4 destinos como máximo: Hoy · Clientes · Stock · Ventas. Ajustes y Cierre viven en un menú. **Desde 1024 px** (escritorio, ADR-0015) la reemplaza un panel lateral verde con los mismos destinos, más Cierre y Ajustes a la vista.
-6. **Teclado solo cuando no hay otra.** Si hay que escribir un número: `inputmode="decimal"`, campo grande, el teclado no tapa el botón de guardar.
+6. **Teclado solo cuando no hay otra.** Si hay que escribir un número: `inputmode="decimal"`, campo grande, el teclado no tapa el botón de guardar. El teclado achica la página (`interactive-widget=resizes-content`), lo que flota abajo se esconde (`data-con-teclado="oculto"`) y una hoja con algo escrito pregunta antes de cerrarse por un roce (ADR-0024). Un formulario nuevo entra a `tests/e2e/teclado.spec.ts`.
 7. **Seguro en bordes.** Se usan `100dvh` y `env(safe-area-inset-*)`. Nunca hay scroll horizontal.
 8. **Tacto y sonido.** Al confirmar, `navigator.vibrate(30)` donde exista y un sonido corto. La persona sabe que se guardó sin mirar.
 9. **Presupuesto de velocidad (Android de gama media en 4G), ADR-0006:**

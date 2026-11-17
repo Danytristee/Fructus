@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { enlaceDeLlamada, estadoDeuda, etiquetaDeDia, historialDelCliente, horaDeLima, parteDeLaDeuda } from "./ficha-cliente-reglas";
+import { estadoDeuda, etiquetaDeDia, historialDelCliente, horaDeLima, parteDeLaDeuda } from "./ficha-cliente-reglas";
 import type { AbonoLeido, VentaLeida } from "./operaciones-reglas";
 
 const rosa = { id: 2, nombre: "Rosa Quispe" };
@@ -100,20 +100,5 @@ describe("historialDelCliente", () => {
 
   it("sin movimientos no hay días ni «hay más»", () => {
     expect(historialDelCliente({ ventas: [], abonos: [] }, AHORA)).toEqual({ dias: [], hayMas: false });
-  });
-});
-
-describe("enlaceDeLlamada", () => {
-  it("arma el enlace con solo los dígitos", () => {
-    expect(enlaceDeLlamada("987 654 321")).toBe("tel:987654321");
-    expect(enlaceDeLlamada("+51 987-654-321")).toBe("tel:+51987654321");
-    expect(enlaceDeLlamada("(044) 234567")).toBe("tel:044234567");
-  });
-
-  it("no inventa un enlace con lo que no es un teléfono", () => {
-    expect(enlaceDeLlamada(null)).toBeNull();
-    expect(enlaceDeLlamada("")).toBeNull();
-    expect(enlaceDeLlamada("llamar a la tarde")).toBeNull();
-    expect(enlaceDeLlamada("123")).toBeNull();
   });
 });

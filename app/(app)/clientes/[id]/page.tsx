@@ -13,6 +13,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
 import { borradorDeCliente } from "@/lib/cliente-reglas";
+import { mensajeAlCliente } from "@/lib/contacto-reglas";
 import { HISTORIAL_TOPE, historialDelCliente } from "@/lib/ficha-cliente-reglas";
 import { iniciales, tonoDe, type Medio } from "@/lib/operaciones-reglas";
 import { exigirSesion } from "@/lib/sesion";
@@ -91,6 +92,7 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
       />
       <DatosCliente
         telefono={cliente.telefono}
+        mensaje={mensajeAlCliente({ nombre: cliente.nombre, apodo: cliente.alias?.[0], saldo: Number(saldo.data?.saldo ?? 0) })}
         documento={cliente.tipo_documento && cliente.numero_documento ? `${cliente.tipo_documento} ${cliente.numero_documento}` : null}
         direccion={cliente.direccion}
         notas={cliente.notas}

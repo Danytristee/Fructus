@@ -1,9 +1,9 @@
-import { Phone } from "lucide-react";
-
-import { enlaceDeLlamada } from "@/lib/ficha-cliente-reglas";
+import { Contactar } from "@/components/ui/Contactar";
 
 type Props = {
   telefono: string | null;
+  /** Lo que se le escribe al abrir WhatsApp (`mensajeAlCliente`): si debe, el recordatorio con el monto. */
+  mensaje: string;
   documento: string | null;
   direccion: string | null;
   notas: string | null;
@@ -11,24 +11,11 @@ type Props = {
   editar?: React.ReactNode;
 };
 
-// Lo que se sabe del cliente además de sus cuentas. Solo salen los datos que hay: nada de filas con «—».
-export function DatosCliente({ telefono, documento, direccion, notas, editar }: Props) {
-  const llamar = enlaceDeLlamada(telefono);
+// Cómo hablarle (escribirle por WhatsApp para cobrar o llamarlo, a un toque) y lo que se sabe del cliente además de sus cuentas. Solo
+// salen los datos que hay: nada de filas con «—».
+export function DatosCliente({ telefono, mensaje, documento, direccion, notas, editar }: Props) {
   const filas: { clave: string; etiqueta: string; valor: React.ReactNode }[] = [];
-  if (telefono) {
-    filas.push({
-      clave: "telefono",
-      etiqueta: "Teléfono",
-      valor: llamar ? (
-        <a href={llamar} className="flex min-h-12 items-center gap-2 font-extrabold text-acento-texto">
-          <Phone aria-hidden className="size-5" />
-          {telefono}
-        </a>
-      ) : (
-        telefono
-      ),
-    });
-  }
+  if (telefono) filas.push({ clave: "telefono", etiqueta: "Teléfono", valor: telefono });
   if (documento) filas.push({ clave: "documento", etiqueta: "Documento", valor: documento });
   if (direccion) filas.push({ clave: "direccion", etiqueta: "Dirección", valor: direccion });
   if (notas) filas.push({ clave: "notas", etiqueta: "Notas", valor: notas });
@@ -42,6 +29,7 @@ export function DatosCliente({ telefono, documento, direccion, notas, editar }: 
         </h2>
         {editar}
       </div>
+      <Contactar telefono={telefono} mensaje={mensaje} />
       {filas.length === 0 && <p className="vidrio rounded-tarjeta px-4 py-3 text-texto-suave">Todavía no tiene teléfono ni documento.</p>}
       <dl className="vidrio divide-y divide-border rounded-tarjeta px-4 empty:hidden">
         {filas.map((f) => (

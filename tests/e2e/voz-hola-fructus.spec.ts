@@ -311,3 +311,48 @@ test("con manos libres, una venta sin un solo toque: «Hola Fructus, vendí…»
   const { data: comando } = await base.from("comandos_voz").select("resultado, confirmado_por").eq("id", comandoId).single();
   expect(comando).toEqual({ resultado: "confirmado", confirmado_por: "voz" });
 });
+
+/** Un Wake Lock de mentira que anota cada pedido y cada vez que se suelta (el de verdad en Chrome sin pantalla puede negarse). */
+async function anotarPantallaEncendida(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __pantalla: { pedidos: number; sueltos: number } };
+    w.__pantalla = { pedidos: 0, sueltos: 0 };
+    Object.defineProperty(navigator, "wakeLock", {
+      configurable: true,
+      value: {
+        request: async () => {
+          w.__pantalla.pedidos++;
+          const s = new EventTarget() as EventTarget & { released: boolean; type: string; release: () => Promise<void> };
+          s.released = false;
+          s.type = "screen";
+          s.release = async () => {
+            if (s.released) return;
+            s.released = true;
+            w.__pantalla.sueltos++;
+          };
+          return s;
+        },
+      },
+    });
+  });
+}
+const pantalla = (page: Page) => page.evaluate(() => (window as unknown as { __pantalla: { pedidos: number; sueltos: number } }).__pantalla);
+
+test("con «Hola Fructus» prendido, la pantalla no se apaga sola mientras escucha; al salir de «Hoy» se suelta", async ({ page }) => {
+  test.slow();
+  await anotarPantallaEncendida(page);
+  await escuchando(page);
+  await expect.poll(async () => (await pantalla(page)).pedidos).toBeGreaterThanOrEqual(1);
+
+  await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Clientes" }).click();
+  await expect(page).toHaveURL("/clientes");
+  await expect.poll(async () => (await pantalla(page)).sueltos).toBe((await pantalla(page)).pedidos);
+});
+
+test("con «Hola Fructus» apagado, la pantalla se apaga como siempre", async ({ page }) => {
+  await anotarPantallaEncendida(page);
+  await escuchando(page, { prendido: false });
+  await expect(orbe(page)).toBeVisible();
+  await page.waitForTimeout(1000);
+  expect((await pantalla(page)).pedidos).toBe(0);
+});

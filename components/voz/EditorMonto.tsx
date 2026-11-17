@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "cn";
 
 import { Boton } from "@/components/ui/Boton";
+import { seleccionarAlEnfocar } from "@/components/ui/seleccionar-al-enfocar";
 import type { LecturaMonto } from "@/lib/voz/monto-reglas";
 
 type Props = {
@@ -37,6 +38,7 @@ export function EditorMonto({ etiqueta, inicial, leer, alListo }: Props) {
           <input
             id="monto-voz"
             inputMode="decimal"
+            {...seleccionarAlEnfocar}
             autoComplete="off"
             autoFocus
             value={texto}

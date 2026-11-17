@@ -18,7 +18,10 @@ export function PantallaDeAcceso({ titulo, subtitulo, aviso, children, pie }: Pr
     <div className="min-h-dvh bg-[radial-gradient(120%_70%_at_80%_0%,var(--bosque-2),var(--acento)_50%,var(--profundo))] text-sobre-acento">
       <main className="mx-auto grid min-h-dvh max-w-md content-center gap-6 px-4 pt-[max(24px,env(safe-area-inset-top))] pb-[max(24px,env(safe-area-inset-bottom))]">
         <header className="grid animate-subir justify-items-center gap-3 text-center">
+          {/* Con el teclado abierto, el ícono y el subtítulo se esconden (globals.css): en un celular de 360 px empujaban «Entrar» fuera de la
+              pantalla y había que bajar el teclado para tocarlo. */}
           <Image
+            data-con-teclado="oculto"
             src="/icons/icon-192.png"
             alt=""
             width={104}
@@ -27,7 +30,9 @@ export function PantallaDeAcceso({ titulo, subtitulo, aviso, children, pie }: Pr
             className="rounded-[24px] shadow-[0_0_0_1px_color-mix(in_srgb,var(--sobre-acento)_14%,transparent),0_18px_40px_rgb(var(--sombra-color)/0.5)]"
           />
           <h1 className="text-[36px] leading-tight font-extrabold tracking-tight">{titulo}</h1>
-          <p className="text-sobre-acento/80">{subtitulo}</p>
+          <p data-con-teclado="oculto" className="text-sobre-acento/80">
+            {subtitulo}
+          </p>
         </header>
         {aviso}
         <div className="animate-subir rounded-protagonista bg-vidrio p-[18px] text-texto shadow-[0_18px_40px_rgb(var(--sombra-color)/0.45)] [animation-delay:80ms]">
