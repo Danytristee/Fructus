@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
 import { baseLocal } from "./base";
 import { entrarComo } from "./cuentas";
@@ -48,16 +48,21 @@ async function escuchando(page: Page, { prendido = true } = {}) {
 
 type Envio = { archivo: string; despertar: string | null; duracionMs: number };
 
+/** Lo que llegó a /api/voz: el nombre del audio, la marca de «Hola Fructus» y la duración. */
+function leerEnvio(r: Route): Envio {
+  const cuerpo = r.request().postDataBuffer()!.toString("latin1");
+  return {
+    archivo: cuerpo.match(/name="audio"; filename="([^"]+)"/)?.[1] ?? "",
+    despertar: cuerpo.match(/name="despertar"\r\n\r\n([^\r]*)/)?.[1] ?? null,
+    duracionMs: Number(cuerpo.match(/name="duracion_ms"\r\n\r\n(\d+)/)?.[1]),
+  };
+}
+
 /** /api/voz simulado con esa tarjeta; devuelve lo que llegó en cada pedido. */
 async function simularVoz(page: Page, comandoId = 41, t: object = tarjeta): Promise<Envio[]> {
   const envios: Envio[] = [];
   await page.route("/api/voz", (r) => {
-    const cuerpo = r.request().postDataBuffer()!.toString("latin1");
-    envios.push({
-      archivo: cuerpo.match(/name="audio"; filename="([^"]+)"/)?.[1] ?? "",
-      despertar: cuerpo.match(/name="despertar"\r\n\r\n([^\r]*)/)?.[1] ?? null,
-      duracionMs: Number(cuerpo.match(/name="duracion_ms"\r\n\r\n(\d+)/)?.[1]),
-    });
+    envios.push(leerEnvio(r));
     return r.fulfill({ json: { comandoId, tarjeta: t, latenciaMs: 900 } });
   });
   return envios;
@@ -104,6 +109,63 @@ test("si después de «Hola Fructus» no dice nada, no envía, lo dice y vuelve 
   await decir(page, VENTA);
   await expect(hojaVenta(page)).toBeVisible({ timeout: 15_000 });
   expect(envios).toHaveLength(1);
+});
+
+test("si el servidor oyó «frutas» y no la frase (5d), vuelve a escuchar sin aviso ni tarjeta", async ({ page }) => {
+  test.slow();
+  await escuchando(page);
+  let envios = 0;
+  await page.route("/api/voz", (r) => {
+    envios++;
+    return r.fulfill({ json: { ignorado: "parecida" } });
+  });
+  await decir(page, VENTA);
+  await expect.poll(() => envios, { timeout: 15_000 }).toBe(1);
+  await expect(orbe(page)).toHaveAttribute("data-estado", "listo");
+  await expect(orbe(page)).toHaveAttribute("data-palabra", "true"); // sigue escuchando
+  await expect(hojaVenta(page)).toBeHidden();
+  await expect(page.getByRole("button", { name: "Cerrar el aviso" })).toBeHidden(); // no es un error: no hay aviso que cerrar
+});
+
+test("si el servidor oyó solo la frase, dice que no oyó lo que seguía", async ({ page }) => {
+  test.slow();
+  await escuchando(page);
+  await page.route("/api/voz", (r) => r.fulfill({ json: { ignorado: "sin_orden" } }));
+  await decir(page, VENTA);
+  await expect(page.locator("#voz-texto")).toHaveText("No te oí después de «Hola Fructus».", { timeout: 15_000 });
+  await expect(hojaVenta(page)).toBeHidden();
+});
+
+test("si el servidor falla, lo dicho después de «Hola Fructus» se guarda y «Reintentar» lo envía con su marca", async ({ page }) => {
+  test.slow();
+  await escuchando(page);
+  const envios: Envio[] = [];
+  await page.route("/api/voz", (r) => {
+    envios.push(leerEnvio(r));
+    if (envios.length === 1) return r.fulfill({ status: 503, json: { error: "No pudimos guardar lo que dijiste. Revisa tu señal e inténtalo otra vez.", conservarAudio: true } });
+    return r.fulfill({ json: { comandoId: 41, tarjeta, latenciaMs: 900 } });
+  });
+  await decir(page, VENTA);
+  await page.getByRole("button", { name: "Reintentar" }).click({ timeout: 15_000 });
+  await expect(hojaVenta(page)).toBeVisible({ timeout: 15_000 });
+  expect(envios).toHaveLength(2);
+  // El servidor vuelve a revisar la frase: la marca no se pierde en el celular.
+  expect(envios[1]).toMatchObject({ archivo: "voz.wav", despertar: "1" });
+});
+
+test("sin señal, lo dicho después de «Hola Fructus» va a la cola y al volver la señal se envía con su marca", async ({ page, context }) => {
+  test.slow();
+  await escuchando(page);
+  const envios = await simularVoz(page);
+  await context.setOffline(true);
+  await expect(page.getByText("Sin señal", { exact: true })).toBeVisible();
+  // El detector corre en el celular: escucha igual sin señal.
+  await decir(page, VENTA);
+  await expect(page.getByText(/Sin señal: guardé lo que dijiste/)).toBeVisible({ timeout: 15_000 });
+  expect(envios).toHaveLength(0);
+  await context.setOffline(false);
+  await expect.poll(() => envios.length, { timeout: 20_000 }).toBe(1);
+  expect(envios[0]).toMatchObject({ archivo: "voz.wav", despertar: "1" });
 });
 
 test("«Borrar» tira lo que siguió a «Hola Fructus» sin enviarlo", async ({ page }) => {

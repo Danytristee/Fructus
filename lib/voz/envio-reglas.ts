@@ -5,11 +5,19 @@ import type { Tarjeta } from "./tarjeta-reglas";
 /** Menos que esto es un toque, no una frase: se enseña a mantener el botón y no se envía nada. */
 export const DURACION_MINIMA_MS = 600;
 
+/** El nombre del archivo según lo que grabó el celular: webm (Chrome), m4a (Safari) o wav (lo que siguió a «Hola Fructus»). */
+export const nombreDelAudio = (tipo: string) => (tipo.includes("wav") ? "voz.wav" : tipo.includes("mp4") ? "voz.m4a" : "voz.webm");
+
 export const NO_TE_ENTENDI = "No te entendí, inténtalo otra vez.";
 const SIN_SENAL = "Sin señal: no pude enviar lo que dijiste. Lo guardé para reintentarlo.";
 
 export type Desenlace =
   | { tipo: "tarjeta"; comandoId: number; tarjeta: Tarjeta }
+  /**
+   * Lo dicho después de «Hola Fructus» no era para Fructus (el segundo paso, lib/voz/palabra-reglas.ts): «parecida» si se oyó
+   * «frutas» en vez de la frase; «sin_orden» si dijo la frase y nada más. No se guardó nada y no hay nada que reintentar.
+   */
+  | { tipo: "ignorado"; motivo: "parecida" | "sin_orden" }
   | {
       tipo: "error";
       mensaje: string;
@@ -23,6 +31,8 @@ const esObjeto = (x: unknown): x is Record<string, unknown> => typeof x === "obj
 export function desenlaceDeRespuesta(estado: number, cuerpo: unknown): Desenlace {
   const c = esObjeto(cuerpo) ? cuerpo : {};
   const mensaje = typeof c.error === "string" ? c.error : null;
+
+  if (estado === 200 && (c.ignorado === "parecida" || c.ignorado === "sin_orden")) return { tipo: "ignorado", motivo: c.ignorado };
 
   if (estado === 200 && typeof c.comandoId === "number" && esObjeto(c.tarjeta) && typeof c.tarjeta.tipo === "string") {
     const tarjeta = c.tarjeta as Tarjeta;

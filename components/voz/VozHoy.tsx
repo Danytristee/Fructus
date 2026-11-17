@@ -9,7 +9,7 @@ import { useCola } from "@/components/cola/ColaProveedor";
 
 import { borrarPendiente, guardarPendiente, leerPendiente } from "@/lib/voz/audio-pendiente";
 import { avisoDescarte, nombreOperacion } from "@/lib/voz/nombre-operacion-reglas";
-import { DURACION_MINIMA_MS, desenlaceDeRespuesta, desenlaceSinRed, type Desenlace } from "@/lib/voz/envio-reglas";
+import { DURACION_MINIMA_MS, desenlaceDeRespuesta, desenlaceSinRed, nombreDelAudio, type Desenlace } from "@/lib/voz/envio-reglas";
 import { REPOSO, TOPE_ESCUCHA_MS, avanceAlCandado, siguienteGesto, textoEscuchando, type EventoGesto, type Gesto } from "@/lib/voz/gesto-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { AvisoCola } from "./AvisoCola";
@@ -71,9 +71,6 @@ type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "e
 
 // Un audio dictado sin señal va a la cola del celular (ADR-0019): vuelve como tarjeta cuando haya señal.
 const EN_COLA = "Sin señal: guardé lo que dijiste. Cuando vuelva, te muestro la tarjeta para que la confirmes.";
-
-/** El nombre del archivo según lo que grabó el celular: webm (Chrome), m4a (Safari) o wav (lo que siguió a «Hola Fructus»). */
-const nombreDelAudio = (tipo: string) => (tipo.includes("wav") ? "voz.wav" : tipo.includes("mp4") ? "voz.m4a" : "voz.webm");
 
 /** «sin_red»: no salió del celular (o no hubo respuesta). Lo demás, lo que contestó el servidor. */
 async function enviarAudio({ audio, duracionMs, despertar }: Grabacion): Promise<Desenlace | "sin_red"> {
@@ -332,7 +329,15 @@ export function VozHoy() {
       decir("Listo", 1200);
       return;
     }
-    if (desenlace.conservarAudio) await guardarPendiente(grabacion.audio, grabacion.duracionMs);
+    // No era para Fructus (se oyó «frutas», no la frase): se vuelve a escuchar sin decir nada, no hubo error. Si solo dijo la frase,
+    // se dice que no oyó lo que seguía.
+    if (desenlace.tipo === "ignorado") {
+      void borrarPendiente();
+      if (desenlace.motivo === "sin_orden") decir(TEXTO_MUDO, 3500);
+      else setTexto(TEXTO_LISTO);
+      return;
+    }
+    if (desenlace.conservarAudio) await guardarPendiente(grabacion.audio, grabacion.duracionMs, grabacion.despertar);
     else void borrarPendiente();
     setTexto(TEXTO_LISTO);
     setAviso({ tipo: "error", mensaje: desenlace.mensaje, pendiente: desenlace.conservarAudio });
@@ -342,7 +347,7 @@ export function VozHoy() {
     const pendiente = await leerPendiente();
     setAviso(null);
     if (!pendiente) return decir("Ese audio ya no está. Dilo otra vez.");
-    await enviar({ audio: pendiente.audio, duracionMs: pendiente.duracionMs });
+    await enviar({ audio: pendiente.audio, duracionMs: pendiente.duracionMs, ...(pendiente.despertar && { despertar: true as const }) });
   }
 
   return (

@@ -6,6 +6,7 @@ import { leerCatalogo } from "@/lib/voz/catalogo";
 import { pedidoDe, responderConsulta } from "@/lib/voz/consultas";
 import { vocabularioWhisper } from "@/lib/voz/catalogo-reglas";
 import { interpretar } from "@/lib/voz/interprete";
+import { revisarFrase } from "@/lib/voz/palabra-reglas";
 import { resolver } from "@/lib/voz/resolver";
 import { transcribir } from "@/lib/voz/stt";
 import { armarTarjeta } from "@/lib/voz/tarjeta-reglas";
@@ -13,6 +14,8 @@ import { armarTarjeta } from "@/lib/voz/tarjeta-reglas";
 // POST /api/voz: audio → texto (Whisper) → intención (LLM + Zod) → registro en comandos_voz → nombres y precios de la
 // base → tarjeta lista para mostrar. Todo lo sensible pasa aquí, en el servidor (CLAUDE.md, «La voz»). No guarda la
 // venta: eso pasa recién al confirmar la tarjeta (A5). Nunca registra la transcripción en los logs, solo ids y códigos.
+// Lo dictado después de «Hola Fructus» llega con `despertar=1` y trae la frase: si Whisper oyó «frutas» en vez de la frase, se
+// descarta sin guardar nada (el segundo paso, lib/voz/palabra-reglas.ts); si oyó la frase, se interpreta lo que siguió.
 
 const TOPE_BYTES = 10 * 1024 * 1024;
 const TOPE_MS = 60_000;
@@ -38,6 +41,7 @@ export async function POST(request: NextRequest) {
   if (audio.type && !audio.type.startsWith("audio/")) return responder(415, { error: "Eso no es un audio." });
   const duracionMs = Number(formulario?.get("duracion_ms")) || null;
   if (duracionMs !== null && duracionMs > TOPE_MS) return responder(413, { error: "El audio es muy largo. Dilo en menos de un minuto." });
+  const porPalabra = formulario?.get("despertar") === "1";
 
   // 3. Voz a texto, con el vocabulario del puesto.
   let vocabulario: string | undefined;
@@ -50,8 +54,18 @@ export async function POST(request: NextRequest) {
   const texto = await transcribir(audio, { vocabulario });
   if (!texto.ok) return responder(502, { error: NO_TE_ENTENDI, conservarAudio: true });
 
-  // 4. Texto a intención.
-  const interpretacion = await interpretar(texto.texto);
+  // 3b. El segundo paso de «Hola Fructus». Una frase parecida («hola, ¿hay frutas?») no era para Fructus: no se interpreta ni se
+  //     guarda, porque sería guardar lo que se habla en el puesto. Con un toque nunca se descarta: la persona quiso dictar.
+  const frase = revisarFrase(texto.texto);
+  if (porPalabra && frase.veredicto === "parecida") {
+    console.info("voz: «Hola Fructus» descartado en el segundo paso (una frase parecida)");
+    return responder(200, { ignorado: "parecida" });
+  }
+  // Dijo la frase y nada más: no hay qué interpretar.
+  if (frase.veredicto === "dijo" && !frase.orden) return responder(200, { ignorado: "sin_orden" });
+
+  // 4. Texto a intención: lo que siguió a la frase, si se oyó; si no, todo (el intérprete pasa por alto un saludo).
+  const interpretacion = await interpretar(frase.veredicto === "dijo" ? frase.orden : texto.texto);
   const entendio = interpretacion.ok && interpretacion.interpretacion.herramienta !== "no_entendido";
 
   // 5. El rastro en comandos_voz, siempre: sirve para medir la precisión con lo que de verdad se dice en el puesto.

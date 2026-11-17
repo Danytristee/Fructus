@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { desenlaceDeRespuesta, desenlaceSinRed, NO_TE_ENTENDI } from "./envio-reglas";
+import { desenlaceDeRespuesta, desenlaceSinRed, NO_TE_ENTENDI, nombreDelAudio } from "./envio-reglas";
+
+describe("nombreDelAudio", () => {
+  it("según lo que grabó el celular: Chrome, Safari o lo que siguió a «Hola Fructus»", () => {
+    expect(nombreDelAudio("audio/webm;codecs=opus")).toBe("voz.webm");
+    expect(nombreDelAudio("audio/mp4")).toBe("voz.m4a");
+    expect(nombreDelAudio("audio/wav")).toBe("voz.wav");
+  });
+});
 
 const venta = { tipo: "venta", cliente: { dicho: null, elegido: null, opciones: [] }, items: [], falta: [] };
 
@@ -15,6 +23,13 @@ describe("desenlaceDeRespuesta", () => {
       mensaje: NO_TE_ENTENDI,
       conservarAudio: false,
     });
+  });
+
+  it("lo que no era para Fructus (después de «Hola Fructus») no abre nada ni se reintenta", () => {
+    expect(desenlaceDeRespuesta(200, { ignorado: "parecida" })).toEqual({ tipo: "ignorado", motivo: "parecida" });
+    expect(desenlaceDeRespuesta(200, { ignorado: "sin_orden" })).toEqual({ tipo: "ignorado", motivo: "sin_orden" });
+    // Otra cosa en «ignorado» no se inventa: es una respuesta rara, se trata como falla del servicio.
+    expect(desenlaceDeRespuesta(200, { ignorado: "otro" })).toMatchObject({ tipo: "error", conservarAudio: true });
   });
 
   it("un 200 sin tarjeta es una falla del servicio: guarda el audio", () => {

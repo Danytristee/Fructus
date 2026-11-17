@@ -38,6 +38,39 @@ test("una venta dictada vuelve como tarjeta y deja su rastro en comandos_voz", a
   console.log(`latencia del servidor: ${latenciaMs} ms`);
 });
 
+// «Hola Fructus» (actividades 5c y 5d): lo dictado después de la frase llega como WAV con `despertar=1`, con la frase incluida.
+// Los audios son de la voz de Piper que el modelo nunca oyó (tests/palabra/).
+const conPalabra = (archivo: string) => ({
+  multipart: { audio: { name: "voz.wav", mimeType: "audio/wav", buffer: readFileSync(`tests/palabra/${archivo}`) }, duracion_ms: "6000", despertar: "1" },
+  timeout: 30_000,
+});
+
+test("después de «Hola Fructus», se interpreta lo que siguió y en comandos_voz queda todo lo dicho", async ({ page }, info) => {
+  test.skip(info.project.name !== "s25-412", "Una sola vez: cada corrida llama a Groq");
+  await entrarComo(page, "duenio");
+  const respuesta = await page.request.post("/api/voz", conPalabra("hola-fructus-venta.wav"));
+  expect(respuesta.status()).toBe(200);
+  const { comandoId, tarjeta } = await respuesta.json();
+  expect(tarjeta.tipo).toBe("venta");
+  expect(tarjeta.items[0].cantidad).toBe(10);
+  expect(tarjeta.condicion).toBe("credito");
+  const { data: comando } = await baseLocal().from("comandos_voz").select("transcripcion, intencion").eq("id", comandoId).single();
+  expect(comando!.intencion).toBe("registrar_venta");
+  expect(comando!.transcripcion).toMatch(/^\s*Hola,? Fructus/i);
+});
+
+test("si después de despertar Whisper oyó «Hola, ¿hay frutas?», se descarta y no se guarda nada", async ({ page }, info) => {
+  test.skip(info.project.name !== "s25-412", "Una sola vez: cada corrida llama a Groq");
+  await entrarComo(page, "duenio");
+  const desde = new Date().toISOString();
+  const respuesta = await page.request.post("/api/voz", conPalabra("hola-frutas.wav"));
+  expect(respuesta.status()).toBe(200);
+  expect(await respuesta.json()).toEqual({ ignorado: "parecida" });
+  // Nada de lo que se habla en el puesto queda en la base.
+  const { data: guardados } = await baseLocal().from("comandos_voz").select("id").gte("creado_en", desde).ilike("transcripcion", "%fruta%");
+  expect(guardados).toEqual([]);
+});
+
 test("el contador no puede dictar", async ({ page }) => {
   await entrarComo(page, "contador");
   const respuesta = await page.request.post("/api/voz", conAudio());

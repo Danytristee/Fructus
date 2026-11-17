@@ -41,7 +41,8 @@ type TipoOperacion = Operacion["tipo"];
  */
 export type Contenido =
   | { clase: "confirmacion"; operacion: Operacion }
-  | { clase: "audio"; audio: Blob; duracionMs: number }
+  /** `despertar`: empezó con «Hola Fructus»; el servidor revisa la frase al enviarlo (actividad 5d). */
+  | { clase: "audio"; audio: Blob; duracionMs: number; despertar?: true }
   | { clase: "por_confirmar"; comandoId: number; tarjeta: unknown; latenciaMs: number };
 
 type Estado = "pendiente" | "rechazada";

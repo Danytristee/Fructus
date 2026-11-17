@@ -64,3 +64,34 @@ Silero) ya existía desde el PR #39 (`lib/voz/silencio-reglas.ts`, por volumen):
     seguridad: pide actualizar Next). Esa píldora intercepta toques sobre «Clientes» (`marco.spec.ts:26`, `voz.spec.ts:276`), y su botón
     «Open issues overlay» calza con `getByRole("button", { name: "Verla" })` («o**verla**y»: `voz-venta.spec.ts:194` y `:211`). No es de
     esta rama: pasa en cualquier rama hasta actualizar Next.
+
+## Actividad 5d · El segundo paso contra «hola, frutas»
+
+- **Medición previa con Groq real** (whisper-large-v3-turbo, audios de `tests/palabra/`):
+  - «Hola Fructus, vendí diez cajas…» dicho de corrido sale bien escrito con cualquier vocabulario.
+  - La frase sola sale «Hola, Fro, Bus.» o «Hola, frío, bus…», incluso con «Hola Fructus» en el vocabulario.
+  - «Hola, ¿hay frutas?» sale siempre «Hola, hay frutas.».
+  - El intérprete real entiende igual la venta con «Hola, Fro, Bus.» delante.
+- **Qué cambió:**
+  - `revisarFrase` (`lib/voz/palabra-reglas.ts`) decide así:
+    - si Whisper escribió «Fructus» (o a una letra), se quita y se interpreta lo que sigue;
+    - si al principio se oyó «fruta(s)» o «fruto(s)» sin «Fructus» antes, es una frase parecida;
+    - si no, se interpreta todo como vino.
+  - `/api/voz` con `despertar=1`: una frase parecida responde `{ ignorado: "parecida" }`, sin intérprete ni fila en `comandos_voz`
+    (serían conversaciones del puesto). La frase sola responde `{ ignorado: "sin_orden" }`. Con un toque nunca se descarta.
+  - En «Hoy», «parecida» vuelve a escuchar sin aviso, y «sin_orden» dice «No te oí después de "Hola Fructus"».
+  - La marca `despertar` sobrevive al «Reintentar» (`lib/voz/audio-pendiente.ts`) y a la cola sin conexión (`lib/cola/enviar.ts`).
+- **Decisión** (no pasaba el test de pregunta: es técnica y se deshace en minutos):
+  - No se exige que Whisper escriba «Fructus»: eso tiraría órdenes reales cada vez que escriba mal la marca. Se descarta solo lo que
+    el detector confunde.
+  - El vocabulario de Whisper no cambia: agregarle la frase no ayudó, y empujaría a escribir «Fructus» donde se dijo «frutas».
+- **Cómo se verificó:**
+  - Vitest de la regla: 12, con las transcripciones reales.
+  - `voz-api.spec.ts` contra Groq real, 2 pruebas nuevas:
+    - la venta después de la frase vuelve como tarjeta, y `comandos_voz` guarda todo lo dicho;
+    - «Hola, ¿hay frutas?» vuelve `ignorado` y no deja nada en la base.
+  - `voz-hola-fructus.spec.ts`: 22 en verde a 412 y 360 px, con el descarte, el reintento y la cola sin señal.
+  - `cola-sin-conexion.spec.ts` y `voz.spec.ts` en verde, salvo `voz.spec.ts:276` (la píldora de Next).
+- **Pendiente:**
+  - Con voces reales y el audífono, medir cuántas veces Whisper escribe bien la marca. Si casi siempre, la regla podría exigirla.
+  - `voz-api.spec.ts:15` sigue fallando como en el PR #39: Whisper oye «mango kent a» como «mango Quenta». No es de esta rama.
