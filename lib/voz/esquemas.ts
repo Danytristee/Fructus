@@ -7,7 +7,16 @@ import { ESTADOS_LLEGADA } from "../vida-util-reglas";
 
 const medio = z.enum(["efectivo", "yape", "plin", "transferencia"]);
 const condicion = z.enum(["contado", "credito"]);
-const dudas = z.array(z.string()).default([]).describe("Dudas cortas, en español, para mostrar en la tarjeta.");
+// Una duda frena confirmar hablando (ADR-0020): solo va lo que de verdad no se entendió. Claude Haiku ponía dudas en 25 de 93 frases,
+// casi todas sobre lo que la tarjeta ya pide o marca sola (/voz-precision 2026-11-17-2).
+const dudas = z
+  .array(z.string())
+  .default([])
+  .describe(
+    "Solo lo que de verdad no entendiste: un número que pudo ser otro, un nombre que no calza, dos lecturas posibles. Frases cortas, " +
+      "en español. Vacío si se entendió. NO pongas lo que la persona no dijo (el precio, si pagó, el cliente, el medio de pago): la app " +
+      "ya lo pide o lo marca. NO expliques la cuenta ni repitas lo que entendiste.",
+  );
 const cantidad = z.number().positive().describe("Cajas.");
 const dinero = z.number().nonnegative();
 
