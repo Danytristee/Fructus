@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { formatearSoles } from "../formato";
 import { leerInterpretacion, type Interpretacion } from "./esquemas";
-import { armarTarjeta, elegir, type Resolucion } from "./tarjeta-reglas";
+import { armarTarjeta, elegir, precioDeTotal, type Resolucion } from "./tarjeta-reglas";
 
 const interpretar = (herramienta: string, datos: unknown): Interpretacion => {
   const r = leerInterpretacion(herramienta, datos);
@@ -77,6 +78,59 @@ describe("armarTarjeta · venta", () => {
     expect(t.condicion).toBe("credito");
     expect(t.medio).toBe("efectivo");
     expect(t.falta).toEqual([]);
+  });
+
+  it("con un total dicho («todo por 500»), el precio es la división, sin sugerir otro", () => {
+    const t = armarTarjeta(venta({ items: [{ producto_texto: "manzana royal", cantidad: 10, precio_unitario: null, total_item: 500 }] }), {
+      ...nada,
+      clientes: [lucho],
+      productos: [[royal]],
+      precios: [128.7],
+    });
+    if (t.tipo !== "venta") throw new Error("no es venta");
+    expect(t.items[0]!.precio).toEqual({ valor: 50, sugerido: false });
+    expect(t.total).toBe(500);
+  });
+
+  it("si el total no se divide exacto, el precio queda por elegir y la duda lo dice (nunca 100 la caja por «3 por 100»)", () => {
+    const t = armarTarjeta(venta({ items: [{ producto_texto: "manzana royal", cantidad: 3, precio_unitario: null, total_item: 100 }] }), {
+      ...nada,
+      clientes: [lucho],
+      productos: [[royal]],
+      precios: [128.7],
+    });
+    if (t.tipo !== "venta") throw new Error("no es venta");
+    expect(t.items[0]!.precio).toEqual({ valor: null, sugerido: false });
+    expect(t.falta).toContain("precio");
+    expect(t.dudas).toEqual([`Dijiste ${formatearSoles(100)} por 3 cajas: elige el precio de la caja.`]);
+  });
+
+  it("pagar el total o más («le di 50 de vuelto») es al contado, sin pago parcial", () => {
+    const precio = { items: [{ producto_texto: "manzana royal", cantidad: 10, precio_unitario: 45 }] };
+    const t = armarTarjeta(venta({ ...precio, pago_parcial: 500, medio_pago: "efectivo" }), { ...nada, clientes: [lucho], productos: [[royal]], precios: [null] });
+    if (t.tipo !== "venta") throw new Error("no es venta");
+    expect(t.condicion).toBe("contado");
+    expect(t.pagoParcial).toBeNull();
+  });
+
+  it("con un precio sacado de dividir un total, un pago que lo pasa tampoco decide solo que fue contado", () => {
+    // Gemini tomó «a doscientos cincuenta» por un total de 250: 20 cajas a 12.50, y «pagó mil quinientos» lo pasaba.
+    const t = armarTarjeta(venta({ items: [{ producto_texto: "manzana royal", cantidad: 20, precio_unitario: null, total_item: 250 }], pago_parcial: 1500 }), {
+      ...nada,
+      clientes: [lucho],
+      productos: [[royal]],
+      precios: [128.7],
+    });
+    if (t.tipo !== "venta") throw new Error("no es venta");
+    expect(t.condicion).toBe("credito");
+    expect(t.pagoParcial).toBe(1500);
+  });
+
+  it("con el precio sugerido, un pago que llega a ese total no decide solo que fue contado", () => {
+    const t = armarTarjeta(venta({ pago_parcial: 1287 }), { ...nada, clientes: [lucho], productos: [[royal]], precios: [128.7] });
+    if (t.tipo !== "venta") throw new Error("no es venta");
+    expect(t.condicion).toBe("credito");
+    expect(t.pagoParcial).toBe(1287);
   });
 
   it("al crédito con pago parcial también hay que saber quién debe", () => {
@@ -195,5 +249,18 @@ describe("armarTarjeta · lo demás", () => {
 
   it("no entendido dice qué hacer, en lenguaje de puesto", () => {
     expect(armarTarjeta(interpretar("no_entendido", { motivo: "x" }), nada)).toEqual({ tipo: "no_entendido", mensaje: "No te entendí, inténtalo otra vez." });
+  });
+});
+
+describe("precioDeTotal", () => {
+  it("divide un total dicho entre las cajas solo si sale exacto en céntimos", () => {
+    expect(precioDeTotal(500, 10)).toBe(50);
+    expect(precioDeTotal(450, 10)).toBe(45);
+    expect(precioDeTotal(225, 5)).toBe(45);
+    expect(precioDeTotal(91, 2)).toBe(45.5);
+    expect(precioDeTotal(100, 3)).toBeNull();
+    expect(precioDeTotal(67.5, 1.5)).toBe(45);
+    expect(precioDeTotal(0, 3)).toBeNull();
+    expect(precioDeTotal(100, 0)).toBeNull();
   });
 });

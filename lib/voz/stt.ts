@@ -67,7 +67,8 @@ async function llamar(url: string, cabeceras: Record<string, string>, cuerpo: Bo
 export async function transcribir(audio: Blob, opciones: { vocabulario?: string; soloGroq?: boolean } = {}): Promise<ResultadoTranscripcion> {
   const inicio = performance.now();
   const whisper = process.env.GROQ_MODELO_STT ?? "whisper-large-v3-turbo";
-  const gemini = process.env.GEMINI_MODELO_STT ?? "gemini-2.5-flash";
+  // «gemini-2.5-flash» ya no está disponible para cuentas nuevas (404, 2026-11-17). Falta medirlo con audios reales del puesto.
+  const gemini = process.env.GEMINI_MODELO_STT ?? "gemini-3.1-flash-lite";
   const proveedores: Proveedor<string>[] = [
     ...cuentasGroq(process.env.GROQ_API_KEY, process.env.GROQ_API_KEY_RESPALDO).map(({ cuenta, clave }): Proveedor<string> => ({
       servicio: "groq",

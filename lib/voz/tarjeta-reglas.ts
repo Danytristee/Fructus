@@ -2,6 +2,7 @@
 // Reglas de dinero: nunca se inventa un precio (si no lo dijo, se sugiere el último y se marca «sugerido»), nunca se asume
 // contado (si no lo dijo, se pregunta), y el total solo existe si todos los precios existen. Lógica pura: no importa React
 // ni Supabase; las búsquedas en la base las hace lib/voz/resolver.ts y llegan aquí como datos.
+import { formatearSoles } from "../formato";
 import type { Respuesta } from "./consultas-reglas";
 import type { EstadoLlegada } from "../vida-util-reglas";
 import type { Interpretacion } from "./esquemas";
@@ -93,6 +94,15 @@ export type Resolucion = {
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
+/** El precio por caja de un total dicho («10 cajas, todo por 500» → 50). null si no sale exacto en céntimos (100 entre 3). */
+export function precioDeTotal(total: number, cajas: number): number | null {
+  if (!(cajas > 0) || !(total > 0)) return null;
+  const centimos = Math.round(total * 100);
+  const cajasCentesimas = Math.round(cajas * 100);
+  // total = cajas × precio, todo en céntimos: el precio es exacto si (total × 100) es múltiplo de (cajas × 100).
+  return (centimos * 100) % cajasCentesimas === 0 ? (centimos * 100) / cajasCentesimas / 100 : null;
+}
+
 /** Si el mejor candidato se parece lo suficiente y le saca ventaja al segundo, se elige solo; si no, se ofrecen los 3 mejores para tocar uno. */
 export function elegir(dicho: string | null, candidatos: Candidato[]): Eleccion {
   if (!dicho) return { dicho: null, elegido: null, opciones: [] };
@@ -110,18 +120,37 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
     case "registrar_venta": {
       const d = i.datos;
       const cliente = elegir(d.cliente_texto, r.clientes);
+      const dudas = [...d.dudas];
+      // Precios que salieron de dividir un total dicho: no alcanzan para decidir solo que pagó todo (ver pagoCubre).
+      let algunoDeTotal = false;
       const items: ItemTarjeta[] = d.items.map((it, n) => {
         const producto = elegir(it.producto_texto, r.productos[n] ?? []);
+        // Dijo el total de esa fruta («todo por 500»): el precio es la división, si sale exacta en céntimos. Si no, no se sugiere
+        // otro precio (contradiría lo dicho): queda por elegir, con la duda escrita.
+        const total = it.precio_unitario === null ? (it.total_item ?? null) : null;
+        if (total !== null) {
+          algunoDeTotal = true;
+          const dividido = precioDeTotal(total, it.cantidad);
+          if (dividido === null) dudas.push(`Dijiste ${formatearSoles(total)} por ${it.cantidad} cajas: elige el precio de la caja.`);
+          const valor = dividido;
+          return { producto, cantidad: it.cantidad, precio: { valor, sugerido: false }, subtotal: valor === null ? null : redondear(it.cantidad * valor) };
+        }
         const sugerido = producto.elegido ? (r.precios[n] ?? null) : null;
         const precio = it.precio_unitario !== null ? { valor: it.precio_unitario, sugerido: false } : { valor: sugerido, sugerido: sugerido !== null };
         return { producto, cantidad: it.cantidad, precio, subtotal: precio.valor === null ? null : redondear(it.cantidad * precio.valor) };
       });
       const descuento = d.descuento_total ?? 0;
-      // Pagar una parte es dejar el resto debiendo: al crédito, aunque el intérprete no lo haya dicho (ADR-0023).
-      const pagoParcial = d.pago_parcial ?? null;
-      const condicion = pagoParcial !== null ? "credito" : d.condicion;
       const sinPrecio = items.some((x) => x.subtotal === null);
       const total = sinPrecio ? null : redondear(items.reduce((s, x) => s + (x.subtotal ?? 0), 0) - descuento);
+      // Pagar una parte es dejar el resto debiendo: al crédito, aunque el intérprete no lo haya dicho (ADR-0023). Pagar el total o
+      // más («me dio 500 y le di 50 de vuelto») es al contado: no hay parte que deber.
+      // Solo con precios dichos por caja. Con un precio sugerido, o sacado de dividir un total, no se decide solo que pagó todo: Gemini
+      // tomó «a doscientos cincuenta» por un total, y con «pagó mil quinientos» la venta salía al contado (/voz-precision 2026-11-17).
+      // Ahí queda al crédito, y la tarjeta pide revisar cuánto pagó antes de confirmar.
+      const pagoCubre =
+        d.pago_parcial != null && total !== null && !algunoDeTotal && !items.some((x) => x.precio.sugerido) && d.pago_parcial >= total;
+      const pagoParcial = pagoCubre ? null : (d.pago_parcial ?? null);
+      const condicion = pagoCubre ? "contado" : pagoParcial !== null ? "credito" : d.condicion;
       const falta: Extract<Tarjeta, { tipo: "venta" }>["falta"] = [];
       if (items.some((x) => !x.producto.elegido)) falta.push("producto");
       if (sinPrecio) falta.push("precio");
@@ -138,7 +167,7 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
         medio: condicion === "contado" || pagoParcial !== null ? (d.medio_pago ?? "efectivo") : d.medio_pago,
         pagoParcial,
         comprobante: d.comprobante,
-        dudas: d.dudas,
+        dudas,
         falta,
       };
     }

@@ -9,6 +9,7 @@ import { fetchWithTimeout } from "../supabase/fetch-con-tope";
 import { bloqueCatalogo, type Catalogo } from "./catalogo-reglas";
 import { sinEstadoQueEsNombre } from "./como-llego-reglas";
 import { herramientasParaElModelo, leerInterpretacion, type Interpretacion, type VentaActual } from "./esquemas";
+import { precioQueEraTotal } from "./total-dicho-reglas";
 import { MODELO_CLAUDE, preguntarAClaude } from "./interprete-claude";
 import { PROMPT_SISTEMA, mensajeCorreccion } from "./prompt";
 import { cuentasGroq, probarEnOrden, type Intento, type Pedido, type Proveedor } from "./respaldo-reglas";
@@ -54,8 +55,14 @@ async function preguntar(p: Servicio, clave: string, sistema: string, transcripc
   return leida.ok ? { ok: true, valor: leida.interpretacion } : { ok: false, error: `respuesta inválida: ${leida.motivo.slice(0, 200)}` };
 }
 
-/** Lo que no se le pide al modelo porque se puede decidir contando: en una compra, el «verde» que era parte del nombre de la fruta. */
+/**
+ * Lo que no se le pide al modelo porque se puede decidir contando: en una compra, el «verde» que era parte del nombre de la fruta; en
+ * una venta, el «a 500» que el modelo tomó por un total (lib/voz/total-dicho-reglas.ts).
+ */
 function afinar(interpretacion: Interpretacion, transcripcion: string): Interpretacion {
+  if (interpretacion.herramienta === "registrar_venta") {
+    return { ...interpretacion, datos: { ...interpretacion.datos, items: precioQueEraTotal(transcripcion, interpretacion.datos.items) } };
+  }
   if (interpretacion.herramienta !== "registrar_compra") return interpretacion;
   return { ...interpretacion, datos: { ...interpretacion.datos, items: sinEstadoQueEsNombre(transcripcion, interpretacion.datos.items) } };
 }
@@ -69,7 +76,7 @@ function afinar(interpretacion: Interpretacion, transcripcion: string): Interpre
  */
 export async function interpretar(
   transcripcion: string,
-  opciones: { catalogo?: Catalogo; modeloGroq?: string; modeloClaude?: string; solo?: "groq" | "anthropic"; correccionDe?: VentaActual } = {},
+  opciones: { catalogo?: Catalogo; modeloGroq?: string; modeloClaude?: string; solo?: "groq" | "anthropic" | "gemini"; correccionDe?: VentaActual } = {},
 ): Promise<ResultadoInterprete> {
   const inicio = performance.now();
   // El prompt fijo más el catálogo del puesto (docs/interprete-voz.md, secciones 2 y 2b).
@@ -83,7 +90,9 @@ export async function interpretar(
   };
   const gemini: Servicio = {
     url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-    modelo: process.env.GEMINI_MODELO_LLM ?? "gemini-2.5-flash",
+    // «gemini-2.5-flash» dejó de estar disponible para cuentas nuevas y el respaldo respondía 404 (2026-11-17). Los flash completos
+    // daban 503 por demanda en el plan gratuito; el 3.1 lite respondió y entendió el pago parcial. Se cambia con GEMINI_MODELO_LLM.
+    modelo: process.env.GEMINI_MODELO_LLM ?? "gemini-3.1-flash-lite",
     extra: {},
   };
   const proveedores: Proveedor<Interpretacion>[] = [

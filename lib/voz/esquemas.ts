@@ -30,7 +30,16 @@ const herramientasVoz = {
           z.object({
             producto_texto: z.string().min(1),
             cantidad,
-            precio_unitario: dinero.nullable().describe("Precio por caja. null si no lo dijo."),
+            precio_unitario: dinero.nullable().describe('Precio por caja: "a 45", "a 45 cada una". null si no lo dijo o si dijo un total.'),
+            // La división la hace la tarjeta, contando (lib/voz/tarjeta-reglas.ts): «3 cajas por 100» salía a 100 la caja (/voz-precision 2026-11-17).
+            total_item: dinero
+              .nullable()
+              .default(null)
+              .describe(
+                'Si dijo cuánto fue TODO por esa fruta en vez del precio por caja: "todo por 500", "son 200", "le cobré 450", ' +
+                  '"en 300 las diez", "3 cajas por 100". Ese total, sin dividir: entonces precio_unitario = null y la app lo divide. ' +
+                  '"a 500" o "a 45" NUNCA es un total: es precio_unitario. null si no dijo un total.',
+              ),
           }),
         )
         .min(1),
@@ -45,7 +54,8 @@ const herramientasVoz = {
         .describe(
           'Si pagó SOLO UNA PARTE al llevarse la fruta, cuánto pagó, en soles: "pagó solo 1000", "me dejó 200 a cuenta", ' +
             '"me dio 300 nomás", "me yapeó 100 y lo demás me paga el sábado". Entonces condicion = "credito" (el resto lo debe) y ' +
-            'medio_pago es cómo pagó esa parte. NO es un descuento: descuento_total no cambia. "Pagó la mitad" solo si dijo las cajas ' +
+            'medio_pago es cómo pagó esa parte. Si pagó una parte con un medio y otra con otro, súmalas. Si le dio más y le dieron ' +
+            'vuelto, pagó todo: es contado y esto va null. NO es un descuento: descuento_total no cambia. "Pagó la mitad" solo si dijo las cajas ' +
             "y el precio (la mitad de cajas × precio); si no, null y la duda en dudas. null si pagó todo, si lo debe todo o si no lo dijo.",
         ),
       medio_pago: medio.nullable().describe("Cómo pagó: todo (contado) o la parte que pagó (pago_parcial). null si lo debe todo."),
