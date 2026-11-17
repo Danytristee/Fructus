@@ -164,7 +164,7 @@ Se prueba con Playwright y en el navegador a estos anchos, en este orden:
    - Cifras clave (total, deuda, stock) de 28 px o más, con `tabular-nums`.
    - Contraste de **7:1** para textos y cifras importantes (WCAG AAA) y de 4.5:1 para el resto.
    - El color nunca es la única señal: siempre acompaña un texto o un icono.
-4. **Hojas, no ventanas.** En celular, todo diálogo sube desde abajo (hoja) con un solo `<Hoja>` (`components/ui/Hoja.tsx`). En escritorio, el mismo componente se ve centrado.
+4. **Hojas, no ventanas.** En celular, todo diálogo sube desde abajo (hoja) con un solo `<Hoja>` (`components/ui/Hoja.tsx`). En escritorio, el mismo componente se ve centrado. La hoja se porta como la de un celular (ADR-0023): sigue al dedo, se cierra al deslizarla y el botón atrás la cierra sin salir de la pantalla. Quien cierra una hoja y navega lo hace con `despuesDeCerrarHoja`.
 5. **Navegación de abajo** con 4 destinos como máximo: Hoy · Clientes · Stock · Ventas. Ajustes y Cierre viven en un menú. **Desde 1024 px** (escritorio, ADR-0015) la reemplaza un panel lateral verde con los mismos destinos, más Cierre y Ajustes a la vista.
 6. **Teclado solo cuando no hay otra.** Si hay que escribir un número: `inputmode="decimal"`, campo grande, el teclado no tapa el botón de guardar.
 7. **Seguro en bordes.** Se usan `100dvh` y `env(safe-area-inset-*)`. Nunca hay scroll horizontal.
