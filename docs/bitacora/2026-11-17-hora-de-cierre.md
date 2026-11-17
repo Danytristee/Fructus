@@ -8,7 +8,11 @@
   - En el navegador, el cambio a las 3 p. m. quedó en la base con la firma del dueño.
   - Primero el visto iba al lado del texto, y a 360 px «✓ 11 p. m.» se salía 9 px de la píldora: ahora va en la esquina.
   - `tsc`, ESLint y Knip limpios.
+- **En el proyecto de Supabase:**
+  - La migración quedó aplicada el mismo día con OK de quien dirige el proyecto. Se aplicó con `supabase db push --linked`, porque el conector MCP se desconectó.
+  - Supabase registró la versión `20261117195145`, la misma del archivo.
+  - Queda igual que en local: una fila con las 7 p. m., `anon` sin acceso y sin update directo para `authenticated`.
+  - El linter da un solo aviso nuevo, y se deja a propósito: `fijar_hora_cierre` es `security definer` y la pueden ejecutar los autenticados, pero revisa el rol antes de tocar nada (anotado en CLAUDE.md).
 - **Pendiente:**
-  - Aplicar la migración `20261117195145_hora_de_cierre.sql` al proyecto de Supabase (espera OK) y renombrarla con su versión real.
   - Ver en Vercel que se registren los 16 crons después del despliegue.
   - `/formidable` y `/chaos` de la hoja nueva: sin correr.
