@@ -4,7 +4,10 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { useRouter } from "next/navigation";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/shadcn/sheet";
+import { abreTeclado, cuentaComoEscrito } from "@/lib/teclado-reglas";
 import { cn } from "cn";
+
+import { Boton } from "./Boton";
 
 import { anotarHoja, despuesDeCerrarHoja } from "./historial-hojas";
 import { useArrastreHoja } from "./useArrastreHoja";
@@ -46,6 +49,41 @@ export function Hoja({ abierta, alCambiar, titulo, icono, children, className }:
     estaba.current = abierta;
   }, [abierta]);
 
+  // Lo escrito no se pierde por un roce: si la persona escribió algo (un nombre, un teléfono, un monto; una búsqueda no cuenta), cerrar sin
+  // querer (tocar afuera, deslizarla, «atrás», Escape) primero pregunta. Cerrar a propósito (Cancelar, Descartar, después de guardar) lo
+  // hace cada pantalla por su cuenta y no pasa por aquí.
+  const escrito = useRef(false);
+  const [preguntando, setPreguntando] = useState(false);
+  // Al cerrarse, la pregunta se va con ella (se ajusta en el render, como recomienda React, no en un efecto).
+  const [abiertaAntes, setAbiertaAntes] = useState(abierta);
+  if (abierta !== abiertaAntes) {
+    setAbiertaAntes(abierta);
+    if (!abierta) setPreguntando(false);
+  }
+  useLayoutEffect(() => {
+    if (!abierta) escrito.current = false;
+  }, [abierta]);
+  useEffect(() => {
+    const el = contenido;
+    if (!abierta || !el) return;
+    const alEscribir = (e: Event) => {
+      const t = e.target;
+      if (t instanceof HTMLElement && cuentaComoEscrito(datosDe(t))) escrito.current = true;
+    };
+    el.addEventListener("input", alEscribir);
+    return () => el.removeEventListener("input", alEscribir);
+  }, [abierta, contenido]);
+
+  const pedirCerrar = useCallback(() => {
+    if (!escrito.current) {
+      alCambiarRef.current(false);
+      return;
+    }
+    setPreguntando(true);
+    navigator.vibrate?.(20);
+    contenido?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [contenido]);
+
   // «Atrás» cierra la hoja. Si la hoja no se deja cerrar (está guardando), se vuelve a anotar para que el siguiente «atrás» también la
   // pida cerrar, y no saque a la persona de la pantalla con la hoja abierta. Es de layout: el `history.back()` del cierre sale antes que
   // cualquier navegación que venga después.
@@ -53,13 +91,12 @@ export function Hoja({ abierta, alCambiar, titulo, icono, children, className }:
   useLayoutEffect(() => {
     if (!abierta) return;
     return anotarHoja(() => {
-      alCambiarRef.current(false);
+      pedirCerrar();
       window.setTimeout(() => abiertaRef.current && setVuelta((v) => v + 1), 0);
     });
-  }, [abierta, vuelta]);
+  }, [abierta, vuelta, pedirCerrar]);
 
-  const cerrar = useCallback(() => alCambiarRef.current(false), []);
-  useArrastreHoja(contenido, abierta, cerrar);
+  useArrastreHoja(contenido, abierta, pedirCerrar);
 
   // Un enlace dentro de la hoja (el menú, la ficha de un cliente): primero se cierra la hoja y se quita su página del historial, después
   // se navega. Al revés, «atrás» en la pantalla nueva volvería a la anterior con la hoja cerrada, un toque perdido.
@@ -83,12 +120,20 @@ export function Hoja({ abierta, alCambiar, titulo, icono, children, className }:
   }, [abierta, contenido, router]);
 
   return (
-    <Sheet open={abierta} onOpenChange={alCambiar}>
+    <Sheet open={abierta} onOpenChange={(abrir) => (abrir ? alCambiar(true) : pedirCerrar())}>
       <SheetContent
         ref={setContenido}
         side="bottom"
         showCloseButton={false}
         aria-describedby={undefined}
+        onPointerDownOutside={(e) => {
+          // Con el teclado abierto, tocar afuera solo lo baja (como en cualquier app); la hoja sigue ahí con lo escrito.
+          const activo = document.activeElement;
+          if (activo instanceof HTMLElement && contenido?.contains(activo) && abreTeclado(datosDe(activo))) {
+            e.preventDefault();
+            activo.blur();
+          }
+        }}
         onCloseAutoFocus={(e) => {
           if (abrio.current?.isConnected) {
             e.preventDefault();
@@ -96,7 +141,7 @@ export function Hoja({ abierta, alCambiar, titulo, icono, children, className }:
           }
         }}
         className={cn(
-          "max-h-[94dvh] gap-0 overflow-y-auto overscroll-y-contain rounded-t-hoja border-0 bg-fondo px-4 pt-2.5 pb-[calc(16px+env(safe-area-inset-bottom))] shadow-[0_-10px_40px_rgb(var(--sombra-color)/0.18)]",
+          "max-h-[94dvh] scroll-pt-4 scroll-pb-36 gap-0 overflow-y-auto overscroll-y-contain rounded-t-hoja border-0 bg-fondo px-4 pt-2.5 pb-[calc(16px+env(safe-area-inset-bottom))] shadow-[0_-10px_40px_rgb(var(--sombra-color)/0.18)]",
           "data-[state=open]:animate-hoja-sube data-[state=closed]:animate-hoja-baja",
           "md:inset-x-auto md:bottom-auto md:top-1/2 md:left-1/2 md:w-[440px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-hoja md:pb-5",
           "md:data-[state=open]:animate-hoja-aparece md:data-[state=closed]:animate-hoja-se-va",
@@ -111,8 +156,31 @@ export function Hoja({ abierta, alCambiar, titulo, icono, children, className }:
             <SheetTitle className="text-[23px] font-extrabold text-texto">{titulo}</SheetTitle>
           </div>
         </div>
+        {preguntando && (
+          <div role="alertdialog" aria-labelledby="hoja-sin-guardar" className="mb-4 grid animate-pieza gap-3 rounded-tarjeta border-2 border-deuda/40 bg-superficie p-4">
+            <p id="hoja-sin-guardar" className="text-lg font-bold text-texto">
+              ¿Cierras sin guardar? Se pierde lo que escribiste.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <Boton
+                variante="secundario"
+                onClick={() => {
+                  escrito.current = false;
+                  alCambiarRef.current(false);
+                }}
+              >
+                Cerrar sin guardar
+              </Boton>
+              <Boton onClick={() => setPreguntando(false)}>Seguir aquí</Boton>
+            </div>
+          </div>
+        )}
         {children}
       </SheetContent>
     </Sheet>
   );
+}
+
+function datosDe(el: HTMLElement) {
+  return { etiqueta: el.tagName, tipo: el.getAttribute("type"), soloLectura: el.hasAttribute("readonly"), editable: el.isContentEditable };
 }

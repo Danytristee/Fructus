@@ -469,6 +469,12 @@
   }
 }
 
+/* Con el teclado abierto (components/marco/Teclado.tsx), lo que flota abajo se esconde: encima del teclado solo tapaba lo que se escribe.
+   Fuera de las capas de Tailwind a propósito: dentro de `base` perdía contra la utilidad `flex` de la barra flotante. */
+html[data-teclado] [data-con-teclado="oculto"] {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

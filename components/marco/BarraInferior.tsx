@@ -22,6 +22,7 @@ export function BarraInferior() {
   return (
     <nav
       aria-label="Principal"
+      data-con-teclado="oculto"
       className="vidrio-desenfocado fixed inset-x-3 lg:hidden bottom-[calc(12px+env(safe-area-inset-bottom))] z-30 mx-auto max-w-xl rounded-[30px] p-1.5 shadow-[0_10px_34px_rgb(var(--sombra-color)/0.14)]"
     >
       {/* Cuatro destinos y, al centro, el hueco del botón de voz cuando la pantalla lo tiene (--hueco-voz en globals.css). */}

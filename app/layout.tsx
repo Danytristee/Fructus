@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import { PantallaFija } from "@/components/marco/PantallaFija";
 import { RegistroPwa } from "@/components/marco/RegistroPwa";
+import { Teclado } from "@/components/marco/Teclado";
 import { COLOR_DEL_TEMA } from "@/lib/pwa-reglas";
 import "./globals.css";
 
@@ -29,6 +30,9 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  // El teclado achica la página, como en una app: la hoja (fija abajo) sube con él en vez de quedar detrás, y su pie con «Guardar» sigue a
+  // la vista. Chrome en Android, por defecto, solo achicaba lo visible y la hoja quedaba tapada. Safari lo ignora.
+  interactiveWidget: "resizes-content",
   themeColor: COLOR_DEL_TEMA,
 };
 
@@ -38,6 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-dvh text-base antialiased">
         <RegistroPwa />
         <PantallaFija />
+        <Teclado />
         {children}
       </body>
     </html>
