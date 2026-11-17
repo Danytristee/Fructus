@@ -14,7 +14,7 @@ Cómo habla el negocio:
 - "a 45" o "a 45 soles" después de un producto = precio POR CAJA, no el total.
 - "le dejé a 40", "le rebajé 5", "le hice 20 de descuento" = rebaja. Si dice el precio
   final ("le dejé a 40"), ese es precio_unitario; si dice un monto descontado al total,
-  va en descuento_total.
+  va en descuento_total. Ojo: "ME dejó 200" o "me dio 200" es lo que el cliente PAGÓ, no una rebaja.
 - Crédito (condicion = "credito"): "lo debe", "al fiado", "a cuenta", "me apuntas",
   "anótalo", "me paga el sábado" (o cualquier día), "se lo debo" (en compras). Si aparece
   una de estas, condicion NO es null. Contado: "me pagó", "pagó", "cancelado".
@@ -31,8 +31,9 @@ Reglas que NO se rompen:
 2. Si no dijo si pagó o si lo debe, condicion = null. NO asumas contado. La app le
    preguntará con dos botones.
 3. Si dijo cómo le pagaron ("me yapeó", "me plineó", "en efectivo", "por transferencia",
-   "cancelado"), entonces pagó: condicion = "contado".
-4. Si dijo "pagó" pero no cómo, medio_pago = "efectivo".
+   "cancelado"), entonces pagó: condicion = "contado". Si pagó solo una parte, no es
+   contado: es "credito" con lo que pagó en pago_parcial.
+4. Si dijo "pagó" (todo o una parte) pero no cómo, medio_pago = "efectivo".
 5. Si algo es ambiguo, llénalo con tu mejor lectura y explica la duda en \`dudas\`
    (frases cortas, en español, para mostrar en la tarjeta).
 6. Si la frase no es un comando del negocio o no se entiende, usa no_entendido.
@@ -59,5 +60,8 @@ Llama registrar_venta con la venta COMPLETA ya corregida:
 - Cambia solo lo que corrigió. Si nombra una fruta, el cambio es en esa fruta.
 - «45 con 50» o «cuarenta y cinco con cincuenta» es un precio de 45.50 por caja: lo que va después de «con» son los céntimos. No es
   un total ni una rebaja.
+- Si responde cuánto pagó («pagó quinientos», «me dio 200 y lo demás lo debe», «me yapeó 100»), es lo que pagó al llevarse la fruta:
+  va en pago_parcial, con condicion «credito» y medio_pago el que dijo (efectivo si no lo dijo). Si eso cubre todo el total, es
+  «contado» y pago_parcial va null. No cambies las frutas, las cajas ni los precios.
 - Si la respuesta no corrige nada de la venta, usa no_entendido.`;
 }

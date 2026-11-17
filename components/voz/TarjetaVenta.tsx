@@ -11,7 +11,7 @@ import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
-import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
+import { borradorDe, debeDe, faltaDe, frasesFalta, fueCorregido, leerPagado, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
 import { recordatorioCompra } from "@/lib/voz/stock-venta-reglas";
 import { cambiosDeCorreccion, guionCorreccion, guionVenta, relecturaPago, type Cambios } from "@/lib/voz/lectura-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
@@ -19,6 +19,7 @@ import { EditorBusqueda } from "./EditorBusqueda";
 import { AvisoStock } from "./AvisoStock";
 import { DudasVoz } from "./DudasVoz";
 import { EditorItem } from "./EditorItem";
+import { EditorMonto } from "./EditorMonto";
 import { FilaCliente } from "./FilaCliente";
 import { FilaTarjeta } from "./FilaTarjeta";
 import { GrupoOpciones } from "./GrupoOpciones";
@@ -29,13 +30,14 @@ import { Guardado } from "./Guardado";
 import { InsigniaSugerido } from "./InsigniaSugerido";
 import { MedidorDeuda } from "./MedidorDeuda";
 import { PagoODebe } from "./PagoODebe";
+import { PagoParcial } from "./PagoParcial";
 import { PieConfirmar } from "./PieConfirmar";
 import { useConfirmar } from "./useConfirmar";
 import { useManosLibres } from "./useManosLibres";
 import { useStockVenta } from "./useStockVenta";
 
 type Venta = Extract<Tarjeta, { tipo: "venta" }>;
-type Vista = { tipo: "tarjeta" } | { tipo: "cliente" } | { tipo: "item"; n: number };
+type Vista = { tipo: "tarjeta" } | { tipo: "cliente" } | { tipo: "item"; n: number } | { tipo: "pagado" };
 
 type Props = {
   tarjeta: Venta;
@@ -109,6 +111,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   }, [clienteId]);
 
   const total = totalDe(borrador);
+  const debe = debeDe(borrador);
+  const pagado = borrador.condicion === "credito" ? (borrador.pagado ?? null) : null;
   const falta = faltaDe(borrador);
   // Las frutas que piden más de lo que hay: el aviso (debajo de «Pagó / Lo debe») y, al guardar, el recordatorio de la compra.
   const avisosStock = useStockVenta(borrador.items, vigente.stock);
@@ -171,7 +175,17 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           <ChevronLeft aria-hidden />
           Volver a la venta
         </button>
-        {vista.tipo === "cliente" ? (
+        {vista.tipo === "pagado" ? (
+          <EditorMonto
+            etiqueta="¿Cuánto te pagó ahora?"
+            inicial={pagado}
+            leer={(texto) => leerPagado(texto, total ?? Number.POSITIVE_INFINITY)}
+            alListo={(monto) => {
+              setBorrador((b) => ({ ...b, condicion: "credito", pagado: monto, medio: b.medio ?? "efectivo" }));
+              volver();
+            }}
+          />
+        ) : vista.tipo === "cliente" ? (
           <EditorBusqueda
             etiqueta="¿A quién le vendiste?"
             inicial={borrador.cliente?.nombre ?? vigente.cliente.dicho ?? ""}
@@ -208,6 +222,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   }
 
   const { cliente } = borrador;
+  // La tarjeta de deuda ya dice «+ S/ 4,000.00 de hoy» y el total: con ella a la vista, «Queda debiendo» repetía la cifra (/formidable 2026-11-17).
+  const conMedidor = cliente !== null && saldo !== null && total !== null && borrador.condicion !== null;
   // «Pagó / Lo debe» ya lleva su pregunta escrita encima: el pie no la repite (/formidable 2026-10-29).
   const aviso = frasesFalta(falta.filter((f) => f !== "condicion"));
   return (
@@ -274,9 +290,23 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         <PagoODebe
           condicion={borrador.condicion}
           medio={borrador.medio}
-          alCambiar={(condicion, medio) => setBorrador((b) => ({ ...b, condicion, medio }))}
+          // Volver a «Lo debe» con algo anotado conserva con qué pagó lo que dejó.
+          alCambiar={(condicion, medio) => setBorrador((b) => ({ ...b, condicion, medio: condicion === "credito" && b.pagado ? (b.medio ?? "efectivo") : medio }))}
         />
       </div>
+
+      {borrador.condicion === "credito" && (
+        <div className="animate-pieza">
+          <PagoParcial
+            pagado={pagado}
+            medio={borrador.medio}
+            debe={conMedidor ? null : debe}
+            alAnotar={() => setVista({ tipo: "pagado" })}
+            alCambiarMedio={(medio) => setBorrador((b) => ({ ...b, medio }))}
+            alQuitar={() => setBorrador((b) => ({ ...b, pagado: null, medio: null }))}
+          />
+        </div>
+      )}
 
       {/* Si la venta pide más cajas de las que hay: avisa, no bloquea. Después del total y del pago, que mandan. */}
       <AvisoStock avisos={avisosStock} className="animate-pieza" />
@@ -302,9 +332,9 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         </div>
       )}
 
-      {cliente && saldo !== null && total !== null && borrador.condicion !== null && (
+      {conMedidor && cliente && saldo !== null && (
         <div className="animate-pieza">
-          <MedidorDeuda nombre={cliente.nombre} saldo={saldo} total={total} alCredito={borrador.condicion === "credito"} />
+          <MedidorDeuda nombre={cliente.nombre} saldo={saldo} total={borrador.condicion === "credito" ? (debe ?? total) : total} alCredito={borrador.condicion === "credito"} />
         </div>
       )}
 

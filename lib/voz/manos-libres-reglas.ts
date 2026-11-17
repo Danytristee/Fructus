@@ -98,6 +98,8 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
         // Oyó otra cosa («sí», un cliente que pregunta): se repregunta una vez. La segunda, se deja para tocar.
         return otraVez;
       }
+      // «Pagó quinientos»: la respuesta trae lo que pagó, y el servidor rehizo la venta con ese pago parcial (ADR-0025).
+      if (ev.tipo === "respuesta" && ev.respuesta === "corregir" && e.pregunta === "pago") return { estado: { ...e, fase: "anotando" }, efecto: "corregir" };
       if (ev.tipo === "pago" && e.pregunta === "pago") {
         if (ev.pago === "fallo") return callado("fallo", "nada");
         if (ev.pago === null) return otraVez;

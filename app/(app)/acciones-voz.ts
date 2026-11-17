@@ -33,6 +33,9 @@ const borrador = z.object({
   descuento: z.number().min(0),
   condicion: z.enum(["contado", "credito"]).nullable(),
   medio: z.enum(["efectivo", "yape", "plin", "transferencia"]).nullable(),
+  // Lo que pagó al llevar en una venta al crédito (ADR-0025). Sin el campo aquí, Zod lo quitaba y la venta se guardaba debiendo todo.
+  // Opcional: lo que esperaba en la cola desde antes no lo trae.
+  pagado: z.number().positive().max(PRECIO_MAXIMO * 1_000).nullable().optional(),
   comprobante: z.enum(["ninguno", "boleta", "factura"]).default("ninguno"),
 });
 
@@ -70,6 +73,9 @@ export async function confirmarVenta(entrada: z.input<typeof confirmacion>): Pro
   if (error || ventaId === null) {
     console.error("voz: no se pudo registrar la venta", { comandoId, codigo: error?.code });
     if (error?.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar ventas." };
+    // Lo que pagó llegó al total mientras la tarjeta esperaba (cambió un precio): es «Pagó». Va antes que el 23514 del cliente.
+    if (error?.message.includes("pagó todo")) return { ok: false, error: "Lo que pagó llega al total: si pagó todo, toca «Pagó»." };
+    if (error?.code === "23514" && error.message.includes("al llevar")) return { ok: false, error: "Revisa cuánto pagó." };
     if (error?.code === "23514") return { ok: false, error: "Al crédito tienes que elegir a quién le fiaste." };
     // El cliente se borró mientras la tarjeta estaba abierta (o la venta esperaba en la cola). No es la señal: reintentar no
     // sirve, y la cola lo seguía reintentando para siempre (/chaos 2026-11-12).

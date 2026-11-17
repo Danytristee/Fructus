@@ -1,0 +1,25 @@
+# 2026-11-17 · Pago parcial al vender por voz
+
+- **Qué cambió (base):** `registrar_venta` acepta `pago_inicial` en una venta al crédito y lo guarda como abono atado a la venta (`abonos.venta_id`), en la misma transacción. «10 cajas a 500, pagó solo 1000» queda en S/ 5,000 al crédito y debe S/ 4,000. Un trigger exige que un abono atado sea de su venta; la invariante 13 lo revisa. Anular deja lo pagado a favor del cliente (ADR-0025, opción A).
+- **Cómo se verificó (base):** `28_venta_con_pago_al_llevar` (24 pruebas) y pgTAP completo en una base propia nueva (`fructus-pago`, puertos 5682x): 29 archivos, 329 pruebas. Invariantes: las 13 en orden; con un abono corrupto a propósito, INV-13 lo detecta. Consulta en la base: don Lucho pasó de deber S/ 680 a S/ 4,680.
+- **Aplicada al proyecto** con OK, como `20261117213424_venta_con_pago_al_llevar`. `registrar_venta` del proyecto es idéntica a la local (mismo md5); antes se comprobó que la del proyecto era la versión de la que parte (las 2 migraciones de hoy de la rama de la hora de cierre no la tocan). `get_advisors`: ningún aviso nuevo de esta migración.
+- **Qué cambió (intérprete):** `registrar_venta` suma `pago_parcial`. Antes, «pagó solo 1000» salía **al contado con S/ 4,000 de descuento** y la deuda desaparecía (`docs/voz/precision-2026-11-17.md`). El prompt aclara que «me dejó 200» es un pago, no una rebaja. 11 casos nuevos en `casos.json`.
+- **Qué cambió (Claude, ADR-0026):** Claude Haiku 5.5 interpreta primero; Groq y Gemini quedan de respaldo. Medido con 93 casos: datos clave 97.8 % contra 87.1 % de gpt-oss-120b, intención 100 %, p95 1.22 s. Haiku ponía dudas en 25 de 93 dictados (cada duda frena confirmar hablando); con la descripción de `dudas` acotada bajan a 10 (`docs/voz/precision-2026-11-17-3.md`).
+- **Qué cambió (tarjeta):** «Lo debe» suma «Pagó una parte»; con algo anotado se ve «Pagó ahora», con qué y «Queda debiendo», y la píldora dice «Debe el resto». Manos libres lo lee: «Pagó 1000 soles con Yape y debe 4000 soles».
+- **Qué cambió (frases de dinero):** «3 cajas por 100» salía a S/ 100 la caja. El intérprete pasa el total (`total_item`) y la tarjeta divide, contando: si sale exacto es el precio; si no, queda por elegir. Un candado (`total-dicho-reglas.ts`): «a 500» es precio aunque el modelo lo ponga de total. Pagar el total o más con precios dichos («le di 50 de vuelto») es contado; con precio sugerido o sacado de un total, no se decide solo. /voz-precision con 104 casos y Claude: intención 100 %, datos 99.0 %, prudencia 100 %, p95 1.43 s.
+- **Gemini, el último respaldo:** con la clave nueva, `gemini-2.5-flash` respondía 404 (ya no está para cuentas nuevas): nunca habría funcionado. Pasa a `gemini-3.1-flash-lite`: 22 casos de dinero, 90.9 %, sin inventos. Los flash completos daban 503 por demanda.
+- **Arreglo de paso:** en manos libres, «pagó 500» como respuesta a «¿Pagó o lo debe?» se guardaba como pagado entero (`clasificarPago` borraba los números). Ahora con un monto o una parte no se anota nada: se repregunta.
+- **Pendiente:**
+  - `components/voz/TarjetaVenta.tsx` tiene 319 líneas (ya pasaba las 250 antes de esto): pide partirse.
+  - «Pagó la mitad» con precio dicho: Haiku deja el monto en null (no inventa, pero no calcula los S/ 120).
+  - Revisar en la consola de Anthropic el costo real del intérprete después de una semana.
+  - Medir Gemini como voz a texto con audios reales del puesto (`tests/interprete/audios/` está vacía; con voz sintética se equivocan todos, Whisper incluido).
+  - Groq con los 104 casos quedó sin medir: la corrida se colgó por el cupo gratuito. Lo último medido: 87.1 % en 93 casos (`docs/voz/precision-2026-11-17-3.md`).
+  - Avisos del linter que no son de esta rama ni están en `CLAUDE.md`: `aviso_del_dia` y `suscripciones_push` con RLS sin políticas, y `fijar_hora_cierre()` como `security definer` (los de la hora de cierre son de la otra rama).
+  - /formidable dejó dos: lo de hoy en letra chica en `MedidorDeuda`, y la variante `texto` de `Boton` que se lee como título.
+- **Después, «pagó doscientos» hablado:** en manos libres, la respuesta a «¿Pagó o lo debe?» con un monto o una parte (`hablaDeUnaParte`) va al intérprete como corrección y vuelve la tarjeta con lo que pagó. Fructus dice «Corregido. Pagó 200 soles en efectivo y debe 250 soles. ¿Confirmo?». Responder la pregunta no cuenta como «corregido». Verificado:
+  - e2e `voz-pago-hablado` a 412 y 360 px, con la base;
+  - la ruta real con Whisper y Claude sobre un audio sintético («Pagó doscientos» → crédito con S/ 200);
+  - 5 casos nuevos de corrección por pago, 17 de 17 con Claude;
+  - `/voz-precision` con 109 casos: intención 100 %, datos 99.1 %, prudencia 100 %;
+  - 52 e2e de manos libres y pago parcial.

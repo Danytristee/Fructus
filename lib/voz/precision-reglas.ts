@@ -38,7 +38,7 @@ export function diferencias(esperado: unknown, obtenido: unknown, ruta = ""): st
 }
 
 // Campos de dinero o de pago: si lo esperado es null, el modelo NO puede inventarlos (regla 1 y 2 del prompt).
-const CAMPOS_PRUDENTES = new Set(["precio_unitario", "costo_unitario", "condicion", "medio_pago", "descuento_total", "monto"]);
+const CAMPOS_PRUDENTES = new Set(["precio_unitario", "costo_unitario", "condicion", "medio_pago", "descuento_total", "monto", "pago_parcial"]);
 
 /** Los inventos: campos de dinero o pago que debían ser null y vinieron con un valor. Un invento es un fallo grave. */
 export function inventos(esperado: unknown, obtenido: unknown, ruta = ""): string[] {

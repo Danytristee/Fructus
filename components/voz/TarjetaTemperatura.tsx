@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Info, Minus, Plus } from "lucide-react";
+import { Info } from "lucide-react";
 
 import { confirmarTemperatura } from "@/app/(app)/acciones-frescura";
+import { BotonPaso } from "@/components/ui/BotonPaso";
 import { formatearGrados, GRADOS_MAXIMO, GRADOS_MINIMO, saltoRaro } from "@/lib/temperatura-reglas";
 import { borradorTemperatura, faltaTemperatura, fueCorregidaTemperatura, moverGrados, type BorradorTemperatura } from "@/lib/voz/confirmar-temperatura-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
@@ -26,7 +27,6 @@ type Props = {
 };
 
 const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
-const boton = "grid size-14 place-items-center rounded-full bg-superficie transition-transform active:scale-95 disabled:opacity-40";
 
 // La tarjeta de la temperatura dictada («hoy hizo 29 grados») o anotada a mano: una cifra grande y dos botones para moverla.
 // Sin teclado (regla 6): del número de ayer al de hoy casi siempre hay uno o dos toques.
@@ -55,17 +55,11 @@ export function TarjetaTemperatura({ tarjeta, comandoId, latenciaMs, alGuardar, 
         </span>
         {/* La columna de la cifra puede achicarse: con `1fr` a secas, un número larguísimo empujaba «+» y Confirmar fuera de la pantalla. */}
         <div role="group" aria-labelledby="etiqueta-grados" className="grid grid-cols-[56px_minmax(0,1fr)_56px] items-center gap-2">
-          <button type="button" disabled={grados <= GRADOS_MINIMO} onClick={() => setBorrador((b) => moverGrados(b, -1))} className={boton}>
-            <Minus aria-hidden />
-            <span className="sr-only">Un grado menos</span>
-          </button>
+          <BotonPaso signo="menos" etiqueta="Un grado menos" disabled={grados <= GRADOS_MINIMO} alPasar={() => setBorrador((b) => moverGrados(b, -1))} />
           <output aria-live="polite" className="cifra truncate text-center text-[3.5rem] leading-none font-extrabold">
             {formatearGrados(grados)}
           </output>
-          <button type="button" disabled={grados >= GRADOS_MAXIMO} onClick={() => setBorrador((b) => moverGrados(b, 1))} className={boton}>
-            <Plus aria-hidden />
-            <span className="sr-only">Un grado más</span>
-          </button>
+          <BotonPaso signo="mas" etiqueta="Un grado más" disabled={grados >= GRADOS_MAXIMO} alPasar={() => setBorrador((b) => moverGrados(b, 1))} />
         </div>
       </div>
 

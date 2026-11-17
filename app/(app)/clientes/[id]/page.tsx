@@ -13,6 +13,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
 import { borradorDeCliente } from "@/lib/cliente-reglas";
+import { mensajeAlCliente } from "@/lib/contacto-reglas";
 import { HISTORIAL_TOPE, historialDelCliente } from "@/lib/ficha-cliente-reglas";
 import { iniciales, tonoDe, type Medio } from "@/lib/operaciones-reglas";
 import { exigirSesion } from "@/lib/sesion";
@@ -47,7 +48,7 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
       .eq("estado", "registrada")
       .order("fecha", { ascending: false })
       .limit(HISTORIAL_TOPE + 1),
-    supabase.from("abonos").select("id, fecha, monto, medio_pago").eq("cliente_id", cliente.id).order("fecha", { ascending: false }).limit(HISTORIAL_TOPE + 1),
+    supabase.from("abonos").select("id, fecha, monto, medio_pago, venta_id").eq("cliente_id", cliente.id).order("fecha", { ascending: false }).limit(HISTORIAL_TOPE + 1),
   ]);
   const fallo = saldo.error ?? deudas.error ?? ventas.error ?? abonos.error;
   if (fallo) {
@@ -71,7 +72,7 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
         cliente: persona,
         items: v.items.map((i) => ({ cantidad: Number(i.cantidad), producto: i.producto })),
       })),
-      abonos: (abonos.data ?? []).map((a) => ({ id: a.id, fecha: a.fecha, monto: Number(a.monto), medio: a.medio_pago as Medio, cliente: persona })),
+      abonos: (abonos.data ?? []).map((a) => ({ id: a.id, fecha: a.fecha, monto: Number(a.monto), medio: a.medio_pago as Medio, cliente: persona, alLlevar: a.venta_id !== null })),
     },
     new Date(),
   );
@@ -91,6 +92,7 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
       />
       <DatosCliente
         telefono={cliente.telefono}
+        mensaje={mensajeAlCliente({ nombre: cliente.nombre, apodo: cliente.alias?.[0], saldo: Number(saldo.data?.saldo ?? 0) })}
         documento={cliente.tipo_documento && cliente.numero_documento ? `${cliente.tipo_documento} ${cliente.numero_documento}` : null}
         direccion={cliente.direccion}
         notas={cliente.notas}

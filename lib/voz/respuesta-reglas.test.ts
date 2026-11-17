@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clasificarPago, clasificarRespuesta, pareceCorreccion } from "./respuesta-reglas";
+import { clasificarPago, clasificarRespuesta, pareceCorreccion, hablaDeUnaParte } from "./respuesta-reglas";
 
 describe("clasificarRespuesta", () => {
   it.each(["Confirmo.", "Correcto", "¡Acepto!", "Sí, correcto.", "Ya, confirmo", "Todo correcto", "Correcto, correcto.", "Está correcto"])(
@@ -37,7 +37,23 @@ describe("clasificarRespuesta", () => {
   });
 });
 
+describe("hablaDeUnaParte", () => {
+  it("un monto o una parte: va al intérprete como corrección", () => {
+    for (const t of ["Pagó 500", "Pagó quinientos", "Solo pagó mil", "Me dio la mitad", "Me yapeó doscientos y lo demás lo debe"]) expect(hablaDeUnaParte(t)).toBe(true);
+  });
+  it("«pagó», «lo debe» o «con Yape» no traen monto: no hace falta el intérprete", () => {
+    for (const t of ["Pagó", "Lo debe", "Con Yape", "Pagó todo en efectivo", "Fiado"]) expect(hablaDeUnaParte(t)).toBe(false);
+  });
+});
+
 describe("clasificarPago", () => {
+  // ADR-0025: los números se borraban y «pagó 500» quedaba en «pagó»: la venta se guardaba como pagada entera. Con un monto o una
+  // parte no se anota nada: se repregunta y la parte se anota en la tarjeta («Pagó una parte»). Nunca se asume contado.
+  it.each(["Pagó 500", "Pagó quinientos", "Solo pagó mil", "Pagó una parte", "Me dio la mitad", "Dejó 200 y el resto lo debe", "Pagó nomás cien con Yape"])(
+    "«%s» trae un monto o una parte: no se anota",
+    (texto) => expect(clasificarPago(texto)).toBeNull(),
+  );
+
   it.each([
     ["Pagó.", { condicion: "contado", medio: "efectivo" }],
     ["Pagó con Yape", { condicion: "contado", medio: "yape" }],

@@ -74,12 +74,29 @@ const MEDIO: Record<string, Extract<Pago, { condicion: "contado" }>["medio"]> = 
   yape: "yape", yapeo: "yape", yapeado: "yape", plin: "plin", transferencia: "transferencia", transfirio: "transferencia", deposito: "transferencia",
 };
 
+// Un monto o una parte en la respuesta («pagó 500», «solo pagó mil», «me dio la mitad») no es «Pagó»: es un pago parcial
+// (ADR-0025), y aquí no se adivina cuánto. Se repregunta y la parte se anota en la tarjeta.
+const PARTE = new Set(["solo", "nomas", "parte", "mitad", "resto", "dejo", "adelanto", "demas"]);
+const CIFRAS = new Set([
+  "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce", "quince", "veinte", "treinta",
+  "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa", "cien", "ciento", "doscientos", "trescientos", "cuatrocientos",
+  "quinientos", "seiscientos", "setecientos", "ochocientos", "novecientos", "mil",
+]);
+const esParte = (texto: string, p: string[]) => /\d/.test(texto) || p.some((x) => PARTE.has(x) || CIFRAS.has(x));
+
+/**
+ * ¿La respuesta a «¿Pagó o lo debe?» trae un monto o una parte («pagó quinientos», «me dio la mitad»)? Entonces no se clasifica aquí:
+ * va al intérprete como corrección de la venta, que la rehace con lo que pagó al llevar (ADR-0025).
+ */
+export const hablaDeUnaParte = (texto: string) => esParte(texto, palabras(texto));
+
 /**
  * «Pagó», «con Yape», «lo debe», «fiado», «no pagó» → cómo quedó. null si no se entiende o dice las dos cosas: nunca se asume
  * contado (principio 2). «Canceló» es pagó, como se dice en el puesto.
  */
 export function clasificarPago(texto: string): Pago | null {
   const p = palabras(texto);
+  if (esParte(texto, p)) return null;
   const pago = p.some((x) => PAGO.has(x));
   const debe = p.some((x) => DEBE.has(x));
   const niega = p.includes("no");

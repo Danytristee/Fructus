@@ -1,8 +1,10 @@
 // De la tarjeta de venta (lo que se entendió) al borrador que la persona corrige, y del borrador a lo que recibe
 // registrar_venta. Reglas de dinero (CLAUDE.md, principio 2): no se guarda sin precio, sin saber si pagó, ni al crédito
-// sin cliente; la rebaja dicha para toda la venta se reparte entre las frutas según su peso en el total. Lógica pura.
+// sin cliente; la rebaja dicha para toda la venta se reparte entre las frutas según su peso en el total. Lo que pagó al llevar en
+// una venta al crédito («pagó solo 1000») va aparte del total y nunca llega a él (ADR-0025). Lógica pura.
+import { formatearSoles } from "../formato";
 import type { EstadoLlegada } from "../vida-util-reglas";
-import { leerMonto } from "./monto-reglas";
+import { leerMonto, type LecturaMonto } from "./monto-reglas";
 import type { VentaActual } from "./esquemas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
@@ -26,12 +28,18 @@ export type Borrador = {
   items: ItemBorrador[];
   descuento: number;
   condicion: "contado" | "credito" | null;
+  /** Cómo pagó: todo (al contado) o lo que pagó al llevar (al crédito con `pagado`). null si lo debe todo. */
   medio: Medio | null;
+  /**
+   * Al crédito, lo que pagó al llevarse la fruta («pagó solo 1000»): se guarda como abono de esta venta (ADR-0025). null si no pagó
+   * nada. Opcional: una venta que esperaba en la cola desde antes de esto no lo trae.
+   */
+  pagado?: number | null;
   /** Lo que se pidió al dictar («… factura») y la persona puede cambiar. No frena la venta: si el comprobante no puede salir, la venta igual se guarda. */
   comprobante: "ninguno" | "boleta" | "factura";
 };
 
-export type Falta = "cliente" | "producto" | "cantidad" | "precio" | "condicion";
+export type Falta = "cliente" | "producto" | "cantidad" | "precio" | "condicion" | "pago";
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
 
@@ -45,6 +53,7 @@ export const PRECIO_MAXIMO = 10_000;
 export const leerPrecio = (texto: string) => leerMonto(texto, { nombre: "precio", maximo: PRECIO_MAXIMO, unidad: "por caja" });
 
 export function borradorDe(t: Venta): Borrador {
+  const pagado = t.condicion === "credito" ? (t.pagoParcial ?? null) : null;
   return {
     cliente: t.cliente.elegido,
     items: t.items.map((it) => ({
@@ -56,9 +65,29 @@ export function borradorDe(t: Venta): Borrador {
     })),
     descuento: t.descuento,
     condicion: t.condicion,
-    medio: t.condicion === "contado" ? (t.medio ?? "efectivo") : null,
+    // Si dijo que pagó (todo o una parte) y no cómo, efectivo: a la vista, y se cambia de un toque.
+    medio: t.condicion === "contado" || pagado !== null ? (t.medio ?? "efectivo") : null,
+    pagado,
     comprobante: t.comprobante,
   };
+}
+
+/** Lo que pagó al llevar y cuenta: solo al crédito. Al cambiar a «Pagó», lo que había dejado ya no va. */
+const pagadoDe = (b: Borrador): number | null => (b.condicion === "credito" ? (b.pagado ?? null) : null);
+
+/** Lo que queda debiendo con esta venta: el total al crédito menos lo que pagó al llevar; 0 al contado. null mientras falte un precio. */
+export function debeDe(b: Borrador): number | null {
+  const total = totalDe(b);
+  if (total === null) return null;
+  if (b.condicion !== "credito") return 0;
+  return Math.max(0, redondear(total - (pagadoDe(b) ?? 0)));
+}
+
+/** Lo que escribió en «¿Cuánto te pagó ahora?». Llegar al total no es un pago parcial: es «Pagó» (la base también lo rechaza). */
+export function leerPagado(texto: string, total: number): LecturaMonto {
+  const l = leerMonto(texto, { nombre: "monto", maximo: PRECIO_MAXIMO * 1_000 });
+  if (l.ok && l.valor >= total) return { ok: false, error: `Si pagó los ${formatearSoles(total)}, toca «Pagó»: no debe nada.` };
+  return l;
 }
 
 /** El total que se va a guardar; null mientras falte algún precio. */
@@ -77,6 +106,9 @@ export function faltaDe(b: Borrador): Falta[] {
   // Precio 0 cuenta como que falta: una venta de S/ 0.00 es casi siempre un precio sin poner (/chaos 2026-10-29).
   if (b.items.some((it) => it.precio === null || !(it.precio > 0) || it.precio > PRECIO_MAXIMO)) falta.push("precio");
   if (b.condicion === null) falta.push("condicion");
+  const pagado = pagadoDe(b);
+  const total = totalDe(b);
+  if (pagado !== null && (!(pagado > 0) || (total !== null && pagado >= total))) falta.push("pago");
   return falta;
 }
 
@@ -86,6 +118,7 @@ const POR_FALTA: Record<Falta, string> = {
   cantidad: "cuántas cajas",
   precio: "a cuánto la caja",
   condicion: "si pagó o lo debe",
+  pago: "cuánto pagó: menos que el total (si pagó todo, toca «Pagó»)",
 };
 
 /** «Falta decir a cuánto la caja y si pagó o lo debe.» */
@@ -121,6 +154,8 @@ export function fueCorregido(t: Venta, b: Borrador): boolean {
   // Elegir cuando se preguntó no es corregir; cambiar lo que se dijo, sí.
   if (original.condicion !== null && original.condicion !== b.condicion) return true;
   if (original.comprobante !== b.comprobante) return true;
+  // Lo que pagó al llevar: cambiarlo es corregir; anotarlo cuando no se dijo si pagó es responder la pregunta, como tocar «Pagó».
+  if (original.condicion !== null && (original.pagado ?? null) !== pagadoDe(b)) return true;
   return original.condicion !== null && original.medio !== b.medio;
 }
 
@@ -128,6 +163,8 @@ export type PedidoVenta = {
   cliente_id: number | null;
   condicion: "contado" | "credito";
   medio_pago: Medio | null;
+  /** Lo que pagó al llevar, en una venta al crédito (ADR-0025). null si no pagó nada. */
+  pago_inicial: { monto: number; medio_pago: Medio } | null;
   comando_voz_id: number;
   corregido: boolean;
   items: { producto_id: number; cantidad: number; precio_unitario: number; descuento: number }[];
@@ -145,6 +182,7 @@ export function pedidoVenta(b: Borrador, comandoId: number, corregido: boolean):
     cliente_id: b.cliente?.id ?? null,
     condicion: b.condicion!,
     medio_pago: b.condicion === "contado" ? (b.medio ?? "efectivo") : null,
+    pago_inicial: pagadoDe(b) === null ? null : { monto: pagadoDe(b)!, medio_pago: b.medio ?? "efectivo" },
     comando_voz_id: comandoId,
     corregido,
     items: b.items.map((it, n) => ({ producto_id: it.productoId!, cantidad: it.cantidad, precio_unitario: it.precio!, descuento: descuentos[n]! })),
@@ -158,7 +196,8 @@ export function ventaActual(b: Borrador): VentaActual {
     items: b.items.map((it) => ({ producto_texto: it.producto, cantidad: it.cantidad, precio_unitario: it.precio })),
     descuento_total: b.descuento > 0 ? b.descuento : null,
     condicion: b.condicion,
-    medio_pago: b.condicion === "contado" ? (b.medio ?? "efectivo") : null,
+    pago_parcial: pagadoDe(b),
+    medio_pago: b.condicion === "contado" || pagadoDe(b) !== null ? (b.medio ?? "efectivo") : null,
     comprobante: b.comprobante,
   };
 }

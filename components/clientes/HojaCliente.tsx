@@ -8,7 +8,7 @@ import { Plus, UserRound, X } from "lucide-react";
 import { buscarParecidos, guardarCliente, type Parecido, type ResultadoGuardarCliente } from "@/app/(app)/acciones-clientes";
 import { Campo } from "@/components/ui/Campo";
 import { Desplegable } from "@/components/ui/Desplegable";
-import { Hoja } from "@/components/ui/Hoja";
+import { despuesDeCerrarHoja, Hoja } from "@/components/ui/Hoja";
 import { Guardado } from "@/components/voz/Guardado";
 import { GrupoOpciones } from "@/components/voz/GrupoOpciones";
 import { PieConfirmar } from "@/components/voz/PieConfirmar";
@@ -99,7 +99,8 @@ function Formulario({ cliente, alCerrar, alCambiarGuardando }: { cliente: Client
     if (!guardado) return;
     const t = window.setTimeout(() => {
       alCerrar();
-      if (!cliente) router.push(`/clientes/${guardado.id}`);
+      // Primero se quita la página de la hoja del historial: así «atrás» en la ficha nueva vuelve a la lista.
+      if (!cliente) despuesDeCerrarHoja(() => router.push(`/clientes/${guardado.id}`));
     }, 1700);
     return () => window.clearTimeout(t);
   }, [guardado, cliente, alCerrar, router]);

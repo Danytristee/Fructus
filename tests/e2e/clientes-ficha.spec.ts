@@ -87,13 +87,18 @@ test("un cliente sin movimientos está al día y la ficha dice qué falta, sin f
   }
 });
 
-test("los datos del cliente salen si los hay, y el teléfono se llama con un toque", async ({ page }) => {
+test("los datos del cliente salen si los hay, y se le llama o se le escribe por WhatsApp con un toque", async ({ page }) => {
   const nuevo = await crearCliente({ telefono: "987 654 321", tipo_documento: "DNI", numero_documento: "12345678", notas: "Paga los viernes" });
   try {
     await entrarComo(page, "duenio");
     await page.goto(`/clientes/${nuevo.id}`);
     const datos = page.getByRole("region", { name: "Sus datos" });
-    await expect(datos.getByRole("link", { name: "987 654 321" })).toHaveAttribute("href", "tel:987654321");
+    await expect(datos.getByRole("link", { name: "Llamar" })).toHaveAttribute("href", "tel:987654321");
+    // WhatsApp abre el chat con el saludo ya escrito (al día: sin recordatorio; con deuda, lleva el monto: contacto-reglas.test.ts).
+    const whatsapp = await datos.getByRole("link", { name: "WhatsApp" }).getAttribute("href");
+    expect(whatsapp).toMatch(/^https:\/\/wa\.me\/51987654321\?text=/);
+    expect(decodeURIComponent(whatsapp!.split("text=")[1]!)).toMatch(/^Hola .+, ¿cómo estás\?$/);
+    await expect(datos).toContainText("987 654 321");
     await expect(datos).toContainText("DNI 12345678");
     await expect(datos).toContainText("Paga los viernes");
     // Lo que no hay no se muestra.

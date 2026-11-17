@@ -130,6 +130,19 @@ describe("siguienteManosLibres: corregir hablando", () => {
   });
 });
 
+describe("siguienteManosLibres: «pagó quinientos» a «¿Pagó o lo debe?» (ADR-0025)", () => {
+  it("una respuesta con monto rehace la venta con lo que pagó y pregunta «¿Confirmo?»", () => {
+    const r = recorrer([...oir, respuesta("corregir"), { tipo: "corregida", pregunta: "confirmar" }, ...oir, respuesta("confirmar")], leyendo("pago"));
+    expect(r.efectos).toEqual(["escuchar", "enviar", "corregir", "releer", "escuchar", "enviar", "confirmar"]);
+    expect(r.estado.fase).toBe("guardando");
+  });
+
+  it("si con lo que pagó todavía falta algo, solo avisa", () => {
+    const r = recorrer([...oir, respuesta("corregir"), { tipo: "corregida", pregunta: "ninguna" }, leida], leyendo("pago"));
+    expect(r.estado.fase).toBe("callado");
+  });
+});
+
 describe("siguienteManosLibres: «repite»", () => {
   const repite = { tipo: "repetir" } as const;
 

@@ -37,12 +37,14 @@ export function motivoLimpio(texto: string): string | null {
 }
 
 /** Qué pasa al anular, en frases de puesto: la fruta vuelve al stock y la deuda o lo vendido baja. */
-export function consecuenciasDeAnular(v: Pick<DetalleVenta, "total" | "condicion" | "cliente" | "items">, soles: (n: number) => string): string[] {
+export function consecuenciasDeAnular(v: Pick<DetalleVenta, "total" | "condicion" | "cliente" | "items" | "pagoAlLlevar">, soles: (n: number) => string): string[] {
   const fruta = v.items.slice(0, 2).map((i) => lineaDeFruta(i, soles).titulo);
   const resto = v.items.length - fruta.length;
   const quedan = fruta.join(" y ") + (resto > 0 ? ` y ${resto} más` : "");
   const frases = [`Vuelven al stock ${quedan}.`];
-  if (v.condicion === "credito" && v.cliente) frases.push(`${v.cliente.nombre} te debe ${soles(v.total)} menos.`);
+  // Lo que pagó al llevar no se anula (ADR-0025, opción A): queda a su favor, y se dice antes de confirmar (/chaos 2026-11-17).
+  const aFavor = v.pagoAlLlevar ? `: los ${soles(v.pagoAlLlevar.monto)} que pagó al llevar le quedan a favor` : "";
+  if (v.condicion === "credito" && v.cliente) frases.push(`${v.cliente.nombre} te debe ${soles(v.total)} menos${aFavor}.`);
   else frases.push(`Se descuentan ${soles(v.total)} de lo que vendiste.`);
   return frases;
 }
