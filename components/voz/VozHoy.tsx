@@ -16,13 +16,20 @@ import { AvisoCola } from "./AvisoCola";
 import { AvisoVoz } from "./AvisoVoz";
 import { BotonVoz, type EstadoVoz } from "./BotonVoz";
 import { useGrabadora, type FallaGrabadora, type Grabacion } from "./useGrabadora";
+import { sonarEscucho } from "./senales";
+import { useHolaFructus } from "./useHolaFructus";
 
 // La hoja llega recién cuando hay tarjeta: no pesa en la primera carga de «Hoy» (CLAUDE.md, presupuesto de JavaScript).
 const HojaVoz = dynamic(() => import("./HojaVoz").then((m) => m.HojaVoz), { ssr: false });
 
 const TEXTO_LISTO = "Toca o mantén para hablar";
+// Con «Hola Fructus» prendido y escuchando (actividad 5c).
+const TEXTO_LISTO_PALABRA = "Di «Hola Fructus» o toca para hablar";
 // Grabó menos de DURACION_MINIMA_MS: casi siempre empezó a hablar antes de «Te escucho» o tocó dos veces seguidas.
 const TEXTO_CORTO = "No alcancé a oírte. Habla después de «Te escucho».";
+const TEXTO_CANCELADO = "Cancelado. No se envió nada.";
+// Despertó y después no dijo nada: quizás no era para Fructus (alguien dijo algo parecido). No se envía nada.
+const TEXTO_MUDO = "No te oí después de «Hola Fructus».";
 // Marca local del dispositivo: ya usó el botón una vez. Es solo comodidad de interfaz; si se borra, la ayuda vuelve.
 const MARCA_APRENDIO = "fructus:voz-aprendida";
 // Whisper con respaldo, más el intérprete con respaldo: el servidor puede tardar hasta ~20 s en el peor caso.
@@ -56,6 +63,8 @@ const POR_FALLA: Record<FallaGrabadora, string> = {
   sin_microfono: "No encuentro el micrófono de tu celular.",
   no_soportado: "Este navegador no puede grabar. Abre Fructus en Chrome.",
 };
+// «Hola Fructus» no pudo escuchar: el orbe sigue funcionando con el dedo.
+const FALLA_DETECTOR = "No pude escuchar «Hola Fructus». Toca el orbe para hablar.";
 
 export type ResultadoVoz = { comandoId: number; tarjeta: Tarjeta; latenciaMs: number };
 type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "en_cola" } | { tipo: "descartada"; incierto: boolean; que: string } | { tipo: "sin_confirmar"; resultado: ResultadoVoz };
@@ -63,12 +72,16 @@ type Aviso = { tipo: "error"; mensaje: string; pendiente: boolean } | { tipo: "e
 // Un audio dictado sin señal va a la cola del celular (ADR-0019): vuelve como tarjeta cuando haya señal.
 const EN_COLA = "Sin señal: guardé lo que dijiste. Cuando vuelva, te muestro la tarjeta para que la confirmes.";
 
+/** El nombre del archivo según lo que grabó el celular: webm (Chrome), m4a (Safari) o wav (lo que siguió a «Hola Fructus»). */
+const nombreDelAudio = (tipo: string) => (tipo.includes("wav") ? "voz.wav" : tipo.includes("mp4") ? "voz.m4a" : "voz.webm");
+
 /** «sin_red»: no salió del celular (o no hubo respuesta). Lo demás, lo que contestó el servidor. */
-async function enviarAudio({ audio, duracionMs }: Grabacion): Promise<Desenlace | "sin_red"> {
+async function enviarAudio({ audio, duracionMs, despertar }: Grabacion): Promise<Desenlace | "sin_red"> {
   if (!navigator.onLine) return "sin_red";
   const formulario = new FormData();
-  formulario.append("audio", audio, audio.type.includes("mp4") ? "voz.m4a" : "voz.webm");
+  formulario.append("audio", audio, nombreDelAudio(audio.type));
   formulario.append("duracion_ms", String(duracionMs));
+  if (despertar) formulario.append("despertar", "1");
   try {
     const r = await fetch("/api/voz", { method: "POST", body: formulario, signal: AbortSignal.timeout(TOPE_ENVIO_MS) });
     return desenlaceDeRespuesta(r.status, await r.json().catch(() => null));
@@ -97,6 +110,19 @@ export function VozHoy() {
   const inicioY = useRef(0);
   // Sin el dedo encima, callarse envía lo dicho (lib/voz/gesto-reglas.ts); manteniendo, no.
   const grabadora = useGrabadora({ alCallarse: () => aplicar({ tipo: "silencio" }) });
+  // Lo que se escucha ahora empezó con «Hola Fructus» (actividad 5c): eso lo graba el worker de la escucha, no useGrabadora.
+  const [porPalabra, setPorPalabra] = useState(false);
+  const deLaPalabra = useRef(false);
+  const palabra = useHolaFructus({
+    hojaAbierta,
+    voz: estado,
+    porPalabra,
+    alDespertar: () => aplicar({ tipo: "despertar" }),
+    alCallarse: () => aplicar({ tipo: "silencio" }),
+    alMudo: () => aplicar({ tipo: "mudo" }),
+  });
+  // La falla de «Hola Fructus» que ya se cerró: no se vuelve a mostrar hasta que sea otra.
+  const [fallaVista, setFallaVista] = useState<string | null>(null);
   const cola = useCola();
   // La tarjeta abierta vino de la cola (un dictado sin señal que ya volvió): se saca de la cola al guardarla o descartarla.
   const desdeCola = useRef<number | null>(null);
@@ -191,12 +217,38 @@ export function VozHoy() {
     const r = siguienteGesto(gesto.current, e);
     gesto.current = r.gesto;
     if (r.efecto === "empezar") void empezar();
+    else if (r.efecto === "despertar") despertar();
     else if (r.efecto === "bloquear") {
       setBloqueado(true);
       setAvance(0);
       navigator.vibrate?.(15);
     } else if (r.efecto === "enviar") void terminar(true);
-    else if (r.efecto === "descartar") void terminar(false);
+    else if (r.efecto === "descartar") void terminar(false, e.tipo === "mudo" ? TEXTO_MUDO : TEXTO_CANCELADO);
+    // La frase llegó mientras ya se graba con el dedo: lo que el worker empezó a grabar no es de nadie.
+    if (e.tipo === "despertar" && r.efecto !== "despertar") void palabra.terminar(false);
+  }
+
+  /** «Te escucho» con su reloj, la vibración y el tope de 55 s: con el dedo o después de «Hola Fructus». */
+  function mostrarEscuchando() {
+    setEstado("escuchando");
+    navigator.vibrate?.(20);
+    const inicio = Date.now();
+    const contar = () => setTexto(textoEscuchando((Date.now() - inicio) / 1000));
+    contar();
+    reloj.current = window.setInterval(contar, 250);
+    tope.current = window.setTimeout(() => aplicar({ tipo: "tope" }), TOPE_ESCUCHA_MS);
+  }
+
+  /** Se oyó «Hola Fructus»: lo que sigue ya se graba en el worker, con los 2 s de antes. El orbe queda escuchando sin el dedo. */
+  function despertar() {
+    window.clearTimeout(vuelta.current);
+    cerrarDescarte();
+    setAviso(null);
+    deLaPalabra.current = true;
+    setPorPalabra(true);
+    setBloqueado(true);
+    sonarEscucho(); // con audífono y sin mirar: la señal de que ya puede hablar
+    mostrarEscuchando();
   }
 
   async function empezar() {
@@ -219,28 +271,25 @@ export function VozHoy() {
     if (gesto.current.fase === "reposo") return; // soltó, envió o canceló antes de que el micrófono arrancara
     // «Te escucho» y la vibración recién cuando el micrófono graba (unos 200 ms después del toque): son la señal para
     // hablar. Si se mostraran al toque, el «Vendí…» del principio podía quedar fuera del audio.
-    setEstado("escuchando");
-    navigator.vibrate?.(20);
-    const inicio = Date.now();
-    const contar = () => setTexto(textoEscuchando((Date.now() - inicio) / 1000));
-    contar();
-    reloj.current = window.setInterval(contar, 250);
-    tope.current = window.setTimeout(() => aplicar({ tipo: "tope" }), TOPE_ESCUCHA_MS);
+    mostrarEscuchando();
   }
 
-  /** Apaga el micrófono y envía lo grabado, o lo tira si se canceló. */
-  async function terminar(enviarlo: boolean) {
+  /** Apaga el micrófono y envía lo grabado, o lo tira (y dice `mensaje`) si se canceló o no dijo nada. */
+  async function terminar(enviarlo: boolean, mensaje = TEXTO_CANCELADO) {
     window.clearInterval(reloj.current);
     window.clearTimeout(tope.current);
     setBloqueado(false);
     setAvance(0);
-    const grabacion = await grabadora.terminar();
+    const porLaPalabra = deLaPalabra.current;
+    deLaPalabra.current = false;
+    setPorPalabra(false);
+    const grabacion = porLaPalabra ? await palabra.terminar(enviarlo) : await grabadora.terminar();
     if (!enviarlo) {
       setEstado("listo");
-      decir("Cancelado. No se envió nada.");
+      decir(mensaje);
       return;
     }
-    if (grabacion.duracionMs < DURACION_MINIMA_MS || grabacion.audio.size === 0) {
+    if (!grabacion || grabacion.duracionMs < DURACION_MINIMA_MS || grabacion.audio.size === 0) {
       setEstado("listo");
       decir(TEXTO_CORTO, 3500);
       return;
@@ -320,6 +369,14 @@ export function VozHoy() {
       {aviso?.tipo === "en_cola" && audiosEnCola > 0 && (
         <AvisoVoz tono="info" mensaje={EN_COLA} cerrar={{ etiqueta: "Cerrar el aviso", alTocar: () => setAviso(null) }} />
       )}
+      {/* «Hola Fructus» no pudo escuchar (sin micrófono, o el detector no cargó): se dice una vez; el orbe sigue con el dedo. */}
+      {palabra.falla && fallaVista !== palabra.falla && !aviso && (
+        <AvisoVoz
+          tono="error"
+          mensaje={palabra.falla === "detector" ? FALLA_DETECTOR : POR_FALLA[palabra.falla]}
+          cerrar={{ etiqueta: "Cerrar el aviso", alTocar: () => setFallaVista(palabra.falla) }}
+        />
+      )}
       {(!aviso || (aviso.tipo === "en_cola" && audiosEnCola === 0)) && !hojaAbierta && <AvisoCola alAbrir={abrirDeLaCola} />}
       {aviso?.tipo === "sin_confirmar" && (
         <AvisoVoz
@@ -360,9 +417,10 @@ export function VozHoy() {
       )}
       <BotonVoz
         estado={estado}
-        texto={texto}
+        texto={texto === TEXTO_LISTO && palabra.atenta ? TEXTO_LISTO_PALABRA : texto}
         // La etiqueta enseña el primer día y acompaña mientras escucha; después no tapa «Lo último» (/formidable 2026-10-28).
         verTexto={!aviso && (!aprendio || estado !== "listo" || texto !== TEXTO_LISTO)}
+        escuchaLaFrase={palabra.atenta && estado === "listo"}
         bloqueado={bloqueado}
         alCancelar={bloqueado ? () => aplicar({ tipo: "cancelar" }) : undefined}
         candado={estado === "escuchando" && !bloqueado ? avance : undefined}

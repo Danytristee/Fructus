@@ -101,6 +101,7 @@ describe("el detector del navegador calcula lo mismo que openWakeWord en Python"
 
   test("despierta una vez con «Hola Fructus» y ninguna con una venta o con «Hola, ¿hay frutas?»", async () => {
     expect(veces(await puntajes("hola-fructus.wav"))).toBe(1);
+    expect(veces(await puntajes("hola-fructus-venta.wav"))).toBe(1); // dicha de corrido con la venta: una vez, no dos
     expect(veces(await puntajes("puesto.wav"))).toBe(0);
     expect(veces(await puntajes("hola-frutas.wav"))).toBe(0);
   });

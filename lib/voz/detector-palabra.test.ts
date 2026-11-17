@@ -78,6 +78,22 @@ describe("el detector de «Hola Fructus»", () => {
     expect(llamadas[0]).toEqual({ modelo: "espectrograma", forma: [1, 1280] });
   });
 
+  test("un reinicio que llega mientras calcula un cuadro deja ese cuadro sin efecto", async () => {
+    const { llamadas, modelos } = modelosDeMentira(0.7);
+    const detector = await crearDetector(modelos);
+    for (let i = 0; i < 6; i++) await detector.oir(cuadro());
+    // El cuadro empieza, y antes de que el espectrograma responda llega el reinicio (la pantalla pausó la escucha).
+    const enCurso = detector.oir(cuadro());
+    detector.reiniciar();
+    expect(await enCurso).toBe(0);
+    llamadas.length = 0;
+    // Lo siguiente empieza de verdad desde cero: sin los 30 ms del cuadro viejo y con 5 cuadros en 0.
+    const puntajes = [];
+    for (let i = 0; i < 6; i++) puntajes.push(await detector.oir(cuadro()));
+    expect(llamadas[0]).toEqual({ modelo: "espectrograma", forma: [1, 1280] });
+    expect(puntajes.map((p) => Number(p.toFixed(3)))).toEqual([0, 0, 0, 0, 0, 0.7]);
+  });
+
   test("un cuadro de otro largo es un error, no un puntaje inventado", async () => {
     const { modelos } = modelosDeMentira();
     const detector = await crearDetector(modelos);

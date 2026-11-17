@@ -1,5 +1,5 @@
 // El gesto del botón de voz: mantener para hablar (soltar envía) o tocar una vez para que quede escuchando (otro toque envía, y
-// también callarse: lib/voz/silencio-reglas.ts).
+// también callarse: lib/voz/silencio-reglas.ts). Decir «Hola Fructus» es como ese toque: el orbe queda escuchando sin el dedo.
 // Lógica pura: no importa React ni el micrófono. Quien la usa ejecuta el efecto que devuelve.
 
 /** Un toque más corto que esto no es «mantener»: deja el botón escuchando sin el dedo encima. */
@@ -34,10 +34,17 @@ export type EventoGesto =
   /** Pasó TOPE_ESCUCHA_MS escuchando. */
   | { tipo: "tope" }
   /** Habló y después calló un rato (lib/voz/silencio-reglas.ts). */
-  | { tipo: "silencio" };
+  | { tipo: "silencio" }
+  /** Se oyó «Hola Fructus» (lib/voz/palabra-reglas.ts). Lo que sigue ya se está grabando, con los 2 s de antes. */
+  | { tipo: "despertar" }
+  /** Después de «Hola Fructus» no dijo nada (lib/voz/escucha-reglas.ts): no era para Fructus. */
+  | { tipo: "mudo" };
 
-/** Qué hacer con el micrófono: empezar a grabar, seguir sin el dedo, enviar lo grabado, tirarlo o nada. */
-export type EfectoGesto = "empezar" | "bloquear" | "enviar" | "descartar" | "nada";
+/**
+ * Qué hacer con el micrófono: empezar a grabar, mostrar que escucha lo que sigue a «Hola Fructus» (ya se graba), seguir sin el dedo,
+ * enviar lo grabado, tirarlo o nada.
+ */
+export type EfectoGesto = "empezar" | "despertar" | "bloquear" | "enviar" | "descartar" | "nada";
 
 export const REPOSO: Gesto = { fase: "reposo" };
 
@@ -45,6 +52,7 @@ export function siguienteGesto(g: Gesto, e: EventoGesto): { gesto: Gesto; efecto
   const quedar = { gesto: g, efecto: "nada" as const };
   switch (g.fase) {
     case "reposo":
+      if (e.tipo === "despertar") return { gesto: { fase: "bloqueado" }, efecto: "despertar" };
       return e.tipo === "bajar" ? { gesto: { fase: "presionado", desde: e.en }, efecto: "empezar" } : quedar;
     case "presionado":
       if (e.tipo === "subir") {
@@ -60,7 +68,7 @@ export function siguienteGesto(g: Gesto, e: EventoGesto): { gesto: Gesto; efecto
       if (e.tipo === "bajar") return { gesto: { fase: "cerrando" }, efecto: "nada" };
       // Sin el dedo, callarse es terminar: se envía solo, sin el segundo toque. Mientras se mantiene, manda el dedo.
       if (e.tipo === "tope" || e.tipo === "silencio") return { gesto: REPOSO, efecto: "enviar" };
-      if (e.tipo === "cancelar") return { gesto: REPOSO, efecto: "descartar" };
+      if (e.tipo === "cancelar" || e.tipo === "mudo") return { gesto: REPOSO, efecto: "descartar" };
       return quedar;
     case "cerrando":
       if (e.tipo === "subir" || e.tipo === "tope" || e.tipo === "silencio") return { gesto: REPOSO, efecto: "enviar" };

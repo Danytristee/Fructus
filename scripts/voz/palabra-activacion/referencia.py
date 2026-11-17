@@ -36,6 +36,8 @@ AUDIOS = {
     # Lo que más engaña al modelo provisional (docs/voz/palabra-activacion-2026-11-14-provisional.md): da puntajes intermedios, que
     # son los que mejor muestran si los dos lados calculan lo mismo.
     "hola-frutas": "Hola, ¿hay frutas?",
+    # La venta dicha de corrido después de la frase: la que oye el micrófono falso de tests/e2e/voz-hola-fructus.spec.ts.
+    "hola-fructus-venta": "Hola Fructus, vendí diez cajas de mango kent a don Lucho, lo debe.",
 }
 # De este audio se guardan también los rasgos de cada cuadro (lo que entra al modelo de la frase), no solo el puntaje: si los
 # rasgos coinciden, el espectrograma y el modelo de rasgos de la app calculan lo mismo que los de openWakeWord.
@@ -49,7 +51,7 @@ def a_16k(audio: np.ndarray, frecuencia: int) -> np.ndarray:
     return resample_poly(audio, FRECUENCIA // mcd, frecuencia // mcd) if frecuencia != FRECUENCIA else audio
 
 
-def fabricar_audios(voz_ruta: Path, salida: Path, semilla: int, espeak: Path | None) -> None:
+def fabricar_audios(voz_ruta: Path, salida: Path, semilla: int, espeak: Path | None, solo: list[str]) -> None:
     from piper import PiperVoice, SynthesisConfig
 
     # espeak no acepta rutas largas (unos 160 caracteres): si la del paquete lo es, se copia a una corta (generar_clips.py).
@@ -57,6 +59,9 @@ def fabricar_audios(voz_ruta: Path, salida: Path, semilla: int, espeak: Path | N
     azar = np.random.default_rng(semilla)
     salida.mkdir(parents=True, exist_ok=True)
     for nombre, texto in AUDIOS.items():
+        # Piper no sintetiza dos veces igual: rehacer un audio que ya está cambia su referencia. Con --solo se hace solo el nuevo.
+        if solo and nombre not in solo:
+            continue
         trozos = list(voz.synthesize(texto, syn_config=SynthesisConfig(length_scale=1.0, noise_scale=0.667, noise_w_scale=0.8)))
         habla = np.concatenate([t.audio_int16_array for t in trozos]).astype(np.float32) / 32768
         habla = a_16k(habla, trozos[0].sample_rate)
@@ -124,13 +129,14 @@ def main() -> None:
     a.add_argument("--salida", type=Path, required=True)
     a.add_argument("--semilla", type=int, default=2026)
     a.add_argument("--espeak", type=Path, help="carpeta espeak-ng-data, si la del paquete tiene una ruta muy larga")
+    a.add_argument("--solo", nargs="*", default=[], help="solo estos audios (sin .wav); por defecto, todos")
     r = sub.add_parser("puntajes", help="los puntajes de openWakeWord, cuadro por cuadro")
     r.add_argument("--modelo", type=Path, required=True)
     r.add_argument("--audios", type=Path, nargs="+", required=True)
     r.add_argument("--salida", type=Path, required=True)
     args = p.parse_args()
     if args.paso == "audios":
-        fabricar_audios(args.voz, args.salida, args.semilla, args.espeak)
+        fabricar_audios(args.voz, args.salida, args.semilla, args.espeak, args.solo)
     else:
         calcular_puntajes(args.modelo, args.audios, args.salida)
 

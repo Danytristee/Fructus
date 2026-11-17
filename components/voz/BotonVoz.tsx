@@ -1,4 +1,4 @@
-import { ChevronUp, Lock, Mic, SendHorizontal, X } from "lucide-react";
+import { ChevronUp, Ear, Lock, Mic, SendHorizontal, X } from "lucide-react";
 import { cn } from "cn";
 
 export type EstadoVoz = "listo" | "escuchando" | "entendiendo";
@@ -15,12 +15,14 @@ type Props = Omit<React.ComponentProps<"button">, "children"> & {
   alCancelar?: () => void;
   /** Mientras se mantiene, el candado encima del orbe: cuánto subió el dedo hacia él, de 0 a 1. Sin valor, no se dibuja. */
   candado?: number;
+  /** En reposo, está escuchando «Hola Fructus» (actividad 5c): una oreja en el orbe lo dice, sin moverse. */
+  escuchaLaFrase?: boolean;
 };
 
 const ondas = ["-0.45s", "-0.15s", "-0.6s", "-0.3s", "-0.75s"];
 
 // El orbe de Aurora (ADR-0007). Solo dibuja: grabar, enviar y abrir la tarjeta son de quien lo usa.
-export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, alCancelar, candado, className, ...props }: Props) {
+export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, alCancelar, candado, escuchaLaFrase = false, className, ...props }: Props) {
   const enviar = estado === "escuchando" && bloqueado;
   return (
     <div className={cn("pointer-events-none grid justify-items-center gap-2", className)}>
@@ -74,10 +76,21 @@ export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, al
             />
           ))}
         </span>
+        {escuchaLaFrase && (
+          // Arriba a la derecha del orbe, fuera del camino del pulgar: dice que el micrófono está abierto esperando «Hola Fructus».
+          <span
+            aria-hidden
+            data-oreja
+            className="absolute -top-1 -right-1 z-10 grid size-9 animate-subir place-items-center rounded-full border-2 border-fondo bg-lima text-sobre-lima"
+          >
+            <Ear className="size-5" strokeWidth={2.4} />
+          </span>
+        )}
         <button
           type="button"
           data-estado={estado}
           data-bloqueado={bloqueado || undefined}
+          data-palabra={escuchaLaFrase || undefined}
           aria-describedby="voz-texto"
           className={cn(
             // Solo el orbe recibe toques: la etiqueta y el contenedor dejan pasar el dedo a la barra de abajo.
@@ -127,7 +140,7 @@ export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, al
               estado === "entendiendo" && "animate-girar opacity-100",
             )}
           />
-          <span className="sr-only">{enviar ? "Enviar lo que dijiste" : "Botón de voz"}</span>
+          <span className="sr-only">{enviar ? "Enviar lo que dijiste" : escuchaLaFrase ? "Botón de voz (escuchando «Hola Fructus»)" : "Botón de voz"}</span>
         </button>
       </div>
     </div>

@@ -6,7 +6,8 @@ import { CUADRO_MS, OIDO_NUEVO, SILENCIO_PARA_ENVIAR_MS, nivelDb, oir } from "@/
 
 export type FallaGrabadora = "sin_permiso" | "sin_microfono" | "no_soportado";
 
-export type Grabacion = { audio: Blob; duracionMs: number };
+/** `despertar`: empezó con «Hola Fructus» (un WAV con los 2 s de antes): el servidor confirma que se dijo la frase (actividad 5d). */
+export type Grabacion = { audio: Blob; duracionMs: number; despertar?: true };
 
 // Opus en webm es lo más liviano (Chrome de Android); Safari solo graba mp4. Whisper acepta los dos.
 const FORMATOS = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];

@@ -81,8 +81,11 @@ export async function crearDetector(modelos: Modelos): Promise<Detector> {
   let filas: Float32Array[] = [];
   let rasgos: Float32Array[] = [];
   let cuadros = 0;
+  // Cada reinicio es una vuelta nueva: un cuadro que se estaba calculando cuando llegó el reinicio ya no cuenta ni deja nada.
+  let vuelta = 0;
 
   const reiniciar = () => {
+    vuelta++;
     previo = new Int16Array(0);
     filas = Array.from({ length: VENTANA_ESPECTRO }, () => new Float32Array(BANDAS).fill(1)); // np.ones((76, 32))
     rasgos = rasgosDelSilencio.slice(-VENTANA_RASGOS);
@@ -92,20 +95,24 @@ export async function crearDetector(modelos: Modelos): Promise<Detector> {
 
   async function oir(cuadro: Int16Array): Promise<number> {
     if (cuadro.length !== MUESTRAS_POR_CUADRO) throw new Error(`detector: cada cuadro trae ${MUESTRAS_POR_CUADRO} muestras`);
+    const mia = vuelta;
     // 1. El espectrograma del cuadro, con los 30 ms anteriores (el primero, sin ellos: 5 filas; después, 8).
     const trozo = new Int16Array(previo.length + cuadro.length);
     trozo.set(previo);
     trozo.set(cuadro, previo.length);
     previo = trozo.slice(-MUESTRAS_PREVIAS);
-    filas = [...filas, ...(await espectro(modelos.espectrograma, trozo))].slice(-VENTANA_ESPECTRO);
+    const nuevas = await espectro(modelos.espectrograma, trozo);
+    if (mia !== vuelta) return 0;
+    filas = [...filas, ...nuevas].slice(-VENTANA_ESPECTRO);
     // 2. Un rasgo nuevo con los últimos 76 cuadros del espectrograma.
     const rasgo = await modelos.rasgos(juntar(filas, BANDAS), [1, VENTANA_ESPECTRO, BANDAS, 1]);
+    if (mia !== vuelta) return 0;
     rasgos = [...rasgos, rasgo.slice(0, RASGOS)].slice(-VENTANA_RASGOS);
     // 3. El puntaje de la frase con los últimos 16 rasgos. Los primeros cuadros dan 0, como en openWakeWord.
     cuadros++;
     if (cuadros <= CUADROS_SIN_PUNTAJE) return 0;
     const [puntaje] = await modelos.palabra(juntar(rasgos, RASGOS), [1, VENTANA_RASGOS, RASGOS]);
-    return puntaje ?? 0;
+    return mia === vuelta ? (puntaje ?? 0) : 0;
   }
 
   return { oir, reiniciar, ultimosRasgos: () => rasgos[rasgos.length - 1]! };

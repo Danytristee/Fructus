@@ -1,0 +1,66 @@
+# 2026-11-16 · «Hola Fructus» en «Hoy» (actividades 5b a 5e)
+
+El nombre quedó: la app sigue siendo Fructus y la frase, «Hola Fructus». Se retoma la parte 2 sobre la rama
+`claude/hola-fructus-viabilidad` (4 y 5a, traída a esta rama con un merge). La 5d del plan del 14-11 («terminar al callarse» con
+Silero) ya existía desde el PR #39 (`lib/voz/silencio-reglas.ts`, por volumen): en su lugar va la verificación en dos pasos contra
+«hola, frutas», que es lo que pedía mantener la frase.
+
+## Actividad 5b · El detector en TypeScript, igual al de Python
+
+- **Qué cambió:**
+  - `lib/voz/detector-palabra.ts`: la cadena de openWakeWord 0.6.0 (espectrograma → rasgos → frase) para onnxruntime-web, con los
+    modelos pasados de afuera.
+  - `lib/voz/palabra-reglas.ts`: umbral 0.9, 3 cuadros seguidos y 2 s de espera, la regla con que se midió el modelo.
+  - `public/voz/`: los dos modelos de rasgos de openWakeWord, sin cambios.
+  - `scripts/voz/palabra-activacion/referencia.py` y `tests/palabra/`: los audios (con la voz que el modelo no oyó) y los puntajes
+    de Python.
+- **Cómo se verificó:** `detector-palabra.paridad.test.ts` con ONNX Runtime real. Los rasgos difieren de los de Python en 0.00006
+  como mucho (valores de -40 a 40) y los puntajes, en 0.000005. Despierta una vez con «Hola Fructus» y ninguna con una venta ni con
+  «Hola, ¿hay frutas?».
+- **Un cambio a propósito:** el historial de rasgos empieza con los del silencio, no con ruido al azar, para que los dos lados empiecen
+  igual.
+
+## Actividad 5c · «Hola Fructus» en «Hoy»
+
+- **Qué cambió:**
+  - Interruptor «Hola Fructus» en el menú, debajo de «Manos libres», por celular y apagado de fábrica (`components/marco/HolaFructus.tsx`).
+  - Con el interruptor prendido, «Hoy» abre el micrófono, carga el detector en un worker (`components/voz/escucha.worker.ts`) y le pasa
+    el audio por un AudioWorklet (`public/voz/captura-worklet.js`), sin pasar por la pantalla. Una oreja en el orbe dice que escucha.
+  - Al oír la frase suena un «tin», vibra y el orbe queda escuchando sin el dedo («Enviar», «Borrar»). Lo dicho se envía al callarse
+    como WAV, con los 2 s de antes (la frase entera) y la marca `despertar`.
+  - Se pausa con la tarjeta abierta, mientras entiende y mientras se graba con el dedo. Suelta el micrófono con la pantalla oculta
+    (`lib/voz/escucha-reglas.ts`).
+  - Si después de la frase no dice nada en 5 s, no envía y lo dice.
+- **Dos bordes que aparecieron al probar, arreglados de raíz:**
+  - El final de «…tus» cae después de despertar. Contaba como voz, y decir la frase y esperar 1.2 s enviaba la frase sola. Los
+    primeros 500 ms después de despertar se graban, pero no cuentan.
+  - En el worker, `terminar` esperaba a vaciar la cola y el `pausar` que la pantalla manda enseguida borraba el dictado. Ahora cierra en
+    el acto.
+- **Cómo se verificó:**
+  - Vitest de las reglas (escucha, gesto y WAV).
+  - `voz-hola-fructus.spec.ts` a 412 y 360 px, 14 en verde, con la escucha de verdad en Chrome (worker, onnxruntime-web y modelos) y un
+    micrófono falso que dice los audios de `tests/palabra/`:
+    - la venta dicha de corrido llega a la tarjeta sin un toque;
+    - con manos libres llega hasta «Guardado», con la venta en la base y `confirmado_por = voz`;
+    - «Hola, ¿hay frutas?» no despierta;
+    - el silencio después de la frase no envía;
+    - «Borrar» tira lo grabado;
+    - con la tarjeta abierta no escucha;
+    - el interruptor del menú la prende, y al apagarla suelta el micrófono.
+  - Capturas en `docs/formidable/capturas/hola-fructus-2026-11-16/`.
+  - Regresión, con el interruptor apagado (lo de siempre):
+    - Vitest completo: 944 en verde.
+    - E2e de voz, menú y «Hoy»: 92 de 102 en verde. Las 10 restantes fallaron por el entorno:
+      - 2 por correr dos Playwright a la vez (se borran las trazas); solas pasan.
+      - 8 por la píldora de Next (ver «Pendiente»); con la píldora oculta pasan las 8.
+- **Pendiente:**
+  - **Sin probar en un teléfono real:** el audio a 16 kHz en Chrome de Android, si hace falta un toque para que arranque (se reanuda con
+    el primero, `components/voz/useHolaFructus.ts`), el «tin» con audífono Bluetooth y la batería.
+  - El panel del navegador de Claude bloquea el micrófono: la escucha solo se pudo probar con Playwright.
+  - `components/voz/VozHoy.tsx`, efecto de montaje: el aviso de `react-hooks/exhaustive-deps` por `cerrarDescarte` ya estaba en main.
+  - `components/voz/VozHoy.tsx` pasó de 397 a unas 450 líneas. Ya pasaba las ~250 de CLAUDE.md antes de esta obra: pide partirse (los
+    avisos por un lado, el gesto y la grabación por otro).
+  - **El indicador de desarrollo de Next tapa la barra de abajo en las e2e.** Desde hoy, Next 16.4.3 muestra «1 Insight» (aviso de
+    seguridad: pide actualizar Next). Esa píldora intercepta toques sobre «Clientes» (`marco.spec.ts:26`, `voz.spec.ts:276`), y su botón
+    «Open issues overlay» calza con `getByRole("button", { name: "Verla" })` («o**verla**y»: `voz-venta.spec.ts:194` y `:211`). No es de
+    esta rama: pasa en cualquier rama hasta actualizar Next.
