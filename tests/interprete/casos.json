@@ -1400,6 +1400,442 @@
           "medio_pago": null
         }
       }
+    },
+    {
+      "id": "venta-pago-parcial-con-precio",
+      "transcripcion": "Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": 500
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 1000,
+          "medio_pago": "efectivo",
+          "descuento_total": null
+        }
+      }
+    },
+    {
+      "id": "venta-pago-parcial-sin-precio",
+      "transcripcion": "Vendí 10 cajas de mango a don Lucho y pagó solo 1000 soles",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": null
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 1000,
+          "medio_pago": "efectivo",
+          "descuento_total": null
+        }
+      }
+    },
+    {
+      "id": "venta-dejo-a-cuenta-resto-debe",
+      "transcripcion": "Diez de papaya al flaco Carlos a 40, me dejó 200 a cuenta y el resto lo debe",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "flaco carlos",
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 10,
+              "precio_unitario": 40
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 200,
+          "medio_pago": "efectivo",
+          "descuento_total": null
+        }
+      }
+    },
+    {
+      "id": "venta-yapeo-parte-paga-sabado",
+      "transcripcion": "Cinco cajas de piña a la del puesto doce a 35, me yapeó 100 y lo demás me paga el sábado",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "puesto 12",
+          "items": [
+            {
+              "producto_texto": "piña",
+              "cantidad": 5,
+              "precio_unitario": 35
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 100,
+          "medio_pago": "yape",
+          "descuento_total": null
+        }
+      }
+    },
+    {
+      "id": "venta-me-dio-nomas",
+      "transcripcion": "Don Lucho se llevó 3 de manzana a 180, me dio 300 nomás",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "manzana",
+              "cantidad": 3,
+              "precio_unitario": 180
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 300,
+          "medio_pago": "efectivo",
+          "descuento_total": null
+        }
+      }
+    },
+    {
+      "id": "venta-pago-la-mitad-con-precio",
+      "transcripcion": "Vendí 8 de mandarina a don Lucho a 30, pagó la mitad",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mandarina",
+              "cantidad": 8,
+              "precio_unitario": 30
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 120,
+          "medio_pago": "efectivo",
+          "descuento_total": null
+        }
+      }
+    },
+    {
+      "id": "venta-pago-la-mitad-sin-precio",
+      "transcripcion": "Vendí 6 de palta a don Lucho, pagó la mitad",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "palta",
+              "cantidad": 6,
+              "precio_unitario": null
+            }
+          ],
+          "pago_parcial": null
+        }
+      }
+    },
+    {
+      "id": "venta-a-cuenta-sola-es-credito",
+      "transcripcion": "Vendí 10 de mango a don Lucho a 45, a cuenta",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": null
+        }
+      }
+    },
+    {
+      "id": "venta-pago-todo-es-contado",
+      "transcripcion": "Vendí 4 de piña al Mochica a 40 y me pagó los 160",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "mochica",
+          "items": [
+            {
+              "producto_texto": "piña",
+              "cantidad": 4,
+              "precio_unitario": 40
+            }
+          ],
+          "condicion": "contado",
+          "pago_parcial": null,
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "venta-pago-solo-sin-parcial",
+      "transcripcion": "Diez de mango a cuarenta y cinco para don Lucho, pagó",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "contado",
+          "pago_parcial": null
+        }
+      }
+    },
+    {
+      "id": "abono-dio-a-cuenta-sin-venta",
+      "transcripcion": "Don Lucho me dio 300 a cuenta de lo que debe",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "monto": 300,
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "venta-total-dicho-todo-por",
+      "transcripcion": "Le vendí 10 cajas de mango a don Lucho, todo por 500, lo debe",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": null,
+              "total_item": 500
+            }
+          ],
+          "condicion": "credito",
+          "descuento_total": null,
+          "pago_parcial": null
+        }
+      }
+    },
+    {
+      "id": "venta-total-dicho-las-diez",
+      "transcripcion": "Diez de papaya al flaco Carlos en 300 las diez, pagó",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "flaco carlos",
+          "items": [
+            {
+              "producto_texto": "papaya",
+              "cantidad": 10,
+              "precio_unitario": null,
+              "total_item": 300
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "efectivo",
+          "descuento_total": null
+        }
+      }
+    },
+    {
+      "id": "venta-total-dicho-son",
+      "transcripcion": "Don Lucho se llevó 5 de piña, son 200, me yapeó",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "piña",
+              "cantidad": 5,
+              "precio_unitario": null,
+              "total_item": 200
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "yape",
+          "pago_parcial": null
+        }
+      }
+    },
+    {
+      "id": "venta-total-dicho-le-cobre",
+      "transcripcion": "Vendí 10 de mango a don Lucho, le cobré 450, pagó",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": null,
+              "total_item": 450
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "efectivo",
+          "pago_parcial": null
+        }
+      }
+    },
+    {
+      "id": "venta-total-no-divide",
+      "transcripcion": "Tres cajas de palta a don Lucho por 100 soles, lo debe",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "palta",
+              "cantidad": 3,
+              "precio_unitario": null,
+              "total_item": 100
+            }
+          ],
+          "condicion": "credito",
+          "descuento_total": null
+        }
+      }
+    },
+    {
+      "id": "venta-precio-cada-una",
+      "transcripcion": "Vendí 10 de mango a don Lucho a 45 cada una, lo debe",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito"
+        }
+      }
+    },
+    {
+      "id": "venta-vuelto-es-contado",
+      "transcripcion": "Vendí 10 de mango a don Lucho a 45, me dio 500 y le di 50 de vuelto",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "efectivo",
+          "pago_parcial": null,
+          "descuento_total": null
+        }
+      }
+    },
+    {
+      "id": "venta-pago-parcial-dos-medios",
+      "transcripcion": "Vendí 10 cajas de mango a don Lucho a 500, pagó 1000 con Yape y 500 en efectivo, lo demás lo debe",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": 500
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 1500
+        }
+      }
+    },
+    {
+      "id": "venta-me-debe-primero",
+      "transcripcion": "Don Lucho me debe, le vendí 10 de mango a 45",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": null
+        }
+      }
+    },
+    {
+      "id": "venta-rebaja-al-total-no-es-pago",
+      "transcripcion": "Vendí 10 de mango a don Lucho a 45, le rebajé 50 y me pagó con Plin",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "contado",
+          "medio_pago": "plin",
+          "descuento_total": 50,
+          "pago_parcial": null
+        }
+      }
+    },
+    {
+      "id": "venta-mil-quinientos-hablado",
+      "transcripcion": "Vendí veinte cajas de mango a don Lucho a doscientos cincuenta y pagó mil quinientos",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "don lucho",
+          "items": [
+            {
+              "producto_texto": "mango",
+              "cantidad": 20,
+              "precio_unitario": 250
+            }
+          ],
+          "condicion": "credito",
+          "pago_parcial": 1500,
+          "medio_pago": "efectivo"
+        }
+      }
     }
   ]
 }

@@ -7,7 +7,16 @@ import { ESTADOS_LLEGADA } from "../vida-util-reglas";
 
 const medio = z.enum(["efectivo", "yape", "plin", "transferencia"]);
 const condicion = z.enum(["contado", "credito"]);
-const dudas = z.array(z.string()).default([]).describe("Dudas cortas, en español, para mostrar en la tarjeta.");
+// Una duda frena confirmar hablando (ADR-0020): solo va lo que de verdad no se entendió. Claude Haiku ponía dudas en 25 de 93 frases,
+// casi todas sobre lo que la tarjeta ya pide o marca sola (/voz-precision 2026-11-17-2).
+const dudas = z
+  .array(z.string())
+  .default([])
+  .describe(
+    "Solo lo que de verdad no entendiste: un número que pudo ser otro, un nombre que no calza, dos lecturas posibles. Frases cortas, " +
+      "en español. Vacío si se entendió. NO pongas lo que la persona no dijo (el precio, si pagó, el cliente, el medio de pago): la app " +
+      "ya lo pide o lo marca. NO expliques la cuenta ni repitas lo que entendiste.",
+  );
 const cantidad = z.number().positive().describe("Cajas.");
 const dinero = z.number().nonnegative();
 
@@ -21,13 +30,35 @@ const herramientasVoz = {
           z.object({
             producto_texto: z.string().min(1),
             cantidad,
-            precio_unitario: dinero.nullable().describe("Precio por caja. null si no lo dijo."),
+            precio_unitario: dinero.nullable().describe('Precio por caja: "a 45", "a 45 cada una". null si no lo dijo o si dijo un total.'),
+            // La división la hace la tarjeta, contando (lib/voz/tarjeta-reglas.ts): «3 cajas por 100» salía a 100 la caja (/voz-precision 2026-11-17).
+            total_item: dinero
+              .nullable()
+              .default(null)
+              .describe(
+                'Si dijo cuánto fue TODO por esa fruta en vez del precio por caja: "todo por 500", "son 200", "le cobré 450", ' +
+                  '"en 300 las diez", "3 cajas por 100". Ese total, sin dividir: entonces precio_unitario = null y la app lo divide. ' +
+                  '"a 500" o "a 45" NUNCA es un total: es precio_unitario. null si no dijo un total.',
+              ),
           }),
         )
         .min(1),
       descuento_total: dinero.nullable().default(null),
       condicion: condicion.nullable().describe("null si no dijo si pagó o si lo debe."),
-      medio_pago: medio.nullable(),
+      // ADR-0025. Sin este campo, «pagó solo 1000» salía al contado con S/ 4,000 de descuento (/voz-precision 2026-11-17).
+      pago_parcial: z
+        .number()
+        .positive()
+        .nullable()
+        .default(null)
+        .describe(
+          'Si pagó SOLO UNA PARTE al llevarse la fruta, cuánto pagó, en soles: "pagó solo 1000", "me dejó 200 a cuenta", ' +
+            '"me dio 300 nomás", "me yapeó 100 y lo demás me paga el sábado". Entonces condicion = "credito" (el resto lo debe) y ' +
+            'medio_pago es cómo pagó esa parte. Si pagó una parte con un medio y otra con otro, súmalas. Si le dio más y le dieron ' +
+            'vuelto, pagó todo: es contado y esto va null. NO es un descuento: descuento_total no cambia. "Pagó la mitad" solo si dijo las cajas ' +
+            "y el precio (la mitad de cajas × precio); si no, null y la duda en dudas. null si pagó todo, si lo debe todo o si no lo dijo.",
+        ),
+      medio_pago: medio.nullable().describe("Cómo pagó: todo (contado) o la parte que pagó (pago_parcial). null si lo debe todo."),
       comprobante: z.enum(["ninguno", "boleta", "factura"]).default("ninguno"),
       dudas,
     }),

@@ -38,7 +38,7 @@ Cómo habla el negocio:
 - "a 45" o "a 45 soles" después de un producto = precio POR CAJA, no el total.
 - "le dejé a 40", "le rebajé 5", "le hice 20 de descuento" = rebaja. Si dice el precio
   final ("le dejé a 40"), ese es precio_unitario; si dice un monto descontado al total,
-  va en descuento_total.
+  va en descuento_total. Ojo: "ME dejó 200" o "me dio 200" es lo que el cliente PAGÓ, no una rebaja.
 - Crédito (condicion = "credito"): "lo debe", "al fiado", "a cuenta", "me apuntas",
   "anótalo", "me paga el sábado" (o cualquier día), "se lo debo" (en compras). Si aparece
   una de estas, condicion NO es null. Contado: "me pagó", "pagó", "cancelado".
@@ -55,8 +55,9 @@ Reglas que NO se rompen:
 2. Si no dijo si pagó o si lo debe, condicion = null. NO asumas contado. La app le
    preguntará con dos botones.
 3. Si dijo cómo le pagaron ("me yapeó", "me plineó", "en efectivo", "por transferencia",
-   "cancelado"), entonces pagó: condicion = "contado".
-4. Si dijo "pagó" pero no cómo, medio_pago = "efectivo".
+   "cancelado"), entonces pagó: condicion = "contado". Si pagó solo una parte, no es
+   contado: es "credito" con lo que pagó en pago_parcial.
+4. Si dijo "pagó" (todo o una parte) pero no cómo, medio_pago = "efectivo".
 5. Si algo es ambiguo, llénalo con tu mejor lectura y explica la duda en `dudas`
    (frases cortas, en español, para mostrar en la tarjeta).
 6. Si la frase no es un comando del negocio o no se entiende, usa no_entendido.
@@ -124,13 +125,15 @@ en el prompt general y el modelo dejó de entender «¿Cómo voy?», «¿Cuánta
               "properties": {
                 "producto_texto": { "type": "string" },
                 "cantidad": { "type": "number", "description": "Cajas." },
-                "precio_unitario": { "type": ["number", "null"], "description": "Precio por caja. null si no lo dijo." }
+                "precio_unitario": { "type": ["number", "null"], "description": "Precio por caja. null si no lo dijo o si dijo un total." },
+                "total_item": { "type": ["number", "null"], "description": "Si dijo cuánto fue TODO por esa fruta («todo por 500»): ese total, sin dividir." }
               },
               "required": ["producto_texto", "cantidad", "precio_unitario"]
             }
           },
           "descuento_total": { "type": ["number", "null"] },
           "condicion": { "type": ["string", "null"], "enum": ["contado", "credito", null] },
+          "pago_parcial": { "type": ["number", "null"], "description": "Si pagó SOLO UNA PARTE al llevarse la fruta, cuánto pagó (condicion = credito). No es un descuento." },
           "medio_pago": { "type": ["string", "null"], "enum": ["efectivo", "yape", "plin", "transferencia", null] },
           "comprobante": { "type": "string", "enum": ["ninguno", "boleta", "factura"], "default": "ninguno" },
           "dudas": { "type": "array", "items": { "type": "string" } }
@@ -278,6 +281,11 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 | "Diez de papaya para la del puesto doce, lo debe" | registrar_venta | cliente "la del puesto 12", precio null, crédito |
 | "5 de plátano seda y 3 de piña al Paraíso a 30 y 40, factura" | registrar_venta | 2 items, comprobante factura, condicion null |
 | "Mango a don Lucho, 8 jabas, le dejé a 42" | registrar_venta | precio_unitario 42 |
+| "Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000" | registrar_venta | 10 × 500, crédito, pago_parcial 1000, efectivo (nunca contado con S/ 4,000 de descuento: ADR-0025) |
+| "Vendí 10 de mango a don Lucho a 45, a cuenta" | registrar_venta | crédito, pago_parcial null («a cuenta» sola es crédito) |
+| "Le vendí 10 cajas de mango a don Lucho, todo por 500, lo debe" | registrar_venta | precio_unitario null, total_item 500 (la tarjeta lo divide: 50) |
+| "Tres cajas de palta a don Lucho por 100 soles, lo debe" | registrar_venta | total_item 100: no se divide exacto, el precio queda por elegir (nunca 100 la caja) |
+| "Vendí 10 de mango a don Lucho a 45, me dio 500 y le di 50 de vuelto" | registrar_venta | contado, pago_parcial null |
 | "Don Lucho me abonó 200 en efectivo" | registrar_abono | 200, efectivo |
 | "Llegaron 50 cajas de plátano isla del de Chao a 25" | registrar_compra | 50 × 25 |
 | "Se malograron 3 jabas de papaya" | registrar_merma | 3 |
@@ -303,8 +311,13 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
    «manzana verde» calza igual con la Premium (0.64) y con la Comercial (0.58), y elegir una sería adivinar. `buscar_productos`
    compara contra fruta + variedad + selección, contra el nombre completo con marca y calibre, y contra los alias
    («membrillo de cuarta»). Un alias nunca es el nombre a secas de una fruta con varias selecciones.
-3. Precio null → `ultimo_precio(cliente, producto)`, marcado como "sugerido" en la tarjeta.
+3. Precio null → `ultimo_precio(cliente, producto)`, marcado como "sugerido" en la tarjeta. Si dijo un total (`total_item`), el precio
+   es ese total entre las cajas, contado en la tarjeta (`precioDeTotal`), y no se sugiere otro. Si no sale exacto en céntimos
+   («3 por 100»), queda por elegir con la duda escrita. El modelo no divide: «3 cajas por 100» salía a 100 la caja.
 4. Condición null → dos botones grandes: **Pagó** / **Lo debe**.
+4b. `pago_parcial` (ADR-0025) → la venta va al crédito y la tarjeta dice cuánto pagó y cuánto queda debiendo. Si lo que pagó llega al
+   total con precios dichos («me dio 500 y le di 50 de vuelto»), es contado. Con un precio sugerido no se decide solo: si llega al
+   total, la tarjeta pide corregirlo. Se guarda como abono atado a la venta (`registrar_venta`, `pago_inicial`).
 5. Al confirmar → `registrar_venta` / `registrar_compra` con `comando_voz_id` (marcan el comando como `confirmado`). Abonos, mermas y gastos se insertan directo en su tabla y la app marca el comando. En las dos formas, solo quien dictó el comando (o el dueño o el administrador) puede guardar con él: la RLS lo exige.
 6. Si el usuario editó algo de la tarjeta, marcar el comando como `corregido` **antes** de guardar (la RPC solo cambia comandos que siguen `pendiente`). Si lo descartó, `descartado`.
 
@@ -314,20 +327,26 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
 |---|---|---|
 | Herramientas y validación | `lib/voz/esquemas.ts` (Zod, genera el JSON Schema para Groq) | `lib/voz/esquemas.test.ts` |
 | Prompt de sistema | `lib/voz/prompt.ts` (idéntico a la sección 2; una prueba lo verifica) | `lib/voz/esquemas.test.ts` |
-| Voz a texto | `lib/voz/stt.ts` (Groq Whisper con dos cuentas, Gemini de respaldo, tope de 8 s) | `pnpm voz:stt` → `docs/voz/stt-*.md` |
+| Voz a texto | `lib/voz/stt.ts` (Groq Whisper con dos cuentas, Gemini `gemini-3.1-flash-lite` de respaldo, tope de 8 s) | `pnpm voz:stt` → `docs/voz/stt-*.md` |
 | Vocabulario y catálogo | `lib/voz/catalogo-reglas.ts`, `lib/voz/catalogo.ts` (caché de 5 min) | `lib/voz/catalogo-reglas.test.ts` |
-| Intérprete | `lib/voz/interprete.ts` (Groq `openai/gpt-oss-120b` con dos cuentas, Gemini de respaldo, tope de 8 s) | `pnpm voz:precision` → `docs/voz/precision-*.md` |
+| Intérprete | `lib/voz/interprete.ts`: Claude `claude-haiku-5-5` (`lib/voz/interprete-claude.ts`, ADR-0026), después Groq `openai/gpt-oss-120b` con dos cuentas y Gemini `gemini-3.1-flash-lite`; tope de 8 s cada uno | `pnpm voz:precision` → `docs/voz/precision-*.md` |
 | Tarjeta | `lib/voz/tarjeta-reglas.ts` (lógica pura) | `lib/voz/tarjeta-reglas.test.ts` |
 | Resolver | `lib/voz/resolver.ts` (buscar_*, ultimo_precio) | `tests/e2e/voz-api.spec.ts` |
 | Todo junto | `app/api/voz/route.ts` | `tests/e2e/voz-api.spec.ts` |
 
-**El orden de los proveedores** vive en `lib/voz/respaldo-reglas.ts`, con su prueba, y es el mismo para la voz a texto y para el
-intérprete: Groq con `GROQ_API_KEY` → Groq con `GROQ_API_KEY_RESPALDO` (otra cuenta, con su propio cupo gratuito) → Gemini.
+**El orden de los proveedores** vive en `lib/voz/respaldo-reglas.ts`, con su prueba. Para la voz a texto: Groq con `GROQ_API_KEY` →
+Groq con `GROQ_API_KEY_RESPALDO` (otra cuenta, con su propio cupo gratuito) → Gemini. Para el intérprete va **Claude primero**
+(ADR-0026: Claude no escucha audio, pero entiende mejor el texto) y después el mismo orden; si Claude falla por lo que sea, se pasa a Groq.
 - La cuenta de respaldo solo se prueba si la principal respondió 429 (sin cupo), 401 o 403 (clave rechazada).
 - Si Groq no respondió en 8 s, se cayó o devolvió algo inválido, la otra cuenta daría lo mismo y sumaría otros 8 s de espera: se
   pasa directo a Gemini.
-- `/voz-precision` (`soloGroq`) usa las dos cuentas: es el mismo modelo, así que los números no cambian y el cupo es el doble.
+- `/voz-precision` mide cada modelo solo contra su servicio (`solo: "groq"` o `solo: "anthropic"`). Con Groq usa las dos cuentas: es el mismo modelo, así que los números no cambian y el cupo es el doble.
 - Medido el 2026-11-16 contra Groq real, con la principal rechazada: el intérprete respondió con la de respaldo en 1.2 s en total.
+- **Gemini, el 2026-11-17:** con la clave nueva, `gemini-2.5-flash` respondía 404 («ya no está disponible para usuarios nuevos»): el
+  respaldo nunca habría funcionado. Los flash completos daban 503 por demanda en el plan gratuito. `gemini-3.1-flash-lite` respondió:
+  con los 22 casos de dinero y pago parcial, intención 95.5 %, datos 90.9 %, sin inventos (uno no respondió en 8 s). Se cambia con
+  `GEMINI_MODELO_LLM` y `GEMINI_MODELO_STT`. Para la voz a texto falta medirlo con audios reales del puesto: con una voz sintética
+  se equivocan todos, Whisper incluido.
 
 El modelo del intérprete se eligió con números (`docs/voz/precision-2026-10-28.md`): `gpt-oss-120b` le ganó a `gpt-oss-20b` en
 intención y datos, con la misma latencia. Se cambia con `GROQ_MODELO_LLM`, y solo después de correr `/voz-precision`.

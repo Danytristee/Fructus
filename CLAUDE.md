@@ -75,10 +75,10 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 | Validación | **Zod 4** | Toda salida del LLM, todo formulario y todo cuerpo de API se valida con un esquema antes de usarse. |
 | Datos y login | **Supabase** (Postgres 17 + Auth + RLS) con `@supabase/ssr` y `@supabase/supabase-js` | Ver «Base de datos». |
 | Voz a texto | **Groq** `whisper-large-v3-turbo` | Nivel gratuito real, rápido, acepta prompt de vocabulario. |
-| Interpretación | **LLM en Groq** con tool calling; **Gemini Flash** de respaldo | `temperature: 0`, `tool_choice: "required"`. Ver `docs/interprete-voz.md`. |
+| Interpretación | **Claude Haiku 5.5** (`@anthropic-ai/sdk`) con tool calling; **LLM en Groq** y **Gemini Flash** de respaldo | Una herramienta forzada, sin pensar, esfuerzo bajo. Acierta 97.8 % de los datos clave contra 84.9 % de Groq (ADR-0026). **Es de pago**: centavos al mes. Ver `docs/interprete-voz.md`. |
 | Respuesta hablada | **Web Speech API** (`speechSynthesis`) | Viene en el navegador, gratis. |
 | Palabra de activación | **openWakeWord** (sus modelos ONNX y `hola-fructus.onnx`) con **onnxruntime-web** en un Web Worker | «Hola Fructus» se detecta en el celular, gratis y sin enviar audio hasta despertar. Se baja solo al prender el interruptor (ADR-0022). |
-| Vida útil de la fruta | **Claude Sonnet 5.5** (`@anthropic-ai/sdk`), una vez al día | Estima cuánto aguanta cada fruta; la tabla fija queda de respaldo. **Es de pago** (créditos de Anthropic, centavos al mes): la única excepción al costo 0 (ADR-0021). |
+| Vida útil de la fruta | **Claude Sonnet 5.5** (`@anthropic-ai/sdk`), una vez al día | Estima cuánto aguanta cada fruta; la tabla fija queda de respaldo. **Es de pago** (créditos de Anthropic, centavos al mes): junto con el intérprete, las dos excepciones al costo 0 (ADR-0021, ADR-0026). |
 | Comprobantes | **Sandbox de Lucode** (apisunat.pe) | Plan B gratis: servicio BETA de SUNAT con credenciales MODDATOS. |
 | PWA | `app/manifest.ts` de Next + íconos en `public/icons/` + un service worker mínimo en `public/sw.js` (ADR-0011) | Se instala como app, la pantalla queda fija (sin zoom), y sin señal se ve «Sin conexión». El resumen del día llega como aviso (Web Push con `web-push`, cron de Vercel y VAPID; ADR-0013). |
 | Excel | **SheetJS**, instalado desde su CDN oficial (`https://cdn.sheetjs.com/`) | El paquete `xlsx` de npm está congelado en una versión vieja. |
@@ -243,6 +243,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - Las dudas del intérprete salen como una línea discreta.
   - Un solo botón grande: **Confirmar**.
 - **Si algo falla, se dice qué hacer.**
+  - El intérprete pregunta primero a Claude (ADR-0026). Si no responde en **8 s** o falla de cualquier forma, pasa a Groq.
   - Si la cuenta de Groq se quedó sin cupo (429) o su clave no vale (401, 403), se prueba con la de respaldo (`GROQ_API_KEY_RESPALDO`, otra cuenta; `lib/voz/respaldo-reglas.ts`).
   - Si Groq no responde en **8 s** (`AbortSignal.timeout`) o falla de otra forma, se intenta con Gemini, sin pasar por la otra cuenta.
   - Si tampoco responde, sale «No te entendí, inténtalo otra vez» y el audio se conserva.

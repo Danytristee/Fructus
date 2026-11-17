@@ -7,14 +7,14 @@ export type Database = {
           Tables: {
             "abonos": {
                   Row: {
-                    "cliente_id": number,"comando_voz_id": number | null,"fecha": string,"id": number,"medio_pago": Database["public"]['Enums']["medio_pago"],"monto": number,"nota": string | null,"registrado_por": string
+                    "cliente_id": number,"comando_voz_id": number | null,"fecha": string,"id": number,"medio_pago": Database["public"]['Enums']["medio_pago"],"monto": number,"nota": string | null,"registrado_por": string,"venta_id": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "cliente_id": number,"comando_voz_id"?: number | null,"fecha"?: string,"id"?: never,"medio_pago": Database["public"]['Enums']["medio_pago"],"monto": number,"nota"?: string | null,"registrado_por"?: string
+                    "cliente_id": number,"comando_voz_id"?: number | null,"fecha"?: string,"id"?: never,"medio_pago": Database["public"]['Enums']["medio_pago"],"monto": number,"nota"?: string | null,"registrado_por"?: string,"venta_id"?: number | null
                   }
                   Update: {
-                    "cliente_id"?: number,"comando_voz_id"?: number | null,"fecha"?: string,"id"?: never,"medio_pago"?: Database["public"]['Enums']["medio_pago"],"monto"?: number,"nota"?: string | null,"registrado_por"?: string
+                    "cliente_id"?: number,"comando_voz_id"?: number | null,"fecha"?: string,"id"?: never,"medio_pago"?: Database["public"]['Enums']["medio_pago"],"monto"?: number,"nota"?: string | null,"registrado_por"?: string,"venta_id"?: number | null
                   }
                   Relationships: [
                     {
@@ -40,6 +40,12 @@ isOneToOne: false
       columns: ["registrado_por"]
 isOneToOne: false
       referencedRelation: "perfiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "abonos_venta_id_fkey"
+      columns: ["venta_id"]
+isOneToOne: false
+      referencedRelation: "ventas"
       referencedColumns: ["id"]
     }
                   ]

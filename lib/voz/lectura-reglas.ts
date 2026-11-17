@@ -1,6 +1,6 @@
 // Lo que Fructus dice en voz alta antes de guardar una venta en manos libres (ADR-0020, candado 1): lo que se va a guardar, no la
 // transcripción. Es la misma tarjeta, dicha. Lógica pura: no importa React ni el sintetizador del navegador (components/voz/hablar.ts).
-import { faltaDe, frasesFalta, totalDe, type Borrador, type ItemBorrador, type Medio } from "./confirmar-venta-reglas";
+import { debeDe, faltaDe, frasesFalta, totalDe, type Borrador, type ItemBorrador, type Medio } from "./confirmar-venta-reglas";
 
 /** Cómo se dice cómo se pagó: «en efectivo», «con Yape». */
 export const MEDIOS_HABLADOS: Record<Medio, string> = { efectivo: "en efectivo", yape: "con Yape", plin: "con Plin", transferencia: "por transferencia" };
@@ -73,9 +73,16 @@ export function lecturaVenta(b: Borrador): string | null {
   return `${resumenHablado(b, total)} ${cierreVenta(b)}`;
 }
 
+/** Cómo pagó, dicho: «Lo debe», «Pagó con Yape», y con pago al llevar «Pagó 1000 soles con Yape y debe 4000 soles» (ADR-0025). */
+function pagoHablado(b: Borrador): string {
+  const medio = MEDIOS_HABLADOS[b.medio ?? "efectivo"];
+  if (b.condicion !== "credito") return `Pagó ${medio}`;
+  return b.pagado ? `Pagó ${solesHablados(b.pagado)} ${medio} y debe ${solesHablados(debeDe(b) ?? 0)}` : "Lo debe";
+}
+
 /** El final de la lectura: cómo pagó, el comprobante si se pidió y la pregunta. «Lo debe. Con boleta. ¿Confirmo?» */
 function cierreVenta(b: Borrador): string {
-  const pago = b.condicion === "credito" ? "Lo debe" : `Pagó ${MEDIOS_HABLADOS[b.medio ?? "efectivo"]}`;
+  const pago = pagoHablado(b);
   const comprobante = b.comprobante === "boleta" ? " Con boleta." : b.comprobante === "factura" ? " Con factura." : "";
   return `${pago}.${comprobante} ¿Confirmo?`;
 }
@@ -138,7 +145,12 @@ export function cambiosDeCorreccion(antes: Borrador, despues: Borrador): Cambios
     cliente: (antes.cliente?.id ?? null) !== (despues.cliente?.id ?? null),
     rebaja: antes.descuento !== despues.descuento,
     total: totalDe(antes) !== totalDe(despues),
-    pago: despues.condicion !== null && (antes.condicion !== despues.condicion || (despues.condicion === "contado" && antes.medio !== despues.medio)),
+    // Lo que pagó al llevar también es el pago: cambiar cuánto o con qué se dice (ADR-0025).
+    pago:
+      despues.condicion !== null &&
+      (antes.condicion !== despues.condicion ||
+        (despues.condicion === "contado" && antes.medio !== despues.medio) ||
+        (despues.condicion === "credito" && ((antes.pagado ?? null) !== (despues.pagado ?? null) || (!!despues.pagado && antes.medio !== despues.medio)))),
     comprobante: antes.comprobante !== despues.comprobante,
   };
 }
@@ -155,7 +167,7 @@ export function guionCorreccion(antes: Borrador, despues: Borrador, dudas: strin
   if (c.cliente) cambios.push(despues.cliente ? `Para ${despues.cliente.nombre}.` : "Para un cliente de paso.");
   if (c.rebaja) cambios.push(despues.descuento > 0 ? `Con ${solesHablados(despues.descuento)} de rebaja.` : "Sin rebaja.");
   if (c.frutas.length > 0 || c.rebaja || c.total) cambios.push(`Total, ${solesHablados(total)}.`);
-  if (c.pago) cambios.push(despues.condicion === "credito" ? "Lo debe." : `Pagó ${MEDIOS_HABLADOS[despues.medio ?? "efectivo"]}.`);
+  if (c.pago) cambios.push(`${pagoHablado(despues)}.`);
   if (c.comprobante) {
     cambios.push(despues.comprobante === "boleta" ? "Con boleta." : despues.comprobante === "factura" ? "Con factura." : "Sin comprobante.");
   }

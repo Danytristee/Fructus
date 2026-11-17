@@ -47,7 +47,7 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
       .eq("estado", "registrada")
       .order("fecha", { ascending: false })
       .limit(HISTORIAL_TOPE + 1),
-    supabase.from("abonos").select("id, fecha, monto, medio_pago").eq("cliente_id", cliente.id).order("fecha", { ascending: false }).limit(HISTORIAL_TOPE + 1),
+    supabase.from("abonos").select("id, fecha, monto, medio_pago, venta_id").eq("cliente_id", cliente.id).order("fecha", { ascending: false }).limit(HISTORIAL_TOPE + 1),
   ]);
   const fallo = saldo.error ?? deudas.error ?? ventas.error ?? abonos.error;
   if (fallo) {
@@ -71,7 +71,7 @@ async function Cuenta({ cliente }: { cliente: Cliente }) {
         cliente: persona,
         items: v.items.map((i) => ({ cantidad: Number(i.cantidad), producto: i.producto })),
       })),
-      abonos: (abonos.data ?? []).map((a) => ({ id: a.id, fecha: a.fecha, monto: Number(a.monto), medio: a.medio_pago as Medio, cliente: persona })),
+      abonos: (abonos.data ?? []).map((a) => ({ id: a.id, fecha: a.fecha, monto: Number(a.monto), medio: a.medio_pago as Medio, cliente: persona, alLlevar: a.venta_id !== null })),
     },
     new Date(),
   );

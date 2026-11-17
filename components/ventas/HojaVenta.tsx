@@ -105,6 +105,13 @@ function Cuerpo({ venta, puedeAnular, puedeEmitir, puedeEditarClientes, alCerrar
           <Insignia tipo={venta.condicion === "credito" ? "debe" : "pago"}>{fraseDePago(venta)}</Insignia>
           <span className="text-texto-suave capitalize">{cuando}</span>
         </div>
+        {/* Lo que pagó al llevarse la fruta (ADR-0025): sin esto, el detalle decía «Lo debe» con el total y no cuadraba con su ficha. */}
+        {venta.pagoAlLlevar && (
+          <p className="text-lg">
+            Pagó <strong className="cifra text-exito">{formatearSoles(venta.pagoAlLlevar.monto)}</strong> al llevar · debe{" "}
+            <strong className="cifra text-deuda">{formatearSoles(Math.round((venta.total - venta.pagoAlLlevar.monto) * 100) / 100)}</strong>
+          </p>
+        )}
       </div>
 
       <ul aria-label="Fruta de la venta" className="divide-y divide-border overflow-hidden rounded-[20px] bg-superficie">

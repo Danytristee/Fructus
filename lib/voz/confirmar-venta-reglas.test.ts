@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, pedidoVenta, repartirDescuento, totalDe, type Borrador, ventaActual } from "./confirmar-venta-reglas";
+import { formatearSoles } from "../formato";
+import { borradorDe, debeDe, faltaDe, frasesFalta, fueCorregido, leerPagado, leerPrecio, pedidoVenta, repartirDescuento, totalDe, type Borrador, ventaActual } from "./confirmar-venta-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
 type Venta = Extract<Tarjeta, { tipo: "venta" }>;
@@ -29,6 +30,7 @@ describe("borradorDe", () => {
       descuento: 0,
       condicion: "credito",
       medio: null,
+      pagado: null,
       comprobante: "ninguno",
     });
   });
@@ -157,6 +159,7 @@ describe("pedidoVenta", () => {
       cliente_id: 1,
       condicion: "credito",
       medio_pago: null,
+      pago_inicial: null,
       comando_voz_id: 33,
       corregido: false,
       items: [
@@ -213,9 +216,88 @@ describe("ventaActual", () => {
       items: [{ producto_texto: "Mango Kent", cantidad: 10, precio_unitario: 45 }],
       descuento_total: null,
       condicion: "contado",
+      pago_parcial: null,
       medio_pago: "efectivo",
       comprobante: "boleta",
     });
     expect(ventaActual({ ...b, cliente: null, condicion: "credito", descuento: 10 })).toMatchObject({ cliente_texto: null, medio_pago: null, descuento_total: 10 });
+  });
+});
+
+// ADR-0025: «Vendí 10 cajas de mango a don Lucho a 500 y pagó solo 1000». La venta va al crédito por el total y lo que pagó se
+// guarda como abono de esa venta: debe 4,000.
+describe("pago parcial", () => {
+  const conPago = (pagoParcial: number | null, medio: Venta["medio"] = null) =>
+    venta({
+      items: [{ producto: { dicho: "mango", elegido: { id: 10, nombre: "Mango Kent" }, opciones: [] }, cantidad: 10, precio: { valor: 500, sugerido: false }, subtotal: 5000 }],
+      total: 5000,
+      pagoParcial,
+      medio,
+    });
+
+  it("el borrador trae lo que pagó, con efectivo si no dijo cómo", () => {
+    const b = borradorDe(conPago(1000));
+    expect(b.pagado).toBe(1000);
+    expect(b.condicion).toBe("credito");
+    expect(b.medio).toBe("efectivo");
+    expect(borradorDe(conPago(100, "yape")).medio).toBe("yape");
+  });
+
+  it("sin pago parcial, al crédito no hay medio", () => {
+    const b = borradorDe(conPago(null));
+    expect(b.pagado).toBeNull();
+    expect(b.medio).toBeNull();
+  });
+
+  it("lo que queda debiendo es el total menos lo que pagó", () => {
+    expect(debeDe(borradorDe(conPago(1000)))).toBe(4000);
+    expect(debeDe(borradorDe(conPago(null)))).toBe(5000);
+    expect(debeDe({ ...borradorDe(conPago(1000)), condicion: "contado" })).toBe(0);
+    expect(debeDe({ ...borradorDe(conPago(1000)), items: [{ productoId: 10, producto: "Mango Kent", cantidad: 10, precio: null, sugerido: false }] })).toBeNull();
+  });
+
+  it("pagar todo o más no es un pago parcial: falta corregirlo (si pagó todo, es «Pagó»)", () => {
+    expect(faltaDe(borradorDe(conPago(1000)))).toEqual([]);
+    expect(faltaDe(borradorDe(conPago(5000)))).toEqual(["pago"]);
+    expect(faltaDe(borradorDe(conPago(6000)))).toEqual(["pago"]);
+    expect(frasesFalta(["pago"])).toBe("Falta elegir cuánto pagó: menos que el total (si pagó todo, toca «Pagó»).");
+  });
+
+  it("registrar_venta recibe la venta al crédito y lo que pagó, con su medio", () => {
+    const p = pedidoVenta(borradorDe(conPago(1000, "yape")), 7, false)!;
+    expect(p.condicion).toBe("credito");
+    expect(p.medio_pago).toBeNull();
+    expect(p.pago_inicial).toEqual({ monto: 1000, medio_pago: "yape" });
+    expect(pedidoVenta(borradorDe(conPago(null)), 7, false)!.pago_inicial).toBeNull();
+  });
+
+  it("si cambió a «Pagó», lo que había dejado no va: la venta es al contado", () => {
+    const b = { ...borradorDe(conPago(1000)), condicion: "contado" as const };
+    expect(faltaDe(b)).toEqual([]);
+    expect(pedidoVenta(b, 7, false)!.pago_inicial).toBeNull();
+  });
+
+  it("cambiar cuánto pagó cuenta como corregido", () => {
+    const t = conPago(1000);
+    expect(fueCorregido(t, borradorDe(t))).toBe(false);
+    expect(fueCorregido(t, { ...borradorDe(t), pagado: 800 })).toBe(true);
+    expect(fueCorregido(t, { ...borradorDe(t), pagado: null })).toBe(true);
+  });
+
+  it("corregir hablando le pasa al intérprete lo que pagó", () => {
+    expect(ventaActual(borradorDe(conPago(1000)))).toMatchObject({ condicion: "credito", pago_parcial: 1000, medio_pago: "efectivo" });
+    expect(ventaActual(borradorDe(conPago(null)))).toMatchObject({ condicion: "credito", pago_parcial: null, medio_pago: null });
+  });
+
+  it("un borrador viejo de la cola, sin el campo, se guarda como antes", () => {
+    const viejo: Borrador = borradorDe(conPago(null));
+    delete viejo.pagado;
+    expect(pedidoVenta(viejo, 7, false)!.pago_inicial).toBeNull();
+  });
+
+  it("lo que pagó se escribe como cualquier monto, y no puede llegar al total", () => {
+    expect(leerPagado("1000", 5000)).toEqual({ ok: true, valor: 1000 });
+    expect(leerPagado("5000", 5000)).toEqual({ ok: false, error: `Si pagó los ${formatearSoles(5000)}, toca «Pagó»: no debe nada.` });
+    expect(leerPagado("", 5000)).toEqual({ ok: false, error: null });
   });
 });

@@ -1,7 +1,8 @@
 // En qué orden se le pide a cada proveedor de voz y cuándo se pasa al siguiente. Lógica pura: no llama a la red ni lee
 // variables; recibe las claves y la función que pide.
 //
-// El orden es Groq con la clave principal → Groq con la de respaldo (otra cuenta, otro cupo gratuito) → Gemini.
+// El orden es Claude (ADR-0026) → Groq con la clave principal → Groq con la de respaldo (otra cuenta, otro cupo gratuito) → Gemini.
+// Si Claude falla, por lo que sea, se pasa a Groq: es otra empresa, así que siempre vale la pena probar.
 // La de respaldo solo se prueba si la falla fue de la cuenta: sin cupo (429) o clave rechazada (401, 403). Si Groq no
 // respondió, se cayó o devolvió algo que no sirve, la otra cuenta daría lo mismo y solo sumaría espera: se pasa a Gemini.
 
@@ -12,7 +13,7 @@ export type Intento = { modelo: string; cuenta?: Cuenta; error: string };
 export type Pedido<T> = { ok: true; valor: T } | { ok: false; error: string; estado?: number };
 
 export type Proveedor<T> = {
-  servicio: "groq" | "gemini";
+  servicio: "groq" | "gemini" | "anthropic";
   modelo: string;
   cuenta?: Cuenta;
   clave: string | undefined;

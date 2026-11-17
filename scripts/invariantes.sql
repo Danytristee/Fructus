@@ -123,9 +123,16 @@ begin
     and not exists (select 1 from gastos            x where x.comando_voz_id = cv.id);
   if v_n > 0 then v_msg := v_msg || format(E'\n  INV-12: %s comando(s) de voz confirmado(s) sin operación registrada', v_n); end if;
 
+  -- INV-13 · Un abono pagado al llevar (abonos.venta_id) es de su venta: al crédito, del mismo cliente y menor que su total.
+  --          Si la venta se anuló, el abono queda a favor del cliente (ADR-0025): eso sí es posible.
+  select count(*) into v_n
+  from abonos a join ventas v on v.id = a.venta_id
+  where v.condicion <> 'credito' or v.cliente_id is distinct from a.cliente_id or a.monto >= v.total;
+  if v_n > 0 then v_msg := v_msg || format(E'\n  INV-13: %s abono(s) al llevar que no calzan con su venta', v_n); end if;
+
   if v_msg <> '' then
     raise exception 'Invariantes rotas:%', v_msg;
   end if;
 
-  raise notice 'Invariantes de Fructus: las 12 en orden.';
+  raise notice 'Invariantes de Fructus: las 13 en orden.';
 end $$;
