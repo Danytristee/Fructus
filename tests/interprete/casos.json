@@ -2006,6 +2006,709 @@
           "medio_pago": "efectivo"
         }
       }
+    },
+    {
+      "id": "falta-precio-numero",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": null
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "falta": {
+        "dato": "precio",
+        "item": 0,
+        "opciones": []
+      },
+      "transcripcion": "Cuarenta.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 40
+            }
+          ],
+          "condicion": null,
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "falta-precio-cifra",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": null
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "falta": {
+        "dato": "precio",
+        "item": 0,
+        "opciones": []
+      },
+      "transcripcion": "45.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": null,
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "falta-precio-centimos",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": null
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "falta": {
+        "dato": "precio",
+        "item": 0,
+        "opciones": []
+      },
+      "transcripcion": "A cuarenta y cinco con cincuenta.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45.5
+            }
+          ],
+          "condicion": null,
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "falta-precio-y-lo-debe",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": null
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "falta": {
+        "dato": "precio",
+        "item": 0,
+        "opciones": []
+      },
+      "transcripcion": "A cuarenta, y me lo debe.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 40
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "falta-precio-segunda-fruta",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          },
+          {
+            "producto_texto": "Palta Fuerte",
+            "cantidad": 4,
+            "precio_unitario": null
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "falta": {
+        "dato": "precio",
+        "item": 1,
+        "opciones": []
+      },
+      "transcripcion": "Sesenta.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            },
+            {
+              "producto_texto": "palta fuerte",
+              "cantidad": 4,
+              "precio_unitario": 60
+            }
+          ],
+          "condicion": null,
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "falta-fruta-opcion",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "mango",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "falta": {
+        "dato": "producto",
+        "item": 0,
+        "opciones": [
+          "Mango Kent",
+          "Mango Edward"
+        ]
+      },
+      "transcripcion": "El Kent.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": null,
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "falta-fruta-ordinal",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "mandarina",
+            "cantidad": 5,
+            "precio_unitario": 30
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "falta": {
+        "dato": "producto",
+        "item": 0,
+        "opciones": [
+          "Mandarina 1era",
+          "Mandarina 2da"
+        ]
+      },
+      "transcripcion": "La segunda.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "items": [
+            {
+              "producto_texto": "mandarina 2da",
+              "cantidad": 5,
+              "precio_unitario": 30
+            }
+          ],
+          "condicion": null,
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "falta-cliente-opcion",
+      "correccionDe": {
+        "cliente_texto": null,
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "falta": {
+        "dato": "cliente",
+        "item": null,
+        "opciones": [
+          "Luis Paredes",
+          "Luis Pérez"
+        ]
+      },
+      "transcripcion": "A Luis Pérez.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "luis perez",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "falta-cliente-sin-opciones",
+      "correccionDe": {
+        "cliente_texto": null,
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": 45
+          }
+        ],
+        "descuento_total": null,
+        "condicion": "credito",
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "falta": {
+        "dato": "cliente",
+        "item": null,
+        "opciones": []
+      },
+      "transcripcion": "A la Bodega Santa Ana.",
+      "esperado": {
+        "herramienta": "registrar_venta",
+        "datos": {
+          "cliente_texto": "bodega santa ana",
+          "items": [
+            {
+              "producto_texto": "mango kent",
+              "cantidad": 10,
+              "precio_unitario": 45
+            }
+          ],
+          "condicion": "credito",
+          "medio_pago": null
+        }
+      }
+    },
+    {
+      "id": "falta-no-responde",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "items": [
+          {
+            "producto_texto": "Mango Kent",
+            "cantidad": 10,
+            "precio_unitario": null
+          }
+        ],
+        "descuento_total": null,
+        "condicion": null,
+        "medio_pago": null,
+        "comprobante": "ninguno"
+      },
+      "falta": {
+        "dato": "precio",
+        "item": 0,
+        "opciones": []
+      },
+      "transcripcion": "Espérate un ratito, casero.",
+      "esperado": {
+        "herramienta": "no_entendido",
+        "datos": {}
+      }
+    },
+    {
+      "id": "falta-abono-cliente-opcion",
+      "operacion": "abono",
+      "correccionDe": {
+        "cliente_texto": "lucho",
+        "monto": 200,
+        "medio_pago": "yape"
+      },
+      "falta": {
+        "dato": "cliente",
+        "item": null,
+        "opciones": [
+          "Luis Paredes",
+          "Luis Pérez"
+        ]
+      },
+      "transcripcion": "El Luis Paredes.",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "monto": 200,
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "falta-abono-cliente-sin-opciones",
+      "operacion": "abono",
+      "correccionDe": {
+        "cliente_texto": "pocho",
+        "monto": 80,
+        "medio_pago": "efectivo"
+      },
+      "falta": {
+        "dato": "cliente",
+        "item": null,
+        "opciones": []
+      },
+      "transcripcion": "Carlos Mendoza, el flaco.",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": {
+          "cliente_texto": "carlos mendoza",
+          "monto": 80,
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "falta-abono-monto",
+      "operacion": "abono",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "monto": 150000,
+        "medio_pago": "efectivo"
+      },
+      "falta": {
+        "dato": "monto",
+        "item": null,
+        "opciones": []
+      },
+      "transcripcion": "Ciento cincuenta.",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "monto": 150,
+          "medio_pago": "efectivo"
+        }
+      }
+    },
+    {
+      "id": "correccion-abono-monto",
+      "operacion": "abono",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "monto": 200,
+        "medio_pago": "yape"
+      },
+      "transcripcion": "No, fueron trescientos.",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "monto": 300,
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "correccion-abono-medio",
+      "operacion": "abono",
+      "correccionDe": {
+        "cliente_texto": "Luis Paredes",
+        "monto": 200,
+        "medio_pago": "efectivo"
+      },
+      "transcripcion": "No, me yapeó.",
+      "esperado": {
+        "herramienta": "registrar_abono",
+        "datos": {
+          "cliente_texto": "luis paredes",
+          "monto": 200,
+          "medio_pago": "yape"
+        }
+      }
+    },
+    {
+      "id": "falta-compra-costo",
+      "operacion": "compra",
+      "correccionDe": {
+        "proveedor_texto": "Agrícola Chao",
+        "items": [
+          {
+            "producto_texto": "Plátano Isla",
+            "cantidad": 50,
+            "costo_unitario": null,
+            "estado": null
+          }
+        ],
+        "condicion": "credito"
+      },
+      "falta": {
+        "dato": "costo",
+        "item": 0,
+        "opciones": []
+      },
+      "transcripcion": "Veinticinco.",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": "agricola chao",
+          "items": [
+            {
+              "producto_texto": "platano isla",
+              "cantidad": 50,
+              "costo_unitario": 25
+            }
+          ],
+          "condicion": "credito"
+        }
+      }
+    },
+    {
+      "id": "falta-compra-costo-y-pago",
+      "operacion": "compra",
+      "correccionDe": {
+        "proveedor_texto": "Agrícola Chao",
+        "items": [
+          {
+            "producto_texto": "Plátano Isla",
+            "cantidad": 50,
+            "costo_unitario": null,
+            "estado": null
+          }
+        ],
+        "condicion": null
+      },
+      "falta": {
+        "dato": "costo",
+        "item": 0,
+        "opciones": []
+      },
+      "transcripcion": "A 25, y se la debo.",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": "agricola chao",
+          "items": [
+            {
+              "producto_texto": "platano isla",
+              "cantidad": 50,
+              "costo_unitario": 25
+            }
+          ],
+          "condicion": "credito"
+        }
+      }
+    },
+    {
+      "id": "falta-compra-fruta-opcion",
+      "operacion": "compra",
+      "correccionDe": {
+        "proveedor_texto": "Agrícola Chao",
+        "items": [
+          {
+            "producto_texto": "plátano",
+            "cantidad": 50,
+            "costo_unitario": 25,
+            "estado": null
+          }
+        ],
+        "condicion": "credito"
+      },
+      "falta": {
+        "dato": "producto",
+        "item": 0,
+        "opciones": [
+          "Plátano Isla",
+          "Plátano de seda"
+        ]
+      },
+      "transcripcion": "El de seda.",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": "agricola chao",
+          "items": [
+            {
+              "producto_texto": "platano seda",
+              "cantidad": 50,
+              "costo_unitario": 25
+            }
+          ],
+          "condicion": "credito"
+        }
+      }
+    },
+    {
+      "id": "falta-compra-proveedor",
+      "operacion": "compra",
+      "correccionDe": {
+        "proveedor_texto": null,
+        "items": [
+          {
+            "producto_texto": "Plátano Isla",
+            "cantidad": 50,
+            "costo_unitario": 25,
+            "estado": null
+          }
+        ],
+        "condicion": "credito"
+      },
+      "falta": {
+        "dato": "proveedor",
+        "item": null,
+        "opciones": [
+          "Transportes Piura Norte",
+          "Agrícola Chao"
+        ]
+      },
+      "transcripcion": "Al de Piura.",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": "piura",
+          "items": [
+            {
+              "producto_texto": "platano isla",
+              "cantidad": 50,
+              "costo_unitario": 25
+            }
+          ],
+          "condicion": "credito"
+        }
+      }
+    },
+    {
+      "id": "correccion-compra-cajas",
+      "operacion": "compra",
+      "correccionDe": {
+        "proveedor_texto": "Agrícola Chao",
+        "items": [
+          {
+            "producto_texto": "Plátano Isla",
+            "cantidad": 50,
+            "costo_unitario": 25,
+            "estado": null
+          }
+        ],
+        "condicion": "credito"
+      },
+      "transcripcion": "No, fueron cuarenta cajas.",
+      "esperado": {
+        "herramienta": "registrar_compra",
+        "datos": {
+          "proveedor_texto": "agricola chao",
+          "items": [
+            {
+              "producto_texto": "platano isla",
+              "cantidad": 40,
+              "costo_unitario": 25
+            }
+          ],
+          "condicion": "credito"
+        }
+      }
+    },
+    {
+      "id": "falta-compra-no-responde",
+      "operacion": "compra",
+      "correccionDe": {
+        "proveedor_texto": "Agrícola Chao",
+        "items": [
+          {
+            "producto_texto": "Plátano Isla",
+            "cantidad": 50,
+            "costo_unitario": null,
+            "estado": null
+          }
+        ],
+        "condicion": "credito"
+      },
+      "falta": {
+        "dato": "costo",
+        "item": 0,
+        "opciones": []
+      },
+      "transcripcion": "Ya, ahorita te digo, espérate.",
+      "esperado": {
+        "herramienta": "no_entendido",
+        "datos": {}
+      }
     }
   ]
 }

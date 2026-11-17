@@ -1,53 +1,9 @@
 // Lo que Fructus dice en voz alta antes de guardar una venta en manos libres (ADR-0020, candado 1): lo que se va a guardar, no la
 // transcripción. Es la misma tarjeta, dicha. Lógica pura: no importa React ni el sintetizador del navegador (components/voz/hablar.ts).
-import { debeDe, faltaDe, frasesFalta, totalDe, type Borrador, type ItemBorrador, type Medio } from "./confirmar-venta-reglas";
+import { debeDe, faltaDe, frasesFalta, totalDe, type Borrador, type ItemBorrador } from "./confirmar-venta-reglas";
+import { MEDIOS_HABLADOS, cajasHabladas, nombreHablado, precioHablado, solesHablados } from "./hablado-reglas";
+import { SIN_OPCIONES, faltaDicha, faltaPorPreguntar, preguntaFalta, type OpcionesVenta } from "./pregunta-falta-reglas";
 import { avisosStock, mapaStock } from "./stock-venta-reglas";
-
-/** Cómo se dice cómo se pagó: «en efectivo», «con Yape». */
-export const MEDIOS_HABLADOS: Record<Medio, string> = { efectivo: "en efectivo", yape: "con Yape", plin: "con Plin", transferencia: "por transferencia" };
-
-// «6ta» o «cal. 113» se leen mal en voz alta: se dicen como se hablan.
-const ORDINALES: [RegExp, string][] = [
-  [/\b1e?ra\b/gi, "primera"],
-  [/\b2da\b/gi, "segunda"],
-  [/\b3ra\b/gi, "tercera"],
-  [/\b4ta\b/gi, "cuarta"],
-  [/\b5ta\b/gi, "quinta"],
-  [/\b6ta\b/gi, "sexta"],
-];
-
-/** El nombre de la fruta como se dice: «cal. 113» es «calibre 113» y «6ta» es «sexta». */
-export function nombreHablado(nombre: string): string {
-  let s = nombre.replace(/\bcal\.\s*/gi, "calibre ");
-  for (const [patron, palabra] of ORDINALES) s = s.replace(patron, palabra);
-  return s.replace(/\s+/g, " ").trim();
-}
-
-/** Cajas como se dicen: «10 cajas», «1 caja», «media caja», «2 cajas y media». */
-export function cajasHabladas(n: number): string {
-  const entero = Math.trunc(n);
-  if (n === entero) return `${n} ${n === 1 ? "caja" : "cajas"}`;
-  if (n - entero === 0.5) return entero === 0 ? "media caja" : `${entero} ${entero === 1 ? "caja" : "cajas"} y media`;
-  return `${n.toLocaleString("es-PE", { maximumFractionDigits: 2 })} cajas`;
-}
-
-/**
- * Soles como se dicen: «450 soles», «1 sol», «45 soles con 50». Sin separador de miles: «1,250» se lee «uno coma doscientos
- * cincuenta», y «1250», «mil doscientos cincuenta».
- */
-export function solesHablados(n: number): string {
-  const centimos = Math.round(n * 100);
-  const entero = Math.trunc(centimos / 100);
-  const resto = centimos % 100;
-  const soles = `${entero} ${entero === 1 ? "sol" : "soles"}`;
-  return resto === 0 ? soles : `${soles} con ${String(resto).padStart(2, "0")}`;
-}
-
-/** Un precio por caja, corto: «45», «45 con 50». */
-export function precioHablado(n: number): string {
-  const centimos = Math.round(n * 100);
-  return centimos % 100 === 0 ? String(centimos / 100) : `${Math.trunc(centimos / 100)} con ${String(centimos % 100).padStart(2, "0")}`;
-}
 
 /** Una fruta de la venta, dicha. Con una sola fruta, «a 45 la caja»; con varias, solo «a 45» en cada una, o la lectura se hace eterna. */
 const itemHablado = (it: ItemBorrador, uno: boolean) =>
@@ -105,21 +61,27 @@ function cierreVenta(b: Borrador, aviso = ""): string {
 }
 
 /**
- * Lo que se dice después de responder «¿Pagó o lo debe?», y la lectura entera para «repite». La venta se acaba de leer al
- * preguntar: leerla otra vez hacía esperar toda la lectura por una palabra. Basta repetir la respuesta (ADR-0020, candado 4) con lo
- * que todavía no se dijo (el comprobante) y preguntar.
+ * Lo que se dice después de responder («¿Pagó o lo debe?», lo que faltaba) o corregir, con su pregunta, y lo que se lee si pide
+ * «repite». La venta se acaba de leer al preguntar: leerla otra vez hacía esperar toda la lectura por una palabra. Basta repetir la
+ * respuesta (ADR-0020, candado 4) con lo que todavía no se dijo (el comprobante) y preguntar.
+ *   - `sinCambio`: la respuesta a lo que faltaba no cambió nada de la venta. Cuenta como no haberla entendido: se repregunta una vez.
  */
-export type Relectura = { texto: string; entera: string };
+export type Relectura = Guion & { entera: string; sinCambio?: boolean };
+/** Lo que se dice tras una corrección hablada, y la venta entera para «repite». */
+export type GuionCorregido = Relectura;
 
-/** «Lo debe. ¿Confirmo?». null si todavía falta algo. */
-export function relecturaPago(b: Borrador, stock?: Record<number, number>): Relectura | null {
+/**
+ * «Lo debe. ¿Confirmo?». Si con la respuesta falta otro dato que se puede preguntar («lo debe», pero no se sabe quién), la respuesta
+ * y la pregunta: «Lo debe. ¿A quién se lo fiaste?». null si falta algo que se elige en la tarjeta.
+ */
+export function relecturaPago(b: Borrador, stock?: Record<number, number>, opciones: OpcionesVenta = SIN_OPCIONES): Relectura | null {
   // El aviso de stock ya se dijo al preguntar: la respuesta corta no lo repite, «repite» sí (va en la entera).
   const entera = lecturaVenta(b, stock);
-  return entera === null ? null : { texto: cierreVenta(b), entera };
+  if (entera !== null) return { pregunta: "confirmar", texto: cierreVenta(b), entera };
+  const g = guionVenta(b, [], stock, opciones);
+  if (g.pregunta !== "falta" || !g.repregunta) return null;
+  return { pregunta: "falta", texto: `${pagoHablado(b)}. ${g.repregunta}`, entera: g.texto, repregunta: g.repregunta };
 }
-
-/** Lo que se dice tras una corrección hablada, y la venta entera para «repite». */
-export type GuionCorregido = Guion & { entera: string };
 
 const mismoItem = (a: ItemBorrador, b: ItemBorrador) =>
   a.productoId === b.productoId && a.producto === b.producto && a.cantidad === b.cantidad && a.precio === b.precio && a.sugerido === b.sugerido;
@@ -173,8 +135,16 @@ export function cambiosDeCorreccion(antes: Borrador, despues: Borrador): Cambios
   };
 }
 
-export function guionCorreccion(antes: Borrador, despues: Borrador, dudas: string[], stock?: Record<number, number>): GuionCorregido {
-  const completo = guionVenta(despues, dudas, stock);
+export function guionCorreccion(
+  antes: Borrador,
+  despues: Borrador,
+  dudas: string[],
+  stock?: Record<number, number>,
+  opciones: OpcionesVenta = SIN_OPCIONES,
+): GuionCorregido {
+  const completo = guionVenta(despues, dudas, stock, opciones);
+  // La corrección dejó un dato por decir (otro cliente que no se encontró): se dice qué falta y se pregunta.
+  if (completo.pregunta === "falta") return { ...completo, texto: `Corregido. ${completo.texto}`, entera: completo.texto };
   const total = totalDe(despues);
   if (completo.pregunta === "ninguna" || total === null) return { ...completo, entera: completo.texto };
 
@@ -196,8 +166,35 @@ export function guionCorreccion(antes: Borrador, despues: Borrador, dudas: strin
   return { pregunta: completo.pregunta, texto: `Corregido. ${cambios.join(" ")}${aviso} ${pregunta}`, entera: completo.texto };
 }
 
-/** Lo que pregunta, y qué espera oír: «confirmo», «pagó» o «lo debe», o nada (solo avisa y pide el toque). */
-export type Guion = { pregunta: "confirmar" | "pago" | "ninguna"; texto: string };
+/**
+ * Lo que pregunta, y qué espera oír: «confirmo», «pagó» o «lo debe», el dato que falta, o nada (solo avisa y pide el toque).
+ * `repregunta`: con un dato que falta, la pregunta sola, para volver a hacerla sin repetir todo lo que falta.
+ */
+export type Guion = { pregunta: "confirmar" | "pago" | "falta" | "ninguna"; texto: string; repregunta?: string };
+
+/**
+ * Qué se dice cuando la persona respondió lo que faltaba («cuarenta»):
+ *   - si todavía falta otro dato, «Anotado.» y la pregunta siguiente;
+ *   - si quedó lista, «Anotado.» y la venta entera, que nunca se leyó completa (candado 1: se lee lo que se va a guardar), con
+ *     «¿Pagó o lo debe?» o «¿Confirmo?»;
+ *   - con dudas o si falta algo que se elige en la tarjeta, el aviso de siempre;
+ *   - si la respuesta no cambió nada, `sinCambio`: no se entendió y se repregunta.
+ */
+export function guionCompletado(
+  antes: Borrador,
+  despues: Borrador,
+  dudas: string[],
+  stock?: Record<number, number>,
+  opciones: OpcionesVenta = SIN_OPCIONES,
+): Relectura {
+  const g = guionVenta(despues, dudas, stock, opciones);
+  const c = cambiosDeCorreccion(antes, despues);
+  const cambio = Object.values(c).some((v) => (Array.isArray(v) ? v.length > 0 : v)) || faltaDe(antes).join() !== faltaDe(despues).join();
+  if (g.pregunta === "ninguna") return { ...g, entera: g.texto };
+  if (!cambio) return { ...g, entera: g.texto, sinCambio: true };
+  if (g.pregunta === "falta") return { ...g, texto: `Anotado. ${g.repregunta}`, entera: g.texto };
+  return { ...g, texto: `Anotado. ${g.texto}`, entera: g.texto };
+}
 
 /**
  * Con dudas del intérprete no se confirma hablando, pero la duda se dice: «Tengo una duda: no sé si dijo 10 o 12 cajas. Revisa la
@@ -217,16 +214,24 @@ export function dudaHablada(dudas: string[]): string {
  * Qué dice Fructus al abrir la tarjeta en manos libres (ADR-0020, candado 4):
  *   - con dudas del intérprete, no se confirma hablando: lo dice y pide el toque;
  *   - si solo falta saber si pagó, lo lee y pregunta «¿Pagó o lo debe?» (nunca se asume contado);
- *   - si falta otra cosa (el precio, la fruta), dice qué falta: se elige en la tarjeta;
+ *   - si falta la fruta, las cajas, el precio o a quién se le fía, dice todo lo que falta y pregunta lo primero: «Falta el precio y si
+ *     pagó. ¿A cuánto la caja de Mango Kent?». La respuesta completa la tarjeta (ADR-0027);
+ *   - si falta otra cosa (lo que pagó al llevar no cuadra), dice qué falta: se elige en la tarjeta;
  *   - si no falta nada, lee lo que se va a guardar y pregunta «¿Confirmo?».
+ * `opciones`: lo dicho y las opciones parecidas de la tarjeta, para leerlas al preguntar.
  */
-export function guionVenta(b: Borrador, dudas: string[], stock?: Record<number, number>): Guion {
+export function guionVenta(b: Borrador, dudas: string[], stock?: Record<number, number>, opciones: OpcionesVenta = SIN_OPCIONES): Guion {
   if (dudas.length > 0) return { pregunta: "ninguna", texto: dudaHablada(dudas) };
   const falta = faltaDe(b);
   const total = totalDe(b);
   if (falta.length === 0 && total !== null) return { pregunta: "confirmar", texto: lecturaVenta(b, stock)! };
   if (falta.length === 1 && falta[0] === "condicion" && total !== null) {
     return { pregunta: "pago", texto: `${resumenHablado(b, total)}${avisoHablado(b, stock)} ¿Pagó o lo debe?` };
+  }
+  const f = faltaPorPreguntar(b, opciones);
+  if (f) {
+    const pregunta = preguntaFalta(b, f, opciones);
+    return { pregunta: "falta", texto: `${faltaDicha(falta)} ${pregunta}`, repregunta: pregunta };
   }
   return { pregunta: "ninguna", texto: `${frasesFalta(falta)} Míralo en la tarjeta.` };
 }

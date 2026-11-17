@@ -2,6 +2,7 @@
 // Reglas de dinero: un abono siempre es de un cliente, el monto va con dos decimales como máximo, y puede ser mayor que la
 // deuda (queda a favor), pero eso se dice en grande antes de Confirmar (decisión del 31-10). Lógica pura.
 import type { Medio } from "./confirmar-venta-reglas";
+import type { OperacionActual } from "./esquemas";
 import { leerMonto, montoValido } from "./monto-reglas";
 import type { Tarjeta } from "./tarjeta-reglas";
 
@@ -64,4 +65,12 @@ export type PedidoAbono = { cliente_id: number; monto: number; medio_pago: Medio
 export function pedidoAbono(b: BorradorAbono, comandoId: number): PedidoAbono | null {
   if (faltaAbono(b).length > 0) return null;
   return { cliente_id: b.cliente!.id, monto: b.monto!, medio_pago: b.medio, comando_voz_id: comandoId };
+}
+
+/**
+ * El abono de la tarjeta en los campos de registrar_abono, para corregirlo o completarlo hablando (ADR-0027). Sin cliente elegido va
+ * lo que se dijo (`dicho`), para que el intérprete sepa de quién se hablaba.
+ */
+export function abonoActual(b: BorradorAbono, dicho: string | null): Extract<OperacionActual, { operacion: "abono" }> {
+  return { operacion: "abono", datos: { cliente_texto: b.cliente?.nombre ?? dicho ?? "", monto: b.monto ?? 0, medio_pago: b.medio } };
 }

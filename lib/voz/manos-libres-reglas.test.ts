@@ -78,7 +78,7 @@ describe("siguienteManosLibres: «¿Confirmo?»", () => {
 
 describe("siguienteManosLibres: «¿Pagó o lo debe?» y los avisos", () => {
   it("pregunta si pagó, anota la respuesta, lee la venta completa y la confirma", () => {
-    const r = recorrer([...oir, lodebe, { tipo: "anotado", lista: true }, ...oir, respuesta("confirmar")], leyendo("pago"));
+    const r = recorrer([...oir, lodebe, { tipo: "anotado", pregunta: "confirmar" }, ...oir, respuesta("confirmar")], leyendo("pago"));
     expect(r.efectos).toEqual(["escuchar", "enviar", "anotar", "releer", "escuchar", "enviar", "confirmar"]);
     expect(r.estado.fase).toBe("guardando");
   });
@@ -94,8 +94,14 @@ describe("siguienteManosLibres: «¿Pagó o lo debe?» y los avisos", () => {
     expect(notaManosLibres(r.estado)).toBe("No te entendí. Toca Pagó o Lo debe.");
   });
 
-  it("si al anotarlo falta un dato (lo debe, pero no se sabe quién), no se lee: se elige en la tarjeta", () => {
-    expect(recorrer([...oir, lodebe, { tipo: "anotado", lista: false }], leyendo("pago")).estado).toMatchObject({ fase: "callado", motivo: "falta" });
+  it("si al anotarlo falta algo que se elige en la tarjeta, no se lee", () => {
+    expect(recorrer([...oir, lodebe, { tipo: "anotado", pregunta: null }], leyendo("pago")).estado).toMatchObject({ fase: "callado", motivo: "falta" });
+  });
+
+  it("«lo debe», pero no se sabe quién: lo pregunta y escucha (ADR-0027)", () => {
+    const r = recorrer([...oir, lodebe, { tipo: "anotado", pregunta: "falta" }, leida], leyendo("pago"));
+    expect(r.efectos).toEqual(["escuchar", "enviar", "anotar", "releer", "escuchar"]);
+    expect(r.estado).toMatchObject({ fase: "abriendo", pregunta: "falta" });
   });
 
   it("un aviso (dudas, falta el precio) se dice y no se escucha: se confirma con el dedo", () => {
@@ -171,5 +177,53 @@ describe("notaManosLibres", () => {
     expect(notaManosLibres({ ...leyendo("confirmar"), fase: "callado", motivo: "no_hablo" })).toBe("No te oí. Si está bien, toca Confirmar.");
     expect(notaManosLibres({ ...leyendo("confirmar"), fase: "callado", motivo: "sin_senal" })).toBe("Sin señal no te entiendo. Si está bien, toca Confirmar.");
     expect(notaManosLibres(CALLADO)).toBeNull();
+  });
+});
+
+describe("siguienteManosLibres: lo que falta (ADR-0027)", () => {
+  const completada = (pregunta: "confirmar" | "pago" | "falta" | "ninguna", sinCambio?: boolean) => ({ tipo: "corregida", pregunta, sinCambio }) as const;
+
+  it("pregunta, oye el dato, rehace la tarjeta, sigue con lo próximo y termina confirmando", () => {
+    const r = recorrer(
+      [...oir, respuesta("corregir"), completada("falta"), ...oir, respuesta("corregir"), completada("confirmar"), ...oir, respuesta("confirmar")],
+      leyendo("falta"),
+    );
+    expect(r.efectos).toEqual(["escuchar", "enviar", "corregir", "releer", "escuchar", "enviar", "corregir", "releer", "escuchar", "enviar", "confirmar"]);
+    expect(r.estado.fase).toBe("guardando");
+  });
+
+  it("mientras falta un dato, «confirmo» no guarda: se repregunta", () => {
+    const r = recorrer([...oir, respuesta("confirmar")], leyendo("falta"));
+    expect(r.efectos).toEqual(["escuchar", "enviar", "repreguntar"]);
+    expect(r.estado).toMatchObject({ fase: "leyendo", pregunta: "falta", intento: 2 });
+  });
+
+  it("si no se entiende dos veces, se deja para elegir en la tarjeta", () => {
+    const r = recorrer([...oir, respuesta("otra"), ...oir, respuesta("otra")], leyendo("falta"));
+    expect(r.estado).toMatchObject({ fase: "callado", motivo: "no_entendio" });
+    expect(notaManosLibres(r.estado)).toBe("No te entendí. Elígelo en la tarjeta.");
+  });
+
+  it("una respuesta que no cambió nada cuenta como no entendida", () => {
+    const r = recorrer([...oir, respuesta("corregir"), completada("falta", true)], leyendo("falta"));
+    expect(r.efectos).toEqual(["escuchar", "enviar", "corregir", "repreguntar"]);
+    expect(recorrer([...oir, respuesta("corregir"), completada("falta", true), ...oir, respuesta("corregir"), completada("falta", true)], leyendo("falta")).estado).toMatchObject({
+      fase: "callado",
+      motivo: "no_entendio",
+    });
+  });
+
+  it("si al completarla queda una duda, la dice y se toca", () => {
+    expect(recorrer([...oir, respuesta("corregir"), completada("ninguna"), leida], leyendo("falta")).estado).toMatchObject({ fase: "callado", motivo: "aviso" });
+  });
+
+  it("si el servidor no responde o no hay señal, se elige en la tarjeta", () => {
+    expect(notaManosLibres(recorrer([...oir, respuesta("fallo")], leyendo("falta")).estado)).toBe("No te entendí. Elígelo en la tarjeta.");
+    expect(notaManosLibres(recorrer([leida, { tipo: "sin_senal" }], leyendo("falta")).estado)).toBe("Sin señal no te entiendo. Elígelo en la tarjeta.");
+    expect(notaManosLibres(recorrer([leida, { tipo: "vencio" }], leyendo("falta")).estado)).toBe("No te oí. Elígelo en la tarjeta.");
+  });
+
+  it("escuchando, dice qué responder", () => {
+    expect(notaManosLibres(recorrer([leida, abierto], leyendo("falta")).estado)).toBe("Te escucho: dime lo que falta o «repite».");
   });
 });

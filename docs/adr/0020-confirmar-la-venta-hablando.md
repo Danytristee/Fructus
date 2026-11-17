@@ -32,6 +32,8 @@ lectura.** Confirmar hablando solo vale con estos candados:
 4. **Nunca con dudas.**
    - Si falta decir si pagó o si lo debe, se pregunta por voz antes de leer, y la respuesta se repite en la lectura.
    - Si el cliente o la fruta tienen varias opciones parecidas, o si el intérprete dejó dudas, se pide el toque, como hoy.
+     **Desde ADR-0027** (2026-11-17), lo que falta (la fruta, las cajas, el precio o a quién se le fía) se pregunta por voz, con las
+     opciones leídas, y la venta completa se lee entera antes de confirmar. Las dudas siguen pidiendo el toque.
    - Un precio sugerido se lee como «sugerido» y confirmarlo es aceptarlo.
 5. **Cualquier otra respuesta no guarda.** «No, son ocho cajas» corrige y se vuelve a leer. El silencio deja la tarjeta abierta
    para tocar.

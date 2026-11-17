@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import type { Borrador } from "./confirmar-venta-reglas";
-import { cajasHabladas, cambiosDeCorreccion, dudaHablada, guionCorreccion, guionVenta, lecturaVenta, nombreHablado, relecturaPago, solesHablados } from "./lectura-reglas";
+import { cajasHabladas, nombreHablado, solesHablados } from "./hablado-reglas";
+import { cambiosDeCorreccion, dudaHablada, guionCompletado, guionCorreccion, guionVenta, lecturaVenta, relecturaPago } from "./lectura-reglas";
 
 const venta = (cambios: Partial<Borrador> = {}): Borrador => ({
   cliente: { id: 1, nombre: "Luis Paredes" },
@@ -88,7 +89,7 @@ describe("cómo se dicen los datos", () => {
 
 describe("relecturaPago", () => {
   it("después de «¿Pagó o lo debe?» solo repite la respuesta y pregunta: la venta se acaba de leer", () => {
-    expect(relecturaPago(venta())).toEqual({ texto: "Lo debe. ¿Confirmo?", entera: lecturaVenta(venta()) });
+    expect(relecturaPago(venta())).toEqual({ pregunta: "confirmar", texto: "Lo debe. ¿Confirmo?", entera: lecturaVenta(venta()) });
     expect(relecturaPago(venta({ condicion: "contado", medio: "yape" }))?.texto).toBe("Pagó con Yape. ¿Confirmo?");
   });
 
@@ -96,9 +97,20 @@ describe("relecturaPago", () => {
     expect(relecturaPago(venta({ comprobante: "factura" }))?.texto).toBe("Lo debe. Con factura. ¿Confirmo?");
   });
 
-  it("si todavía falta algo, no hay nada que leer", () => {
+  it("si todavía falta saber si pagó o algo que se elige en la tarjeta, no hay nada que leer", () => {
     expect(relecturaPago(venta({ condicion: null }))).toBeNull();
-    expect(relecturaPago(venta({ cliente: null, condicion: "credito" }))).toBeNull();
+    expect(relecturaPago(venta({ condicion: "credito", pagado: 900, medio: "yape" }))).toBeNull(); // pagó más que el total: se elige a mano
+  });
+
+  it("«lo debe», pero no se sabe quién: repite la respuesta y pregunta a quién (ADR-0027)", () => {
+    expect(relecturaPago(venta({ cliente: null, condicion: "credito" }))).toEqual({
+      pregunta: "falta",
+      texto: "Lo debe. ¿A quién se lo fiaste?",
+      entera: "Falta el cliente. ¿A quién se lo fiaste?",
+      repregunta: "¿A quién se lo fiaste?",
+    });
+    const opciones = { cliente: { dicho: "lucho", opciones: ["Luis Paredes", "Luis Pérez"] }, productos: [] };
+    expect(relecturaPago(venta({ cliente: null, condicion: "credito" }), undefined, opciones)?.texto).toBe("Lo debe. ¿Para quién es? ¿Luis Paredes o Luis Pérez?");
   });
 });
 
@@ -128,7 +140,7 @@ describe("el aviso de stock, dicho", () => {
     expect(guionVenta(venta({ condicion: null }), [], seis).texto).toBe(
       "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Ojo: según la app te quedan 6 cajas de Mango Kent. ¿Pagó o lo debe?",
     );
-    expect(relecturaPago(venta(), seis)).toEqual({ texto: "Lo debe. ¿Confirmo?", entera: lecturaVenta(venta(), seis) });
+    expect(relecturaPago(venta(), seis)).toEqual({ pregunta: "confirmar", texto: "Lo debe. ¿Confirmo?", entera: lecturaVenta(venta(), seis) });
   });
 
   it("con dudas no se dice: se mira la tarjeta, que lo muestra", () => {
@@ -210,9 +222,18 @@ describe("guionCorreccion", () => {
     expect(cambiosDeCorreccion(venta(), venta({ descuento: 10 }))).toEqual({ ...nada, rebaja: true, total: true });
   });
 
-  it("con dudas o si falta un dato, igual que al dictar: se mira la tarjeta", () => {
+  it("con dudas, igual que al dictar: se mira la tarjeta", () => {
     expect(guionCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 8 }] }), ["No sé si dijo 8 o 18."])).toMatchObject({ pregunta: "ninguna" });
-    expect(guionCorreccion(venta(), venta({ items: [{ ...mango, precio: null }] }), [])).toMatchObject({ pregunta: "ninguna" });
+  });
+
+  it("si la corrección deja un dato por decir, dice qué falta y lo pregunta (ADR-0027)", () => {
+    const opciones = { cliente: { dicho: "pedro", opciones: ["Pedro Díaz", "Pedro Ruiz"] }, productos: [] };
+    expect(guionCorreccion(venta(), venta({ cliente: null }), [], undefined, opciones)).toEqual({
+      pregunta: "falta",
+      texto: "Corregido. Falta el cliente. ¿Para quién es? ¿Pedro Díaz o Pedro Ruiz?",
+      entera: "Falta el cliente. ¿Para quién es? ¿Pedro Díaz o Pedro Ruiz?",
+      repregunta: "¿Para quién es? ¿Pedro Díaz o Pedro Ruiz?",
+    });
   });
 });
 
@@ -240,8 +261,56 @@ describe("guionVenta", () => {
     expect(dudaHablada(["A", "B", "C"])).toBe("Tengo una duda: a, y 2 más. Revisa la tarjeta y toca Confirmar.");
   });
 
-  it("si falta otra cosa, dice qué y se elige en la tarjeta", () => {
+  it("si falta el precio, dice todo lo que falta y pregunta lo primero (ADR-0027)", () => {
     const sinPrecio = venta({ items: [{ productoId: 1, producto: "Mango Kent", cantidad: 10, precio: null, sugerido: false }], condicion: null });
-    expect(guionVenta(sinPrecio, [])).toEqual({ pregunta: "ninguna", texto: "Falta elegir a cuánto la caja y si pagó o lo debe. Míralo en la tarjeta." });
+    expect(guionVenta(sinPrecio, [])).toEqual({
+      pregunta: "falta",
+      texto: "Falta el precio y si pagó. ¿A cuánto la caja de Mango Kent?",
+      repregunta: "¿A cuánto la caja de Mango Kent?",
+    });
+  });
+
+  it("con dudas no pregunta lo que falta: la duda manda y se toca", () => {
+    expect(guionVenta(venta({ items: [{ ...venta().items[0]!, precio: null }] }), ["No sé si dijo Kent o Edward"]).pregunta).toBe("ninguna");
+  });
+
+  it("lo que pagó al llevar y no cuadra no se pregunta: se elige en la tarjeta", () => {
+    expect(guionVenta(venta({ pagado: 900, medio: "yape" }), [])).toEqual({
+      pregunta: "ninguna",
+      texto: "Falta elegir cuánto pagó: menos que el total (si pagó todo, toca «Pagó»). Míralo en la tarjeta.",
+    });
+  });
+});
+
+describe("guionCompletado: la respuesta a lo que faltaba (ADR-0027)", () => {
+  const sinPrecio = venta({ items: [{ productoId: 1, producto: "Mango Kent", cantidad: 10, precio: null, sugerido: false }], condicion: null });
+
+  it("si quedó lista salvo el pago, dice «Anotado» y la venta entera, que nunca se leyó completa, y pregunta si pagó", () => {
+    expect(guionCompletado(sinPrecio, venta({ condicion: null }), [])).toEqual({
+      pregunta: "pago",
+      texto: "Anotado. 10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. ¿Pagó o lo debe?",
+      entera: "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. ¿Pagó o lo debe?",
+    });
+  });
+
+  it("si quedó lista del todo, la lee entera y pregunta «¿Confirmo?»", () => {
+    expect(guionCompletado(venta({ cliente: null }), venta(), [])).toMatchObject({
+      pregunta: "confirmar",
+      texto: "Anotado. 10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?",
+    });
+  });
+
+  it("si todavía falta otro dato, «Anotado» y la pregunta siguiente, sin repetir todo lo que falta", () => {
+    const sinFruta = venta({ items: [{ productoId: null, producto: "mango", cantidad: 10, precio: null, sugerido: false }] });
+    const conFruta = venta({ items: [{ productoId: 1, producto: "Mango Kent", cantidad: 10, precio: null, sugerido: false }] });
+    expect(guionCompletado(sinFruta, conFruta, [])).toMatchObject({ pregunta: "falta", texto: "Anotado. ¿A cuánto la caja de Mango Kent?" });
+  });
+
+  it("si la respuesta no cambió nada, no se entendió: queda para repreguntar", () => {
+    expect(guionCompletado(sinPrecio, sinPrecio, [])).toMatchObject({ pregunta: "falta", sinCambio: true });
+  });
+
+  it("si la respuesta dejó una duda, la dice y se toca", () => {
+    expect(guionCompletado(sinPrecio, venta({ condicion: null }), ["No sé si dijo 45 o 55"])).toMatchObject({ pregunta: "ninguna" });
   });
 });
