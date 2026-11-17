@@ -15,6 +15,7 @@ import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, ve
 import { cambiosDeCorreccion, guionCorreccion, guionVenta, relecturaPago, type Cambios } from "@/lib/voz/lectura-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
+import { AvisosStock } from "./AvisosStock";
 import { DudasVoz } from "./DudasVoz";
 import { EditorItem } from "./EditorItem";
 import { FilaCliente } from "./FilaCliente";
@@ -246,6 +247,9 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           }
         />
       ))}
+
+      {/* Si la venta pide más cajas de las que hay: avisa, no bloquea. */}
+      <AvisosStock items={borrador.items} inicial={vigente.stock} className="animate-pieza" />
 
       <DudasVoz dudas={vigente.dudas} />
 
