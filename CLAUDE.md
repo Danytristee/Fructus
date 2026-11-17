@@ -275,6 +275,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
 - **Roles y RLS:**
   - **duenio** y **administrador** pueden hacer todo.
   - **ayudante** inserta operaciones, pero no edita ni anula.
+  - **Un dictado lo guarda quien lo dictó**, o el dueño o el administrador. La RLS de toda tabla con `comando_voz_id` lo exige (`comando_propio()`), y `registrar_venta` y `registrar_compra` lo revisan antes de guardar. Una tabla nueva con `comando_voz_id` lleva la misma condición en su política de inserción.
   - **contador** solo lee.
   - **comprobantes** y **series** solo los escribe el servidor (service role).
 - **Trampas de RLS que ya costaron caro:**

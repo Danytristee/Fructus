@@ -620,6 +620,9 @@ isOneToOne: false
               "calibre": string,"id": number,"marca": string,"nombre": string,"seleccion": string,"similitud": number,"variedad": string
             }[]
                            },
+"comando_propio":
+{ Args: { "p_comando_voz_id": number }; Returns: boolean
+                           },
 "compras_por_proveedor":
 { Args: { "p_desde": string }; Returns: {
               "cajas": number,"compras": number,"costo_promedio": number,"producto_id": number,"proveedor_id": number,"total": number,"ultima": string,"ultimo_costo": number

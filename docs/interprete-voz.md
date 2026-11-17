@@ -305,7 +305,7 @@ Estos casos viven en `tests/interprete/casos.json` y `/voz-precision` los corre 
    («membrillo de cuarta»). Un alias nunca es el nombre a secas de una fruta con varias selecciones.
 3. Precio null → `ultimo_precio(cliente, producto)`, marcado como "sugerido" en la tarjeta.
 4. Condición null → dos botones grandes: **Pagó** / **Lo debe**.
-5. Al confirmar → `registrar_venta` / `registrar_compra` con `comando_voz_id` (marcan el comando como `confirmado`). Abonos, mermas y gastos se insertan directo en su tabla y la app marca el comando.
+5. Al confirmar → `registrar_venta` / `registrar_compra` con `comando_voz_id` (marcan el comando como `confirmado`). Abonos, mermas y gastos se insertan directo en su tabla y la app marca el comando. En las dos formas, solo quien dictó el comando (o el dueño o el administrador) puede guardar con él: la RLS lo exige.
 6. Si el usuario editó algo de la tarjeta, marcar el comando como `corregido` **antes** de guardar (la RPC solo cambia comandos que siguen `pendiente`). Si lo descartó, `descartado`.
 
 ## 6. Dónde vive y cómo se mide
