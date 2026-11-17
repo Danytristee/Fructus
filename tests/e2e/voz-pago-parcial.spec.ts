@@ -117,6 +117,7 @@ test("después de guardar: la ficha, el detalle y anular dicen lo que pagó al l
   await expect(page.getByText("Pagó al llevar, en efectivo")).toBeVisible();
   // La cifra de la ficha cuenta hasta su valor (es un resumen): se espera a que llegue.
   await expect(page.getByText(/Te debe\s*S\/\s*4,000\.00/)).toBeVisible({ timeout: 10_000 });
+  await page.waitForTimeout(1500); // el texto accesible trae la cifra final; la que se ve termina de contar
   await page.screenshot({ path: info.outputPath(`ficha-${info.project.name}.png`) });
 
   await page.goto("/ventas");
