@@ -142,7 +142,12 @@ test("«no, son ocho cajas»: la tarjeta se corrige, se dice solo lo que cambió
 
   await responder(page); // «No, son ocho cajas»
   await expect(hoja.getByText("8 cajas de Mango Kent")).toBeVisible();
-  await expect(hoja.getByText("S/ 360.00")).toBeVisible();
+  await expect(hoja.getByText("S/ 360.00", { exact: true })).toBeVisible();
+  // La tarjeta marca lo mismo que dice la voz: la fruta y el total. El cliente no cambió, así que no se marca.
+  await expect(hoja.getByText("corregido", { exact: true })).toHaveCount(2);
+  // Lo que ya debía es del cliente: sigue a la vista, con el total nuevo (antes desaparecía al corregir; /formidable 2026-11-17).
+  await expect(hoja.getByText(`Con esta venta, ${cliente.nombre} te debe`)).toBeVisible();
+  await expect(hoja.getByText("+ S/ 360.00 de hoy")).toBeVisible();
   // Solo lo que cambió: la venta entera se acaba de oír.
   await expect.poll(() => dichas(page)).toContain("Corregido. 8 cajas de Mango Kent, a 45 la caja. Total, 360 soles. ¿Confirmo?");
   await terminarFrase(page);
@@ -170,7 +175,7 @@ test("«repite»: la vuelve a leer entera y escucha otra vez; después «confirm
   const comandoId = await crearComando();
   const hoja = await hastaEscuchar(page, comandoId, cliente.nombre, cliente);
   // La línea enseña que se puede corregir hablando (/formidable 2026-11-16).
-  await expect(hoja.getByRole("status")).toHaveText("Te escucho: di «confirmo» o lo que hay que cambiar.");
+  await expect(hoja.getByRole("status")).toHaveText("Te escucho: di «confirmo», «repite» o lo que hay que cambiar.");
 
   const leidas = (await dichas(page)).filter((d) => d === lectura(cliente.nombre)).length;
   await responder(page); // «¿Qué?»

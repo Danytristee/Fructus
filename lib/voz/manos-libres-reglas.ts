@@ -120,7 +120,9 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
 /**
  * La línea sobre Confirmar: qué está haciendo la voz o por qué se dejó para tocar. null si no hay nada que decir. `corrige`: la
  * tarjeta se puede corregir hablando (la venta), y escuchando lo enseña: nada en la pantalla decía que «no, son 8» funciona, y
- * «o toca Confirmar» sobraba con el botón justo abajo (/formidable 2026-11-16).
+ * «o toca Confirmar» sobraba con el botón justo abajo (/formidable 2026-11-16). También enseña «repite»: desde que tras responder o
+ * corregir solo se dice lo nuevo, pedirla es la única forma de oír la venta entera, y quien no oyó por un camión soltaba una caja
+ * para tocar (/formidable 2026-11-17).
  */
 export function notaManosLibres(e: EstadoManosLibres, { corrige = false }: { corrige?: boolean } = {}): string | null {
   const pago = e.pregunta === "pago";
@@ -132,7 +134,7 @@ export function notaManosLibres(e: EstadoManosLibres, { corrige = false }: { cor
       return pago ? "¿Pagó o lo debe?" : "Para guardar, di «confirmo».";
     case "escuchando":
       if (pago) return "Te escucho: di «pagó» o «lo debe».";
-      return corrige ? "Te escucho: di «confirmo» o lo que hay que cambiar." : "Te escucho: di «confirmo» o toca Confirmar.";
+      return corrige ? "Te escucho: di «confirmo», «repite» o lo que hay que cambiar." : "Te escucho: di «confirmo» o toca Confirmar.";
     case "entendiendo":
     case "anotando":
       return "Entendiendo…";

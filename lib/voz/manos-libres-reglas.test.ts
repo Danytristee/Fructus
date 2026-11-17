@@ -153,7 +153,7 @@ describe("siguienteManosLibres: «repite»", () => {
 describe("notaManosLibres", () => {
   it("dice qué hace la voz, y por qué se dejó para tocar", () => {
     expect(notaManosLibres({ ...leyendo("pago"), fase: "escuchando" })).toBe("Te escucho: di «pagó» o «lo debe».");
-    expect(notaManosLibres({ ...leyendo("confirmar"), fase: "escuchando" }, { corrige: true })).toBe("Te escucho: di «confirmo» o lo que hay que cambiar.");
+    expect(notaManosLibres({ ...leyendo("confirmar"), fase: "escuchando" }, { corrige: true })).toBe("Te escucho: di «confirmo», «repite» o lo que hay que cambiar.");
     expect(notaManosLibres({ ...leyendo("confirmar"), fase: "escuchando" })).toBe("Te escucho: di «confirmo» o toca Confirmar.");
     expect(notaManosLibres({ ...leyendo("confirmar"), fase: "callado", motivo: "no_hablo" })).toBe("No te oí. Si está bien, toca Confirmar.");
     expect(notaManosLibres({ ...leyendo("confirmar"), fase: "callado", motivo: "sin_senal" })).toBe("Sin señal no te entiendo. Si está bien, toca Confirmar.");

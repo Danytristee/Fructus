@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Borrador } from "./confirmar-venta-reglas";
-import { cajasHabladas, dudaHablada, guionCorreccion, guionVenta, lecturaVenta, nombreHablado, relecturaPago, solesHablados } from "./lectura-reglas";
+import { cajasHabladas, cambiosDeCorreccion, dudaHablada, guionCorreccion, guionVenta, lecturaVenta, nombreHablado, relecturaPago, solesHablados } from "./lectura-reglas";
 
 const venta = (cambios: Partial<Borrador> = {}): Borrador => ({
   cliente: { id: 1, nombre: "Luis Paredes" },
@@ -144,6 +144,16 @@ describe("guionCorreccion", () => {
 
   it("si no cambió nada que se pueda nombrar, lee la venta entera: tiene que oír qué quedó", () => {
     expect(guionCorreccion(venta(), venta(), [])).toEqual({ pregunta: "confirmar", texto: lecturaVenta(venta()), entera: lecturaVenta(venta()) });
+  });
+
+  it("cambiosDeCorreccion: lo que la tarjeta marca «corregido», lo mismo que dice la voz", () => {
+    const nada = { frutas: [], cliente: false, rebaja: false, total: false, pago: false, comprobante: false };
+    expect(cambiosDeCorreccion(venta(), venta())).toEqual(nada);
+    expect(cambiosDeCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 8 }] }))).toEqual({ ...nada, frutas: [0], total: true });
+    expect(cambiosDeCorreccion(venta({ items: [mango, palta] }), venta({ items: [mango, { ...palta, precio: 55 }] }))).toEqual({ ...nada, frutas: [1], total: true });
+    expect(cambiosDeCorreccion(venta(), venta({ items: [mango, palta] })).frutas).toEqual([0, 1]);
+    expect(cambiosDeCorreccion(venta(), venta({ cliente: { id: 7, nombre: "Pedro Díaz" } }))).toEqual({ ...nada, cliente: true });
+    expect(cambiosDeCorreccion(venta(), venta({ descuento: 10 }))).toEqual({ ...nada, rebaja: true, total: true });
   });
 
   it("con dudas o si falta un dato, igual que al dictar: se mira la tarjeta", () => {

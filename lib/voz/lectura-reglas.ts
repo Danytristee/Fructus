@@ -108,24 +108,39 @@ const mismoItem = (a: ItemBorrador, b: ItemBorrador) =>
  *   - Con dudas o si falta un dato, igual que al dictar (guionVenta): se mira la tarjeta. Si no cambió nada que se pueda nombrar, se
  *     lee la venta entera: lo que dijo la persona no se reflejó en nada y tiene que oír qué quedó.
  */
+/**
+ * Qué cambió entre la venta de antes y la corregida. Lo usan la voz (guionCorreccion) y la tarjeta, que marca «corregido» en lo
+ * mismo que se dice: así la pantalla y el oído cuentan lo mismo (/formidable 2026-11-17). `frutas`: las posiciones que cambiaron
+ * en la corregida; todas, si cambió cuántas hay.
+ */
+export type Cambios = { frutas: number[]; cliente: boolean; rebaja: boolean; total: boolean; pago: boolean; comprobante: boolean };
+
+export function cambiosDeCorreccion(antes: Borrador, despues: Borrador): Cambios {
+  const mismasFilas = antes.items.length === despues.items.length;
+  return {
+    frutas: despues.items.flatMap((it, n) => (mismasFilas && mismoItem(antes.items[n]!, it) ? [] : [n])),
+    cliente: (antes.cliente?.id ?? null) !== (despues.cliente?.id ?? null),
+    rebaja: antes.descuento !== despues.descuento,
+    total: totalDe(antes) !== totalDe(despues),
+    pago: despues.condicion !== null && (antes.condicion !== despues.condicion || (despues.condicion === "contado" && antes.medio !== despues.medio)),
+    comprobante: antes.comprobante !== despues.comprobante,
+  };
+}
+
 export function guionCorreccion(antes: Borrador, despues: Borrador, dudas: string[]): GuionCorregido {
   const completo = guionVenta(despues, dudas);
   const total = totalDe(despues);
   if (completo.pregunta === "ninguna" || total === null) return { ...completo, entera: completo.texto };
 
+  const c = cambiosDeCorreccion(antes, despues);
   const uno = despues.items.length === 1;
-  const mismasFilas = antes.items.length === despues.items.length;
-  const frutas = mismasFilas ? despues.items.filter((it, n) => !mismoItem(antes.items[n]!, it)) : despues.items;
-  const rebaja = antes.descuento !== despues.descuento;
   const cambios: string[] = [];
-  if (frutas.length > 0) cambios.push(`${frutas.map((it) => itemHablado(it, uno)).join(", y ")}.`);
-  if ((antes.cliente?.id ?? null) !== (despues.cliente?.id ?? null)) cambios.push(despues.cliente ? `Para ${despues.cliente.nombre}.` : "Para un cliente de paso.");
-  if (rebaja) cambios.push(despues.descuento > 0 ? `Con ${solesHablados(despues.descuento)} de rebaja.` : "Sin rebaja.");
-  if (frutas.length > 0 || rebaja || totalDe(antes) !== total) cambios.push(`Total, ${solesHablados(total)}.`);
-  if (despues.condicion !== null && (antes.condicion !== despues.condicion || (despues.condicion === "contado" && antes.medio !== despues.medio))) {
-    cambios.push(despues.condicion === "credito" ? "Lo debe." : `Pagó ${MEDIOS_HABLADOS[despues.medio ?? "efectivo"]}.`);
-  }
-  if (antes.comprobante !== despues.comprobante) {
+  if (c.frutas.length > 0) cambios.push(`${c.frutas.map((n) => itemHablado(despues.items[n]!, uno)).join(", y ")}.`);
+  if (c.cliente) cambios.push(despues.cliente ? `Para ${despues.cliente.nombre}.` : "Para un cliente de paso.");
+  if (c.rebaja) cambios.push(despues.descuento > 0 ? `Con ${solesHablados(despues.descuento)} de rebaja.` : "Sin rebaja.");
+  if (c.frutas.length > 0 || c.rebaja || c.total) cambios.push(`Total, ${solesHablados(total)}.`);
+  if (c.pago) cambios.push(despues.condicion === "credito" ? "Lo debe." : `Pagó ${MEDIOS_HABLADOS[despues.medio ?? "efectivo"]}.`);
+  if (c.comprobante) {
     cambios.push(despues.comprobante === "boleta" ? "Con boleta." : despues.comprobante === "factura" ? "Con factura." : "Sin comprobante.");
   }
   if (cambios.length === 0) return { ...completo, entera: completo.texto };

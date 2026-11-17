@@ -16,6 +16,8 @@ type Props = {
   /** Lo que se lee debajo cuando no se dijo ningún nombre: «Cliente de paso». */
   sinNombre: string;
   alTocar: () => void;
+  /** Una insignia junto a lo de abajo, como «corregido» tras corregir hablando. */
+  insignia?: React.ReactNode;
   style?: React.CSSProperties;
   className?: string;
 };
@@ -23,7 +25,15 @@ type Props = {
 const mismoNombre = (a: string, b: string) => a.localeCompare(b, "es", { sensitivity: "base" }) === 0;
 
 // El cliente de una tarjeta de voz (venta, abono): quién es, en grande, y tocable para elegir otro.
-export function FilaCliente({ cliente, dicho, falta, pendiente, sinCliente = "Sin cliente", sinNombre, alTocar, style, className }: Props) {
+export function FilaCliente({ cliente, dicho, falta, pendiente, sinCliente = "Sin cliente", sinNombre, alTocar, insignia, style, className }: Props) {
+  const texto = cliente
+    ? // Lo que dijo, para reconocer al cliente por su apodo: «Luis Paredes» puede no sonarle a «don Lucho» (/formidable).
+      dicho && !mismoNombre(dicho, cliente.nombre)
+      ? `dijiste «${dicho}»`
+      : undefined
+    : dicho
+      ? "Toca para elegir quién es"
+      : sinNombre;
   return (
     <FilaTarjeta
       style={style}
@@ -42,14 +52,14 @@ export function FilaCliente({ cliente, dicho, falta, pendiente, sinCliente = "Si
       }
       grande={cliente?.nombre ?? (dicho ? `¿${dicho}?` : sinCliente)}
       chico={
-        cliente
-          ? // Lo que dijo, para reconocer al cliente por su apodo: «Luis Paredes» puede no sonarle a «don Lucho» (/formidable).
-            dicho && !mismoNombre(dicho, cliente.nombre)
-            ? `dijiste «${dicho}»`
-            : undefined
-          : dicho
-            ? "Toca para elegir quién es"
-            : sinNombre
+        insignia ? (
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {texto}
+            {insignia}
+          </span>
+        ) : (
+          texto
+        )
       }
     />
   );

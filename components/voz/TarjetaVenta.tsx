@@ -7,11 +7,12 @@ import { buscarClientes, confirmarVenta, saldoDe, sugerirPrecios } from "@/app/(
 import { Avatar } from "@/components/ui/Avatar";
 import { Boton } from "@/components/ui/Boton";
 import { IconoFruta } from "@/components/ui/IconoFruta";
+import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, faltaDe, frasesFalta, fueCorregido, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
-import { guionCorreccion, guionVenta, relecturaPago } from "@/lib/voz/lectura-reglas";
+import { cambiosDeCorreccion, guionCorreccion, guionVenta, relecturaPago, type Cambios } from "@/lib/voz/lectura-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { DudasVoz } from "./DudasVoz";
@@ -56,6 +57,9 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [vigente, setVigente] = useState(tarjeta);
   const [vista, setVista] = useState<Vista>({ tipo: "tarjeta" });
   const [saldo, setSaldo] = useState<number | null>(null);
+  // Lo que cambió la última corrección hablada, para marcarlo «corregido» mientras la venta siga tal cual la dejó la voz: tocar y
+  // cambiar algo a mano la reemplaza, y la marca se va (/formidable 2026-11-17).
+  const [corregida, setCorregida] = useState<{ borrador: Borrador; cambios: Cambios } | null>(null);
   const { confirmar: enviar, guardando, error, guardado: guardada, encolado, incierto } = useConfirmar<{ ok: true; saldo: number | null; comprobante: string | null }>({ alGuardar, alCambiarGuardando });
   // Manos libres (ADR-0020): al abrirse, la venta lista se lee en voz alta y se confirma diciendo «confirmo»; si falta saber si pagó,
   // se pregunta primero. Con dudas o si falta otro dato, solo se avisa y se toca. La tarjeta se monta solo en el navegador (la hoja no
@@ -78,7 +82,10 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       const b = borradorDe(nueva);
       setVigente(nueva);
       setBorrador(b);
-      setSaldo(null);
+      setCorregida({ borrador: b, cambios: cambiosDeCorreccion(borrador, b) });
+      // Lo que ya debía es del cliente, no de la venta: solo se vuelve a pedir si la corrección cambió de cliente. Antes se borraba
+      // siempre y, con el mismo cliente, «te debe» desaparecía y no volvía (/formidable 2026-11-17).
+      if ((b.cliente?.id ?? null) !== (borrador.cliente?.id ?? null)) setSaldo(null);
       return guionCorreccion(borrador, b, nueva.dudas);
     },
     ventaActual: () => ventaActual(borrador),
@@ -99,6 +106,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
   const total = totalDe(borrador);
   const falta = faltaDe(borrador);
+  const marcas = corregida?.borrador === borrador ? corregida.cambios : null;
+  const corregido = <Insignia tipo="corregido">corregido</Insignia>;
 
   async function elegirCliente(cliente: Borrador["cliente"]) {
     setVista({ tipo: "tarjeta" });
@@ -203,6 +212,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         falta={falta.includes("cliente")}
         sinNombre="Cliente de paso"
         alTocar={() => setVista({ tipo: "cliente" })}
+        insignia={marcas?.cliente ? corregido : undefined}
       />
       {borrador.items.map((item, n) => (
         <FilaTarjeta
@@ -219,6 +229,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
                 {item.productoId === null ? "Toca para elegir la fruta" : item.precio === null ? "Toca para poner el precio" : `${formatearSoles(item.precio)} la caja`}
               </span>
               {item.sugerido && <InsigniaSugerido />}
+              {marcas?.frutas.includes(n) && corregido}
             </span>
           }
         />
@@ -227,7 +238,10 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       <DudasVoz dudas={vigente.dudas} />
 
       <div className="mx-1 mt-1 mb-1 flex animate-pieza items-baseline justify-between gap-3" style={pieza(borrador.items.length + 1)}>
-        <span className="text-lg font-bold text-texto-suave">{borrador.descuento > 0 ? `Total, con ${formatearSoles(borrador.descuento)} de rebaja` : "Total"}</span>
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-bold text-texto-suave">
+          {borrador.descuento > 0 ? `Total, con ${formatearSoles(borrador.descuento)} de rebaja` : "Total"}
+          {(marcas?.total || marcas?.rebaja) && corregido}
+        </span>
         {total === null ? (
           <span className="text-lg font-bold text-deuda">Falta el precio</span>
         ) : (
