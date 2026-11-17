@@ -33,3 +33,8 @@
   - e2e a 412 y 360 px: la hoja (girar con el dedo y con el teclado, tocar un número, sin señal), el cron (`temprano`, ficha, `ya-avisado`), el menú y la vida útil.
   - Al hacer la e2e apareció un error real de la rueda, y se arregló: con varias flechas seguidas, el giro suave informaba las posiciones intermedias y se perdían pasos.
 - **Pendiente:** ver en el proyecto que el trabajo `aviso-del-dia` corra cada minuto y que, a la hora de cierre, Vercel conteste. Eso se ve en `cron.job_run_details` y `net._http_response`.
+- **/chaos y prueba a ciegas de la rueda** (`docs/chaos/hora-de-cierre-rueda-2026-11-17.md`, semilla 1118): resistieron los 14 ataques.
+  - 20 llamadas al cron a la vez: avisa una.
+  - El camino completo `pg_cron` → `pg_net` → la ruta con la ficha funciona; una ficha usada o vencida recibe 401.
+  - Cinco toques a «Guardar» mandan un solo pedido; la sesión vencida y la red cortada se dicen dentro de la hoja.
+  - La prueba a ciegas dio 8/10. La única duda fue hacia dónde girar.

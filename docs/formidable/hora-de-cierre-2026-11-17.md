@@ -94,4 +94,14 @@ entraron así:
 - las ruedas son de 84 × 260 px, con posiciones de 52 px;
 - «Guardar» mide 68 px y queda de 831 a 899 de 915 px (y de 716 a 784 de 800 px).
 
-Capturas: `rueda-412.png`, `rueda-360.png` y `rueda-guardada-412.png`. Falta una prueba a ciegas con la rueda.
+Capturas: `rueda-412.png`, `rueda-360.png` y `rueda-guardada-412.png`.
+
+**Prueba a ciegas de la rueda (observado).** Tarea: «Tu puesto cierra a las cinco y media de la tarde».
+- Tocó «Hora de cierre» sin dudar.
+- Para cambiar la hora, deslizaría la rueda de la izquierda y después buscaría el 30 en la de los minutos.
+- Dejaría «p. m.» como estaba.
+- Entendió la franja como «lo que está elegido», y que sin «Guardar» no se guarda.
+- Leyó «Desde hoy» como que ese mismo día le llega a las 5:30.
+- **Seguridad:** 8 de 10.
+- **La duda más grande:** hacia dónde deslizar para pasar de 7 a 5, y si los números se pueden tocar directo (sí se puede).
+- La duda de la grilla («dentro de esa hora… ¿a las 4:50?») desapareció.
