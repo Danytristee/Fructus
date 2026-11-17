@@ -38,7 +38,7 @@ async function Historial() {
     supabase
       .from("ventas")
       .select(
-        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre, tipo_documento, telefono), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad, seleccion, calibre)), comprobantes(id, tipo, serie, numero, estado, pdf_url, motivo:respuesta->>mensaje)",
+        "id, fecha, total, condicion, medio_pago, estado, motivo_anulacion, anulada_en, cliente:clientes(id, nombre, tipo_documento, telefono), registrador:perfiles!registrado_por(nombre), anulador:perfiles!anulada_por(nombre), items:venta_items(cantidad, precio_unitario, descuento, subtotal, producto:productos(nombre, variedad, seleccion, calibre)), comprobantes(id, tipo, serie, numero, estado, pdf_url, motivo:respuesta->>mensaje), pago:abonos(monto, medio_pago)",
       )
       .gte("fecha", desde)
       .order("fecha", { ascending: false })
@@ -92,6 +92,8 @@ async function Historial() {
           subtotal: Number(i.subtotal),
         })),
         registradaPor: v.registrador?.nombre ?? null,
+        // Lo que pagó al llevar (ADR-0023): a lo más uno por venta (abonos_uno_por_venta).
+        pagoAlLlevar: v.pago[0] ? { monto: Number(v.pago[0].monto), medio: v.pago[0].medio_pago as Medio } : null,
         anulacion: anulada ? { cuando: v.anulada_en ?? v.fecha, por: v.anulador?.nombre ?? null, motivo: v.motivo_anulacion ?? "" } : null,
         comprobante: comprobanteAMostrar(
           v.comprobantes.map((c) => ({ id: c.id, tipo: c.tipo as CodigoTipo, serie: c.serie, numero: c.numero, estado: c.estado, pdfUrl: c.pdf_url, motivo: typeof c.motivo === "string" ? c.motivo : null })),

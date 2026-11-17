@@ -105,6 +105,11 @@ describe("cada operación en una línea", () => {
       detalle: "Abonó en efectivo",
       estado: "abono",
     });
+    // Lo que pagó al llevarse la fruta es un abono atado a su venta (ADR-0023): se dice así, no como un abono suelto.
+    expect(deAbono({ id: 2, fecha: "x", monto: 1000, medio: "yape", cliente: { id: 2, nombre: "Rosa Quispe" }, alLlevar: true })).toMatchObject({
+      detalle: "Pagó al llevar, con Yape",
+      estado: "abono",
+    });
     expect(deCompra({ id: 1, fecha: "x", total: 1200, proveedor: { nombre: "Agrícola Chao" }, items: [{ cantidad: 40, producto: mango }] })).toMatchObject({
       titulo: "Agrícola Chao",
       detalle: "Compraste 40 de mango kent",

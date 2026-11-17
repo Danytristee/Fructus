@@ -51,6 +51,15 @@ describe("consecuenciasDeAnular", () => {
     expect(consecuenciasDeAnular(credito, soles)).toEqual(["Vuelven al stock 10 cajas de mango kent.", "Luis Paredes te debe S/ 450.00 menos."]);
   });
 
+  // /chaos 2026-11-17: la hoja decía «te debe S/ 5,000 menos» y el cliente quedaba con S/ 1,000 a favor sin que nadie lo viera.
+  it("con lo que pagó al llevar, dice que eso le queda a favor (ADR-0023)", () => {
+    const conPago = { ...credito, total: 5000, pagoAlLlevar: { monto: 1000, medio: "yape" as const } };
+    expect(consecuenciasDeAnular(conPago, soles)).toEqual([
+      "Vuelven al stock 10 cajas de mango kent.",
+      "Luis Paredes te debe S/ 5000.00 menos: los S/ 1000.00 que pagó al llevar le quedan a favor.",
+    ]);
+  });
+
   it("al contado dice cuánto se descuenta de lo vendido", () => {
     const contado = { ...credito, condicion: "contado" as const, cliente: null, total: 77 };
     expect(consecuenciasDeAnular(contado, soles)).toEqual(["Vuelven al stock 10 cajas de mango kent.", "Se descuentan S/ 77.00 de lo que vendiste."]);

@@ -15,7 +15,8 @@ export type VentaLeida = {
   cliente: { id: number; nombre: string } | null;
   items: Item[];
 };
-export type AbonoLeido = { id: number; fecha: string; monto: number; medio: Medio; cliente: { id: number; nombre: string } | null };
+/** `alLlevar`: lo pagó al llevarse la fruta en una venta al crédito («pagó solo 1000»), no fue un abono suelto (ADR-0023). */
+export type AbonoLeido = { id: number; fecha: string; monto: number; medio: Medio; cliente: { id: number; nombre: string } | null; alLlevar?: boolean };
 export type CompraLeida = { id: number; fecha: string; total: number; proveedor: { nombre: string } | null; items: Item[] };
 export type MermaLeida = { id: number; fecha: string; cantidad: number; motivo: string | null; producto: Producto | null };
 export type GastoLeido = { id: number; fecha: string; monto: number; categoria: string; descripcion: string | null };
@@ -95,7 +96,7 @@ export function deAbono(a: AbonoLeido): Operacion {
     clave: `abono-${a.id}`,
     fecha: a.fecha,
     titulo: a.cliente?.nombre ?? "Abono",
-    detalle: `Abonó ${medios[a.medio]}`,
+    detalle: a.alLlevar ? `Pagó al llevar, ${medios[a.medio]}` : `Abonó ${medios[a.medio]}`,
     monto: a.monto,
     estado: "abono",
     persona: persona(a.cliente),

@@ -100,3 +100,32 @@ test("con algo anotado, «No pagó nada» lo quita y la venta queda debiendo tod
   expect((await ventaDe(comandoId)).abonos).toEqual([]);
   expect(await saldoDe(cliente.id)).toBe(antes + 5000);
 });
+
+// /chaos 2026-11-17: el detalle decía «Lo debe» con el total y la hoja de anular no avisaba que lo pagado queda a favor.
+test("después de guardar: la ficha, el detalle y anular dicen lo que pagó al llevar", async ({ page }, info) => {
+  test.slow();
+  const { data: c } = await base.from("clientes").insert({ nombre: `Pago al llevar ${info.project.name} ${Date.now()}` }).select("id, nombre").single();
+  const cliente = c!;
+  const comandoId = await crearComando();
+  const hoja = await dictar(page, comandoId, tarjeta(cliente), "¿Así fue la venta?");
+  await hoja.getByRole("button", { name: "Confirmar venta" }).click();
+  await expect(page.getByText("Venta guardada")).toBeVisible();
+
+  await page.goto(`/clientes/${cliente.id}`);
+  await expect(page.getByText("Pagó al llevar, en efectivo")).toBeVisible();
+  // La cifra de la ficha cuenta hasta su valor (es un resumen): se espera a que llegue.
+  await expect(page.getByText(/Te debe\s*S\/\s*4,000\.00/)).toBeVisible({ timeout: 10_000 });
+  await page.screenshot({ path: info.outputPath(`ficha-${info.project.name}.png`) });
+
+  await page.goto("/ventas");
+  await page.getByRole("button", { name: new RegExp(cliente.nombre) }).click();
+  const detalle = page.getByRole("dialog", { name: "Detalle de la venta" });
+  await expect(detalle.getByText("Debe el resto")).toBeVisible();
+  await expect(detalle.getByText(/Pagó\s*S\/\s*1,000\.00\s*al llevar · debe\s*S\/\s*4,000\.00/)).toBeVisible();
+  await page.screenshot({ path: info.outputPath(`detalle-${info.project.name}.png`) });
+
+  await detalle.getByRole("button", { name: "Anular esta venta" }).click();
+  await expect(detalle.getByRole("list", { name: "Qué pasa al anular" })).toContainText(
+    `${cliente.nombre} te debe ${enSoles(5000)} menos: los ${enSoles(1000)} que pagó al llevar le quedan a favor.`,
+  );
+});

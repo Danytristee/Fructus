@@ -21,6 +21,8 @@ export type DetalleVenta = {
   anulacion: { cuando: string; por: string | null; motivo: string } | null;
   /** Su boleta o factura vigente (pendiente, enviada o aceptada), si ya se emitió. */
   comprobante: ComprobanteVista | null;
+  /** Al crédito, lo que pagó al llevarse la fruta («pagó solo 1000», ADR-0023). null o ausente si no pagó nada al llevar. */
+  pagoAlLlevar?: { monto: number; medio: Medio } | null;
 };
 
 export type Periodo = "hoy" | "semana";
@@ -90,9 +92,9 @@ export function resumirVentas(filas: FilaDeVenta[], hoy: string, diaDe: (fecha: 
   };
 }
 
-/** «Pagó en efectivo», «Pagó con Yape», «Lo debe». Una venta al contado sin medio solo dice que pagó. */
-export function fraseDePago(v: { condicion: "contado" | "credito"; medio: Medio | null }): string {
-  if (v.condicion === "credito") return "Lo debe";
+/** «Pagó en efectivo», «Pagó con Yape», «Lo debe», «Debe el resto». Una venta al contado sin medio solo dice que pagó. */
+export function fraseDePago(v: { condicion: "contado" | "credito"; medio: Medio | null; pagoAlLlevar?: DetalleVenta["pagoAlLlevar"] }): string {
+  if (v.condicion === "credito") return v.pagoAlLlevar ? "Debe el resto" : "Lo debe";
   return v.medio ? `Pagó ${medios[v.medio]}` : "Pagó";
 }
 
