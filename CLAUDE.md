@@ -276,6 +276,7 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - **duenio** y **administrador** pueden hacer todo.
   - **ayudante** inserta operaciones, pero no edita ni anula.
   - **Un dictado lo guarda quien lo dictó**, o el dueño o el administrador. La RLS de toda tabla con `comando_voz_id` lo exige (`comando_propio()`), y `registrar_venta` y `registrar_compra` lo revisan antes de guardar. Una tabla nueva con `comando_voz_id` lleva la misma condición en su política de inserción.
+  - **La firma (`registrado_por`) es de quien está conectado.** Con sesión, nadie guarda a nombre de otro ni cambia una firma, ni el dueño: el trigger `fijar_registrado_por()` rechaza con 42501. Sin sesión (semilla, pruebas, servidor) se respeta lo que venga. Una tabla nueva con `registrado_por` lleva el trigger (lo vigila `supabase/tests/database/27_registrado_por_es_quien_registra.test.sql`).
   - **contador** solo lee.
   - **comprobantes** y **series** solo los escribe el servidor (service role).
 - **Trampas de RLS que ya costaron caro:**
