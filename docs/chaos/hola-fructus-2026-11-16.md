@@ -1,7 +1,7 @@
 # /chaos · «Hola Fructus» en «Hoy» (2026-11-16)
 
-**Rama:** `claude/hola-fructus-voice-commands-2e7437`. **Semilla:** 2026111603. **Ataques:** 9. **Resistieron:** 6. **Hallazgos:** 3, sin
-arreglar: esperan el OK.
+**Rama:** `claude/hola-fructus-voice-commands-2e7437`. **Semilla:** 2026111603. **Ataques:** 9. **Resistieron:** 6. **Hallazgos:** 3. El 2 y
+el 3 quedaron arreglados con OK y su prueba; el 1 es regla de dinero y espera decisión.
 
 **Base:** local y compartida, así que no se hizo `db reset`.
 - Antes: volcado de los datos de `public` y las 12 invariantes en orden.
@@ -34,15 +34,17 @@ Un solo «confirmo» guarda las dos.
   oírte».
 - **Por qué pasa:** con la pantalla oculta, el worker recibe «pausar» y tira el dictado. La pantalla no se entera y sigue mostrando que
   escucha.
-- **Propuesta:** al ocultarse la pantalla con un dictado de «Hola Fructus» abierto, se descarta, como pasa al salir de «Hoy». Primero va la
-  e2e que falla.
+- **Arreglado (con OK):** con un dictado de «Hola Fructus» abierto, ocultar la pantalla lo descarta, como al salir de «Hoy», y dice «Se
+  apagó la pantalla: no se envió nada» (`useHolaFructus` avisa con `alOcultarse`). Regresión: `voz-hola-fructus.spec.ts`,
+  «regresión /chaos 2». Falló antes del arreglo («escuchando») y pasa después, a 412 y 360 px.
 
 ### 3 · Si los modelos no bajan, el micrófono queda abierto sin escuchar (gravedad 4)
 
 - **Para repetirlo:** prender «Hola Fructus» con `/voz/*.onnx` sin responder (sin señal la primera vez).
 - **Evidencia:** sale el aviso «No pude escuchar "Hola Fructus"» y la oreja no aparece, pero queda **1 micrófono abierto**. Android
   mostraría su punto verde sin que nada escuche.
-- **Propuesta:** con el detector caído, se suelta el micrófono. Primero va la e2e que falla.
+- **Arreglado (con OK):** con el detector caído, el micrófono no se abre, y si estaba abierto se suelta. Regresión:
+  «regresión /chaos 3». Falló antes del arreglo (1 micrófono abierto) y pasa después (0).
 
 ## Resistieron
 

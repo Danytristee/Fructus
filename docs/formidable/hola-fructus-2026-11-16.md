@@ -82,3 +82,45 @@ dices "Hola Fructus"».
 **Aparte, sin ejecutar:**
 - Con el sol, una oreja más grande o con borde.
 - En escritorio, el orbe flota sobre «Lo último» (ya pasaba antes).
+
+## 5 · Después, con el OK del 2026-11-16
+
+**Lo aplicado:**
+1. Después de despertar por la frase, la etiqueta dice «Te escucho. Lo envío cuando te calles», sin reloj. En dos líneas parejas,
+   centradas y dentro de los márgenes: la fila no pasa del ancho de la pantalla menos 2 × 16 px, y «Borrar» no se encoge.
+2. La bolita de la oreja pasó a ser una etiqueta lima con palabras, «Escucho "Hola Fructus"», sobre el borde de arriba del orbe. Al
+   costado no cabía: ahí están los destinos de la barra. La etiqueta de ayuda sube 20 px para no pisarla, y la de la primera vez volvió a
+   «Toca o mantén para hablar», porque la nueva ya dice la frase.
+3. Cada interruptor dice qué toque quita:
+   - «Manos libres»: «Te leo la venta y la confirmas hablando. Con audífono».
+   - «Hola Fructus»: «Empiezo a escucharte cuando lo dices».
+   - Con «Hola Fructus» prendido y «Manos libres» apagado, sale «Para no tocar nada: prende también Manos libres…», y se va al
+     prenderlo.
+
+**Medido** (412 y 360 px):
+- La etiqueta mide 255 × 33 px, con letra de 17 px. No tapa ninguna cifra.
+- 0 controles chicos y 0 desborde.
+- La fila «Borrar» + etiqueta empieza a 16 px y termina a 16 px del borde.
+- Capturas `despues-*`.
+
+**Segunda prueba ciega** (Observado), mismas tareas:
+- **Menú:** prende los dos porque el cuadro se lo dice, y entiende para qué es cada uno. Duda si «Con audífono» es obligatorio, y
+  «y lo que pasó» lo lee dos veces. Seguridad 7/10.
+- **«Hoy»:** «lo verde dice "Escucho"», o sea que está atento (antes: «no tengo cómo saberlo»). Sigue con la duda de si oye lo que habla
+  con los clientes, y la etiqueta tapa parte de «Todo tu cuaderno», un texto sin cifras. Seguridad 6/10.
+- **Después de despertar:** «lo manda solito, eso dice» (antes: «¿toco Enviar?»). Pregunta cuánto rato hay que callar y si manda la
+  mitad cuando se traba. Seguridad 7/10.
+
+**Nota:** 7.6 → **8.1**.
+- Ley 1: 6 → 7.5.
+- Ley 3: 7 → 7.5.
+- Ley 8: 7 → 8, sin el reloj.
+- Ley 9: 7 → 8.5, con /chaos 2 y 3 arreglados.
+- Oficio: 8 → 8.5.
+
+**Queda, sin ejecutar:**
+- «Con audífono» → «Mejor con audífono».
+- «y lo que pasó» → «y la venta».
+- La duración del silencio dicha en algún lado («callas un segundo y lo envío»).
+- La etiqueta tapa texto sin cifras de «Te deben».
+- La privacidad: «nada sale del celular hasta que dices "Hola Fructus"».

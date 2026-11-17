@@ -111,3 +111,14 @@ Silero) ya existía desde el PR #39 (`lib/voz/silencio-reglas.ts`, por volumen):
   - Medir `medir:escucha` (o el uso de CPU de Chrome) en el S25 y en un Android de gama media. En una computadora, 11 % puede ser
     varias veces más en un gama media. Si pesa, cuantizar el modelo de rasgos.
   - Actualizar Next.js por el aviso de seguridad. También quita la píldora que rompe 4 e2e en desarrollo.
+- **/formidable** (`docs/formidable/hola-fructus-2026-11-16.md`), de 7.6 a 8.1 con los 3 cambios aprobados:
+  - «Te escucho. Lo envío cuando te calles» sin reloj;
+  - «Escucho "Hola Fructus"» con palabras sobre el orbe;
+  - cada interruptor dice qué toque quita, y sugiere prender «Manos libres».
+
+  En la segunda prueba ciega: «lo manda solito», «lo verde dice "Escucho"».
+- **/chaos** (`docs/chaos/hola-fructus-2026-11-16.md`, semilla 2026111603): 6 de 9 resistieron. Arreglados con OK y su regresión:
+  - la pantalla oculta a mitad de lo dictado ahora lo descarta;
+  - con el detector caído se suelta el micrófono.
+
+  Queda el 1, que es regla de dinero y espera decisión: **dos celulares escuchando guardan dos veces la misma venta**.

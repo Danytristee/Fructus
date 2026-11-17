@@ -34,6 +34,11 @@ type Opciones = {
   alCallarse: () => void;
   /** Después de la frase, no dijo nada en 5 s. */
   alMudo: () => void;
+  /**
+   * La pantalla se ocultó (otra app, el celular bloqueado): se suelta el micrófono, así que lo que se grababa después de la frase ya no
+   * sigue. Quien lo usa lo descarta, como al salir de «Hoy» (/chaos 2026-11-16, 2).
+   */
+  alOcultarse: () => void;
 };
 
 /**
@@ -44,23 +49,32 @@ type Opciones = {
  * `atenta`: está buscando la frase de verdad (micrófono abierto, modelos cargados, audio corriendo). `terminar` cierra lo que se grabó
  * después de despertar: el WAV, o null si se tiró o no había nada.
  */
-export function useHolaFructus({ hojaAbierta, voz, porPalabra, alDespertar, alCallarse, alMudo }: Opciones) {
+export function useHolaFructus({ hojaAbierta, voz, porPalabra, alDespertar, alCallarse, alMudo, alOcultarse }: Opciones) {
   const activa = useSyncExternalStore(alCambiarHolaFructus, () => holaFructus() && puedeEscuchar(), () => false);
   const pantalla = useSyncExternalStore(alCambiarVisibilidad, visible, () => true);
   const escucha = estadoDeEscucha({ activa, visible: pantalla, hojaAbierta, voz, porPalabra });
   const encendida = escucha !== "apagada";
-  const conMicrofono = escucha === "pausada" || escucha === "atenta";
 
   const [cargada, setCargada] = useState(false);
   const [falla, setFalla] = useState<FallaGrabadora | "detector" | null>(null);
+  // Con el detector caído nada escucha: el micrófono no se abre, y si estaba abierto se suelta (el punto verde del celular se apaga).
+  const conMicrofono = (escucha === "pausada" || escucha === "atenta") && falla !== "detector";
   // El audio corre (el contexto no quedó suspendido esperando un toque, como pide Chrome a veces).
   const [sonando, setSonando] = useState(false);
   const worker = useRef<Worker | null>(null);
   const pendiente = useRef<((g: Grabacion | null) => void) | null>(null);
-  const avisos = useRef({ alDespertar, alCallarse, alMudo });
+  const avisos = useRef({ alDespertar, alCallarse, alMudo, alOcultarse });
   useEffect(() => {
-    avisos.current = { alDespertar, alCallarse, alMudo };
+    avisos.current = { alDespertar, alCallarse, alMudo, alOcultarse };
   });
+
+  useEffect(() => {
+    const alCambiar = () => {
+      if (document.visibilityState === "hidden") avisos.current.alOcultarse();
+    };
+    document.addEventListener("visibilitychange", alCambiar);
+    return () => document.removeEventListener("visibilitychange", alCambiar);
+  }, []);
 
   // El worker y sus modelos: mientras el interruptor esté prendido (la pantalla oculta no lo apaga, solo suelta el micrófono).
   useEffect(() => {

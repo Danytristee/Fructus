@@ -36,7 +36,10 @@ export function ManosLibres() {
         </span>
         <span className="grid">
           Manos libres
-          <span className="text-base font-normal text-texto-suave">{activo ? "Activado: te leo cada venta" : "Te leo cada venta. Úsalo con audífono"}</span>
+          {/* Qué toque quita: el de confirmar (/formidable 2026-11-16, cambio 3). «Hola Fructus» quita el de empezar. */}
+          <span className="text-base font-normal text-texto-suave">
+            {activo ? "Activado: te leo la venta y la confirmas hablando" : "Te leo la venta y la confirmas hablando. Con audífono"}
+          </span>
         </span>
         <Interruptor activo={activo} />
       </button>

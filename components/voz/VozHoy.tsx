@@ -23,13 +23,16 @@ import { useHolaFructus } from "./useHolaFructus";
 const HojaVoz = dynamic(() => import("./HojaVoz").then((m) => m.HojaVoz), { ssr: false });
 
 const TEXTO_LISTO = "Toca o mantén para hablar";
-// Con «Hola Fructus» prendido y escuchando (actividad 5c).
-const TEXTO_LISTO_PALABRA = "Di «Hola Fructus» o toca para hablar";
+// Después de «Hola Fructus», quien tiene las manos ocupadas no va a tocar «Enviar» ni mira un reloj: se dice que se envía solo
+// (/formidable 2026-11-16, cambio 1: el ciego creía que tenía que tocar).
+const TEXTO_ESCUCHANDO_FRASE = "Te escucho. Lo envío cuando te calles";
 // Grabó menos de DURACION_MINIMA_MS: casi siempre empezó a hablar antes de «Te escucho» o tocó dos veces seguidas.
 const TEXTO_CORTO = "No alcancé a oírte. Habla después de «Te escucho».";
 const TEXTO_CANCELADO = "Cancelado. No se envió nada.";
 // Despertó y después no dijo nada: quizás no era para Fructus (alguien dijo algo parecido). No se envía nada.
 const TEXTO_MUDO = "No te oí después de «Hola Fructus».";
+// Se ocultó la pantalla mientras escuchaba lo que seguía a la frase: el micrófono se soltó y no se envía nada.
+const TEXTO_OCULTA = "Se apagó la pantalla: no se envió nada.";
 // Marca local del dispositivo: ya usó el botón una vez. Es solo comodidad de interfaz; si se borra, la ayuda vuelve.
 const MARCA_APRENDIO = "fructus:voz-aprendida";
 // Whisper con respaldo, más el intérprete con respaldo: el servidor puede tardar hasta ~20 s en el peor caso.
@@ -117,6 +120,12 @@ export function VozHoy() {
     alDespertar: () => aplicar({ tipo: "despertar" }),
     alCallarse: () => aplicar({ tipo: "silencio" }),
     alMudo: () => aplicar({ tipo: "mudo" }),
+    // Se suelta el micrófono con la pantalla oculta: lo que seguía a la frase se descarta, como al salir de «Hoy».
+    alOcultarse: () => {
+      if (!deLaPalabra.current || enviando.current) return;
+      gesto.current = REPOSO;
+      void terminar(false, TEXTO_OCULTA);
+    },
   });
   // La falla de «Hola Fructus» que ya se cerró: no se vuelve a mostrar hasta que sea otra.
   const [fallaVista, setFallaVista] = useState<string | null>(null);
@@ -225,14 +234,20 @@ export function VozHoy() {
     if (e.tipo === "despertar" && r.efecto !== "despertar") void palabra.terminar(false);
   }
 
-  /** «Te escucho» con su reloj, la vibración y el tope de 55 s: con el dedo o después de «Hola Fructus». */
-  function mostrarEscuchando() {
+  /**
+   * «Te escucho», la vibración y el tope de 55 s. Con el dedo, con su reloj; después de «Hola Fructus», sin reloj y diciendo que se envía
+   * al callarse.
+   */
+  function mostrarEscuchando(porLaFrase = false) {
     setEstado("escuchando");
     navigator.vibrate?.(20);
-    const inicio = Date.now();
-    const contar = () => setTexto(textoEscuchando((Date.now() - inicio) / 1000));
-    contar();
-    reloj.current = window.setInterval(contar, 250);
+    if (porLaFrase) setTexto(TEXTO_ESCUCHANDO_FRASE);
+    else {
+      const inicio = Date.now();
+      const contar = () => setTexto(textoEscuchando((Date.now() - inicio) / 1000));
+      contar();
+      reloj.current = window.setInterval(contar, 250);
+    }
     tope.current = window.setTimeout(() => aplicar({ tipo: "tope" }), TOPE_ESCUCHA_MS);
   }
 
@@ -245,7 +260,7 @@ export function VozHoy() {
     setPorPalabra(true);
     setBloqueado(true);
     sonarEscucho(); // con audífono y sin mirar: la señal de que ya puede hablar
-    mostrarEscuchando();
+    mostrarEscuchando(true);
   }
 
   async function empezar() {
@@ -422,7 +437,7 @@ export function VozHoy() {
       )}
       <BotonVoz
         estado={estado}
-        texto={texto === TEXTO_LISTO && palabra.atenta ? TEXTO_LISTO_PALABRA : texto}
+        texto={texto}
         // La etiqueta enseña el primer día y acompaña mientras escucha; después no tapa «Lo último» (/formidable 2026-10-28).
         verTexto={!aviso && (!aprendio || estado !== "listo" || texto !== TEXTO_LISTO)}
         escuchaLaFrase={palabra.atenta && estado === "listo"}

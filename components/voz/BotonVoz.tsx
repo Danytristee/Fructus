@@ -15,7 +15,7 @@ type Props = Omit<React.ComponentProps<"button">, "children"> & {
   alCancelar?: () => void;
   /** Mientras se mantiene, el candado encima del orbe: cuánto subió el dedo hacia él, de 0 a 1. Sin valor, no se dibuja. */
   candado?: number;
-  /** En reposo, está escuchando «Hola Fructus» (actividad 5c): una oreja en el orbe lo dice, sin moverse. */
+  /** En reposo, está escuchando «Hola Fructus» (actividad 5c): una etiqueta con la oreja lo dice sobre el orbe, sin moverse. */
   escuchaLaFrase?: boolean;
 };
 
@@ -26,13 +26,14 @@ export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, al
   const enviar = estado === "escuchando" && bloqueado;
   return (
     <div className={cn("pointer-events-none grid justify-items-center gap-2", className)}>
-      <div className="flex items-center gap-2">
+      {/* Nunca más ancha que la pantalla menos sus márgenes: una etiqueta larga se parte en dos líneas en vez de empujar «Borrar» al borde. */}
+      <div className="flex max-w-[calc(100vw-2rem)] items-center gap-2">
         {alCancelar && (
           // Arriba, junto a la etiqueta y lejos del orbe: con una caja en la otra mano, «Borrar» no se toca por enviar (/formidable 2026-11-12).
           <button
             type="button"
             onClick={alCancelar}
-            className="vidrio-desenfocado pointer-events-auto flex min-h-12 animate-subir items-center gap-1.5 rounded-full pr-4 pl-3 font-extrabold text-texto"
+            className="vidrio-desenfocado pointer-events-auto flex min-h-12 shrink-0 animate-subir items-center gap-1.5 rounded-full pr-4 pl-3 font-extrabold text-texto"
           >
             <X aria-hidden className="size-5" strokeWidth={2.6} />
             Borrar
@@ -42,7 +43,8 @@ export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, al
           id="voz-texto"
           aria-live="polite"
           className={cn(
-            "rounded-full bg-acento px-4 py-1.5 font-extrabold text-sobre-acento tabular-nums shadow-[0_8px_20px_-6px_rgb(var(--sombra-color)/0.5)] transition-[opacity,translate] duration-200",
+            // En una línea se ve como siempre (redonda); en dos, las esquinas no cortan las letras.
+            "min-w-0 rounded-3xl bg-acento px-4 py-1.5 text-center font-extrabold text-balance text-sobre-acento tabular-nums shadow-[0_8px_20px_-6px_rgb(var(--sombra-color)/0.5)] transition-[opacity,translate] duration-200",
             !verTexto && "pointer-events-none translate-y-1 opacity-0",
           )}
         >
@@ -61,7 +63,8 @@ export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, al
           <ChevronUp className="size-5 text-texto-suave" strokeWidth={2.6} />
         </span>
       )}
-      <div className="relative">
+      {/* Con la etiqueta de «Hola Fructus» encima del orbe, la de arriba sube un poco para no pisarla. */}
+      <div className={cn("relative", escuchaLaFrase && "mt-5")}>
         {/* El resplandor que respira en reposo, detrás del orbe. */}
         <span aria-hidden className="halo pointer-events-none absolute inset-0 rounded-full" />
         <span aria-hidden className="pointer-events-none absolute inset-0">
@@ -77,13 +80,17 @@ export function BotonVoz({ estado, texto, verTexto = true, bloqueado = false, al
           ))}
         </span>
         {escuchaLaFrase && (
-          // Arriba a la derecha del orbe, fuera del camino del pulgar: dice que el micrófono está abierto esperando «Hola Fructus».
-          <span
-            aria-hidden
-            data-oreja
-            className="absolute -top-1 -right-1 z-10 grid size-9 animate-subir place-items-center rounded-full border-2 border-fondo bg-lima text-sobre-lima"
-          >
-            <Ear className="size-5" strokeWidth={2.4} />
+          // Sobre el borde de arriba del orbe, con palabras: dice que el micrófono está abierto y qué hay que decir. Era una bolita con la
+          // oreja y el ciego la tomó por el globito de mensajes de WhatsApp (/formidable 2026-11-16, cambio 2). Al costado no cabe: ahí
+          // están los destinos de la barra. No recibe toques: lo que caiga sobre ella llega al orbe o a la pantalla.
+          <span aria-hidden className="pointer-events-none absolute inset-x-0 -top-5 z-10 flex justify-center">
+            <span
+              data-oreja
+              className="flex animate-subir items-center gap-1.5 rounded-full border-2 border-fondo bg-lima py-1 pr-3.5 pl-2.5 text-[17px] leading-tight font-extrabold whitespace-nowrap text-sobre-lima"
+            >
+              <Ear className="size-5" strokeWidth={2.4} />
+              Escucho «Hola Fructus»
+            </span>
           </span>
         )}
         <button

@@ -71,11 +71,15 @@ async function simularVoz(page: Page, comandoId = 41, t: object = tarjeta): Prom
 test("«Hola Fructus, vendí…» dicho de corrido: sin tocar nada, envía lo dicho con la frase y abre la tarjeta", async ({ page }) => {
   test.slow();
   await escuchando(page);
+  // Se ve que escucha y qué hay que decir, con palabras (/formidable 2026-11-16, cambio 2).
+  await expect(page.locator("[data-oreja]")).toHaveText("Escucho «Hola Fructus»");
   const envios = await simularVoz(page);
   const dicho = decir(page, VENTA);
   // Despierta a mitad del audio: el orbe queda escuchando sin el dedo (dice «Enviar»), sin un solo toque.
   await expect(orbe(page)).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
   await expect(orbe(page)).toHaveAttribute("data-bloqueado", "true");
+  // Con las manos ocupadas no se toca «Enviar»: se dice que se envía solo (cambio 1).
+  await expect(page.locator("#voz-texto")).toHaveText("Te escucho. Lo envío cuando te calles");
   await dicho;
   // Al callarse se envía: un WAV con la frase (los 2 s de antes de despertar) y todo lo que siguió, marcado para que el servidor
   // confirme que se dijo «Hola Fructus» (5d). El audio dura 6.2 s: si faltara el principio o el final, sería más corto.
@@ -168,6 +172,49 @@ test("sin señal, lo dicho después de «Hola Fructus» va a la cola y al volver
   expect(envios[0]).toMatchObject({ archivo: "voz.wav", despertar: "1" });
 });
 
+/** Simula que la pantalla se oculta (otra app, el celular bloqueado) o vuelve a verse. */
+const visibilidad = (page: Page, estado: "hidden" | "visible") =>
+  page.evaluate((e) => {
+    Object.defineProperty(document, "visibilityState", { value: e, configurable: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+  }, estado);
+
+const microfonosAbiertos = (page: Page) =>
+  page.evaluate(
+    () =>
+      (window as unknown as { __abiertos: { destino: MediaStreamAudioDestinationNode }[] }).__abiertos.filter((m) =>
+        m.destino.stream.getAudioTracks().some((t) => t.readyState === "live"),
+      ).length,
+  );
+
+test("regresión /chaos 2: si la pantalla se oculta a mitad de lo dictado, se descarta y al volver escucha de nuevo", async ({ page }) => {
+  test.slow();
+  await escuchando(page);
+  const envios = await simularVoz(page);
+  void decir(page, SOLO_LA_FRASE);
+  await expect(orbe(page)).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
+  await visibilidad(page, "hidden");
+  // Como al salir de «Hoy»: no se queda «Te escucho…» sin grabar nada.
+  await expect(orbe(page)).toHaveAttribute("data-estado", "listo", { timeout: 3_000 });
+  await visibilidad(page, "visible");
+  await expect(orbe(page)).toHaveAttribute("data-palabra", "true", { timeout: 10_000 });
+  expect(envios).toHaveLength(0);
+  await decir(page, VENTA);
+  await expect(hojaVenta(page)).toBeVisible({ timeout: 15_000 });
+  expect(envios).toHaveLength(1);
+});
+
+test("regresión /chaos 3: si los modelos no bajan, avisa y suelta el micrófono", async ({ page }) => {
+  await page.route("**/voz/*.onnx", (r) => r.abort("internetdisconnected"));
+  await page.addInitScript(() => localStorage.setItem("fructus:hola-fructus", "si"));
+  await microfonoQueDice(page);
+  await entrarComo(page, "duenio");
+  await expect(page.getByText("No pude escuchar «Hola Fructus». Toca el orbe para hablar.")).toBeVisible({ timeout: 15_000 });
+  await expect(orbe(page)).not.toHaveAttribute("data-palabra");
+  // Nada escucha: el punto verde de micrófono del celular no puede quedar prendido.
+  await expect.poll(() => microfonosAbiertos(page)).toBe(0);
+});
+
 test("«Borrar» tira lo que siguió a «Hola Fructus» sin enviarlo", async ({ page }) => {
   await escuchando(page);
   const envios = await simularVoz(page);
@@ -205,6 +252,12 @@ test("el interruptor del menú prende la escucha y, al apagarlo, suelta el micr�
   };
   await menu();
   await expect(orbe(page)).toHaveAttribute("data-palabra", "true", { timeout: 30_000 });
+  // Con «Hola Fructus» prendido y «Manos libres» apagado, el menú dice qué falta para no tocar nada (cambio 3); al prenderlo, deja de decirlo.
+  await page.getByRole("button", { name: /^Menú/ }).click();
+  await expect(page.getByText("Para no tocar nada")).toBeVisible();
+  await page.getByRole("switch", { name: /Manos libres/ }).click();
+  await expect(page.getByText("Para no tocar nada")).toBeHidden();
+  await page.keyboard.press("Escape");
   await menu();
   await expect(orbe(page)).not.toHaveAttribute("data-palabra");
   // Ningún micrófono queda abierto: la luz de «micrófono en uso» del celular se apaga.
