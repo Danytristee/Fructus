@@ -18,6 +18,13 @@ describe("lecturaVenta", () => {
     expect(lecturaVenta(venta())).toBe("10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?");
   });
 
+  it("con pago parcial dice cuánto pagó, cómo y cuánto queda debiendo (ADR-0023)", () => {
+    const items = [{ productoId: 1, producto: "Mango Kent", cantidad: 10, precio: 500, sugerido: false }];
+    expect(lecturaVenta(venta({ items, pagado: 1000, medio: "yape" }))).toBe(
+      "10 cajas de Mango Kent, a 500 la caja, para Luis Paredes. Total, 5000 soles. Pagó 1000 soles con Yape y debe 4000 soles. ¿Confirmo?",
+    );
+  });
+
   it("al contado dice cómo pagó", () => {
     expect(lecturaVenta(venta({ condicion: "contado", medio: "yape" }))).toContain("Pagó con Yape.");
     expect(lecturaVenta(venta({ condicion: "contado", medio: null }))).toContain("Pagó en efectivo.");

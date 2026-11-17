@@ -70,6 +70,22 @@ describe("armarTarjeta · venta", () => {
       ...extra,
     });
 
+  it("lo que pagó al llevar deja la venta al crédito, con efectivo si no dijo cómo (ADR-0023)", () => {
+    const t = armarTarjeta(venta({ pago_parcial: 1000 }), { ...nada, clientes: [lucho], productos: [[royal]], precios: [500] });
+    if (t.tipo !== "venta") throw new Error("no es venta");
+    expect(t.pagoParcial).toBe(1000);
+    expect(t.condicion).toBe("credito");
+    expect(t.medio).toBe("efectivo");
+    expect(t.falta).toEqual([]);
+  });
+
+  it("al crédito con pago parcial también hay que saber quién debe", () => {
+    const t = armarTarjeta(venta({ cliente_texto: null, pago_parcial: 200, medio_pago: "yape" }), { ...nada, productos: [[royal]], precios: [500] });
+    if (t.tipo !== "venta") throw new Error("no es venta");
+    expect(t.medio).toBe("yape");
+    expect(t.falta).toEqual(["cliente"]);
+  });
+
   it("el precio que no se dijo sale del último cobrado y se marca sugerido; el total se calcula", () => {
     const t = armarTarjeta(venta({}), { ...nada, clientes: [lucho], productos: [[royal]], precios: [128.7] });
     expect(t.tipo).toBe("venta");

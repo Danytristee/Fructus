@@ -1,6 +1,6 @@
 // Lo que Fructus dice en voz alta antes de guardar una venta en manos libres (ADR-0020, candado 1): lo que se va a guardar, no la
 // transcripción. Es la misma tarjeta, dicha. Lógica pura: no importa React ni el sintetizador del navegador (components/voz/hablar.ts).
-import { faltaDe, frasesFalta, totalDe, type Borrador, type Medio } from "./confirmar-venta-reglas";
+import { debeDe, faltaDe, frasesFalta, totalDe, type Borrador, type Medio } from "./confirmar-venta-reglas";
 
 /** Cómo se dice cómo se pagó: «en efectivo», «con Yape». */
 export const MEDIOS_HABLADOS: Record<Medio, string> = { efectivo: "en efectivo", yape: "con Yape", plin: "con Plin", transferencia: "por transferencia" };
@@ -69,7 +69,10 @@ function resumenHablado(b: Borrador, total: number): string {
 export function lecturaVenta(b: Borrador): string | null {
   const total = totalDe(b);
   if (faltaDe(b).length > 0 || total === null) return null;
-  const pago = b.condicion === "credito" ? "Lo debe" : `Pagó ${MEDIOS_HABLADOS[b.medio ?? "efectivo"]}`;
+  const medio = MEDIOS_HABLADOS[b.medio ?? "efectivo"];
+  // Lo que pagó al llevar se dice con su medio y con lo que queda: «Pagó 1000 soles con Yape y debe 4000 soles» (ADR-0023).
+  const pago =
+    b.condicion !== "credito" ? `Pagó ${medio}` : b.pagado ? `Pagó ${solesHablados(b.pagado)} ${medio} y debe ${solesHablados(debeDe(b) ?? 0)}` : "Lo debe";
   const comprobante = b.comprobante === "boleta" ? " Con boleta." : b.comprobante === "factura" ? " Con factura." : "";
   return `${resumenHablado(b, total)} ${pago}.${comprobante} ¿Confirmo?`;
 }

@@ -38,6 +38,13 @@ describe("clasificarRespuesta", () => {
 });
 
 describe("clasificarPago", () => {
+  // ADR-0023: los números se borraban y «pagó 500» quedaba en «pagó»: la venta se guardaba como pagada entera. Con un monto o una
+  // parte no se anota nada: se repregunta y la parte se anota en la tarjeta («Pagó una parte»). Nunca se asume contado.
+  it.each(["Pagó 500", "Pagó quinientos", "Solo pagó mil", "Pagó una parte", "Me dio la mitad", "Dejó 200 y el resto lo debe", "Pagó nomás cien con Yape"])(
+    "«%s» trae un monto o una parte: no se anota",
+    (texto) => expect(clasificarPago(texto)).toBeNull(),
+  );
+
   it.each([
     ["Pagó.", { condicion: "contado", medio: "efectivo" }],
     ["Pagó con Yape", { condicion: "contado", medio: "yape" }],

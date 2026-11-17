@@ -39,6 +39,8 @@ export type Tarjeta =
       /** null: se pregunta con dos botones, Pagó / Lo debe. Nunca se asume contado. */
       condicion: "contado" | "credito" | null;
       medio: Medio | null;
+      /** Al crédito, lo que pagó al llevarse la fruta («pagó solo 1000», ADR-0023). null o ausente: no pagó nada al llevar. */
+      pagoParcial?: number | null;
       comprobante: "ninguno" | "boleta" | "factura";
       dudas: string[];
       /** Lo que falta para poder confirmar: la tarjeta lo pide antes de dejar guardar. */
@@ -115,22 +117,26 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
         return { producto, cantidad: it.cantidad, precio, subtotal: precio.valor === null ? null : redondear(it.cantidad * precio.valor) };
       });
       const descuento = d.descuento_total ?? 0;
+      // Pagar una parte es dejar el resto debiendo: al crédito, aunque el intérprete no lo haya dicho (ADR-0023).
+      const pagoParcial = d.pago_parcial ?? null;
+      const condicion = pagoParcial !== null ? "credito" : d.condicion;
       const sinPrecio = items.some((x) => x.subtotal === null);
       const total = sinPrecio ? null : redondear(items.reduce((s, x) => s + (x.subtotal ?? 0), 0) - descuento);
       const falta: Extract<Tarjeta, { tipo: "venta" }>["falta"] = [];
       if (items.some((x) => !x.producto.elegido)) falta.push("producto");
       if (sinPrecio) falta.push("precio");
-      if (d.condicion === null) falta.push("condicion");
+      if (condicion === null) falta.push("condicion");
       // Al crédito hay que saber quién debe (la base también lo exige: venta_credito_requiere_cliente).
-      if (d.condicion === "credito" && !cliente.elegido) falta.push("cliente");
+      if (condicion === "credito" && !cliente.elegido) falta.push("cliente");
       return {
         tipo: "venta",
         cliente,
         items,
         descuento,
         total,
-        condicion: d.condicion,
-        medio: d.condicion === "contado" ? (d.medio_pago ?? "efectivo") : d.medio_pago,
+        condicion,
+        medio: condicion === "contado" || pagoParcial !== null ? (d.medio_pago ?? "efectivo") : d.medio_pago,
+        pagoParcial,
         comprobante: d.comprobante,
         dudas: d.dudas,
         falta,
