@@ -126,7 +126,7 @@ test("se activa con un toque: pide el permiso, suscribe el teléfono, lo guarda 
   const enviados = await recibidosPor(t);
   expect(enviados).toHaveLength(1);
   expect(enviados[0]).toMatchObject({ topic: "aviso-activado", ttl: "300" });
-  expect(JSON.parse(descifrar(Buffer.from(enviados[0]!.cuerpo, "base64"), t))).toEqual(avisoDeActivacion());
+  expect(JSON.parse(descifrar(Buffer.from(enviados[0]!.cuerpo, "base64"), t))).toEqual(avisoDeActivacion(19));
 });
 
 test("al volver a abrir el menú sigue activado, y al apagarlo se desactiva en la base (con su fecha, sin borrar nada) y en el teléfono", async ({ page }, info) => {

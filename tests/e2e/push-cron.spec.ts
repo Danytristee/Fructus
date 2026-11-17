@@ -2,9 +2,10 @@ import { expect, test } from "@playwright/test";
 
 import { diaDeLima } from "../../lib/formato";
 import { leerResumen } from "../../lib/hoy-reglas";
+import { horaDeLima } from "../../lib/hora-cierre-reglas";
 import { avisoDelDia } from "../../lib/push-reglas";
 import { descifrar, telefonoDePrueba, type TelefonoDePrueba } from "../ayudas/push-de-prueba";
-import { baseLocal, entornoLocal } from "./base";
+import { baseLocal, devolverLaHoraDeCierre, entornoLocal, horaDeCierreAhora } from "./base";
 import { CLAVE_PRUEBA, cuentas } from "./cuentas";
 import { venderAlPaso } from "./dictar";
 
@@ -43,7 +44,11 @@ const estadoDe = async (t: TelefonoDePrueba) => (await base.from("suscripciones_
 let usuarioInactivo: string;
 let frutaPorSalir: number;
 
+let esHoraDeProbar = false;
+
 test.beforeAll(async () => {
+  // El cron solo avisa a la hora de cierre (ADR-0023): se pone la de ahora. Antes de las 8 a. m. no se puede (las pruebas que envían se saltan).
+  esHoraDeProbar = await horaDeCierreAhora(base);
   // Un día con ventas: si la base local está limpia, se registra una.
   const { data: dia } = await base.rpc("resumen_dia");
   const resumen = leerResumen(dia);
@@ -73,6 +78,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  await devolverLaHoraDeCierre(base);
   // Datos de prueba de la base local: se limpian para que la tabla no acumule teléfonos de mentira que el cron del día siguiente recorra.
   await base.from("suscripciones_push").delete().like("endpoint", `%${MARCA}%`);
   if (usuarioInactivo) await base.auth.admin.deleteUser(usuarioInactivo);
@@ -92,7 +98,22 @@ test("el cron no responde a quien no trae el secreto, ni a quien trae otro", asy
   expect(await recibidos(), "y no salió ningún aviso").toEqual([]);
 });
 
+test("los crons de las otras horas del día pasan sin avisar nada: solo avisa el de la hora de cierre", async ({ request }) => {
+  // vercel.json tiene un cron por cada hora que se puede elegir; todos llaman a la misma ruta. Una hora de cierre que no es la de ahora:
+  const otra = horaDeLima(new Date()) === 20 ? 21 : 20;
+  await devolverLaHoraDeCierre(base, otra);
+  try {
+    const respuesta = await request.get(RUTA, { headers: conSecreto });
+    expect(respuesta.status()).toBe(200);
+    expect(await respuesta.json()).toEqual({ motivo: "no-es-la-hora", hora: otra });
+    expect(await recibidos(), "y no salió ningún aviso").toEqual([]);
+  } finally {
+    if (esHoraDeProbar) await horaDeCierreAhora(base);
+  }
+});
+
 test("con el secreto manda el resumen del día a cada teléfono que lo pidió: cifrado, con lo que dice la base, y anota cómo salió cada uno", async ({ request }) => {
+  test.skip(!esHoraDeProbar, "antes de las 8 a. m. de Lima no se puede elegir como hora de cierre: el cron no avisa");
   const hoy = diaDeLima(new Date());
   const antes = avisoDelDia(leerResumen((await base.rpc("resumen_dia")).data), hoy);
   const respuesta = await request.get(RUTA, { headers: conSecreto });
@@ -147,6 +168,7 @@ test("con el secreto manda el resumen del día a cada teléfono que lo pidió: c
 });
 
 test("si el cron corre dos veces, el teléfono ya caducado no se vuelve a avisar y el aviso repetido lleva el mismo tema (se ve uno)", async ({ request }) => {
+  test.skip(!esHoraDeProbar, "antes de las 8 a. m. de Lima no se puede elegir como hora de cierre: el cron no avisa");
   await fetch(`${SERVICIO_DE_AVISOS}/recibidos`, { method: "DELETE" });
   const respuesta = await request.get(RUTA, { headers: conSecreto });
   expect(respuesta.status()).toBe(200);

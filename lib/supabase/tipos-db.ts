@@ -43,6 +43,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"ajustes_puesto": {
+                  Row: {
+                    "actualizado_en": string,"actualizado_por": string | null,"hora_cierre": number,"id": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actualizado_en"?: string,"actualizado_por"?: string | null,"hora_cierre"?: number,"id"?: boolean
+                  }
+                  Update: {
+                    "actualizado_en"?: string,"actualizado_por"?: string | null,"hora_cierre"?: number,"id"?: boolean
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"clientes": {
                   Row: {
                     "activo": boolean,"alias": (string)[],"creado_en": string,"direccion": string | null,"id": number,"limite_credito": number | null,"nombre": string,"notas": string | null,"numero_documento": string | null,"telefono": string | null,"tipo_documento": string | null
@@ -644,6 +658,9 @@ isOneToOne: false
                            },
 "fecha_del_celular":
 { Args: { "p": string }; Returns: string
+                           },
+"fijar_hora_cierre":
+{ Args: { "p_hora": number }; Returns: number
                            },
 "registrar_compra":
 { Args: { "p": Json }; Returns: number

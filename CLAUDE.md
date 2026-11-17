@@ -114,7 +114,7 @@ app/
     comprobantes/       emitir y reintentar en sandbox (solo servidor)
     exportar/route.ts   el mes en un .xlsx para el contador (solo lectura, con la sesión de quien lo pide; lee por páginas porque Supabase corta en 1000 filas)
     salud/route.ts      consulta real a la base, para el ping y para diagnosticar
-    cron/resumen-diario/route.ts   el aviso del día (Web Push) y la estimación de vida útil (ADR-0021), una vez al día; solo responde con el secreto de Vercel (ADR-0013)
+    cron/resumen-diario/route.ts   el aviso del día (Web Push) y la estimación de vida útil (ADR-0021), a la hora de cierre que elige el dueño (un cron por hora posible, ADR-0023); solo responde con el secreto de Vercel (ADR-0013)
   manifest.ts  layout.tsx  globals.css
 components/
   ui/                   UNA pieza por función: Boton, Hoja, Tarjeta, Campo, Monto, Insignia, Aviso, Vacio, Espera
@@ -300,6 +300,8 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
   - `series_comprobante` tiene RLS sin políticas porque solo la toca el servidor.
   - `frases_tomadas` tiene RLS sin políticas porque solo la toca `tomar_frase` (security definer, ADR-0022).
   - `rol_actual()` es `security definer` y la pueden ejecutar los autenticados, porque las políticas la necesitan.
+  - `fijar_hora_cierre()` es `security definer` y la pueden ejecutar los autenticados: revisa el rol (dueño o administrador) antes de
+    tocar `ajustes_puesto`, que no tiene update directo (ADR-0023).
   - `tomar_frase()` es `security definer` y la pueden ejecutar los autenticados: `/api/voz` la llama con la sesión de quien dicta, y la
     función revisa el rol antes de tocar `frases_tomadas` (ADR-0022).
   - Los avisos de rendimiento (políticas permisivas múltiples, llaves foráneas sin índice) no importan a este volumen; se revisan antes de producción.

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { leerHoraDeCierre } from "@/lib/hora-cierre";
+import { HORA_DE_CIERRE_DE_FABRICA, tocaAvisar } from "@/lib/hora-cierre-reglas";
 import { cronAutorizado } from "@/lib/push/cron";
 import { enviarAviso } from "@/lib/push/enviar";
 import { enviarElResumenDelDia, estadoHttpDelInforme } from "@/lib/push/resumen-diario";
@@ -8,9 +10,11 @@ import { crearClienteServicio } from "@/lib/supabase/servicio";
 import { estimarLaVidaDelDia, type InformeVida } from "@/lib/vida-estimada/estimar-del-dia";
 import { dependenciasDeLaEstimacion } from "@/lib/vida-estimada/servidor";
 
-// El aviso del día: Vercel llama a esta ruta una vez al día (vercel.json, «0 0 * * *» = las 7 p. m. de Lima; en el plan Hobby corre
-// dentro de esa hora). Lee el día, y si hubo ventas o abonos, se lo manda a cada teléfono que lo pidió. Ver ADR-0013. Después, si hay
-// fruta que tiene que salir mañana, manda otro aviso con cuál (aviso de frescura).
+// El aviso del día: Vercel llama a esta ruta una vez por cada hora que se puede elegir como hora de cierre (vercel.json: de 8 a. m. a
+// 11 p. m. de Lima, cada cron una vez al día; en el plan Hobby corre dentro de esa hora). Solo el cron de la hora de cierre que eligió el
+// dueño hace algo (ADR-0023); los demás contestan «no-es-la-hora» sin tocar nada más. El de la hora lee el día, y si hubo ventas o
+// abonos, se lo manda a cada teléfono que lo pidió. Ver ADR-0013. Después, si hay fruta que tiene que salir mañana, manda otro aviso con
+// cuál (aviso de frescura).
 // En la misma pasada, y a la par, le pide al modelo que estime cuánto aguantan las frutas que todavía no tienen estimación (ADR-0021).
 // Va aparte del aviso: no usa sus claves, no lo espera y, si falla, el aviso sale igual y Stock sigue con la tabla.
 // Solo la llama el cron: sin el secreto no hace nada. Los registros llevan conteos e ids, nunca direcciones, nombres ni montos.
@@ -36,7 +40,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "no-se-pudo-armar" }, { status: 502, headers: SIN_CACHE });
   }
 
-  // Arranca ya y se espera al final: nunca lanza (su informe dice cómo salió).
+  // ¿Es la hora de cierre? Si la base no responde, se usa la de fábrica: mejor un aviso a las 7 p. m. que ninguno (principio 8). Con la
+  // base caída el resumen tampoco se podrá leer, y eso sí sale en rojo más abajo.
+  const hora = await leerHoraDeCierre(db).catch((e: unknown) => {
+    console.error("push: no se pudo leer la hora de cierre, se usa la de fábrica", { error: e instanceof Error ? e.message : "desconocido" });
+    return HORA_DE_CIERRE_DE_FABRICA;
+  });
+  if (!tocaAvisar(hora, ahora)) return NextResponse.json({ motivo: "no-es-la-hora", hora }, { headers: SIN_CACHE });
+
+  // Arranca ya y se espera al final: nunca lanza (su informe dice cómo salió). Corre solo en el cron de la hora de cierre: una vez al día.
   const vidaUtil: Promise<InformeVida> = estimarLaVidaDelDia(dependenciasDeLaEstimacion(db), ahora).then((informe) => {
     if (informe.motivo === "fallo") console.error("vida estimada: no se pudo estimar esta noche", informe);
     else console.info("vida estimada: estimación de la noche", informe);

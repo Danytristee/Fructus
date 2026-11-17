@@ -4,25 +4,36 @@ import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { cn } from "cn";
 
-import { activarAvisos, apagarAvisos } from "@/app/(app)/acciones-avisos";
+import { activarAvisos, apagarAvisos, leerHoraDelAviso } from "@/app/(app)/acciones-avisos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Interruptor } from "@/components/ui/Interruptor";
 import { vibrar } from "@/components/voz/senales";
 import { leerEstadoDelAviso, quitarSuscripcionDeEsteTelefono, suscribirEsteTelefono } from "@/lib/push/navegador";
-import { HORA_DEL_AVISO_TEXTO, type EstadoDelAviso } from "@/lib/push-reglas";
+import { textoDeLaHora } from "@/lib/hora-cierre-reglas";
+import type { EstadoDelAviso } from "@/lib/push-reglas";
 import { filaDelMenu, iconoDelMenu } from "./menu-estilos";
 
 type Estado = EstadoDelAviso | "revisando";
 type Mensaje = { tipo: "exito" | "info" | "error"; titulo: string; texto?: string };
 
-const SUBTITULOS: Record<Estado, string> = {
-  revisando: "Revisando…",
-  apagado: `Lo que vendiste, ${HORA_DEL_AVISO_TEXTO}`,
-  activo: `Activado, ${HORA_DEL_AVISO_TEXTO}`,
-  bloqueado: "Bloqueado en tu teléfono",
-  "instalar-primero": "Primero instala la app",
-  "no-disponible": "",
-};
+/** La hora la elige el dueño en Ajustes (ADR-0023). Si no se pudo leer, se dice «al cerrar» en vez de una hora que quizá no es. */
+function subtitulo(estado: Estado, hora: number | null): string {
+  const cuando = hora === null ? "al cerrar" : textoDeLaHora(hora);
+  switch (estado) {
+    case "revisando":
+      return "Revisando…";
+    case "apagado":
+      return `Lo que vendiste, ${cuando}`;
+    case "activo":
+      return `Activado, ${cuando}`;
+    case "bloqueado":
+      return "Bloqueado en tu teléfono";
+    case "instalar-primero":
+      return "Primero instala la app";
+    case "no-disponible":
+      return "";
+  }
+}
 
 // «Aviso del día» en el menú: un interruptor que le manda al teléfono, cada noche, lo vendido, lo cobrado y lo que le deben (ADR-0013).
 // Al activarlo sale un aviso de prueba, para ver en la pantalla cómo llega. Si el teléfono no puede (iPhone sin instalar la app, permiso
@@ -32,9 +43,14 @@ export function AvisoDelDia({ clavePublica }: { clavePublica: string }) {
   const [endpoint, setEndpoint] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [mensaje, setMensaje] = useState<Mensaje | null>(null);
+  const [hora, setHora] = useState<number | null>(null);
 
   useEffect(() => {
     let vigente = true;
+    // A la par del estado del teléfono: la hora vive en la base y se pide al abrir el menú, no en cada pantalla.
+    leerHoraDelAviso()
+      .then((h) => vigente && setHora(h))
+      .catch((error: unknown) => console.error("avisos: no se pudo leer la hora", { error: error instanceof Error ? error.name : "desconocido" }));
     leerEstadoDelAviso()
       .then((lectura) => {
         if (!vigente) return;
@@ -120,7 +136,7 @@ export function AvisoDelDia({ clavePublica }: { clavePublica: string }) {
       </span>
       <span className="grid">
         Aviso del día
-        <span className="text-base font-normal text-texto-suave">{SUBTITULOS[estado]}</span>
+        <span className="text-base font-normal text-texto-suave">{subtitulo(estado, hora)}</span>
       </span>
       {/* El interruptor: la posición de la perilla y el texto de arriba dicen lo mismo, para que el color no sea la única señal. */}
       <Interruptor activo={activo} />

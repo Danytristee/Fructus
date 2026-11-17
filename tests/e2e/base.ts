@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { esHoraDeCierre, HORA_DE_CIERRE_DE_FABRICA, horaDeLima } from "../../lib/hora-cierre-reglas";
+
 // Las variables de la base local (npx supabase start). Solo para pruebas: nunca apunta al proyecto.
 export function entornoLocal(): Record<string, string> {
   return Object.fromEntries(
@@ -45,4 +47,21 @@ export function invariantes(): string {
   } catch (e) {
     return `VIOLACIÓN: ${String((e as { stderr?: Buffer }).stderr).slice(0, 300)}`;
   }
+}
+
+/**
+ * El cron solo hace algo a la hora de cierre del puesto (ADR-0023). Para probarlo ahora, la hora de cierre pasa a ser la de este momento.
+ * Devuelve false si a esta hora no se puede elegir (antes de las 8 a. m. de Lima): la prueba que lo necesita se salta y lo dice.
+ */
+export async function horaDeCierreAhora(base: ReturnType<typeof baseLocal>): Promise<boolean> {
+  const hora = horaDeLima(new Date());
+  if (!esHoraDeCierre(hora)) return false;
+  const { error } = await base.from("ajustes_puesto").update({ hora_cierre: hora }).eq("id", true);
+  if (error) throw new Error(`No se pudo poner la hora de cierre: ${error.message}`);
+  return true;
+}
+
+/** Deja la hora de cierre como nace la base, para quien use esta base después. */
+export async function devolverLaHoraDeCierre(base: ReturnType<typeof baseLocal>, hora = HORA_DE_CIERRE_DE_FABRICA): Promise<void> {
+  await base.from("ajustes_puesto").update({ hora_cierre: hora }).eq("id", true);
 }
