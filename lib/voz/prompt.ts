@@ -1,4 +1,4 @@
-import type { VentaActual } from "./esquemas";
+import type { FaltaPreguntada, VentaActual } from "./esquemas";
 
 // El prompt de sistema del intérprete, igual que en docs/interprete-voz.md (sección 2). Si cambia, cambian los dos
 // y se corre /voz-precision antes y después.
@@ -47,10 +47,37 @@ Reglas que NO se rompen:
  * Antes se le pasaba la lectura en frases y en 3 de 12 corridas perdía al cliente; «45 con 50» salía 50, o un total de 50 con 400 de
  * rebaja (/chaos 2026-11-16). Por eso va la venta en datos y las dos reglas, escritas.
  */
-export function mensajeCorreccion(actual: VentaActual, dicho: string): string {
+/** Lo que Fructus preguntó porque faltaba, dicho para el intérprete. */
+const PREGUNTADO: Record<FaltaPreguntada["dato"], string> = {
+  producto: "qué fruta es",
+  cantidad: "cuántas cajas son",
+  precio: "a cuánto es la caja (el precio por caja)",
+  cliente: "para quién es la venta (a quién se le fía)",
+};
+
+/** «A la venta le falta un dato, y Fructus preguntó a cuánto es la caja de la fruta 1 (Mango Kent).» */
+function preguntaDeFalta(actual: VentaActual, f: FaltaPreguntada): string {
+  const item = f.item === null ? null : actual.items[f.item];
+  const deFruta = item ? ` de la fruta ${f.item! + 1} de items${item.producto_texto ? ` (${item.producto_texto})` : ""}` : "";
+  const opciones = f.opciones.length > 0 ? `, y leyó estas opciones: ${f.opciones.join(" · ")}` : "";
+  return `A la venta le falta un dato, y Fructus preguntó ${PREGUNTADO[f.dato]}${deFruta}${opciones}.`;
+}
+
+/**
+ * `falta`: la venta estaba incompleta y Fructus preguntó ese dato en manos libres; la respuesta lo completa. Sin él, la persona oyó la
+ * venta y la corrige («no, son ocho cajas»).
+ */
+export function mensajeCorreccion(actual: VentaActual, dicho: string, falta?: FaltaPreguntada): string {
+  const pregunta = falta
+    ? `${preguntaDeFalta(actual, falta)}
+- La respuesta es ese dato: ponlo en su lugar. Un número solo («cuarenta», «ocho») es lo que se preguntó: el precio por caja si se
+  preguntó el precio, las cajas si se preguntó cuántas. Si nombra una de las opciones («el Kent», «la segunda», «don Lucho»), usa el
+  nombre completo de esa opción.
+`
+    : "";
   return `CORRECCIÓN de una venta que todavía no se guarda. Esta es la venta tal como está ahora (los campos de registrar_venta):
 ${JSON.stringify(actual)}
-
+${pregunta}
 La persona respondió:
 «${dicho}»
 

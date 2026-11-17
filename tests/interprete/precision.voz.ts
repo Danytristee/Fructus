@@ -9,13 +9,14 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { expect, test } from "vitest";
 
 import type { Catalogo } from "../../lib/voz/catalogo-reglas";
-import type { VentaActual } from "../../lib/voz/esquemas";
+import type { FaltaPreguntada, VentaActual } from "../../lib/voz/esquemas";
 import { interpretar } from "../../lib/voz/interprete";
 import { camposPrudentes, diferencias, inventos, percentil } from "../../lib/voz/precision-reglas";
 
 // `correccionDe`: la venta que Fructus leyó en voz alta, en los campos de registrar_venta; `transcripcion` es lo que la persona
-// respondió para corregirla (ADR-0020).
-type Caso = { id: string; transcripcion: string; correccionDe?: VentaActual; esperado: { herramienta: string; datos: Record<string, unknown> } };
+// respondió para corregirla (ADR-0020). Con `falta`, la venta estaba incompleta y Fructus preguntó ese dato: la transcripción es la
+// respuesta (ADR-0027).
+type Caso = { id: string; transcripcion: string; correccionDe?: VentaActual; falta?: FaltaPreguntada; esperado: { herramienta: string; datos: Record<string, unknown> } };
 type Fila = { id: string; intencion: boolean; datos: boolean; inventos: string[]; fallos: string[]; obtenido: string; dudas: string[]; ms: number };
 
 const archivo = JSON.parse(readFileSync(process.env.VOZ_CASOS ?? "tests/interprete/casos.json", "utf8")) as { catalogo?: Catalogo; casos: Caso[] };
@@ -31,10 +32,10 @@ async function medir(modelo: string) {
     // Cada modelo se mide solo contra su servicio: Claude contra Anthropic, Gemini contra Google y cualquier otro contra Groq.
     if (modelo.startsWith("gemini-")) process.env.GEMINI_MODELO_LLM = modelo;
     const opciones = modelo.startsWith("claude-")
-      ? { catalogo, modeloClaude: modelo, solo: "anthropic" as const, correccionDe: caso.correccionDe }
+      ? { catalogo, modeloClaude: modelo, solo: "anthropic" as const, correccionDe: caso.correccionDe, falta: caso.falta }
       : modelo.startsWith("gemini-")
-        ? { catalogo, solo: "gemini" as const, correccionDe: caso.correccionDe }
-        : { catalogo, modeloGroq: modelo, solo: "groq" as const, correccionDe: caso.correccionDe };
+        ? { catalogo, solo: "gemini" as const, correccionDe: caso.correccionDe, falta: caso.falta }
+        : { catalogo, modeloGroq: modelo, solo: "groq" as const, correccionDe: caso.correccionDe, falta: caso.falta };
     let r = await interpretar(caso.transcripcion, opciones);
     // Plan gratuito: una llamada a la vez; si Groq pide esperar, se espera y se reintenta (hasta 3 veces).
     for (let i = 0; i < 3 && !r.ok && r.intentos.some((x) => x.error.includes("429") || x.error.includes("503")); i++) {

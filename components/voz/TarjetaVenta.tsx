@@ -12,7 +12,8 @@ import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, debeDe, faltaDe, frasesFalta, fueCorregido, leerPagado, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
-import { cambiosDeCorreccion, guionCorreccion, guionVenta, relecturaPago, type Cambios } from "@/lib/voz/lectura-reglas";
+import { cambiosDeCorreccion, guionCompletado, guionCorreccion, guionVenta, relecturaPago, type Cambios } from "@/lib/voz/lectura-reglas";
+import { faltaPorPreguntar, opcionesDeVenta } from "@/lib/voz/pregunta-falta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { DudasVoz } from "./DudasVoz";
@@ -64,9 +65,10 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const [corregida, setCorregida] = useState<{ borrador: Borrador; cambios: Cambios } | null>(null);
   const { confirmar: enviar, guardando, error, guardado: guardada, encolado, incierto } = useConfirmar<{ ok: true; saldo: number | null; comprobante: string | null }>({ alGuardar, alCambiarGuardando });
   // Manos libres (ADR-0020): al abrirse, la venta lista se lee en voz alta y se confirma diciendo «confirmo»; si falta saber si pagó,
-  // se pregunta primero. Con dudas o si falta otro dato, solo se avisa y se toca. La tarjeta se monta solo en el navegador (la hoja no
-  // tiene SSR): se puede leer el celular al empezar.
-  const [guion] = useState(() => (manosLibres() ? guionVenta(borradorDe(tarjeta), tarjeta.dudas) : null));
+  // se pregunta primero. Si falta la fruta, las cajas, el precio o a quién se le fía, se dice y se pregunta, y la respuesta completa la
+  // tarjeta (ADR-0027). Con dudas, solo se avisa y se toca. La tarjeta se monta solo en el navegador (la hoja no tiene SSR): se puede
+  // leer el celular al empezar.
+  const [guion] = useState(() => (manosLibres() ? guionVenta(borradorDe(tarjeta), tarjeta.dudas, opcionesDeVenta(tarjeta)) : null));
   const voz = useManosLibres({
     guion,
     alConfirmar: () => confirmar("voz"),
@@ -75,12 +77,12 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
     alPago: (pago) => {
       const nuevo = { ...borrador, condicion: pago.condicion, medio: pago.medio };
       setBorrador(nuevo);
-      return relecturaPago(nuevo);
+      return relecturaPago(nuevo, opcionesDeVenta(vigente));
     },
     // «No, son ocho cajas»: la tarjeta corregida reemplaza a la dictada (lo que se ve, las opciones y las dudas) y se dice solo lo que
     // cambió («Corregido. 8 cajas… Total, 360 soles. ¿Confirmo?»): el resto se acaba de oír. Al guardar cuenta como corregida, porque
     // se compara con lo dictado al principio.
-    alCorregir: (nueva) => {
+    alCorregir: (nueva, pregunta) => {
       const b = borradorDe(nueva);
       setVigente(nueva);
       setBorrador(b);
@@ -88,9 +90,12 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
       // Lo que ya debía es del cliente, no de la venta: solo se vuelve a pedir si la corrección cambió de cliente. Antes se borraba
       // siempre y, con el mismo cliente, «te debe» desaparecía y no volvía (/formidable 2026-11-17).
       if ((b.cliente?.id ?? null) !== (borrador.cliente?.id ?? null)) setSaldo(null);
-      return guionCorreccion(borrador, b, nueva.dudas);
+      // Si respondió lo que faltaba, «Anotado» y lo próximo; al quedar completa, la venta entera (nunca se leyó entera).
+      if (pregunta === "falta") return guionCompletado(borrador, b, nueva.dudas, opcionesDeVenta(nueva));
+      return guionCorreccion(borrador, b, nueva.dudas, opcionesDeVenta(nueva));
     },
     ventaActual: () => ventaActual(borrador),
+    faltaActual: () => faltaPorPreguntar(borrador, opcionesDeVenta(vigente)),
     guardado: guardada !== null,
   });
 

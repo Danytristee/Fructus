@@ -143,6 +143,18 @@ const herramientasVoz = {
 export const esquemaVentaActual = herramientasVoz.registrar_venta.esquema.omit({ dudas: true });
 export type VentaActual = z.input<typeof esquemaVentaActual>;
 
+/**
+ * El dato que Fructus preguntó en manos libres porque faltaba («¿A cuánto la caja de Mango Kent?»): viaja con la respuesta para que el
+ * intérprete sepa a qué contesta un «cuarenta» suelto. `item`: la fruta de la venta (desde 0), si el dato es de una fruta. `opciones`:
+ * los nombres que se leyeron para elegir, si había varios parecidos.
+ */
+export const esquemaFaltaPreguntada = z.object({
+  dato: z.enum(["producto", "cantidad", "precio", "cliente"]),
+  item: z.number().int().min(0).max(50).nullable(),
+  opciones: z.array(z.string().max(120)).max(3),
+});
+export type FaltaPreguntada = z.infer<typeof esquemaFaltaPreguntada>;
+
 type NombreHerramienta = keyof typeof herramientasVoz;
 type Datos<N extends NombreHerramienta> = z.output<(typeof herramientasVoz)[N]["esquema"]>;
 

@@ -61,14 +61,14 @@ test("tocar la tarjeta mientras lee la calla", async ({ page }) => {
   await expect(page.getByText("Te la estoy leyendo")).toHaveCount(0);
 });
 
-test("lo incompleto no se lee: dice qué falta y se elige en la tarjeta", async ({ page }) => {
+test("lo incompleto no se lee: dice qué falta y lo pregunta, y la tarjeta deja elegirlo con el dedo", async ({ page }) => {
   await sintetizadorDePrueba(page, { manosLibres: true });
   await entrarComo(page, "duenio");
   const sinPrecio = { ...lista, items: [{ ...lista.items[0]!, precio: { valor: null, sugerido: false }, subtotal: null }], total: null, falta: ["precio"] };
   const hoja = await abrirTarjeta(page, sinPrecio);
   await expect(hoja.getByText("Toca para poner el precio")).toBeVisible();
-  // Sin el total ni «¿Confirmo?»: lo que no está completo no se lee (si solo falta saber si pagó, se pregunta: voz-candados.spec.ts).
-  await expect.poll(() => distintas(page)).toEqual(["Falta elegir a cuánto la caja. Míralo en la tarjeta."]);
+  // Sin el total ni «¿Confirmo?»: lo que no está completo no se lee; se pregunta (ADR-0027, voz-falta-hablada.spec.ts).
+  await expect.poll(() => distintas(page)).toEqual(["Falta el precio. ¿A cuánto la caja de Mango Kent?"]);
 });
 
 test("sin manos libres no se lee nada", async ({ page }) => {

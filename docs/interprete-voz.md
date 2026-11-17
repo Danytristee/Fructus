@@ -100,6 +100,19 @@ cuarenta», «es para don Lucho»), `POST /api/voz/respuesta` vuelve a llamar al
 - **Si el modelo no devuelve una venta,** la respuesta cuenta como «otra cosa».
 - **Los casos** viven en `tests/interprete/casos.json`: los `correccion-*`, con `correccionDe`, que es la venta actual en datos.
 
+### 2d. Responder lo que falta (ADR-0027)
+
+Si a la venta le falta la fruta, las cajas, el precio o a quién se le fía, Fructus lo dice y lo pregunta («Falta el precio. ¿A cuánto la
+caja de Mango Kent?»). La respuesta va a `POST /api/voz/respuesta` con `pregunta=falta` y pasa por el mismo camino que una corrección.
+
+- **El mensaje lleva qué se preguntó** (`mensajeCorreccion` con `falta`: el dato, la fruta y las opciones leídas) y una regla: un número
+  solo es lo que se preguntó, y una opción nombrada («el Kent», «la segunda») es su nombre completo. Sin esa pista, Claude acertó 8 de
+  10 y una vez puso «el Kent» como cliente; con ella, 10 de 10 (Groq también).
+- **Whisper** recibe el vocabulario del puesto y las opciones leídas, porque la respuesta puede ser un nombre.
+- **Qué se pregunta y cómo:** `lib/voz/pregunta-falta-reglas.ts`. **Qué se dice después:** `guionCompletado` (`lectura-reglas.ts`):
+  «Anotado» y lo siguiente, o la venta entera cuando queda completa.
+- **Los casos** son los `falta-*` de `tests/interprete/casos.json`, con `correccionDe` y `falta`.
+
 ## 3. Herramientas (formato OpenAI / Groq)
 
 **Lo que es de una sola herramienta va aquí, no en el prompt de la sección 2:** en su descripción o en la de su campo (qué frases

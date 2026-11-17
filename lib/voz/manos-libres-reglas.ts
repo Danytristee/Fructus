@@ -7,7 +7,10 @@
 //
 // Si falta saber si pagó, la primera pregunta es «¿Pagó o lo debe?»: la respuesta se anota en la tarjeta, se repite y se pregunta
 // «¿Confirmo?» (la venta ya se leyó al preguntar). Si en vez de «confirmo» corrige («no, son ocho cajas»), la tarjeta se rehace y
-// se dice lo que cambió; si dice «repite» o «¿qué?», se vuelve a leer entera (hasta REPETICIONES veces). Con dudas del intérprete (o si falta otro dato) solo se avisa: no se escucha nada y se confirma con el dedo.
+// se dice lo que cambió; si dice «repite» o «¿qué?», se vuelve a leer entera (hasta REPETICIONES veces).
+// Si falta la fruta, las cajas, el precio o a quién se le fía, se dice qué falta y se pregunta (ADR-0027): la respuesta rehace la
+// tarjeta como una corrección y se sigue con lo próximo que falte, hasta poder leerla entera. Con dudas del intérprete (o si falta
+// algo que no se pregunta) solo se avisa: no se escucha nada y se confirma con el dedo.
 // Tocar la tarjeta, en cualquier momento: callado (la persona toma el control).
 import type { Pago } from "./respuesta-reglas";
 
@@ -26,8 +29,8 @@ const REPETICIONES = 2;
 export const GUARDADO = "Guardado.";
 
 export type Fase = "leyendo" | "abriendo" | "escuchando" | "entendiendo" | "anotando" | "guardando" | "callado";
-/** Qué espera oír: «confirmo», «pagó» o «lo debe», o nada (solo se avisó). */
-export type Pregunta = "confirmar" | "pago" | "ninguna";
+/** Qué espera oír: «confirmo», «pagó» o «lo debe», el dato que falta, o nada (solo se avisó). */
+export type Pregunta = "confirmar" | "pago" | "falta" | "ninguna";
 /** Por qué quedó callado sin guardar: la tarjeta lo dice y pide el toque. */
 type Motivo = "no_hablo" | "no_entendio" | "fallo" | "sin_senal" | "aviso" | "falta";
 export type EstadoManosLibres = { fase: Fase; pregunta: Pregunta; intento: number; motivo: Motivo | null; repeticiones: number };
@@ -43,14 +46,23 @@ export type EventoManosLibres =
   | { tipo: "vencio" }
   /** No hay señal: la respuesta no se puede entender (Whisper está en el servidor). */
   | { tipo: "sin_senal" }
-  /** Lo que entendió el servidor de «¿Confirmo?»: confirma, corrige la venta, otra cosa, o «fallo» si no respondió. */
+  /**
+   * Lo que entendió el servidor de «¿Confirmo?» o de la respuesta a lo que faltaba: confirma, corrige (o completa) la venta, otra
+   * cosa, o «fallo» si no respondió.
+   */
   | { tipo: "respuesta"; respuesta: "confirmar" | "corregir" | "otra" | "fallo" }
   /** Lo que entendió de «¿Pagó o lo debe?»; null si no se entendió, «fallo» si el servidor no respondió. */
   | { tipo: "pago"; pago: Pago | null | "fallo" }
-  /** Se anotó el pago en la tarjeta: `lista`, la venta quedó completa y se pregunta «¿Confirmo?». */
-  | { tipo: "anotado"; lista: boolean }
-  /** La tarjeta se rehízo con la corrección: qué pregunta toca ahora (la venta corregida puede dejar dudas o faltar algo). */
-  | { tipo: "corregida"; pregunta: Pregunta }
+  /**
+   * Se anotó el pago en la tarjeta: qué pregunta toca ahora («¿Confirmo?», o a quién se le fía si lo debe y no se sabe quién). null:
+   * falta algo que se elige en la tarjeta.
+   */
+  | { tipo: "anotado"; pregunta: Pregunta | null }
+  /**
+   * La tarjeta se rehízo con la corrección o con lo que faltaba: qué pregunta toca ahora (puede dejar dudas o faltar algo).
+   * `sinCambio`: la respuesta a lo que faltaba no cambió nada; cuenta como no entendida.
+   */
+  | { tipo: "corregida"; pregunta: Pregunta; sinCambio?: boolean }
   /** Pidió que lo lea otra vez («repite», «¿qué?», «no te escuché»). */
   | { tipo: "repetir" }
   /** Tocó la tarjeta: toma el control. */
@@ -66,6 +78,9 @@ export const leyendo = (pregunta: Pregunta): EstadoManosLibres => ({ fase: "leye
 export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres): { estado: EstadoManosLibres; efecto: EfectoManosLibres } {
   const quedar = { estado: e, efecto: "nada" as const };
   const callado = (motivo: Motivo | null, efecto: EfectoManosLibres) => ({ estado: { ...e, fase: "callado" as const, motivo }, efecto });
+  // Oyó otra cosa: se repregunta una vez. La segunda, se deja para tocar.
+  const otraVezO = (c: typeof callado) =>
+    e.intento === 1 ? { estado: { ...e, fase: "leyendo" as const, intento: 2 }, efecto: "repreguntar" as const } : c("no_entendio", "nada");
   // Tocar la tarjeta gana siempre: lo que estuviera leyendo, oyendo o por llegar del servidor ya no cuenta.
   if (ev.tipo === "tocaron") return e.fase === "callado" || e.fase === "guardando" ? quedar : callado(null, "callar");
   switch (e.fase) {
@@ -86,7 +101,7 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
       return quedar;
     case "entendiendo": {
       if (ev.tipo === "sin_senal") return callado("sin_senal", "nada");
-      const otraVez = e.intento === 1 ? { estado: { ...e, fase: "leyendo" as const, intento: 2 }, efecto: "repreguntar" as const } : callado("no_entendio", "nada");
+      const otraVez = otraVezO(callado);
       // «Repite»: se lee otra vez lo mismo, entero, y se vuelve a escuchar. Después de REPETICIONES, cuenta como otra cosa.
       if (ev.tipo === "repetir") {
         return e.repeticiones < REPETICIONES ? { estado: { ...e, fase: "leyendo", intento: 1, repeticiones: e.repeticiones + 1 }, efecto: "repetir" } : otraVez;
@@ -96,6 +111,12 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
         if (ev.respuesta === "corregir") return { estado: { ...e, fase: "anotando" }, efecto: "corregir" };
         if (ev.respuesta === "fallo") return callado("fallo", "nada");
         // Oyó otra cosa («sí», un cliente que pregunta): se repregunta una vez. La segunda, se deja para tocar.
+        return otraVez;
+      }
+      // Lo que faltaba («cuarenta», «el Kent»): el servidor rehizo la venta con eso. Lo demás no completa nada y se repregunta.
+      if (ev.tipo === "respuesta" && e.pregunta === "falta") {
+        if (ev.respuesta === "corregir") return { estado: { ...e, fase: "anotando" }, efecto: "corregir" };
+        if (ev.respuesta === "fallo") return callado("fallo", "nada");
         return otraVez;
       }
       // «Pagó quinientos»: la respuesta trae lo que pagó, y el servidor rehizo la venta con ese pago parcial (ADR-0025).
@@ -108,8 +129,10 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
       return quedar;
     }
     case "anotando":
-      // Ya se sabe si pagó: se repite la respuesta y se pregunta «¿Confirmo?». La venta se acaba de leer al preguntar.
-      if (ev.tipo === "anotado") return ev.lista ? { estado: leyendo("confirmar"), efecto: "releer" } : callado("falta", "nada");
+      // Ya se sabe si pagó: se repite la respuesta y se pregunta «¿Confirmo?» (o a quién se le fía). La venta se acaba de leer.
+      if (ev.tipo === "anotado") return ev.pregunta ? { estado: leyendo(ev.pregunta), efecto: "releer" } : callado("falta", "nada");
+      // Respondió lo que faltaba, pero no cambió nada: como no haberlo entendido.
+      if (ev.tipo === "corregida" && ev.sinCambio) return otraVezO(callado);
       // Corregida: se lee lo nuevo con su pregunta. Las respuestas cuentan desde cero: puede volver a corregir o confirmar.
       if (ev.tipo === "corregida") return { estado: leyendo(ev.pregunta), efecto: "releer" };
       return quedar;
@@ -127,6 +150,7 @@ export function siguienteManosLibres(e: EstadoManosLibres, ev: EventoManosLibres
  * para tocar (/formidable 2026-11-17).
  */
 export function notaManosLibres(e: EstadoManosLibres, { corrige = false }: { corrige?: boolean } = {}): string | null {
+  if (e.pregunta === "falta") return notaFalta(e);
   const pago = e.pregunta === "pago";
   const tocar = pago ? "Toca Pagó o Lo debe." : "Si está bien, toca Confirmar.";
   switch (e.fase) {
@@ -156,6 +180,38 @@ export function notaManosLibres(e: EstadoManosLibres, { corrige = false }: { cor
         case "falta":
           return "Falta un dato: elígelo en la tarjeta.";
         case "aviso": // ya lo dijo en voz alta, y la tarjeta muestra la duda o lo que falta
+        case null:
+          return null;
+      }
+  }
+}
+
+/** La línea sobre Confirmar mientras pregunta lo que falta: qué hace, o que se elige en la tarjeta (ADR-0027). */
+function notaFalta(e: EstadoManosLibres): string | null {
+  const elegir = "Elígelo en la tarjeta.";
+  switch (e.fase) {
+    case "leyendo":
+    case "abriendo":
+      return e.intento === 1 ? "Te pregunto lo que falta…" : "Dime lo que falta.";
+    case "escuchando":
+      return "Te escucho: dime lo que falta o «repite».";
+    case "entendiendo":
+    case "anotando":
+      return "Entendiendo…";
+    case "guardando":
+      return null;
+    case "callado":
+      switch (e.motivo) {
+        case "no_hablo":
+          return `No te oí. ${elegir}`;
+        case "no_entendio":
+        case "fallo":
+          return `No te entendí. ${elegir}`;
+        case "sin_senal":
+          return `Sin señal no te entiendo. ${elegir}`;
+        case "falta":
+          return "Falta un dato: elígelo en la tarjeta.";
+        case "aviso":
         case null:
           return null;
       }

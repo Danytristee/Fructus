@@ -78,7 +78,7 @@ describe("clasificarPago", () => {
 });
 
 describe("pareceCorreccion", () => {
-  it.each(["No, son ocho cajas", "A cuarenta", "No, es para don Lucho", "La palta a 55"])("«%s» corrige algo: va al intérprete", (dicho) =>
+  it.each(["No, son ocho cajas", "A cuarenta", "No, es para don Lucho", "La palta a 55", "40.", "8"])("«%s» corrige algo: va al intérprete", (dicho) =>
     expect(pareceCorreccion(dicho)).toBe(true),
   );
 

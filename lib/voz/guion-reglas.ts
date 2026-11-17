@@ -5,7 +5,8 @@ import { faltaAbono, frasesFaltaAbono, type BorradorAbono } from "./confirmar-ab
 import { faltaCompra, frasesFaltaCompra, totalCompra, type BorradorCompra } from "./confirmar-compra-reglas";
 import { faltaGasto, type BorradorGasto } from "./confirmar-gasto-reglas";
 import { faltaMerma, frasesFaltaMerma, type BorradorMerma } from "./confirmar-merma-reglas";
-import { MEDIOS_HABLADOS, cajasHabladas, dudaHablada, nombreHablado, precioHablado, solesHablados, type Guion, type Relectura } from "./lectura-reglas";
+import { MEDIOS_HABLADOS, cajasHabladas, nombreHablado, precioHablado, solesHablados } from "./hablado-reglas";
+import { dudaHablada, type Guion, type Relectura } from "./lectura-reglas";
 
 const avisar = (falta: string | null): Guion => ({ pregunta: "ninguna", texto: `${falta ?? "Falta un dato."} Míralo en la tarjeta.` });
 
@@ -56,5 +57,5 @@ const cierreCompra = (b: BorradorCompra) => `${b.condicion === "credito" ? "La d
 /** Después de responder «¿La pagaste o la debes?»: «La debes. ¿Confirmo?», sin volver a leer la compra (como relecturaPago). */
 export function relecturaPagoCompra(b: BorradorCompra, dudas: string[]): Relectura | null {
   const g = guionCompra(b, dudas);
-  return g.pregunta === "confirmar" ? { texto: cierreCompra(b), entera: g.texto } : null;
+  return g.pregunta === "confirmar" ? { pregunta: "confirmar", texto: cierreCompra(b), entera: g.texto } : null;
 }

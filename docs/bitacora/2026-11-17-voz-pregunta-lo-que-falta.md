@@ -1,0 +1,10 @@
+# 2026-11-17 · La voz pregunta lo que falta en la venta
+
+- **Qué cambió:** con manos libres, si a la venta le falta la fruta, las cajas, el precio o a quién se le fía, Fructus ya no dice «Míralo en la tarjeta» y se calla. Dice qué falta y lo pregunta («Falta el precio y si pagó. ¿A cuánto la caja de Mango Kent?»), con las opciones si hay varias parecidas. La respuesta completa la tarjeta por el intérprete, que recibe qué se preguntó. Sigue con lo próximo («Anotado. ¿Para quién es? ¿Luis Paredes o Bodega Santa Ana?») y, al quedar completa, lee la venta entera antes de «¿Pagó o lo debe?» o «¿Confirmo?». También «lo debe» sin cliente pregunta a quién. ADR-0027; reglas en `lib/voz/pregunta-falta-reglas.ts` y `guionCompletado` (`lectura-reglas.ts`), que se partió en tres (`hablado-reglas.ts`).
+- **Arreglo de paso:** `pareceCorreccion` borraba las cifras, así que un «40» o un «8» escrito por Whisper no llegaba al intérprete.
+- **Cómo se verificó:**
+  - Vitest, 1117 de 1117 (casos nuevos en `pregunta-falta-reglas.test.ts`, `lectura-reglas`, `manos-libres-reglas` y `respuesta-reglas`); tipos, ESLint y Knip limpios.
+  - Playwright a 412 y 360 px: `voz-falta-hablada` (nueva: el precio, la fruta y el cliente con opciones, y la repregunta), más `voz-candados`, `voz-confirmar-hablando`, `voz-pago-hablado`, `voz-operaciones-hablando` y `voz-lectura`: 50 de 50. La venta queda en la base con el precio y el cliente respondidos y `confirmado_por = voz`. Capturas en `docs/formidable/capturas/voz-falta-hablada-2026-11-17/`.
+  - Corrida contra la base propia `fructus-pago` (56821): la compartida no tiene `venta_con_pago_al_llevar`.
+  - `/voz-precision` con los 27 casos de corrección y de «falta»: Claude 27 de 27, sin inventos, p95 1.3 s; Groq 10 de 10 en los `falta-*`. Sin la pista de qué se preguntó, Claude 8 de 10 («el Kent» salió como cliente).
+- **Pendiente:** la compra, el abono, la merma y el gasto todavía solo avisan lo que falta (no se corrigen hablando). Sin probar en el S25 con audífono ni con el ruido del puesto. `/formidable` y `/chaos` completos, sin correr.

@@ -65,7 +65,7 @@ describe("guionCompra", () => {
   });
 
   it("después de responder si la pagó, solo repite la respuesta: la compra se acaba de leer", () => {
-    expect(relecturaPagoCompra(compra, [])).toEqual({ texto: "La debes. ¿Confirmo?", entera: guionCompra(compra, []).texto });
+    expect(relecturaPagoCompra(compra, [])).toEqual({ pregunta: "confirmar", texto: "La debes. ¿Confirmo?", entera: guionCompra(compra, []).texto });
     expect(relecturaPagoCompra({ ...compra, condicion: "contado", medio: "plin" }, [])?.texto).toBe("La pagaste con Plin. ¿Confirmo?");
     expect(relecturaPagoCompra({ ...compra, items: [{ ...compra.items[0]!, precio: null }] }, [])).toBeNull();
   });

@@ -58,7 +58,8 @@ export const pideQueRepita = (texto: string) => pideRepetir(palabras(texto));
  * ocho», «a cuarenta»). Un «no» o un «sí» sueltos no corrigen nada: se repregunta sin gastar una llamada al modelo.
  */
 export function pareceCorreccion(texto: string): boolean {
-  return palabras(texto).some((x) => !CONFIRMAN.has(x) && !RELLENO.has(x) && !NIEGAN.has(x));
+  // Whisper escribe los números con cifras: «40» o «8» solos también dicen algo (la respuesta a «¿A cuánto la caja?», ADR-0027).
+  return /\d/.test(texto) || palabras(texto).some((x) => !CONFIRMAN.has(x) && !RELLENO.has(x) && !NIEGAN.has(x));
 }
 
 /** Lo que se respondió a «¿Pagó o lo debe?». */
