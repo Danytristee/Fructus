@@ -3,6 +3,7 @@
 import { debeDe, faltaDe, frasesFalta, totalDe, type Borrador, type ItemBorrador } from "./confirmar-venta-reglas";
 import { MEDIOS_HABLADOS, cajasHabladas, nombreHablado, precioHablado, solesHablados } from "./hablado-reglas";
 import { SIN_OPCIONES, faltaDicha, faltaPorPreguntar, preguntaFalta, type OpcionesVenta } from "./pregunta-falta-reglas";
+import { avisosStock, mapaStock } from "./stock-venta-reglas";
 
 /** Una fruta de la venta, dicha. Con una sola fruta, «a 45 la caja»; con varias, solo «a 45» en cada una, o la lectura se hace eterna. */
 const itemHablado = (it: ItemBorrador, uno: boolean) =>
@@ -23,10 +24,26 @@ function resumenHablado(b: Borrador, total: number): string {
  *
  * «10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. ¿Confirmo?»
  */
-export function lecturaVenta(b: Borrador): string | null {
+export function lecturaVenta(b: Borrador, stock?: Record<number, number>): string | null {
   const total = totalDe(b);
   if (faltaDe(b).length > 0 || total === null) return null;
-  return `${resumenHablado(b, total)} ${cierreVenta(b)}`;
+  return `${resumenHablado(b, total)} ${cierreVenta(b, avisoHablado(b, stock))}`;
+}
+
+/**
+ * El aviso de stock, dicho (stock-venta-reglas.ts): con las manos ocupadas no se mira la tarjeta. «Ojo: según la app te quedan 6
+ * cajas de Mango Kent.» No es una duda: se puede confirmar hablando igual. `solo`: las frutas de las que se avisa (en una corrección,
+ * las que cambiaron); sin él, todas. Empieza con un espacio, o es "" si no hay nada que avisar.
+ */
+function avisoHablado(b: Borrador, stock: Record<number, number> | undefined, solo?: ReadonlySet<number>): string {
+  return avisosStock(b.items, mapaStock(stock))
+    .filter((a) => !solo || solo.has(a.productoId))
+    .map((a) =>
+      a.quedan <= 0
+        ? ` Ojo: según la app no te queda ${nombreHablado(a.producto)}.`
+        : ` Ojo: según la app te ${a.quedan === 1 ? "queda" : "quedan"} ${cajasHabladas(a.quedan)} de ${nombreHablado(a.producto)}.`,
+    )
+    .join("");
 }
 
 /** Cómo pagó, dicho: «Lo debe», «Pagó con Yape», y con pago al llevar «Pagó 1000 soles con Yape y debe 4000 soles» (ADR-0025). */
@@ -37,10 +54,10 @@ function pagoHablado(b: Borrador): string {
 }
 
 /** El final de la lectura: cómo pagó, el comprobante si se pidió y la pregunta. «Lo debe. Con boleta. ¿Confirmo?» */
-function cierreVenta(b: Borrador): string {
+function cierreVenta(b: Borrador, aviso = ""): string {
   const pago = pagoHablado(b);
   const comprobante = b.comprobante === "boleta" ? " Con boleta." : b.comprobante === "factura" ? " Con factura." : "";
-  return `${pago}.${comprobante} ¿Confirmo?`;
+  return `${pago}.${comprobante}${aviso} ¿Confirmo?`;
 }
 
 /**
@@ -57,10 +74,11 @@ export type GuionCorregido = Relectura;
  * «Lo debe. ¿Confirmo?». Si con la respuesta falta otro dato que se puede preguntar («lo debe», pero no se sabe quién), la respuesta
  * y la pregunta: «Lo debe. ¿A quién se lo fiaste?». null si falta algo que se elige en la tarjeta.
  */
-export function relecturaPago(b: Borrador, opciones: OpcionesVenta = SIN_OPCIONES): Relectura | null {
-  const entera = lecturaVenta(b);
+export function relecturaPago(b: Borrador, stock?: Record<number, number>, opciones: OpcionesVenta = SIN_OPCIONES): Relectura | null {
+  // El aviso de stock ya se dijo al preguntar: la respuesta corta no lo repite, «repite» sí (va en la entera).
+  const entera = lecturaVenta(b, stock);
   if (entera !== null) return { pregunta: "confirmar", texto: cierreVenta(b), entera };
-  const g = guionVenta(b, [], opciones);
+  const g = guionVenta(b, [], stock, opciones);
   if (g.pregunta !== "falta" || !g.repregunta) return null;
   return { pregunta: "falta", texto: `${pagoHablado(b)}. ${g.repregunta}`, entera: g.texto, repregunta: g.repregunta };
 }
@@ -117,8 +135,14 @@ export function cambiosDeCorreccion(antes: Borrador, despues: Borrador): Cambios
   };
 }
 
-export function guionCorreccion(antes: Borrador, despues: Borrador, dudas: string[], opciones: OpcionesVenta = SIN_OPCIONES): GuionCorregido {
-  const completo = guionVenta(despues, dudas, opciones);
+export function guionCorreccion(
+  antes: Borrador,
+  despues: Borrador,
+  dudas: string[],
+  stock?: Record<number, number>,
+  opciones: OpcionesVenta = SIN_OPCIONES,
+): GuionCorregido {
+  const completo = guionVenta(despues, dudas, stock, opciones);
   // La corrección dejó un dato por decir (otro cliente que no se encontró): se dice qué falta y se pregunta.
   if (completo.pregunta === "falta") return { ...completo, texto: `Corregido. ${completo.texto}`, entera: completo.texto };
   const total = totalDe(despues);
@@ -137,7 +161,9 @@ export function guionCorreccion(antes: Borrador, despues: Borrador, dudas: strin
   }
   if (cambios.length === 0) return { ...completo, entera: completo.texto };
   const pregunta = completo.pregunta === "pago" ? "¿Pagó o lo debe?" : "¿Confirmo?";
-  return { pregunta: completo.pregunta, texto: `Corregido. ${cambios.join(" ")} ${pregunta}`, entera: completo.texto };
+  // El aviso de stock, solo de las frutas que cambiaron: el de las demás ya se dijo.
+  const aviso = avisoHablado(despues, stock, new Set(c.frutas.flatMap((n) => despues.items[n]?.productoId ?? [])));
+  return { pregunta: completo.pregunta, texto: `Corregido. ${cambios.join(" ")}${aviso} ${pregunta}`, entera: completo.texto };
 }
 
 /**
@@ -154,8 +180,14 @@ export type Guion = { pregunta: "confirmar" | "pago" | "falta" | "ninguna"; text
  *   - con dudas o si falta algo que se elige en la tarjeta, el aviso de siempre;
  *   - si la respuesta no cambió nada, `sinCambio`: no se entendió y se repregunta.
  */
-export function guionCompletado(antes: Borrador, despues: Borrador, dudas: string[], opciones: OpcionesVenta = SIN_OPCIONES): Relectura {
-  const g = guionVenta(despues, dudas, opciones);
+export function guionCompletado(
+  antes: Borrador,
+  despues: Borrador,
+  dudas: string[],
+  stock?: Record<number, number>,
+  opciones: OpcionesVenta = SIN_OPCIONES,
+): Relectura {
+  const g = guionVenta(despues, dudas, stock, opciones);
   const c = cambiosDeCorreccion(antes, despues);
   const cambio = Object.values(c).some((v) => (Array.isArray(v) ? v.length > 0 : v)) || faltaDe(antes).join() !== faltaDe(despues).join();
   if (g.pregunta === "ninguna") return { ...g, entera: g.texto };
@@ -188,12 +220,14 @@ export function dudaHablada(dudas: string[]): string {
  *   - si no falta nada, lee lo que se va a guardar y pregunta «¿Confirmo?».
  * `opciones`: lo dicho y las opciones parecidas de la tarjeta, para leerlas al preguntar.
  */
-export function guionVenta(b: Borrador, dudas: string[], opciones: OpcionesVenta = SIN_OPCIONES): Guion {
+export function guionVenta(b: Borrador, dudas: string[], stock?: Record<number, number>, opciones: OpcionesVenta = SIN_OPCIONES): Guion {
   if (dudas.length > 0) return { pregunta: "ninguna", texto: dudaHablada(dudas) };
   const falta = faltaDe(b);
   const total = totalDe(b);
-  if (falta.length === 0 && total !== null) return { pregunta: "confirmar", texto: lecturaVenta(b)! };
-  if (falta.length === 1 && falta[0] === "condicion" && total !== null) return { pregunta: "pago", texto: `${resumenHablado(b, total)} ¿Pagó o lo debe?` };
+  if (falta.length === 0 && total !== null) return { pregunta: "confirmar", texto: lecturaVenta(b, stock)! };
+  if (falta.length === 1 && falta[0] === "condicion" && total !== null) {
+    return { pregunta: "pago", texto: `${resumenHablado(b, total)}${avisoHablado(b, stock)} ¿Pagó o lo debe?` };
+  }
   const f = faltaPorPreguntar(b, opciones);
   if (f) {
     const pregunta = preguntaFalta(b, f, opciones);

@@ -23,6 +23,8 @@ export type FilaProveedor = {
   saldo: number;
   posicion: Posicion;
   titulo: string;
+  /** Su porqué en una línea: «Andina te deja manzana a S/ 26 menos» (lib/negociacion-reglas.ts, razonCorta). */
+  razon: string;
   /** Hay un proveedor que te deja alguna de sus frutas más barata. */
   masCaro: boolean;
   sinCompras: boolean;
@@ -75,8 +77,9 @@ export function ListaProveedores({ proveedores, nuevo }: { proveedores: FilaProv
           alCambiar={setFiltro}
           opciones={[
             { valor: "todos", etiqueta: "Todos", cuenta: proveedores.length },
-            { valor: "negociar", etiqueta: "Para negociar", cuenta: proveedores.filter(pasa.negociar).length },
-            { valor: "riesgo", etiqueta: "Dependes", cuenta: proveedores.filter(pasa.riesgo).length },
+            // Los filtros dicen lo mismo que las insignias: «Para negociar» no se entendía en la prueba a ciegas (/formidable 2026-11-12).
+            { valor: "negociar", etiqueta: "Pide mejor precio", cuenta: proveedores.filter(pasa.negociar).length },
+            { valor: "riesgo", etiqueta: "Dependes de él", cuenta: proveedores.filter(pasa.riesgo).length },
             { valor: "debes", etiqueta: "Les debes", cuenta: proveedores.filter(pasa.debes).length },
           ]}
         />
@@ -109,6 +112,7 @@ export function ListaProveedores({ proveedores, nuevo }: { proveedores: FilaProv
                   )}
                   <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <Insignia tipo={p.posicion}>{p.titulo}</Insignia>
+                    <span className="w-full leading-snug wrap-anywhere">{p.razon}</span>
                     {p.saldo > 0 && (
                       // La palabra acompaña al color: el rojo nunca es la única señal.
                       <span className="flex items-baseline gap-1.5 text-[15px] font-extrabold text-deuda">

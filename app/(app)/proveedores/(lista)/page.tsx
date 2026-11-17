@@ -9,7 +9,7 @@ import { TarjetaDependencia } from "@/components/proveedores/TarjetaDependencia"
 import { Aviso } from "@/components/ui/Aviso";
 import { BotonReintentar } from "@/components/ui/BotonReintentar";
 import { Esqueleto } from "@/components/ui/Esqueleto";
-import { TITULOS } from "@/lib/negociacion-reglas";
+import { razonCorta, TITULOS } from "@/lib/negociacion-reglas";
 import { AHORRO_MINIMO } from "@/lib/proveedores-reglas";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { leerProveedores } from "@/lib/proveedores";
@@ -33,6 +33,7 @@ async function Tablero() {
     );
   }
   const { analisis, resumen, datos } = leido;
+  const nombreDe = new Map(analisis.map((a) => [a.id, a.nombre]));
   const filas: FilaProveedor[] = analisis.map((a) => ({
     id: a.id,
     nombre: a.nombre,
@@ -44,6 +45,7 @@ async function Tablero() {
     saldo: a.saldo,
     posicion: a.posicion,
     titulo: TITULOS[a.posicion],
+    razon: razonCorta(a, (id) => nombreDe.get(id) ?? "Otro"),
     masCaro: a.ahorroMensual >= AHORRO_MINIMO,
     sinCompras: a.total === 0,
   }));

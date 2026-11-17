@@ -110,7 +110,52 @@ describe("relecturaPago", () => {
       repregunta: "¿A quién se lo fiaste?",
     });
     const opciones = { cliente: { dicho: "lucho", opciones: ["Luis Paredes", "Luis Pérez"] }, productos: [] };
-    expect(relecturaPago(venta({ cliente: null, condicion: "credito" }), opciones)?.texto).toBe("Lo debe. ¿Para quién es? ¿Luis Paredes o Luis Pérez?");
+    expect(relecturaPago(venta({ cliente: null, condicion: "credito" }), undefined, opciones)?.texto).toBe("Lo debe. ¿Para quién es? ¿Luis Paredes o Luis Pérez?");
+  });
+});
+
+describe("el aviso de stock, dicho", () => {
+  const seis = { 1: 6 };
+
+  it("en la lectura, antes de «¿Confirmo?»: con las manos llenas no se mira la tarjeta", () => {
+    expect(lecturaVenta(venta(), seis)).toBe(
+      "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Lo debe. Ojo: según la app te quedan 6 cajas de Mango Kent. ¿Confirmo?",
+    );
+    expect(guionVenta(venta(), [], seis)).toMatchObject({ pregunta: "confirmar" });
+  });
+
+  it("sin stock o en negativo, sin una cifra imposible", () => {
+    expect(lecturaVenta(venta(), { 1: -3 })).toContain("Ojo: según la app no te queda Mango Kent. ¿Confirmo?");
+    expect(lecturaVenta(venta({ items: [{ productoId: 1, producto: "Mango Kent", cantidad: 2, precio: 45, sugerido: false }] }), { 1: 1 })).toContain(
+      "te queda 1 caja de Mango Kent.",
+    );
+  });
+
+  it("si alcanza o no se sabe, no se dice nada", () => {
+    expect(lecturaVenta(venta(), { 1: 10 })).toBe(lecturaVenta(venta()));
+    expect(lecturaVenta(venta(), {})).toBe(lecturaVenta(venta()));
+  });
+
+  it("al preguntar si pagó se dice; en la respuesta corta no se repite, pero «repite» lo trae", () => {
+    expect(guionVenta(venta({ condicion: null }), [], seis).texto).toBe(
+      "10 cajas de Mango Kent, a 45 la caja, para Luis Paredes. Total, 450 soles. Ojo: según la app te quedan 6 cajas de Mango Kent. ¿Pagó o lo debe?",
+    );
+    expect(relecturaPago(venta(), seis)).toEqual({ pregunta: "confirmar", texto: "Lo debe. ¿Confirmo?", entera: lecturaVenta(venta(), seis) });
+  });
+
+  it("con dudas no se dice: se mira la tarjeta, que lo muestra", () => {
+    expect(guionVenta(venta(), ["No sé si dijo 10 o 12 cajas."], seis).texto).not.toContain("Ojo");
+  });
+
+  it("en una corrección, solo si la fruta corregida sigue sin alcanzar", () => {
+    const mango = { productoId: 1, producto: "Mango Kent", cantidad: 10, precio: 45, sugerido: false };
+    const palta = { productoId: 2, producto: "Palta Fuerte", cantidad: 4, precio: 60, sugerido: false };
+    expect(guionCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 8 }] }), [], seis).texto).toBe(
+      "Corregido. 8 cajas de Mango Kent, a 45 la caja. Total, 360 soles. Ojo: según la app te quedan 6 cajas de Mango Kent. ¿Confirmo?",
+    );
+    expect(guionCorreccion(venta(), venta({ items: [{ ...mango, cantidad: 5 }] }), [], seis).texto).not.toContain("Ojo");
+    // Cambió la palta: del mango (que tampoco alcanza) no se vuelve a avisar.
+    expect(guionCorreccion(venta({ items: [mango, palta] }), venta({ items: [mango, { ...palta, precio: 55 }] }), [], { 1: 6, 2: 10 }).texto).not.toContain("Ojo");
   });
 });
 
@@ -183,7 +228,7 @@ describe("guionCorreccion", () => {
 
   it("si la corrección deja un dato por decir, dice qué falta y lo pregunta (ADR-0027)", () => {
     const opciones = { cliente: { dicho: "pedro", opciones: ["Pedro Díaz", "Pedro Ruiz"] }, productos: [] };
-    expect(guionCorreccion(venta(), venta({ cliente: null }), [], opciones)).toEqual({
+    expect(guionCorreccion(venta(), venta({ cliente: null }), [], undefined, opciones)).toEqual({
       pregunta: "falta",
       texto: "Corregido. Falta el cliente. ¿Para quién es? ¿Pedro Díaz o Pedro Ruiz?",
       entera: "Falta el cliente. ¿Para quién es? ¿Pedro Díaz o Pedro Ruiz?",

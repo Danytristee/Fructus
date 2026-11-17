@@ -74,6 +74,14 @@ export async function costosSugeridos(supabase: Cliente, productos: (number | nu
   );
 }
 
+/** Las cajas que hay de cada fruta, por id (v_stock). Las que no están activas no vienen. */
+export async function leerStock(supabase: Cliente, productos: number[]): Promise<Record<number, number>> {
+  if (productos.length === 0) return {};
+  const { data, error } = await supabase.from("v_stock").select("producto_id, stock").in("producto_id", productos);
+  if (error) throw new Error(`v_stock (${error.code})`);
+  return Object.fromEntries((data ?? []).flatMap((x) => (x.producto_id === null ? [] : [[x.producto_id, Number(x.stock ?? 0)]])));
+}
+
 export async function resolver(supabase: Cliente, i: Interpretacion): Promise<Resolucion> {
   const vacia: Resolucion = { clientes: [], proveedores: [], productos: [], precios: [] };
   switch (i.herramienta) {
@@ -85,7 +93,15 @@ export async function resolver(supabase: Cliente, i: Interpretacion): Promise<Re
       // Solo se sugiere precio para lo que se eligió solo: con opciones, la persona elige y recién ahí hay precio.
       const cliente = elegir(i.datos.cliente_texto, clientes).elegido;
       const elegidos = i.datos.items.map((it, n) => elegir(it.producto_texto, productos[n] ?? []).elegido?.id ?? null);
-      return { ...vacia, clientes, productos, precios: await preciosSugeridos(supabase, cliente?.id ?? null, elegidos) };
+      // El stock solo avisa: si no se puede leer, la venta sigue sin aviso (y la tarjeta lo vuelve a pedir).
+      const [precios, stock] = await Promise.all([
+        preciosSugeridos(supabase, cliente?.id ?? null, elegidos),
+        leerStock(supabase, elegidos.filter((id): id is number => id !== null)).catch((e: unknown) => {
+          console.error("voz: no se pudo leer el stock", { error: e instanceof Error ? e.message : "desconocido" });
+          return undefined;
+        }),
+      ]);
+      return { ...vacia, clientes, productos, precios, ...(stock ? { stock } : {}) };
     }
     case "registrar_abono":
       return { ...vacia, clientes: await buscarClientes(supabase, i.datos.cliente_texto) };

@@ -36,6 +36,14 @@ export type FilaProveedor = {
 export type CampoProveedor = "nombre" | "apodos" | "contacto" | "telefono" | "ruc" | "origen" | "direccion" | "notas";
 export type ErroresProveedor = Partial<Record<CampoProveedor, string>>;
 
+// Cada error dice de qué campo es: el aviso del pie lo repite tal cual y tiene que entenderse sin ver el campo (/chaos 2026-11-12).
+const LARGOS = {
+  contacto: "El contacto va hasta",
+  origen: "De dónde trae va hasta",
+  direccion: "La dirección va hasta",
+  notas: "Las notas van hasta",
+} as const;
+
 const espacios = (t: string) => t.replace(/\s+/g, " ").trim();
 const opcional = (t: string) => espacios(t) || null;
 
@@ -55,7 +63,7 @@ export function validarProveedor(b: BorradorProveedor): { ok: true; fila: FilaPr
   const ruc = b.ruc.replace(/[\s-]/g, "");
   if (ruc !== "" && !/^(10|15|16|17|20)\d{9}$/.test(ruc)) errores.ruc = "El RUC tiene 11 números y empieza con 10 o 20.";
   for (const campo of ["contacto", "origen", "direccion", "notas"] as const) {
-    if (espacios(b[campo]).length > LIMITES_PROVEEDOR[campo]) errores[campo] = `Va hasta ${LIMITES_PROVEEDOR[campo]} letras.`;
+    if (espacios(b[campo]).length > LIMITES_PROVEEDOR[campo]) errores[campo] = `${LARGOS[campo]} ${LIMITES_PROVEEDOR[campo]} letras.`;
   }
   if (Object.keys(errores).length > 0) return { ok: false, errores };
   return {
@@ -109,4 +117,24 @@ export function despuesDelPago(deuda: number, monto: number): { tipo: "debe" | "
   if (centimos > 0) return { tipo: "debe", monto: centimos / 100 };
   if (centimos < 0) return { tipo: "a_favor", monto: -centimos / 100 };
   return { tipo: "al_dia", monto: 0 };
+}
+
+/** Los campos que viven dentro de «Más datos» (components/proveedores/HojaProveedor.tsx), en el orden en que se ven. */
+const EN_MAS_DATOS: readonly CampoProveedor[] = ["ruc", "direccion", "notas"];
+const ORDEN: readonly CampoProveedor[] = ["nombre", "apodos", "contacto", "telefono", "origen", "ruc", "direccion", "notas"];
+
+/**
+ * Lo que dice el pie de la hoja antes de Guardar: el primer error, con el nombre de su campo, y si ese campo está dentro de «Más datos»
+ * (la hoja lo abre). Antes decía «Revisa lo marcado en rojo» aunque lo rojo estuviera escondido (/chaos 2026-11-12, gravedad 4).
+ * `inicial` es lo que se abrió al editar; null al dar de alta.
+ */
+export function avisoDeProveedor(b: BorradorProveedor, inicial: BorradorProveedor | null): { aviso: string | null; enMasDatos: boolean } {
+  if (b.nombre.trim() === "") return { aviso: "Escribe el nombre del proveedor.", enMasDatos: false };
+  const r = validarProveedor(b);
+  if (!r.ok) {
+    const campo = ORDEN.find((c) => r.errores[c])!;
+    return { aviso: r.errores[campo]!, enMasDatos: EN_MAS_DATOS.includes(campo) };
+  }
+  const cambio = inicial === null || (Object.keys(b) as (keyof BorradorProveedor)[]).some((k) => b[k].trim() !== inicial[k].trim());
+  return { aviso: cambio ? null : "Todavía no cambiaste nada.", enMasDatos: false };
 }
