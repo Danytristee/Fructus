@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { esHoraDeCierre, HORA_DE_CIERRE_DE_FABRICA, horaDeLima } from "../../lib/hora-cierre-reglas";
+import { esHoraDeCierre, HORA_DE_CIERRE_DE_FABRICA, horaDeLima, type HoraDeCierre } from "../../lib/hora-cierre-reglas";
 
 // Las variables de la base local (npx supabase start). Solo para pruebas: nunca apunta al proyecto.
 export function entornoLocal(): Record<string, string> {
@@ -50,18 +50,27 @@ export function invariantes(): string {
 }
 
 /**
- * El cron solo hace algo a la hora de cierre del puesto (ADR-0023). Para probarlo ahora, la hora de cierre pasa a ser la de este momento.
- * Devuelve false si a esta hora no se puede elegir (antes de las 8 a. m. de Lima): la prueba que lo necesita se salta y lo dice.
+ * El cron solo avisa a partir de la hora de cierre, y una vez por día (ADR-0023, ADR-0024). Para probarlo ahora, la hora de cierre pasa
+ * a ser la de este momento (en punto) y el día queda sin reclamar. Devuelve false si a esta hora no se puede elegir (antes de las 8 a. m.
+ * de Lima): la prueba que lo necesita se salta y lo dice.
  */
 export async function horaDeCierreAhora(base: ReturnType<typeof baseLocal>): Promise<boolean> {
   const hora = horaDeLima(new Date());
   if (!esHoraDeCierre(hora)) return false;
-  const { error } = await base.from("ajustes_puesto").update({ hora_cierre: hora }).eq("id", true);
+  const { error } = await base.from("ajustes_puesto").update({ hora_cierre: hora, minuto_cierre: 0 }).eq("id", true);
   if (error) throw new Error(`No se pudo poner la hora de cierre: ${error.message}`);
+  await soltarElDia(base);
   return true;
 }
 
-/** Deja la hora de cierre como nace la base, para quien use esta base después. */
-export async function devolverLaHoraDeCierre(base: ReturnType<typeof baseLocal>, hora = HORA_DE_CIERRE_DE_FABRICA): Promise<void> {
-  await base.from("ajustes_puesto").update({ hora_cierre: hora }).eq("id", true);
+/** El día vuelve a quedar sin avisar: el siguiente llamado al cron avisa otra vez (como si fuera otro día). */
+export async function soltarElDia(base: ReturnType<typeof baseLocal>): Promise<void> {
+  const { error } = await base.from("aviso_del_dia").update({ reclamado_dia: null, reclamado_en: null, ficha: null, ficha_vence: null }).eq("id", true);
+  if (error) throw new Error(`No se pudo soltar el día: ${error.message}`);
+}
+
+/** Deja la hora de cierre como nace la base (y el día sin reclamar), para quien use esta base después. */
+export async function devolverLaHoraDeCierre(base: ReturnType<typeof baseLocal>, h: HoraDeCierre = HORA_DE_CIERRE_DE_FABRICA): Promise<void> {
+  await base.from("ajustes_puesto").update({ hora_cierre: h.hora, minuto_cierre: h.minuto }).eq("id", true);
+  await soltarElDia(base);
 }

@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
-import { baseLocal, devolverLaHoraDeCierre, entornoLocal, horaDeCierreAhora } from "./base";
+import { baseLocal, devolverLaHoraDeCierre, entornoLocal, horaDeCierreAhora, soltarElDia } from "./base";
 import { entrarComo } from "./cuentas";
 import { verTuStock } from "./stock";
 
@@ -27,7 +27,11 @@ type Evidencia = { tipo: string; haceDias: number; gastado: number; cajas?: numb
 type Pedido = { modelo: string; esfuerzo?: string; formato?: string; conClave: boolean; frutas: { id: number; fruta: string; tabla: number; minimo: number; maximo: number; actual?: number; evidencia?: Evidencia[] }[] };
 const pedidos = async (): Promise<Pedido[]> => (await (await fetch(`${MODELO_SIMULADO}/recibidos`)).json()) as Pedido[];
 type InformeVida = { motivo: string; pedidas: number; ajustes: number; guardadas: number; recortadas: number; codigo?: string };
-const correrElCron = async (request: APIRequestContext) => ((await (await request.get(RUTA, { headers: conSecreto })).json()) as { vidaUtil: InformeVida }).vidaUtil;
+// El cron estima una vez por día (ADR-0024): cada corrida de la prueba hace de una noche nueva, así que antes se suelta el día.
+const correrElCron = async (request: APIRequestContext) => {
+  await soltarElDia(base);
+  return ((await (await request.get(RUTA, { headers: conSecreto })).json()) as { vidaUtil: InformeVida }).vidaUtil;
+};
 
 const frutas: Record<"menos" | "loca" | "falla", number> = { menos: 0, loca: 0, falla: 0 };
 
@@ -148,6 +152,7 @@ test("se corrige sola: un «Sigue buena» entra al pedido de la noche siguiente,
 
 test("si el modelo falla, el cron contesta igual y la fruta nueva sigue con la tabla", async ({ request }) => {
   frutas.falla = await crearFruta("Chirimoya", "sim-falla");
+  await soltarElDia(base);
   const respuesta = await request.get(RUTA, { headers: conSecreto });
   expect(respuesta.status(), "el aviso de la noche no depende del modelo").toBeLessThan(500);
   const { vidaUtil } = (await respuesta.json()) as { vidaUtil: InformeVida };

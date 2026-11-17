@@ -3,7 +3,7 @@
 import { z } from "zod";
 
 import { leerHoraDeCierre } from "@/lib/hora-cierre";
-import { HORA_DE_CIERRE_DE_FABRICA } from "@/lib/hora-cierre-reglas";
+import { HORA_DE_CIERRE_DE_FABRICA, type HoraDeCierre } from "@/lib/hora-cierre-reglas";
 import { enviarAviso } from "@/lib/push/enviar";
 import { anotarEnLaBase, desactivarSuscripcion, guardarSuscripcion, leerConfiguracionPush } from "@/lib/push/servidor";
 import { avisoDeActivacion, esquemaSuscripcion } from "@/lib/push-reglas";
@@ -85,7 +85,7 @@ export async function apagarAvisos(datos: unknown): Promise<{ ok: true } | { ok:
  * La hora de cierre, para que la fila «Aviso del día» diga a qué hora llega. Se pide al abrir el menú (no en cada pantalla: una consulta
  * más en cada carga, para una fila que casi nadie mira). null si no se pudo leer: la fila lo dice sin hora.
  */
-export async function leerHoraDelAviso(): Promise<number | null> {
+export async function leerHoraDelAviso(): Promise<HoraDeCierre | null> {
   const s = await sesion();
   if (!s || !s.permisos.cierre) return null;
   try {

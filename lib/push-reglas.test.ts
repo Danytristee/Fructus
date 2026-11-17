@@ -126,9 +126,9 @@ describe("avisoDelDia", () => {
 
 describe("avisoDeActivacion", () => {
   it("dice a qué hora llega (la que eligió el dueño) y lleva al cierre", () => {
-    expect(avisoDeActivacion(19)).toMatchObject({ url: "/cierre", tag: "aviso-activado" });
-    expect(avisoDeActivacion(19).cuerpo).toContain("como a las 7 p. m.");
-    expect(avisoDeActivacion(15).cuerpo).toContain("todos los días como a las 3 p. m.");
+    expect(avisoDeActivacion({ hora: 19, minuto: 0 })).toMatchObject({ url: "/cierre", tag: "aviso-activado" });
+    expect(plano(avisoDeActivacion({ hora: 19, minuto: 0 }))!.cuerpo).toContain("a las 7 p. m.");
+    expect(plano(avisoDeActivacion({ hora: 16, minuto: 30 }))!.cuerpo).toContain("todos los días a las 4:30 p. m.");
   });
 });
 

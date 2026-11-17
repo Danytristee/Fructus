@@ -15,4 +15,21 @@
   - El linter da un solo aviso nuevo, y se deja a propósito: `fijar_hora_cierre` es `security definer` y la pueden ejecutar los autenticados, pero revisa el rol antes de tocar nada (anotado en CLAUDE.md).
 - **Pendiente:**
   - Ver en Vercel que se registren los 16 crons después del despliegue.
-  - `/formidable` y `/chaos` de la hoja nueva: sin correr.
+  - `/formidable` y `/chaos` de la hoja: se corrieron más tarde (ver abajo y los informes del día).
+
+## Después: reloj de ruedas con minutos, y el reloj lo lleva la base (ADR-0024)
+
+- **Qué cambió:**
+  - Quien dirige el proyecto pidió cambiar la grilla de 16 horas por un reloj que se gira con el dedo, con horas y minutos.
+  - En Vercel Hobby un cron llega en cualquier minuto de su hora y no puede cumplir minutos. De tres caminos, eligió que el reloj lo lleve la base.
+  - Desde ahora `pg_cron` revisa cada minuto si ya es la hora. Cuando lo es, llama a la ruta con una ficha de un solo uso (`pg_net`), y la ruta reclama el día una sola vez.
+  - Los 16 crons de Vercel quedan de respaldo.
+  - Los minutos van de 5 en 5.
+  - La pieza nueva es `components/ui/Rueda.tsx`: scroll-snap, giro de tambor atado al scroll y teclado.
+  - Entraron los arreglos de `/formidable` y `/chaos`: el error dentro de la hoja, «Entrar otra vez», el doble toque, «Ver el cierre de hoy» y la hora que no se parte entre dos renglones.
+- **Cómo se verificó:**
+  - pgTAP: 342 en verde, 24 nuevas en `29_reloj_del_aviso`. Cubren los minutos de 5 en 5, la ficha vigente, que el reloj llama una vez y el día que se reclama una sola vez.
+  - Vitest: 989 en verde.
+  - e2e a 412 y 360 px: la hoja (girar con el dedo y con el teclado, tocar un número, sin señal), el cron (`temprano`, ficha, `ya-avisado`), el menú y la vida útil.
+  - Al hacer la e2e apareció un error real de la rueda, y se arregló: con varias flechas seguidas, el giro suave informaba las posiciones intermedias y se perdían pasos.
+- **Pendiente:** ver en el proyecto que el trabajo `aviso-del-dia` corra cada minuto y que, a la hora de cierre, Vercel conteste. Eso se ve en `cron.job_run_details` y `net._http_response`.

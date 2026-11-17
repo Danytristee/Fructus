@@ -80,3 +80,18 @@
 - La hoja no tiene «Cerrar»: se cierra tocando fuera, bajándola o tocando la hora ya marcada. Es igual que las demás hojas de opciones; no se cambia sola.
 - Al guardar no suena nada (C7 pide vibración y sonido al confirmar). Es un ajuste, no dinero: queda a criterio.
 - A 360 px la 1.ª fila de horas empieza 38 px arriba del tercio de abajo.
+
+## Después (mismo día): rediseño a pedido
+
+Quien dirige el proyecto pidió cambiar la grilla por un reloj de ruedas con horas y minutos (ADR-0024). Los 3 cambios propuestos
+entraron así:
+1. Si no se guarda, el aviso sale dentro de la hoja; con la sesión vencida trae «Entrar otra vez».
+2. «Dentro de esa hora» desapareció: ahora el reloj de la base cumple el minuto, y la frase dice «a las 4:30 p. m.».
+3. Después de «empieza mañana» aparece «Ver el cierre de hoy».
+
+**Medido** con Playwright a 412 y 360 px:
+- 0 desborde;
+- las ruedas son de 84 × 260 px, con posiciones de 52 px;
+- «Guardar» mide 68 px y queda de 831 a 899 de 915 px (y de 716 a 784 de 800 px).
+
+Capturas: `rueda-412.png`, `rueda-360.png` y `rueda-guardada-412.png`. Falta una prueba a ciegas con la rueda.

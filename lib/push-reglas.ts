@@ -7,7 +7,7 @@
 import { z } from "zod";
 
 import { formatearSoles } from "./formato";
-import { textoDeLaHora } from "./hora-cierre-reglas";
+import { textoDeLaHora, type HoraDeCierre } from "./hora-cierre-reglas";
 import { textoVentas, type ResumenHoy } from "./hoy-reglas";
 import type { Sistema } from "./pwa-reglas";
 import { formatearGrados } from "./temperatura-reglas";
@@ -117,7 +117,7 @@ export function avisoDeFrescura(p: PorSalir, fecha: string): Aviso | null {
  * El aviso que sale al activarlo: así la persona ve en su teléfono cómo le va a llegar, sin esperar a la hora de cierre. `hora` es la que
  * eligió el dueño (lib/hora-cierre-reglas.ts).
  */
-export function avisoDeActivacion(hora: number): Aviso {
+export function avisoDeActivacion(hora: HoraDeCierre): Aviso {
   return {
     titulo: "Listo: el aviso del día está activado",
     cuerpo: `Así te va a llegar, todos los días ${textoDeLaHora(hora)}. Tócalo para ver el cierre.`,

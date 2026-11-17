@@ -48,3 +48,12 @@
 
 - **Hallazgo 1:** si falla, el aviso va dentro de la hoja, debajo de las horas. Con la sesión vencida, el aviso lleva el botón «Entrar». Primero se escribe una e2e que corta la red y espera el aviso dentro del diálogo.
 - **Observación:** guardar con una marca de «guardando» (`useRef`) para que los toques repetidos no salgan. No cambia ningún dato; es solo para no mandar pedidos de más.
+
+## Después (mismo día)
+
+La hoja se rediseñó como un reloj de ruedas (ADR-0024). Lo que entró de este informe:
+- **Hallazgo 1:** el error se dice dentro de la hoja, y con la sesión vencida trae «Entrar otra vez». Lo cubre la e2e «si no se guarda (sin
+  señal), se dice dentro de la hoja».
+- **Observación:** un segundo toque en «Guardar» mientras la base contesta no manda otro pedido (`useRef`).
+
+Sin volver a atacar con la semilla 1117: la hoja cambió entera. Queda pendiente un `/chaos` de la rueda.

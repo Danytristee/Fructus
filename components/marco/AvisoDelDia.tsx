@@ -9,7 +9,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Interruptor } from "@/components/ui/Interruptor";
 import { vibrar } from "@/components/voz/senales";
 import { leerEstadoDelAviso, quitarSuscripcionDeEsteTelefono, suscribirEsteTelefono } from "@/lib/push/navegador";
-import { textoDeLaHora } from "@/lib/hora-cierre-reglas";
+import { textoDeLaHora, type HoraDeCierre } from "@/lib/hora-cierre-reglas";
 import type { EstadoDelAviso } from "@/lib/push-reglas";
 import { filaDelMenu, iconoDelMenu } from "./menu-estilos";
 
@@ -17,7 +17,7 @@ type Estado = EstadoDelAviso | "revisando";
 type Mensaje = { tipo: "exito" | "info" | "error"; titulo: string; texto?: string };
 
 /** La hora la elige el dueño en Ajustes (ADR-0023). Si no se pudo leer, se dice «al cerrar» en vez de una hora que quizá no es. */
-function subtitulo(estado: Estado, hora: number | null): string {
+function subtitulo(estado: Estado, hora: HoraDeCierre | null): string {
   const cuando = hora === null ? "al cerrar" : textoDeLaHora(hora);
   switch (estado) {
     case "revisando":
@@ -43,7 +43,7 @@ export function AvisoDelDia({ clavePublica }: { clavePublica: string }) {
   const [endpoint, setEndpoint] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [mensaje, setMensaje] = useState<Mensaje | null>(null);
-  const [hora, setHora] = useState<number | null>(null);
+  const [hora, setHora] = useState<HoraDeCierre | null>(null);
 
   useEffect(() => {
     let vigente = true;

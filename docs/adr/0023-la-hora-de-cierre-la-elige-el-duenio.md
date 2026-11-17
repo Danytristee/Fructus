@@ -1,6 +1,6 @@
 # ADR-0023 — La hora de cierre la elige el dueño, con un cron por cada hora posible
 
-**Fecha:** 2026-11-17 · **Estado:** aceptado · **Cambia:** el punto 2 de ADR-0013 (la hora fija de las 7 p. m.)
+**Fecha:** 2026-11-17 · **Estado:** aceptado; los minutos, la rueda y el reloj de la base los agregó ADR-0024 · **Cambia:** el punto 2 de ADR-0013 (la hora fija de las 7 p. m.)
 
 ## Contexto
 

@@ -105,11 +105,11 @@ test("se activa con un toque: pide el permiso, suscribe el teléfono, lo guarda 
   const fila = filaDe(hoja);
   await expect(fila).toBeVisible();
   await expect(fila).toHaveAttribute("aria-checked", "false");
-  await expect(fila).toContainText("Lo que vendiste, como a las 7 p. m.");
+  await expect(fila).toContainText("Lo que vendiste, a las 7 p. m.");
 
   await fila.click();
   await expect(fila).toHaveAttribute("aria-checked", "true", { timeout: 15_000 });
-  await expect(fila).toContainText("Activado, como a las 7 p. m.");
+  await expect(fila).toContainText("Activado, a las 7 p. m.");
   await expect(hoja.getByRole("status").filter({ hasText: "Aviso activado" })).toContainText("Te mandamos uno de prueba");
 
   // Lo que le pidió al navegador: el permiso una vez, y una suscripción visible con la clave pública del servidor (65 bytes).
@@ -126,7 +126,7 @@ test("se activa con un toque: pide el permiso, suscribe el teléfono, lo guarda 
   const enviados = await recibidosPor(t);
   expect(enviados).toHaveLength(1);
   expect(enviados[0]).toMatchObject({ topic: "aviso-activado", ttl: "300" });
-  expect(JSON.parse(descifrar(Buffer.from(enviados[0]!.cuerpo, "base64"), t))).toEqual(avisoDeActivacion(19));
+  expect(JSON.parse(descifrar(Buffer.from(enviados[0]!.cuerpo, "base64"), t))).toEqual(avisoDeActivacion({ hora: 19, minuto: 0 }));
 });
 
 test("al volver a abrir el menú sigue activado, y al apagarlo se desactiva en la base (con su fecha, sin borrar nada) y en el teléfono", async ({ page }, info) => {
