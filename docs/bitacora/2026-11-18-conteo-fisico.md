@@ -16,8 +16,11 @@
   ejecuta `registrar_conteo`. `get_advisors`: en seguridad, `registrar_conteo` como security definer (a propósito, en CLAUDE.md); en
   rendimiento, la llave `conteos.registrado_por` sin índice (el mismo patrón que se deja para antes de producción) y dos índices nuevos
   «sin usar» (nacieron hoy).
+- **Con OK, después del PR:** los 3 cambios de `/formidable` (8.3 → 8.7, `docs/formidable/conteo-2026-11-18-2.md`): invita a contar en
+  vez de decir «Cuadra» antes de tocar el contador, el sello dice qué pasó con la diferencia («Faltaban 2 cajas: quedaron como
+  merma…») y «Se vendió sin anotar» dice que solo corrige las cajas. Y el hallazgo de `/chaos`: lo contado va en centésimas y el 22023
+  se dice como «Revisa las cajas que contaste». e2e del conteo 20 de 20 a 412 y 360 px.
 - **Pendiente:**
-  - `/formidable`: 3 cambios esperan OK (no decir «Cuadra» antes de contar, el sello dice qué pasó con la diferencia, «Se vendió sin anotar» no pide nada más).
-  - `/chaos`: el 22023 de un número con más de dos decimales se dice como «revisa tu señal» (`app/(app)/acciones-conteo.ts`); por voz ya se redondea.
+  - `/formidable` (respuesta perdida): decir «Parece que ya se guardó: la app ya dice N» en vez de «Cuadra» junto a «no sé si se guardó».
   - `stock-compra.spec.ts:206` sigue en rojo desde el 15-11: su arreglo está en `claude/cola-segunda-parte`, sin fusionar.
   - Probar con audio real («conté…» por Whisper) y en el S25.
