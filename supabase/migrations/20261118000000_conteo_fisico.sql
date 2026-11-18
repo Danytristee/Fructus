@@ -9,8 +9,9 @@
 -- La solución: se registra lo que se CONTÓ, no la diferencia.
 --   1. Un renglón por conteo en `conteos`: cuántas cajas se contaron, cuántas decía la app en ese momento, la diferencia y su causa.
 --      Se guarda también el conteo que cuadra: el panel de indicadores mide cuántos conteos cuadran (función 3 del informe).
---   2. La diferencia la calcula la base al guardar, contra el stock de ese instante, no la pantalla: si entró una venta mientras se
---      contaba, el stock igual queda en lo contado.
+--   2. La diferencia la calcula la base al guardar, contra el stock de ese instante, no la pantalla. Si la pantalla dice qué decía la
+--      app cuando comparó (p_segun_app) y al guardar es otro número (entró una venta o una compra mientras se contaba), se rechaza
+--      con P0C01 y la pantalla vuelve a comparar: si no, «falta 1, se malogró» con una compra de 5 en medio quedaba como merma de 6.
 --   3. Si no cuadra, la diferencia entra como movimiento atado al conteo (`movimientos_stock.conteo_id`):
 --        - «se malogró» → merma (principio 5: la fruta podrida cuenta en la merma, decisión del 2026-11-17);
 --        - las demás causas → ajuste, con la causa escrita.
@@ -84,7 +85,8 @@ create function registrar_conteo(
   p_contado numeric,
   p_causa causa_conteo default null,
   p_comando_voz_id bigint default null,
-  p_fecha timestamptz default null
+  p_fecha timestamptz default null,
+  p_segun_app numeric default null
 ) returns jsonb
 language plpgsql
 security definer
@@ -125,10 +127,10 @@ begin
 
   select coalesce(sum(cantidad), 0) into v_segun_app from movimientos_stock where producto_id = p_producto_id;
 
-  -- La pantalla calculó la diferencia al abrir; si entró una venta o una compra mientras se contaba, la de ahora puede ser otra. Se
-  -- rechaza con un código propio (P0C01) para que la pantalla vuelva a leer el stock y pregunte de nuevo, sin guardar un conteo con una
-  -- causa que ya no explica la diferencia.
-  if p_contado <> v_segun_app and (p_causa is null
+  -- La pantalla comparó con otro número (entró una venta o una compra mientras se contaba), o la causa no explica la diferencia de
+  -- ahora: se rechaza con un código propio (P0C01) para que la pantalla vuelva a leer el stock y pregunte de nuevo. Nunca se guarda una
+  -- diferencia que la persona no vio.
+  if (p_segun_app is not null and round(p_segun_app, 2) <> v_segun_app) or p_contado <> v_segun_app and (p_causa is null
       or (p_causa in ('se_malogro', 'venta_sin_anotar') and p_contado > v_segun_app)
       or (p_causa = 'compra_sin_anotar' and p_contado < v_segun_app)) then
     raise exception 'La app ahora dice % cajas: vuelve a mirar la diferencia', v_segun_app using errcode = 'P0C01';
@@ -156,8 +158,8 @@ begin
 end;
 $$;
 
-comment on function registrar_conteo(bigint, numeric, causa_conteo, bigint, timestamptz) is
+comment on function registrar_conteo(bigint, numeric, causa_conteo, bigint, timestamptz, numeric) is
   'Registra un conteo físico: calcula la diferencia con el stock de ese instante y, si no cuadra, la deja como merma (se malogró) o ajuste. Dueño, administrador y ayudante (ADR-0027).';
 
-revoke execute on function registrar_conteo(bigint, numeric, causa_conteo, bigint, timestamptz) from public, anon;
-grant execute on function registrar_conteo(bigint, numeric, causa_conteo, bigint, timestamptz) to authenticated;
+revoke execute on function registrar_conteo(bigint, numeric, causa_conteo, bigint, timestamptz, numeric) from public, anon;
+grant execute on function registrar_conteo(bigint, numeric, causa_conteo, bigint, timestamptz, numeric) to authenticated;

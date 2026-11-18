@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(31);
+select plan(33);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000d30', 'duenio30@fructus.test'),
@@ -144,10 +144,15 @@ select throws_ok(
   format('select registrar_conteo(%s, 14, ''se_malogro'')', pg_temp.fruta('Pitahaya')),
   'P0C01', null, '«se malogró» no explica que sobren cajas (pasa si alguien vendió mientras se contaba)'
 );
+select throws_ok(
+  format('select registrar_conteo(%s, 10, ''se_malogro'', null, null, 6)', pg_temp.fruta('Pitahaya')),
+  'P0C01', null, 'la pantalla comparó con 6 y la app dice 11: aunque «se malogró» siga explicando que falten, no se guarda una merma que nadie vio'
+);
+select is((registrar_conteo(pg_temp.fruta('Pitahaya'), 10, 'se_malogro', null, null, 11) ->> 'diferencia')::numeric, -1.00, 'con el mismo número que vio la pantalla, sí');
 select throws_ok(format('select registrar_conteo(%s, -1, ''no_se'')', pg_temp.fruta('Pitahaya')), '22023', null, 'no se cuentan cajas negativas');
 select throws_ok(format('select registrar_conteo(%s, 1.234, ''no_se'')', pg_temp.fruta('Pitahaya')), '22023', null, 'ni fracciones más finas que centésimas');
 select throws_ok(format('select registrar_conteo(%s, 3, ''no_se'')', pg_temp.fruta('Camu camu')), '23503', null, 'una fruta que ya no está en el catálogo no se cuenta');
-select is(pg_temp.stock('Pitahaya'), 11.00, 'ningún intento rechazado tocó el stock');
+select is(pg_temp.stock('Pitahaya'), 10.00, 'ningún intento rechazado tocó el stock: solo el conteo que vio el número');
 
 select * from finish();
 rollback;

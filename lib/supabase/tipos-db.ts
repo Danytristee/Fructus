@@ -736,7 +736,7 @@ isOneToOne: false
 { Args: { "p": Json }; Returns: number
                            },
 "registrar_conteo":
-{ Args: { "p_causa"?: Database["public"]['Enums']["causa_conteo"],"p_comando_voz_id"?: number,"p_contado": number,"p_fecha"?: string,"p_producto_id": number }; Returns: Json
+{ Args: { "p_causa"?: Database["public"]['Enums']["causa_conteo"],"p_comando_voz_id"?: number,"p_contado": number,"p_fecha"?: string,"p_producto_id": number,"p_segun_app"?: number }; Returns: Json
                            },
 "registrar_venta":
 { Args: { "p": Json }; Returns: number

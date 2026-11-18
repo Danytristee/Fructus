@@ -3,6 +3,7 @@
 // contado (si no lo dijo, se pregunta), y el total solo existe si todos los precios existen. Lógica pura: no importa React
 // ni Supabase; las búsquedas en la base las hace lib/voz/resolver.ts y llegan aquí como datos.
 import { formatearSoles } from "../formato";
+import type { CausaConteo } from "./confirmar-conteo-reglas";
 import type { Respuesta } from "./consultas-reglas";
 import type { EstadoLlegada } from "../vida-util-reglas";
 import type { Interpretacion } from "./esquemas";
@@ -70,6 +71,19 @@ export type Tarjeta =
       falta: ("proveedor" | "producto" | "costo" | "condicion")[];
     }
   | { tipo: "merma"; producto: Eleccion; cantidad: number; motivo: string | null; falta: "producto"[] }
+  /**
+   * Conteo físico (ADR-0027): cuántas cajas se contaron de una fruta. `contado` null: a mano, el contador arranca en lo que dice la
+   * app. `stock`: lo que decía la app al dictar, si se pudo leer (la tarjeta lo vuelve a pedir al abrirse). La causa, si se dijo.
+   */
+  | {
+      tipo: "conteo";
+      producto: Eleccion;
+      contado: number | null;
+      causa: CausaConteo | null;
+      stock?: number | null;
+      dudas: string[];
+      falta: "producto"[];
+    }
   | { tipo: "gasto"; categoria: string; monto: number; descripcion: string | null; medio: Medio }
   /** `ayer`: la temperatura del día anterior, para avisar si la de hoy se aleja mucho (un «39» por «29»). null si no se anotó. */
   | { tipo: "temperatura"; grados: number; ayer: number | null }
