@@ -21,3 +21,19 @@
     se partía con ventas de cuatro cifras.
 - **Pendiente:** una venta de tres frutas igual se desliza (ahora sin cortar la voz). Con deudas de cinco cifras, a 360 px la cifra
   baja a un segundo renglón. Sin probar en el S25 con audífono.
+
+## Después: lo que dejó la prueba a ciegas (3 cambios con OK)
+
+- **Qué cambió:**
+  - La deuda ya no dice «hoy» («+ S/ 450.00»): se leía como todo lo fiado hoy.
+  - Al contado dice «Te sigue debiendo S/ 2,390.00».
+  - La fruta que no alcanza lo dice en su fila, «⚠ Solo hay 34», con una variante nueva de `Insignia`, y se fue el recuadro del
+    aviso. La voz lo sigue diciendo entero.
+- **Cómo se verificó:**
+  - Cada frase se midió con Manrope a 360 px antes de proponerla.
+  - Tres frutas: a 412 px, de 285 a 148 px por deslizar; a 360 px, de 441 a 331 px.
+  - `voz-ficha-compacta` y `voz-aviso-stock`: 18 de 18. Vitest 1191 de 1191.
+  - E2e de voz afectadas, de a una: 86 de 86. Una prueba esperaba que la fila de la fruta terminara en el precio; ahora acepta la marca
+    de stock. Otras dos se repitieron por carga.
+- **Pendiente:** «Solo hay 34» ya no dice «según la app», aunque la voz sí. Sin probar en el S25.
+

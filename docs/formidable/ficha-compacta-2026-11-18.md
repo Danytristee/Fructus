@@ -171,3 +171,39 @@ Hizo de vendedor con una caja en cada mano y audífono.
 - «+ S/ 450.00 hoy» se puede leer como todo lo fiado hoy. «de esta venta» no cabe en el renglón a 360 px.
 - Con tres frutas y un aviso de stock, el aviso queda bajo el pie: subirlo, o acortar el aviso (157 px a 360 px).
 - Los de «Fuera de los 3»: «Descartar» al lado del título y «Pagó una parte» como enlace.
+
+## 2.ª vuelta: lo que dejó la prueba a ciegas (3 cambios con OK)
+
+Antes de proponer se midió cada frase con Manrope a 360 px. «+ S/ 450.00 de esta venta» y «Esta venta S/ 450.00» no entran en el
+renglón de la deuda (372 y 335 de 300 px); por eso no se propusieron.
+
+1. **Sin «hoy» en la deuda:** «Debía S/ 2,390.00 · + S/ 450.00». Arriba ya dice «Con esta venta te debe».
+2. **Al contado, «Te sigue debiendo S/ 2,390.00»** (antes «De antes te debe»). Dice que esa deuda sigue igual con esta venta; mide 258
+   de 320 px y entra con cinco cifras.
+3. **El stock que no alcanza se marca en la fila de la fruta**, bajo su precio: «⚠ Solo hay 34» (o «No te queda», sin una cifra
+   imposible). Se quitó el recuadro de 157 px.
+   - Es una variante nueva de `Insignia` (`stock`): fondo e ícono en tono de aviso, texto oscuro para el 7:1, como el `Aviso` de
+     atención.
+   - La voz lo sigue diciendo entero, y el sello recuerda la compra al guardar.
+   - Salen `AvisoStock.tsx`, `textoAviso`, `textoAvisos` y `SUGERENCIA_AVISO`; entra `faltaEnFila`.
+
+Capturas con prefijo `despues2-`:
+
+| Caso | 412 px | 360 px |
+|---|---|---|
+| 1 a 4 | 0 px | 0 px |
+| 5 · Tres frutas, duda, boleta, poco stock | 379 → 285 → **148 px** | 561 → 441 → **331 px** |
+
+- A 412 px, «Solo hay 34» queda junto al precio y a la vista sin deslizar. A 360 px baja a su propio renglón dentro de la fila.
+- **Medido:** 0 controles bajo 48 px y 0 desborde en los 10 casos.
+- Con la deuda de prueba de Luis Paredes ya en S/ 31,050.00, el caso 1 sigue en 0 px a 360. La cifra de cinco dígitos baja de renglón
+  y entra igual.
+- **Pruebas:**
+  - `voz-ficha-compacta.spec.ts` suma «con tres frutas, la que no alcanza lo dice en su fila, a la vista sin deslizar».
+  - `voz-aviso-stock.spec.ts` se adaptó a la fila: 18 de 18 entre las dos.
+  - Vitest 1191 de 1191 (`faltaEnFila` con sus casos; se fueron las de `textoAviso`).
+  - E2e de voz afectadas, de a una: 83 de 86.
+    - `voz-confirmar-hablando` 129 esperaba que la fila terminara en «la caja». Ahora acepta «No te queda» al final: Mango Kent está en
+      negativo en la base de prueba.
+    - Dos de `voz-candados` fallaron por carga: un login de más de 15 s.
+    - Repetidas, 22 de 22.
