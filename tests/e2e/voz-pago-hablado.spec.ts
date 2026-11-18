@@ -58,7 +58,7 @@ test("«pagó doscientos» a «¿Pagó o lo debe?»: la venta queda al crédito 
 
   // La tarjeta queda con lo que pagó, y se dice solo eso: lo que pagó y lo que debe.
   await expect(hoja.getByRole("button", { name: /Pagó ahora/ })).toContainText(enSoles(200));
-  await expect(hoja.getByText(`+ ${enSoles(250)} de hoy`)).toBeVisible();
+  await expect(hoja.getByText(`+ ${enSoles(250)}`, { exact: true })).toBeVisible();
   await expect.poll(() => dichas(page)).toContain("Corregido. Pagó 200 soles en efectivo y debe 250 soles. ¿Confirmo?");
   await terminarFrase(page);
   await responder(page); // «Confirmo»

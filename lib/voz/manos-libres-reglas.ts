@@ -11,7 +11,7 @@
 // Si falta la fruta, las cajas, el precio o a quién se le fía, se dice qué falta y se pregunta (ADR-0027): la respuesta rehace la
 // tarjeta como una corrección y se sigue con lo próximo que falte, hasta poder leerla entera. Con dudas del intérprete (o si falta
 // algo que no se pregunta) solo se avisa: no se escucha nada y se confirma con el dedo.
-// Tocar la tarjeta, en cualquier momento: callado (la persona toma el control).
+// Tocar la tarjeta, en cualquier momento: callado (la persona toma el control). Deslizarla para leer no es tocarla (toque-reglas.ts).
 import type { Pago } from "./respuesta-reglas";
 
 /** Para empezar a hablar después de la lectura. Después se deja de escuchar: el silencio deja la tarjeta para tocar. */

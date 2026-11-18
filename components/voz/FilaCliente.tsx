@@ -43,9 +43,9 @@ export function FilaCliente({ cliente, dicho, falta, pendiente, sinCliente = "Si
       onClick={alTocar}
       icono={
         cliente ? (
-          <Avatar iniciales={iniciales(cliente.nombre)} tono={tonoDe(cliente.id)} />
+          <Avatar iniciales={iniciales(cliente.nombre)} tono={tonoDe(cliente.id)} className="size-10" />
         ) : (
-          <span className="grid size-12 place-items-center rounded-full bg-texto/8 text-texto-suave">
+          <span className="grid size-10 place-items-center rounded-full bg-texto/8 text-texto-suave">
             <UserRound aria-hidden />
           </span>
         )

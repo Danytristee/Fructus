@@ -115,15 +115,15 @@ export function TarjetaMerma({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
   const quedan = producto && stock !== null && !falta.includes("cantidad") ? quedanTrasMerma(stock, cantidad) : null;
   return (
-    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo.
-    <div className="grid gap-2" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
+    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo. Deslizarla para leer, no.
+    <div className="grid gap-2" {...voz.manos}>
       <FilaTarjeta
         style={pieza(0)}
         className="animate-pieza"
         falta={!aMano && falta.length > 0}
         pendiente={aMano && falta.length > 0}
         onClick={() => setEditando(true)}
-        icono={<IconoFruta nombre={producto?.nombre ?? tarjeta.producto.dicho ?? "?"} tamano={48} />}
+        icono={<IconoFruta nombre={producto?.nombre ?? tarjeta.producto.dicho ?? "?"} tamano={40} />}
         grande={
           producto
             ? cantidad > 0

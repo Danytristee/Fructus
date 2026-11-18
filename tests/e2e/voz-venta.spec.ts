@@ -44,7 +44,7 @@ test("venta a crédito: pregunta si pagó, muestra cómo queda la deuda y la gua
   await expect(hoja.getByRole("button", { name: "Primero: ¿pagó o lo debe?" })).toBeDisabled();
 
   await hoja.getByRole("button", { name: "Lo debe", exact: true }).click();
-  await expect(hoja.getByText(`Con esta venta, ${cliente.nombre} te debe`)).toBeVisible();
+  await expect(hoja.getByText("Con esta venta te debe")).toBeVisible();
   await expect(hoja.getByText(enSoles(antes + 450))).toBeVisible();
 
   await hoja.getByRole("button", { name: "Confirmar venta" }).click();
@@ -147,7 +147,7 @@ test("se ve lo que dijiste debajo del cliente, y la pregunta de pago va escrita 
   await expect(pregunta.getByRole("button")).toHaveCount(2);
   // Con «Pagó», la deuda vieja es una línea, no una tarjeta con barra.
   await pregunta.getByRole("button", { name: "Pagó", exact: true }).click();
-  await expect(hoja.getByText("De antes, Luis Paredes te debe")).toBeVisible();
+  await expect(hoja.getByText("Te sigue debiendo")).toBeVisible();
   await expect(hoja.getByText("Hoy no suma")).toHaveCount(0);
 });
 

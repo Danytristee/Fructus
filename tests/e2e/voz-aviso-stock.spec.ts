@@ -34,7 +34,9 @@ const tarjeta = (fruta: Fruta | null, cajas: number, cambios: Record<string, unk
   ...cambios,
 });
 
-const aviso = (stock: number, nombre: string, vendes: number) => `Según la app te quedan ${stock} cajas de ${nombre} y vas a vender ${vendes}.`;
+/** La fila de la fruta que no alcanza: «N cajas de Mango Kent … Solo hay 6» (/formidable 2026-11-18: antes era un recuadro aparte). */
+const filaConAviso = (nombre: string, quedan: number) => new RegExp(`cajas de ${nombre}.*Solo hay ${quedan}$`);
+const marcas = /Solo hay|No te queda/;
 
 test("si la venta pide más cajas de las que hay, lo avisa y la venta se guarda igual", async ({ page }, info) => {
   const fruta = await frutaConStock(info.project.name, 2);
@@ -42,11 +44,9 @@ test("si la venta pide más cajas de las que hay, lo avisa y la venta se guarda 
   // Sin stock en la tarjeta: la tarjeta lo pide a la base.
   const hoja = await dictar(page, comandoId, tarjeta(fruta, fruta.stock + 4), "¿Así fue la venta?");
 
-  await expect(hoja.getByRole("status").filter({ hasText: aviso(fruta.stock, fruta.nombre, fruta.stock + 4) })).toBeVisible();
-  await expect(hoja.getByText("¿Falta anotar una compra?")).toBeVisible();
+  await expect(hoja.getByRole("button", { name: filaConAviso(fruta.nombre, fruta.stock) })).toBeVisible();
+  // Avisa, no bloquea: Confirmar sigue listo.
   await expect(hoja.getByRole("button", { name: "Confirmar venta" })).toBeEnabled();
-
-  await expect(hoja.getByText("Igual puedes confirmarla. ¿Falta anotar una compra?")).toBeVisible();
   await hoja.getByRole("button", { name: "Confirmar venta" }).click();
   await expect(page.getByText("Venta guardada")).toBeVisible();
   // El aviso se va con la tarjeta: el sello recuerda la compra que falta anotar.
@@ -60,24 +60,24 @@ test("si alcanza no avisa, y una caja de más hace aparecer el aviso", async ({ 
   // El stock viene con la tarjeta, como lo manda el servidor al dictar.
   const hoja = await dictar(page, await crearComando(), tarjeta(fruta, fruta.stock, { stock: { [fruta.id]: fruta.stock } }), "¿Así fue la venta?");
   await expect(hoja.getByText(`${fruta.stock} cajas de ${fruta.nombre}`)).toBeVisible();
-  await expect(hoja.getByText(/^Según la app/)).toHaveCount(0);
+  await expect(hoja.getByText(marcas)).toHaveCount(0);
 
   await hoja.getByRole("button", { name: new RegExp(`cajas de ${fruta.nombre}`) }).click();
   await hoja.getByRole("button", { name: "Una caja más" }).click();
   await hoja.getByRole("button", { name: "Listo" }).click();
-  await expect(hoja.getByRole("status").filter({ hasText: aviso(fruta.stock, fruta.nombre, fruta.stock + 1) })).toBeVisible();
+  await expect(hoja.getByRole("button", { name: filaConAviso(fruta.nombre, fruta.stock) })).toBeVisible();
 });
 
 test("una fruta elegida tocando trae su stock y su aviso", async ({ page }, info) => {
   const fruta = await frutaConStock(info.project.name, 2);
   const dudosa = { producto: { dicho: "fruta", elegido: null, opciones: [fruta] }, cantidad: fruta.stock + 2, precio: { valor: 45, sugerido: false }, subtotal: null };
   const hoja = await dictar(page, await crearComando(), tarjeta(null, 0, { items: [dudosa], total: null, falta: ["producto"] }), "¿Así fue la venta?");
-  await expect(hoja.getByText(/^Según la app/)).toHaveCount(0);
+  await expect(hoja.getByText(marcas)).toHaveCount(0);
 
   await hoja.getByRole("button", { name: /¿fruta\?/ }).click();
   await hoja.getByRole("button", { name: fruta.nombre }).first().click();
   await hoja.getByRole("button", { name: "Listo" }).click();
-  await expect(hoja.getByRole("status").filter({ hasText: aviso(fruta.stock, fruta.nombre, fruta.stock + 2) })).toBeVisible();
+  await expect(hoja.getByRole("button", { name: filaConAviso(fruta.nombre, fruta.stock) })).toBeVisible();
 });
 
 test("con manos libres, el aviso también se dice al leer la venta", async ({ page }, info) => {
@@ -90,7 +90,7 @@ test("con manos libres, el aviso también se dice al leer la venta", async ({ pa
   await expect.poll(async () => (await distintas(page)).join(" ")).toMatch(new RegExp(`Lo debe\\. Ojo: según la app te quedan ${fruta.stock} cajas de .+\\. ¿Confirmo\\?$`));
 });
 
-test("con dos frutas que no alcanzan, un solo aviso, y el total y el pago siguen a la vista", async ({ page }) => {
+test("con dos frutas que no alcanzan, cada fila dice lo suyo, y el total y el pago siguen a la vista", async ({ page }) => {
   const { data } = await base.from("v_stock").select("producto_id, nombre").order("producto_id").limit(2);
   const [a, b] = data!.map((x) => ({ id: x.producto_id!, nombre: x.nombre! }));
   const item = (f: Fruta, cajas: number) => ({ producto: { dicho: "fruta", elegido: f, opciones: [] }, cantidad: cajas, precio: { valor: 45, sugerido: false }, subtotal: 45 * cajas });
@@ -98,8 +98,10 @@ test("con dos frutas que no alcanzan, un solo aviso, y el total y el pago siguen
   const venta = tarjeta(a!, 10, { items: [item(a!, 10), item(b!, 3)], total: 585, condicion: null, medio: null, falta: ["condicion"], stock: { [a!.id]: 6, [b!.id]: -2 } });
   const hoja = await dictar(page, await crearComando(), venta, "¿Así fue la venta?");
 
-  await expect(hoja.getByRole("status").filter({ hasText: `Según la app no alcanza: de ${a!.nombre} te quedan 6\u00a0cajas y vas a vender 10; de ${b!.nombre} no te queda.` })).toBeVisible();
-  await expect(hoja.getByText(/^Según la app/)).toHaveCount(1);
+  await expect(hoja.getByRole("button", { name: filaConAviso(a!.nombre, 6) })).toBeVisible();
+  // En negativo, nunca una cifra imposible.
+  await expect(hoja.getByRole("button", { name: new RegExp(`cajas de ${b!.nombre}.*No te queda$`) })).toBeVisible();
+  await expect(hoja.getByText(marcas)).toHaveCount(2);
   // Lo que se confirma manda: el total y «Pagó / Lo debe», sin deslizar (antes, a 360 px, quedaban bajo el pie).
   await expect(hoja.getByText("S/ 585.00", { exact: true })).toBeInViewport({ ratio: 1 });
   await expect(hoja.getByRole("button", { name: "Lo debe", exact: true })).toBeInViewport({ ratio: 1 });

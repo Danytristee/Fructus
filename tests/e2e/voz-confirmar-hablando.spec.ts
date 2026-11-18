@@ -146,10 +146,11 @@ test("«no, son ocho cajas»: la tarjeta se corrige, se dice solo lo que cambió
   // La tarjeta marca lo mismo que dice la voz: la fruta y el total. El cliente no cambió, así que no se marca.
   await expect(hoja.getByText("corregido", { exact: true })).toHaveCount(2);
   // Junto a las cajas, que fue lo que cambió, y no pegada al precio, que sigue igual (2.ª prueba ciega).
-  await expect(hoja.getByRole("button", { name: /^8 cajas de Mango Kent\s*corregido\s*S\/\s45\.00 la caja$/ })).toBeVisible();
+  // Al final puede ir lo que dice la fila si la base local tiene menos cajas de Mango Kent («Solo hay 6», «No te queda»).
+  await expect(hoja.getByRole("button", { name: /^8 cajas de Mango Kent\s*corregido\s*S\/\s45\.00 la caja(\s*(Solo hay \S+|No te queda))?$/ })).toBeVisible();
   // Lo que ya debía es del cliente: sigue a la vista, con el total nuevo (antes desaparecía al corregir; /formidable 2026-11-17).
-  await expect(hoja.getByText(`Con esta venta, ${cliente.nombre} te debe`)).toBeVisible();
-  await expect(hoja.getByText("+ S/ 360.00 de hoy")).toBeVisible();
+  await expect(hoja.getByText("Con esta venta te debe")).toBeVisible();
+  await expect(hoja.getByText("+ S/ 360.00", { exact: true })).toBeVisible();
   // Solo lo que cambió: la venta entera se acaba de oír.
   await expect.poll(() => dichas(page)).toContain("Corregido. 8 cajas de Mango Kent, a 45 la caja. Total, 360 soles. ¿Confirmo?");
   await terminarFrase(page);
@@ -177,7 +178,7 @@ test("«repite»: la vuelve a leer entera y escucha otra vez; después «confirm
   const comandoId = await crearComando();
   const hoja = await hastaEscuchar(page, comandoId, cliente.nombre, cliente);
   // La línea enseña que se puede corregir hablando (/formidable 2026-11-16).
-  // La línea de la voz, por su texto: el aviso de stock también es un «status» y sale si la base local tiene menos de 10 cajas.
+  // La línea de la voz, por su texto.
   await expect(hoja.getByRole("status").filter({ hasText: "Te escucho" })).toHaveText("Te escucho: di «confirmo», «repite» o lo que hay que cambiar.");
 
   const leidas = (await dichas(page)).filter((d) => d === lectura(cliente.nombre)).length;

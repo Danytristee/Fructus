@@ -152,13 +152,13 @@ export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
   const veredicto = cajasApp !== null && contado !== null ? veredictoConteo(contado, cajasApp) : null;
   const causas = dif === null ? [] : causasPara(dif);
   return (
-    // Tocar la tarjeta es tomar el control: la voz se calla para corregir o confirmar con el dedo.
-    <div className="grid gap-3" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
+    // Tocar la tarjeta es tomar el control: la voz se calla para corregir o confirmar con el dedo. Deslizarla para leer, no.
+    <div className="grid gap-3" {...voz.manos}>
       <FilaTarjeta
         style={pieza(0)}
         className="animate-pieza"
         onClick={() => setEligiendo(true)}
-        icono={<IconoFruta nombre={producto.nombre} tamano={48} />}
+        icono={<IconoFruta nombre={producto.nombre} tamano={40} />}
         grande={producto.nombre}
         chico="Toca para cambiar la fruta"
       />
