@@ -25,6 +25,15 @@
   de mentira (7) y el modelo de verdad sobre `tests/bulla/` (4): con la calle 5 dB por debajo de la voz termina entre 0.3 y 2 s después
   de callarse (con el volumen solo, nunca). e2e: el micrófono simulado ahora habla con una voz de verdad, y una prueba nueva con un
   «motor» tan fuerte como la voz solo pasa si Silero corre en el navegador (`voz-silencio`, 10 de 10 a 412 y 360 px).
+- **Silero también después de «Hola Fructus»:** el worker de la escucha carga Silero después de los modelos de la frase (no demora el
+  «listo») y cada dictado tiene su oído (`lib/voz/escucha-reglas.ts` usa la misma pieza que el toque). La cola de la frase sigue sin
+  contar, «mudo» sigue a los 5 s y «habló» sigue pidiendo 0.4 s de voz. Como oír ahora espera a Silero, el cuadro que se está oyendo
+  cuando la pantalla cierra el dictado va igual al WAV. Vitest `escucha-reglas` con un Silero de mentira: un motor después de la orden
+  no impide enviarla. e2e `voz-hola-fructus` 16 de 16 a 412 px, y una nueva con un motor que arranca en el silencio del final: con
+  Silero envía (a 412 y 360 px); con Silero apagado a propósito, falla, porque espera al tope (17.7 s).
+- **La batería de voz entera** (todas las `voz*.spec.ts` menos `voz-api`, que pide la clave de Groq), a 412 y 360 px, con Silero: 261
+  pasan y 3 pasan al reintentar con la máquina en carga 20 a 30 (`comprobantes-voz:147`, `voz-candados:82`,
+  `voz-confirmar-hablando:173`). Las dos últimas, repetidas 3 veces a cada ancho con la máquina tranquila: 12 de 12.
 - **Lo que encontraron las pruebas y se arregló:**
   - El worker importaba ONNX Runtime de entrada, y hasta que bajaba no había ni volumen: el primer dictado de una e2e tardó 1.8 min.
     Ahora ONNX Runtime se importa al cargar Silero, y el volumen oye desde el primer cuadro.

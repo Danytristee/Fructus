@@ -41,7 +41,8 @@ dirige el proyecto eligió el 2026-11-18 sumar las dos cosas: Silero y un tope.
    resuelve: el vecino tan fuerte como quien dicta. La venta más larga de los casos del intérprete se dice en unos 9 s. Un dictado de
    más de 15 s se corta, y lo que faltó se corrige en la tarjeta.
 6. **Vale para las tres formas de dictar:** el toque (y el candado), las respuestas de manos libres (que usan la misma grabadora) y lo
-   que sigue a «Hola Fructus».
+   que sigue a «Hola Fructus». Para esto último, el worker de la escucha (`components/voz/escucha.worker.ts`) carga Silero después de
+   los modelos de la frase, sin demorar el «listo». Silero corre solo mientras se dicta: escuchar la frase no gasta más que antes.
 
 ## Consecuencias
 

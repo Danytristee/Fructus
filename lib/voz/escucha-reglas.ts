@@ -3,7 +3,8 @@
 // components/voz/useHolaFructus.ts.
 
 import { FRECUENCIA, MUESTRAS_POR_CUADRO } from "./detector-palabra";
-import { CUADRO_MS, OIDO_NUEVO, SILENCIO_PARA_ENVIAR_MS, VOZ_MINIMA_MS, nivelDb, oir, type Oido } from "./silencio-reglas";
+import { crearFinDeHabla, type FinDeHabla } from "./fin-de-habla";
+import { VOZ_MINIMA_MS } from "./silencio-reglas";
 
 /**
  * Cómo está la escucha:
@@ -44,51 +45,42 @@ export const ESPERA_VOZ_MS = 5000;
  * si contara, decir «Hola Fructus» y esperar 1.2 s enviaba la frase sola y se perdía la orden que venía.
  */
 const COLA_DE_LA_FRASE_MS = 500;
-/** El volumen se mide cada CUADRO_MS (50 ms = 800 muestras), como cuando se graba con el dedo. */
-const MUESTRAS_POR_MEDIDA = (FRECUENCIA * CUADRO_MS) / 1000;
 const MS_POR_CUADRO = (MUESTRAS_POR_CUADRO / FRECUENCIA) * 1000;
 
 /** Lo que va quedando de un dictado que empezó con «Hola Fructus». */
 export type Dictado = {
   /** El audio, en cuadros de 80 ms: primero los de antes de despertar, después lo que siguió. */
   cuadros: Int16Array[];
-  oido: Oido;
-  /** Muestras que todavía no completan una medida de 50 ms. */
-  resto: Int16Array;
+  /** El que decide cuándo se calló: Silero si ya está, si no el volumen (lib/voz/fin-de-habla.ts). Oye lo que sigue a la frase. */
+  oido: FinDeHabla;
   hablo: boolean;
   /** Cuánto pasó desde que despertó. */
   ms: number;
 };
 
-export function empezarDictado(previos: readonly Int16Array[]): Dictado {
-  return { cuadros: [...previos], oido: OIDO_NUEVO, resto: new Int16Array(0), hablo: false, ms: 0 };
+/** Un dictado nuevo con lo de antes de despertar. `oido`: uno nuevo para este dictado (el worker le da Silero si lo tiene). */
+export function empezarDictado(previos: readonly Int16Array[], oido: FinDeHabla = crearFinDeHabla()): Dictado {
+  return { cuadros: [...previos], oido, hablo: false, ms: 0 };
+}
+
+/** Guarda un cuadro para el WAV sin oírlo: lo que quedaba en la cola cuando se cierra el dictado. */
+export function guardarCuadro(d: Dictado, cuadro: Int16Array): Dictado {
+  return { ...d, cuadros: [...d.cuadros, cuadro], ms: d.ms + MS_POR_CUADRO };
 }
 
 /**
- * Un cuadro más del dictado. `callo`: habló y después calló (lib/voz/silencio-reglas.ts, igual que sin el dedo). `mudo`: pasaron
- * ESPERA_VOZ_MS sin que hablara. Lo de antes de despertar no cuenta como voz: si contara, callarse justo después de «Hola
- * Fructus» (esperando que el celular responda) enviaría la frase sola. Por lo mismo, «habló» pide la voz mínima del silencio
- * (VOZ_MINIMA_MS): el final de «…tus» suele caer justo después de despertar, y con contar eso, nunca era «mudo».
+ * Un cuadro más del dictado. `callo`: habló y después calló (el mismo oído que sin el dedo). `mudo`: pasaron ESPERA_VOZ_MS sin que
+ * hablara. Lo de antes de despertar no se oye: si contara, callarse justo después de «Hola Fructus» (esperando que el celular
+ * responda) enviaría la frase sola. Por lo mismo, «habló» pide la voz mínima del silencio (VOZ_MINIMA_MS): el final de «…tus» suele
+ * caer justo después de despertar, y con contar eso, nunca era «mudo». `fallo`: Silero se cayó y sigue el volumen.
  */
-export function seguirDictado(d: Dictado, cuadro: Int16Array, silencioMs = SILENCIO_PARA_ENVIAR_MS): { dictado: Dictado; callo: boolean; mudo: boolean } {
-  if (d.ms < COLA_DE_LA_FRASE_MS) return { dictado: { ...d, cuadros: [...d.cuadros, cuadro], ms: d.ms + MS_POR_CUADRO }, callo: false, mudo: false };
-  const pendiente = new Int16Array(d.resto.length + cuadro.length);
-  pendiente.set(d.resto);
-  pendiente.set(cuadro, d.resto.length);
-  let oido = d.oido;
-  let hablo = d.hablo;
-  let callo = false;
-  let usadas = 0;
-  for (; usadas + MUESTRAS_POR_MEDIDA <= pendiente.length; usadas += MUESTRAS_POR_MEDIDA) {
-    const medida = Float32Array.from(pendiente.subarray(usadas, usadas + MUESTRAS_POR_MEDIDA), (m) => m / 32768);
-    const r = oir(oido, nivelDb(medida), silencioMs);
-    oido = r.oido;
-    hablo ||= r.vozMs >= VOZ_MINIMA_MS;
-    callo ||= r.termino;
-  }
-  const ms = d.ms + MS_POR_CUADRO;
-  const dictado = { cuadros: [...d.cuadros, cuadro], oido, resto: pendiente.slice(usadas), hablo, ms };
-  return { dictado, callo, mudo: !hablo && ms >= ESPERA_VOZ_MS };
+export async function seguirDictado(d: Dictado, cuadro: Int16Array): Promise<{ dictado: Dictado; callo: boolean; mudo: boolean; fallo?: string }> {
+  const guardado = guardarCuadro(d, cuadro);
+  if (d.ms < COLA_DE_LA_FRASE_MS) return { dictado: guardado, callo: false, mudo: false };
+  const aviso = await d.oido.oir(Float32Array.from(cuadro, (m) => m / 32768));
+  const hablo = d.hablo || aviso.vozMs >= VOZ_MINIMA_MS;
+  const r = { dictado: { ...guardado, hablo }, callo: aviso.callo, mudo: !hablo && guardado.ms >= ESPERA_VOZ_MS };
+  return aviso.fallo ? { ...r, fallo: aviso.fallo } : r;
 }
 
 /** Todo el audio del dictado, en orden, para armar el WAV. */

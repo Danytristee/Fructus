@@ -94,6 +94,7 @@ export function useHolaFructus({ hojaAbierta, voz, porPalabra, alDespertar, alCa
       } else if (m.tipo === "desperto") avisos.current.alDespertar();
       else if (m.tipo === "callo") avisos.current.alCallarse();
       else if (m.tipo === "mudo") avisos.current.alMudo();
+      else if (m.tipo === "sin_silero") console.warn("voz: sin Silero después de «Hola Fructus», se mide el volumen", { motivo: m.motivo });
       else {
         const g = m.tipo === "grabacion" ? { audio: new Blob([m.wav], { type: "audio/wav" }), duracionMs: m.duracionMs, despertar: true as const } : null;
         pendiente.current?.(g);

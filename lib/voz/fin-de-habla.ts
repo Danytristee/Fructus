@@ -25,8 +25,11 @@ export function sileroDelCuadro(ventanas: readonly number[], k: number): number 
   return mayor;
 }
 
-/** `callo`: habló y después calló (o llegó al tope). `hablo`: ya dijo algo. `fallo`: Silero falló y se sigue con el volumen. */
-export type Aviso = { callo: boolean; hablo: boolean; fallo?: string };
+/**
+ * `callo`: habló y después calló (o llegó al tope). `hablo`: ya dijo algo. `vozMs`: lo más que llegó a sumar de voz en lo oído ahora
+ * (para quien pide más que un sonido suelto, como «Hola Fructus»). `fallo`: Silero falló y se sigue con el volumen.
+ */
+export type Aviso = { callo: boolean; hablo: boolean; vozMs: number; fallo?: string };
 
 export type FinDeHabla = {
   /** Muestras nuevas del micrófono (de -1 a 1, a 16 kHz, de cualquier largo), en orden. */
@@ -49,16 +52,18 @@ export function crearFinDeHabla(silencioMs = SILENCIO_PARA_ENVIAR_MS): FinDeHabl
   async function avanzar(): Promise<Aviso> {
     let calloVolumen = false;
     let habloVolumen = false;
+    let vozMsVolumen = 0;
     for (; (volumen.cuadros + 1) * MUESTRAS_POR_CUADRO <= largo; volumen.cuadros++) {
       const r = oir(volumen.oido, nivel(volumen.cuadros), silencioMs);
       volumen.oido = r.oido;
       calloVolumen ||= r.termino;
       habloVolumen ||= r.vozMs > 0;
+      vozMsVolumen = Math.max(vozMsVolumen, r.vozMs);
     }
     const s = silero;
     if (!s) {
       hablo ||= habloVolumen;
-      return { callo: calloVolumen, hablo };
+      return { callo: calloVolumen, hablo, vozMs: vozMsVolumen };
     }
     try {
       while ((s.ventanas.length + 1) * MUESTRAS_POR_VENTANA <= largo) {
@@ -69,9 +74,10 @@ export function crearFinDeHabla(silencioMs = SILENCIO_PARA_ENVIAR_MS): FinDeHabl
       // Desde ya decide el volumen, que siguió oyendo todo.
       silero = null;
       hablo ||= habloVolumen;
-      return { callo: calloVolumen, hablo, fallo: e instanceof Error ? e.message : "desconocido" };
+      return { callo: calloVolumen, hablo, vozMs: vozMsVolumen, fallo: e instanceof Error ? e.message : "desconocido" };
     }
     let callo = false;
+    let vozMs = 0;
     for (; (s.cuadros + 1) * MUESTRAS_POR_CUADRO <= largo; s.cuadros++) {
       const probabilidad = sileroDelCuadro(s.ventanas, s.cuadros);
       if (probabilidad === null) break;
@@ -79,8 +85,9 @@ export function crearFinDeHabla(silencioMs = SILENCIO_PARA_ENVIAR_MS): FinDeHabl
       s.oido = r.oido;
       callo ||= r.termino;
       hablo ||= r.vozMs > 0;
+      vozMs = Math.max(vozMs, r.vozMs);
     }
-    return { callo, hablo };
+    return { callo, hablo, vozMs };
   }
 
   // Una cosa a la vez y en orden: Silero recuerda lo anterior, y lo que llega mientras piensa espera su turno.

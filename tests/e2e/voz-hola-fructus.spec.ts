@@ -3,7 +3,7 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 import { baseLocal } from "./base";
 import { entrarComo } from "./cuentas";
 import { abastecer, crearComando } from "./dictar";
-import { decir, dichas, microfonoQueDice, responder, sintetizadorDePrueba, terminarFrase } from "./manos-libres";
+import { decir, dichas, microfonoQueDice, motor, responder, sintetizadorDePrueba, terminarFrase } from "./manos-libres";
 
 // «Hola Fructus» en «Hoy» (actividad 5c), de punta a punta en Chrome. El micrófono falso dice audios de verdad (tests/palabra/, con la
 // voz que el modelo nunca oyó) y la escucha corre de verdad: el worker, onnxruntime-web y los tres modelos. /api/voz se simula: se
@@ -91,6 +91,23 @@ test("«Hola Fructus, vendí…» dicho de corrido: sin tocar nada, envía lo di
   expect(envios[0]!.celular?.length).toBeGreaterThanOrEqual(8);
   expect(envios[0]!.duracionMs).toBeGreaterThan(6200);
   expect(envios[0]!.duracionMs).toBeLessThan(9000);
+});
+
+test("después de «Hola Fructus», un motor que arranca al terminar la orden no impide enviarla: Silero sabe que no es voz", async ({ page }) => {
+  test.slow();
+  await escuchando(page);
+  const envios = await simularVoz(page);
+  const inicio = Date.now();
+  const dicho = decir(page, VENTA);
+  await expect(orbe(page)).toHaveAttribute("data-estado", "escuchando", { timeout: 10_000 });
+  // La orden termina a los 4.95 s del audio y le siguen 1.25 s de silencio: el motor arranca antes de que se cumpla el 1.2 s, y sigue.
+  await page.waitForTimeout(Math.max(0, 5000 - (Date.now() - inicio)));
+  await motor(page, true);
+  await dicho;
+  await expect(hojaVenta(page)).toBeVisible({ timeout: 15_000 });
+  // Con el volumen solo, el motor sonaba como la voz y esperaba al tope de 15 s desde que empezó a hablar.
+  expect(envios).toHaveLength(1);
+  expect(envios[0]!.duracionMs).toBeLessThan(11_000);
 });
 
 test("«Hola, ¿hay frutas?» no lo despierta", async ({ page }) => {
