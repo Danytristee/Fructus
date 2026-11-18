@@ -34,6 +34,9 @@
 - **La batería de voz entera** (todas las `voz*.spec.ts` menos `voz-api`, que pide la clave de Groq), a 412 y 360 px, con Silero: 261
   pasan y 3 pasan al reintentar con la máquina en carga 20 a 30 (`comprobantes-voz:147`, `voz-candados:82`,
   `voz-confirmar-hablando:173`). Las dos últimas, repetidas 3 veces a cada ancho con la máquina tranquila: 12 de 12.
+- **Peso y CI:** `pnpm medir:js / 180` con sesión del dueño: «Hoy» baja 160.0 KB brotli (tope 180; 157.7 el 16-11). Ninguno de sus 14
+  scripts trae Silero ni ONNX Runtime: van en 3 trozos aparte que baja solo el worker. `pnpm ci:local` en verde sobre `65693de`
+  (Vitest 1209, build, pgTAP 399, invariantes 14).
 - **Lo que encontraron las pruebas y se arregló:**
   - El worker importaba ONNX Runtime de entrada, y hasta que bajaba no había ni volumen: el primer dictado de una e2e tardó 1.8 min.
     Ahora ONNX Runtime se importa al cargar Silero, y el volumen oye desde el primer cuadro.
