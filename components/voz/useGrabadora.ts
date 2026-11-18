@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
-import { CUADRO_MS, OIDO_NUEVO, SILENCIO_PARA_ENVIAR_MS, nivelDb, oir } from "@/lib/voz/silencio-reglas";
+import { SILENCIO_PARA_ENVIAR_MS } from "@/lib/voz/silencio-reglas";
+
+import { SIN_OIDO, escucharConSilero, type Oido } from "./oido";
 
 export type FallaGrabadora = "sin_permiso" | "sin_microfono" | "no_soportado";
 
@@ -25,42 +27,6 @@ type Opciones = {
   /** Cuánto silencio después de hablar cuenta como «se calló»: un dictado tiene pausas para pensar, una respuesta corta no. */
   silencioMs?: number;
 };
-
-type Oido = { apagar: () => void; hablo: () => boolean };
-const SIN_OIDO: Oido = { apagar: () => {}, hablo: () => false };
-
-/** Mide el volumen del micrófono mientras graba y avisa cuando la persona se calla. Devuelve cómo apagarlo y si ya habló. */
-function escucharSilencios(flujo: MediaStream, alCallarse: () => void, silencioMs: number): Oido {
-  try {
-    const contexto = new AudioContext();
-    const analizador = contexto.createAnalyser();
-    analizador.fftSize = 1024; // ~21 ms de audio a 48 kHz: el volumen de ese instante
-    contexto.createMediaStreamSource(flujo).connect(analizador);
-    void contexto.resume().catch(() => {});
-    const muestras = new Float32Array(analizador.fftSize);
-    let oido = OIDO_NUEVO;
-    let hablo = false;
-    // Con la pantalla en segundo plano el reloj se frena a una vez por segundo: así tarda más en enviar, nunca antes.
-    const reloj = window.setInterval(() => {
-      analizador.getFloatTimeDomainData(muestras);
-      const r = oir(oido, nivelDb(muestras), silencioMs);
-      oido = r.oido;
-      hablo ||= r.vozMs > 0;
-      if (r.termino) alCallarse();
-    }, CUADRO_MS);
-    return {
-      apagar: () => {
-        window.clearInterval(reloj);
-        void contexto.close().catch(() => {});
-      },
-      hablo: () => hablo,
-    };
-  } catch (e) {
-    // Sin el oído se envía como antes: con un toque o a los 55 s. No se pierde nada de lo dicho.
-    console.warn("voz: no se pudo medir el silencio", { error: e instanceof Error ? e.name : "desconocido" });
-    return SIN_OIDO;
-  }
-}
 
 /**
  * Graba desde que se toca el botón hasta que se termina (soltar, un segundo toque o callarse sin el dedo encima). El micrófono se pide al empezar y se suelta al terminar: la luz de «micrófono
@@ -111,7 +77,7 @@ export function useGrabadora({ alCallarse, silencioMs = SILENCIO_PARA_ENVIAR_MS 
     g.start();
     inicio.current = performance.now();
     grabadora.current = g;
-    oido.current = escucharSilencios(flujo, () => avisar.current?.(), silencioMs);
+    oido.current = escucharConSilero(flujo, () => avisar.current?.(), silencioMs);
     return null;
   }, [silencioMs]);
 

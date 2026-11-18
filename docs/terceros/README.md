@@ -43,6 +43,15 @@ Estas 31 skills vienen de afuera y viajan con el repo (ADR-0004). **Se consultan
 
 Los textos de licencia están en [`licencias/`](licencias/).
 
+## Modelos que baja el celular
+
+| Archivo | Para qué en Fructus | Origen | Licencia |
+|---|---|---|---|
+| `public/voz/silero_vad_16k_op15.onnx` | Saber si alguien está hablando, para enviar el dictado al callarse aunque haya bulla (ADR-0029) | Silero VAD v6.2, snakers4/silero-vad (`bfdc019`, `src/silero_vad/data/`; sha256 `7ed98ddb…1b2c49`) | MIT ([texto](licencias/snakers4-silero-vad.txt)) |
+
+Los modelos de «Hola Fructus» (`melspectrogram.onnx`, `embedding_model.onnx` y `hola-fructus.onnx`) están en el ADR-0022, con lo que
+falta confirmar de su licencia antes de producción.
+
 ## Revisadas y no traídas
 
 - **Playwright CLI (Microsoft), `webapp-testing` (Anthropic):** ya hay Playwright en el proyecto y el navegador de Claude.

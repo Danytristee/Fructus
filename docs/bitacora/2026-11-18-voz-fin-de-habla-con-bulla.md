@@ -1,4 +1,4 @@
-# 2026-11-18 · Con bulla, el orbe sí se da cuenta de que dejaste de hablar (ADR-0018, actualización)
+# 2026-11-18 · Con bulla, el orbe sí se da cuenta de que dejaste de hablar (ADR-0018 y ADR-0029)
 
 - **Qué cambió:** el orbe sin el dedo, que con bulla no enviaba nunca, ahora cuenta como voz solo lo que suena cerca de la voz de quien
   dicta (hasta 10 dB por debajo de lo que sostiene en el último segundo y medio), no todo lo que pasa sobre el fondo
@@ -19,7 +19,20 @@
   separa, así que a los 15 s de empezar a hablar se envía igual (`TOPE_HABLANDO_MS`), no a los 55. Vitest: 4 casos del tope y, sobre la
   bulla de verdad, todos los casos con vecinos a 10 y 5 dB terminan a más tardar en el tope. e2e `voz-silencio` «si la bulla nunca deja
   callarse» a 412 y 360 px: envía a los ~15 s y no corta una venta de 12 s.
+- **Silero al grabar con el toque y en manos libres (ADR-0029):** un worker (`components/voz/oido.worker.ts`) corre Silero sobre el
+  micrófono a 16 kHz. Un cuadro es la voz de quien dicta si Silero dice 0.5 o más y suena cerca de su voz. Mientras el modelo baja, o si
+  falla, decide el volumen; cuando llega, vuelve a oír desde el principio (`lib/voz/fin-de-habla.ts`). Vitest: la pieza con un Silero
+  de mentira (7) y el modelo de verdad sobre `tests/bulla/` (4): con la calle 5 dB por debajo de la voz termina entre 0.3 y 2 s después
+  de callarse (con el volumen solo, nunca). e2e: el micrófono simulado ahora habla con una voz de verdad, y una prueba nueva con un
+  «motor» tan fuerte como la voz solo pasa si Silero corre en el navegador (`voz-silencio`, 10 de 10 a 412 y 360 px).
+- **Lo que encontraron las pruebas y se arregló:**
+  - El worker importaba ONNX Runtime de entrada, y hasta que bajaba no había ni volumen: el primer dictado de una e2e tardó 1.8 min.
+    Ahora ONNX Runtime se importa al cargar Silero, y el volumen oye desde el primer cuadro.
+  - En el Chrome de prueba, el primer contexto de audio de la página trabó el hilo de la pantalla entre 0.7 y 1 s, con la máquina en
+    carga 40. El toque de la prueba llegaba como «mantener y soltar» y enviaba un audio vacío («No alcancé a oírte»). El micrófono
+    simulado ahora crea su contexto al cargar la página. El oído nuevo traba el hilo menos de 50 ms.
 - **Pendiente:**
+  - Medir en el S25 cuánto traba el primer contexto de audio al tocar (INP) y cuánta CPU gasta Silero mientras se graba.
   - `voz-silencio.spec.ts:39` falla a 360 px cuando es la primera prueba con el servidor recién arrancado (el toque se pierde mientras
     compila) y pasa al repetirla: no es del cambio, que no toca el gesto.
   - Medir con audio real del puesto (`tests/interprete/audios/LEEME.md`): las voces del Mac son más limpias que la bulla de verdad.
