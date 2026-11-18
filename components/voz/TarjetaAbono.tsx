@@ -160,8 +160,8 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
   const tras = cliente && saldo !== null && monto !== null && !falta.includes("monto") ? saldoTrasAbono(saldo, monto) : null;
   return (
-    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo.
-    <div className="grid gap-2" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
+    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo. Deslizarla para leer, no.
+    <div className="grid gap-2" {...voz.manos}>
       <FilaCliente
         style={pieza(0)}
         className="animate-pieza"
@@ -180,7 +180,7 @@ export function TarjetaAbono({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         pendiente={aMano && falta.includes("monto")}
         onClick={() => setVista("monto")}
         icono={
-          <span className="grid size-12 place-items-center rounded-full bg-exito/12 text-exito">
+          <span className="grid size-10 place-items-center rounded-full bg-exito/12 text-exito">
             <HandCoins aria-hidden />
           </span>
         }

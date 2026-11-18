@@ -11,13 +11,15 @@ type Props = Omit<React.ComponentProps<"button">, "children"> & {
   pendiente?: boolean;
 };
 
-// Un dato de la tarjeta de voz (cliente, fruta): grande para leerlo de un vistazo y tocable para corregirlo.
+// Un dato de la tarjeta de voz (cliente, fruta): grande para leerlo de un vistazo y tocable para corregirlo. Baja y de renglones
+// juntos, con el texto del mismo tamaño: con 72 px de alto y 12 de relleno, a 360 px una venta de una fruta ya no entraba entera y
+// leerla deslizando cortaba la voz (/formidable 2026-11-18).
 export function FilaTarjeta({ icono, grande, chico, falta = false, pendiente = false, className, ...props }: Props) {
   return (
     <button
       type="button"
       className={cn(
-        "grid min-h-[72px] w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-[20px] bg-superficie px-3.5 py-3 text-left shadow-[0_2px_10px_rgb(var(--sombra-color)/0.06)]",
+        "grid min-h-16 w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-[20px] bg-superficie px-3.5 py-2 text-left shadow-[0_2px_10px_rgb(var(--sombra-color)/0.06)]",
         "transition-transform duration-150 ease-out active:scale-[0.98]",
         falta && "ring-2 ring-deuda",
         pendiente && !falta && "ring-2 ring-acento/50",
@@ -26,9 +28,9 @@ export function FilaTarjeta({ icono, grande, chico, falta = false, pendiente = f
       {...props}
     >
       {icono}
-      <span className="grid min-w-0 gap-0.5">
-        <span className="text-[22px] leading-tight font-extrabold">{grande}</span>
-        {chico && <span className="text-texto-suave">{chico}</span>}
+      <span className="grid min-w-0">
+        <span className="text-[22px] leading-[1.15] font-extrabold">{grande}</span>
+        {chico && <span className="leading-snug text-texto-suave">{chico}</span>}
       </span>
       <Pencil aria-hidden className="size-[22px] text-texto-suave" />
     </button>

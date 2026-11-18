@@ -68,7 +68,7 @@ export function EditorItem({ item, opciones, monto, alListo, comoLlego }: Props)
   const cajas = borrador.cantidad;
   return (
     <div className="grid gap-4">
-      <FilaTarjeta icono={<IconoFruta nombre={borrador.producto} tamano={48} />} grande={borrador.producto} chico="Toca para cambiar la fruta" onClick={() => setEligiendo(true)} />
+      <FilaTarjeta icono={<IconoFruta nombre={borrador.producto} tamano={40} />} grande={borrador.producto} chico="Toca para cambiar la fruta" onClick={() => setEligiendo(true)} />
 
       <div className="grid gap-1.5">
         <span id="etiqueta-cajas" className="font-bold">

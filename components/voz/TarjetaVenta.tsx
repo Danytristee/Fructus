@@ -9,15 +9,15 @@ import { Boton } from "@/components/ui/Boton";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
+import { estadoDeuda } from "@/lib/ficha-cliente-reglas";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, debeDe, faltaDe, frasesFalta, fueCorregido, leerPagado, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
-import { recordatorioCompra } from "@/lib/voz/stock-venta-reglas";
+import { faltaEnFila, recordatorioCompra } from "@/lib/voz/stock-venta-reglas";
 import { cambiosDeCorreccion, guionCompletado, guionCorreccion, guionVenta, relecturaPago, type Cambios } from "@/lib/voz/lectura-reglas";
 import { faltaPorPreguntar, opcionesDeVenta } from "@/lib/voz/pregunta-falta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
-import { AvisoStock } from "./AvisoStock";
 import { DudasVoz } from "./DudasVoz";
 import { EditorItem } from "./EditorItem";
 import { EditorMonto } from "./EditorMonto";
@@ -119,7 +119,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const debe = debeDe(borrador);
   const pagado = borrador.condicion === "credito" ? (borrador.pagado ?? null) : null;
   const falta = faltaDe(borrador);
-  // Las frutas que piden más de lo que hay: el aviso (debajo de «Pagó / Lo debe») y, al guardar, el recordatorio de la compra.
+  // Las frutas que piden más de lo que hay: «Solo hay 6» en su fila (avisa, no bloquea) y, al guardar, el recordatorio de la compra.
   const avisosStock = useStockVenta(borrador.items, vigente.stock);
   const recordatorio = recordatorioCompra(avisosStock);
   const marcas = corregida?.borrador === borrador ? corregida.cambios : null;
@@ -156,14 +156,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
     const nombre = borrador.cliente?.nombre;
     return (
       <Guardado titulo="Venta guardada">
-        {nombre && guardada.saldo !== null &&
-          (guardada.saldo > 0 ? (
-            <>
-              {nombre} te debe <strong className="cifra text-deuda">{formatearSoles(guardada.saldo)}</strong>
-            </>
-          ) : (
-            `${nombre} no te debe nada`
-          ))}
+        {nombre && guardada.saldo !== null && <SaldoTras nombre={nombre} saldo={guardada.saldo} />}
         {/* En qué quedó el comprobante que se pidió: la venta ya está guardada pase lo que pase con él. */}
         {guardada.comprobante && <span className="mt-1 block">{guardada.comprobante}</span>}
         {/* El aviso se va con la tarjeta: aquí se recuerda la compra que falta anotar (/formidable 2026-11-17). */}
@@ -232,8 +225,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   // «Pagó / Lo debe» ya lleva su pregunta escrita encima: el pie no la repite (/formidable 2026-10-29).
   const aviso = frasesFalta(falta.filter((f) => f !== "condicion"));
   return (
-    // Tocar la tarjeta es tomar el control: la lectura se calla para que se pueda corregir o confirmar sin oírla encima.
-    <div className="grid gap-2" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
+    // Tocar la tarjeta es tomar el control: la lectura se calla para que se pueda corregir o confirmar sin oírla encima. Deslizarla para leer, no.
+    <div className="grid gap-2" {...voz.manos}>
       <FilaCliente
         style={pieza(0)}
         className="animate-pieza"
@@ -244,38 +237,43 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         alTocar={() => setVista({ tipo: "cliente" })}
         insignia={marcas?.cliente ? corregido : undefined}
       />
-      {borrador.items.map((item, n) => (
-        <FilaTarjeta
-          key={n}
-          style={pieza(n + 1)}
-          className="animate-pieza"
-          falta={item.productoId === null || item.precio === null}
-          onClick={() => setVista({ tipo: "item", n })}
-          icono={<IconoFruta nombre={item.producto || "?"} tamano={48} />}
-          grande={
-            <>
-              {item.productoId === null ? `¿${item.producto}?` : `${formatearCajas(item.cantidad)} de ${item.producto}`}
-              {/* Junto a lo que cambió: las cajas o la fruta aquí, el precio abajo (/formidable 2026-11-17). */}
-              {/* Un espacio y no un margen: si la insignia baja de renglón, queda alineada con el texto. */}
-              {marcas?.cajas.includes(n) && (
-                <>
-                  {" "}
-                  <span className="inline-block align-middle">{corregido}</span>
-                </>
-              )}
-            </>
-          }
-          chico={
-            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="cifra">
-                {item.productoId === null ? "Toca para elegir la fruta" : item.precio === null ? "Toca para poner el precio" : `${formatearSoles(item.precio)} la caja`}
+      {borrador.items.map((item, n) => {
+        const sinStock = avisosStock.find((a) => a.productoId === item.productoId);
+        return (
+          <FilaTarjeta
+            key={n}
+            style={pieza(n + 1)}
+            className="animate-pieza"
+            falta={item.productoId === null || item.precio === null}
+            onClick={() => setVista({ tipo: "item", n })}
+            icono={<IconoFruta nombre={item.producto || "?"} tamano={40} />}
+            grande={
+              <>
+                {item.productoId === null ? `¿${item.producto}?` : `${formatearCajas(item.cantidad)} de ${item.producto}`}
+                {/* Junto a lo que cambió: las cajas o la fruta aquí, el precio abajo (/formidable 2026-11-17). */}
+                {/* Un espacio y no un margen: si la insignia baja de renglón, queda alineada con el texto. */}
+                {marcas?.cajas.includes(n) && (
+                  <>
+                    {" "}
+                    <span className="inline-block align-middle">{corregido}</span>
+                  </>
+                )}
+              </>
+            }
+            chico={
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="cifra">
+                  {item.productoId === null ? "Toca para elegir la fruta" : item.precio === null ? "Toca para poner el precio" : `${formatearSoles(item.precio)} la caja`}
+                </span>
+                {item.sugerido && <InsigniaSugerido />}
+                {marcas?.precios.includes(n) && corregido}
+                {/* Junto a la fruta y no en un recuadro aparte: con tres frutas, el recuadro quedaba bajo Confirmar (/formidable 2026-11-18). */}
+                {sinStock && <Insignia tipo="stock">{faltaEnFila(sinStock)}</Insignia>}
               </span>
-              {item.sugerido && <InsigniaSugerido />}
-              {marcas?.precios.includes(n) && corregido}
-            </span>
-          }
-        />
-      ))}
+            }
+          />
+        );
+      })}
 
       <DudasVoz dudas={vigente.dudas} />
 
@@ -313,9 +311,6 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         </div>
       )}
 
-      {/* Si la venta pide más cajas de las que hay: avisa, no bloquea. Después del total y del pago, que mandan. */}
-      <AvisoStock avisos={avisosStock} className="animate-pieza" />
-
       {/* Solo si se pidió comprobante («… factura»): la persona ve lo que se entendió y lo cambia o lo quita de un toque. */}
       {(vigente.comprobante !== "ninguno" || borrador.comprobante !== "ninguno") && (
         <div className="mt-1 grid animate-pieza gap-1.5">
@@ -339,7 +334,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
       {conMedidor && cliente && saldo !== null && (
         <div className="animate-pieza">
-          <MedidorDeuda nombre={cliente.nombre} saldo={saldo} total={borrador.condicion === "credito" ? (debe ?? total) : total} alCredito={borrador.condicion === "credito"} />
+          <MedidorDeuda saldo={saldo} total={borrador.condicion === "credito" ? (debe ?? total) : total} alCredito={borrador.condicion === "credito"} />
         </div>
       )}
 
@@ -358,5 +353,18 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         nota={notaDeVoz(voz)}
       />
     </div>
+  );
+}
+
+/** En qué quedó la cuenta del cliente, en el sello: debe, al día o con saldo a favor (antes, un saldo a favor decía «no te debe nada»). */
+function SaldoTras({ nombre, saldo }: { nombre: string; saldo: number }) {
+  const e = estadoDeuda(saldo);
+  if (e.tipo === "al_dia") return <>{nombre} no te debe nada</>;
+  return (
+    <>
+      {nombre} {e.tipo === "debe" ? "te debe" : "tiene"}{" "}
+      <strong className={`cifra ${e.tipo === "debe" ? "text-deuda" : "text-exito"}`}>{formatearSoles(e.monto)}</strong>
+      {e.tipo === "a_favor" && " a favor"}
+    </>
   );
 }
