@@ -37,3 +37,15 @@
     de stock. Otras dos se repitieron por carga.
 - **Pendiente:** «Solo hay 34» ya no dice «según la app», aunque la voz sí. Sin probar en el S25.
 
+
+## Después: /chaos de la ficha (semilla 20261118)
+
+- **Qué se hizo:** 21 ataques sobre la ficha de venta, con la voz real (Whisper y el intérprete) y dos cuentas a la vez en la base.
+  Informe: `docs/chaos/ficha-compacta-2026-11-18.md`.
+- **Resultado:** 20 resistieron.
+  - Doble toque, «confirmo» y el toque a la vez, red cortada o lenta, y el mismo comando en dos sesiones: siempre una sola venta, con
+    las invariantes en orden.
+  - Deslizar mientras escucha y decir «confirmo» guarda lo que está a la vista.
+- **Hallazgo (no viene de este PR):** con saldo a favor, la deuda dice «No debía nada · + S/ 450.00» bajo «te debe S/ 250.00», y no
+  cuadra. Lo guardado está bien. El arreglo espera OK.
+- La base local se restauró al respaldo de antes de atacar.
