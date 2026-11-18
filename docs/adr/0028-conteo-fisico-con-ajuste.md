@@ -1,7 +1,7 @@
 # ADR-0028 — Conteo físico: se anota lo contado y la base pone la diferencia
 
-**Fecha:** 2026-11-18 · **Estado:** construido en la rama `claude/conteo-fisico`. La migración `conteo_fisico` está en la base local;
-aplicarla al proyecto espera el OK de quien dirige el proyecto, y va antes de fusionar.
+**Fecha:** 2026-11-18 · **Estado:** construido en la rama `claude/conteo-fisico`. La migración está aplicada al proyecto (con OK) como
+`20261118005001_conteo_fisico`.
 
 ## Contexto
 
