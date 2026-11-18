@@ -8,8 +8,10 @@ import {
   faltaConteo,
   frasesFaltaConteo,
   inicioContador,
+  invitacionAContar,
   pedidoConteo,
   segunLaApp,
+  selloConteo,
   veredictoConteo,
   type BorradorConteo,
 } from "./confirmar-conteo-reglas";
@@ -69,6 +71,42 @@ describe("causas", () => {
     expect(efectoDeCausa("compra_sin_anotar")).toContain("anótala aparte");
     expect(efectoDeCausa("no_se")).toBeNull();
   });
+
+  it("«se vendió sin anotar» no pide registrar la venta: solo corrige las cajas (/formidable 2026-11-18)", () => {
+    expect(efectoDeCausa("venta_sin_anotar")).toBe("Solo corrige las cajas. La venta, con su precio, anótala aparte si la recuerdas.");
+  });
+});
+
+describe("antes de contar", () => {
+  it("no dice «Cuadra» sin haber contado: invita a contar desde lo que dice la app", () => {
+    expect(invitacionAContar(20)).toBe("La app dice 20\u00a0cajas. Cuéntalas: si hay otra cantidad, ajústala con − y +.");
+    expect(invitacionAContar(1)).toBe("La app dice 1\u00a0caja. Cuéntalas: si hay otra cantidad, ajústala con − y +.");
+  });
+
+  it("si la app no tiene ninguna, no muestra una cifra imposible", () => {
+    expect(invitacionAContar(0)).toBe("La app no tiene ninguna caja. Si hay, súmalas con +.");
+    expect(invitacionAContar(-4)).toBe("La app no tiene ninguna caja. Si hay, súmalas con +.");
+  });
+});
+
+describe("el sello dice qué pasó con la diferencia", () => {
+  const ahora = (n: number) => `Ahora tienes ${n === 1 ? "1 caja" : `${n} cajas`} de Mango Kent.`.replace(/ (cajas?) de/, "\u00a0$1 de");
+
+  it("si cuadra, lo dice", () => {
+    expect(selloConteo(0, null, 20, "Mango Kent")).toBe(`Cuadra: tienes 20\u00a0cajas de Mango Kent.`);
+  });
+
+  it("lo que faltaba, según la causa", () => {
+    expect(selloConteo(-2, "se_malogro", 18, "Mango Kent")).toBe(`Faltaban 2\u00a0cajas: quedaron como merma. ${ahora(18)}`);
+    expect(selloConteo(-1, "se_malogro", 19, "Mango Kent")).toBe(`Faltaba 1\u00a0caja: quedó como merma. ${ahora(19)}`);
+    expect(selloConteo(-2, "venta_sin_anotar", 18, "Mango Kent")).toBe(`Faltaban 2\u00a0cajas: quedaron como venta sin anotar. ${ahora(18)}`);
+    expect(selloConteo(-2, "no_se", 18, "Mango Kent")).toBe(`Faltaban 2\u00a0cajas: se descontaron del stock. ${ahora(18)}`);
+  });
+
+  it("lo que sobraba entra al stock", () => {
+    expect(selloConteo(3, "compra_sin_anotar", 7, "Mango Kent")).toBe(`Sobraban 3\u00a0cajas: entraron al stock. ${ahora(7)}`);
+    expect(selloConteo(1, "no_se", 1, "Mango Kent")).toBe(`Sobraba 1\u00a0caja: entró al stock. ${ahora(1)}`);
+  });
 });
 
 describe("qué falta", () => {
@@ -101,6 +139,11 @@ describe("pedidoConteo", () => {
   it("lleva lo contado y lo que decía la app al comparar, no la diferencia", () => {
     expect(pedidoConteo(conteo({ causa: "no_se" }), 7, 20)).toEqual({ p_producto_id: 1, p_contado: 18, p_causa: "no_se", p_comando_voz_id: 7, p_segun_app: 20 });
     expect(pedidoConteo(conteo({ contado: 20 }), 7, 20)).not.toHaveProperty("p_causa");
+  });
+
+  it("redondea lo contado a centésimas: la base no acepta más decimales (/chaos 2026-11-18)", () => {
+    expect(pedidoConteo(conteo({ contado: 2.346 }), 7, 20)?.p_contado).toBe(2.35);
+    expect(pedidoConteo(conteo({ contado: 0.1 + 0.2 }), 7, 20)?.p_contado).toBe(0.3);
   });
 
   it("sin fruta, sin número o con un número imposible no hay pedido", () => {

@@ -85,6 +85,14 @@ export function veredictoConteo(contado: number, stock: number): Veredicto {
   return { tipo: dif < 0 ? "faltan" : "sobran", cajas, texto: `${verbo} ${formatearCajas(cajas)}` };
 }
 
+/**
+ * Antes de tocar el contador (a mano arranca en lo que dice la app) no se dice «Cuadra»: todavía no se contó nada y invitaría a
+ * confirmar sin mirar (/formidable 2026-11-18, ley 7). Se puede confirmar igual: si cuadra, cero toques.
+ */
+export function invitacionAContar(stock: number): string {
+  return stock > 0 ? `La app dice ${formatearCajas(stock)}. Cuéntalas: si hay otra cantidad, ajústala con − y +.` : "La app no tiene ninguna caja. Si hay, súmalas con +.";
+}
+
 /** Lo que la app decía, sin cifras imposibles: con stock negativo, «no tenía ninguna». */
 export function segunLaApp(stock: number): string {
   return stock > 0 ? `La app decía ${formatearCajas(stock)}.` : "La app no tenía ninguna caja.";
@@ -93,8 +101,24 @@ export function segunLaApp(stock: number): string {
 /** Si la causa es «se malogró», la diferencia se anota como merma (decisión del 2026-11-17). */
 export function efectoDeCausa(causa: CausaConteo | null): string | null {
   if (causa === "se_malogro") return "Se anota como merma.";
+  if (causa === "venta_sin_anotar") return "Solo corrige las cajas. La venta, con su precio, anótala aparte si la recuerdas.";
   if (causa === "compra_sin_anotar") return "Entran al stock. La compra, con su precio, anótala aparte si la tienes.";
   return null;
+}
+
+/**
+ * El sello dice qué pasó con la diferencia, no solo el número nuevo (/formidable 2026-11-18, ley 9). `diferencia` es la que guardó
+ * la base; la causa, la elegida (la base la usa tal cual cuando no cuadra).
+ */
+export function selloConteo(diferencia: number, causa: CausaConteo | null, stock: number, nombre: string): string {
+  if (diferencia === 0) return `Cuadra: tienes ${formatearCajas(stock)} de ${nombre}.`;
+  const cajas = Math.abs(diferencia);
+  const una = cajas === 1;
+  const ahora = `Ahora tienes ${formatearCajas(stock)} de ${nombre}.`;
+  if (diferencia > 0) return `${una ? "Sobraba" : "Sobraban"} ${formatearCajas(cajas)}: ${una ? "entró" : "entraron"} al stock. ${ahora}`;
+  const quedo = una ? "quedó" : "quedaron";
+  const destino = causa === "se_malogro" ? `${quedo} como merma` : causa === "venta_sin_anotar" ? `${quedo} como venta sin anotar` : `se ${una ? "descontó" : "descontaron"} del stock`;
+  return `${una ? "Faltaba" : "Faltaban"} ${formatearCajas(cajas)}: ${destino}. ${ahora}`;
 }
 
 /**
@@ -103,10 +127,13 @@ export function efectoDeCausa(causa: CausaConteo | null): string | null {
  */
 export type PedidoConteo = { p_producto_id: number; p_contado: number; p_causa?: CausaConteo; p_comando_voz_id: number; p_segun_app: number };
 
-/** Lo que va a registrar_conteo. null si falta algo. La causa va aunque cuadre: la base la ignora si al guardar cuadra. */
+/**
+ * Lo que va a registrar_conteo. null si falta algo. La causa va aunque cuadre: la base la ignora si al guardar cuadra. Lo contado va
+ * en centésimas, que es lo que la base acepta: con más decimales rechazaba y la pantalla lo decía como falta de señal (/chaos 2026-11-18).
+ */
 export function pedidoConteo(b: BorradorConteo, comandoId: number, segunApp: number): PedidoConteo | null {
   if (!b.producto || b.contado === null || b.contado < 0 || b.contado > CONTEO_MAXIMO) return null;
-  return { p_producto_id: b.producto.id, p_contado: b.contado, ...(b.causa ? { p_causa: b.causa } : {}), p_comando_voz_id: comandoId, p_segun_app: segunApp };
+  return { p_producto_id: b.producto.id, p_contado: centimos(b.contado) / 100, ...(b.causa ? { p_causa: b.causa } : {}), p_comando_voz_id: comandoId, p_segun_app: segunApp };
 }
 
 /** Se corrigió lo dictado (para `comandos_voz`): otra fruta, otro número u otra causa. A mano no hay qué corregir. */

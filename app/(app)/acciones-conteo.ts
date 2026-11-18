@@ -57,6 +57,8 @@ export async function confirmarConteo(entrada: z.input<typeof confirmacionConteo
       return { ok: false, error: `Mientras contabas cambió el stock: la app ahora dice ${dice}. Mira la diferencia otra vez.`, cambioElStock: true };
     }
     if (error.code === "42501") return { ok: false, error: "Tu cuenta no puede registrar conteos." };
+    // El número no vale para la base (negativo o con más de dos decimales): no es la señal, es lo contado (/chaos 2026-11-18).
+    if (error.code === "22023") return { ok: false, error: "Revisa las cajas que contaste: van de 0 para arriba, con hasta dos decimales." };
     if (error.code === "23503") return { ok: false, error: PRODUCTO_YA_NO_ESTA };
     return { ok: false, error: SIN_SENAL };
   }
