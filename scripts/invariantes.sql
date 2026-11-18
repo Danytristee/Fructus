@@ -115,12 +115,13 @@ begin
   select count(*) into v_n
   from comandos_voz cv
   where cv.resultado = 'confirmado'
-    and cv.intencion in ('registrar_venta', 'registrar_abono', 'registrar_compra', 'registrar_merma', 'registrar_gasto')
+    and cv.intencion in ('registrar_venta', 'registrar_abono', 'registrar_compra', 'registrar_merma', 'registrar_gasto', 'registrar_conteo')
     and not exists (select 1 from ventas            x where x.comando_voz_id = cv.id)
     and not exists (select 1 from abonos            x where x.comando_voz_id = cv.id)
     and not exists (select 1 from compras           x where x.comando_voz_id = cv.id)
     and not exists (select 1 from movimientos_stock x where x.comando_voz_id = cv.id and x.tipo = 'merma')
-    and not exists (select 1 from gastos            x where x.comando_voz_id = cv.id);
+    and not exists (select 1 from gastos            x where x.comando_voz_id = cv.id)
+    and not exists (select 1 from conteos           x where x.comando_voz_id = cv.id);
   if v_n > 0 then v_msg := v_msg || format(E'\n  INV-12: %s comando(s) de voz confirmado(s) sin operación registrada', v_n); end if;
 
   -- INV-13 · Un abono pagado al llevar (abonos.venta_id) es de su venta: al crédito, del mismo cliente y menor que su total.
@@ -130,9 +131,22 @@ begin
   where v.condicion <> 'credito' or v.cliente_id is distinct from a.cliente_id or a.monto >= v.total;
   if v_n > 0 then v_msg := v_msg || format(E'\n  INV-13: %s abono(s) al llevar que no calzan con su venta', v_n); end if;
 
+  -- INV-14 · Cada conteo dejó en el stock exactamente su diferencia (ADR-0027): si no cuadró, un solo movimiento atado a él, por la
+  --          diferencia, como merma si se malogró y como ajuste si no; si cuadró, ninguno.
+  select count(*) into v_n
+  from conteos c
+  where (select count(*) from movimientos_stock m where m.conteo_id = c.id) <> (case when c.diferencia = 0 then 0 else 1 end)
+     or exists (
+          select 1 from movimientos_stock m
+           where m.conteo_id = c.id
+             and (m.cantidad <> c.diferencia or m.producto_id <> c.producto_id
+                  or m.tipo <> (case when c.causa = 'se_malogro' then 'merma' else 'ajuste' end)::tipo_movimiento)
+        );
+  if v_n > 0 then v_msg := v_msg || format(E'\n  INV-14: %s conteo(s) cuyo movimiento no es su diferencia', v_n); end if;
+
   if v_msg <> '' then
     raise exception 'Invariantes rotas:%', v_msg;
   end if;
 
-  raise notice 'Invariantes de Fructus: las 13 en orden.';
+  raise notice 'Invariantes de Fructus: las 14 en orden.';
 end $$;

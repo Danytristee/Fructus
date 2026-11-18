@@ -310,6 +310,8 @@ El flujo completo, el prompt y las herramientas del intérprete viven en `docs/i
     tocar `ajustes_puesto`, que no tiene update directo (ADR-0023).
   - `tomar_frase()` es `security definer` y la pueden ejecutar los autenticados: `/api/voz` la llama con la sesión de quien dicta, y la
     función revisa el rol antes de tocar `frases_tomadas` (ADR-0022).
+  - `registrar_conteo()` es `security definer` y la pueden ejecutar los autenticados: el ayudante también cuenta, pero nadie inserta un
+    `ajuste` directo; la función revisa el rol y calcula la diferencia contra el stock de ese instante (ADR-0027).
   - Los avisos de rendimiento (políticas permisivas múltiples, llaves foráneas sin índice) no importan a este volumen; se revisan antes de producción.
 - **IGV:** frutas frescas → afectación `20` (exonerado, Apéndice I de la Ley del IGV). Es configurable por producto.
 - **Invariantes:** `scripts/invariantes.sql` revisa lo que la base no impide sola. Por ejemplo, que el total de una venta sea la suma de sus ítems, que cada ítem tenga su salida de stock y que una venta anulada tenga su devolución. Sale con error si algo no cuadra. Corre en el CI y después de cada ataque de `/chaos`.
