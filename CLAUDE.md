@@ -78,6 +78,7 @@ Versiones mínimas: se instala la última estable dentro de esa línea, y el loc
 | Interpretación | **Claude Haiku 5.5** (`@anthropic-ai/sdk`) con tool calling; **LLM en Groq** y **Gemini Flash** de respaldo | Una herramienta forzada, sin pensar, esfuerzo bajo. Acierta 97.8 % de los datos clave contra 84.9 % de Groq (ADR-0026). **Es de pago**: centavos al mes. Ver `docs/interprete-voz.md`. |
 | Respuesta hablada | **Web Speech API** (`speechSynthesis`) | Viene en el navegador, gratis. |
 | Palabra de activación | **openWakeWord** (sus modelos ONNX y `hola-fructus.onnx`) con **onnxruntime-web** en un Web Worker | «Hola Fructus» se detecta en el celular, gratis y sin enviar audio hasta despertar. Se baja solo al prender el interruptor (ADR-0022). |
+| Fin de habla | **Silero VAD** v6.2 (el modelo de 16 kHz) con **onnxruntime-web** en un Web Worker | Sabe si alguien habla aunque suene un motor o la calle: con bulla, el orbe envía al callarse. Se baja la primera vez que se graba; mientras tanto decide el volumen (ADR-0029). |
 | Vida útil de la fruta | **Claude Sonnet 5.5** (`@anthropic-ai/sdk`), una vez al día | Estima cuánto aguanta cada fruta; la tabla fija queda de respaldo. **Es de pago** (créditos de Anthropic, centavos al mes): junto con el intérprete, las dos excepciones al costo 0 (ADR-0021, ADR-0026). |
 | Comprobantes | **Sandbox de Lucode** (apisunat.pe) | Plan B gratis: servicio BETA de SUNAT con credenciales MODDATOS. |
 | PWA | `app/manifest.ts` de Next + íconos en `public/icons/` + un service worker mínimo en `public/sw.js` (ADR-0011) | Se instala como app, la pantalla queda fija (sin zoom), y sin señal se ve «Sin conexión». El resumen del día llega como aviso (Web Push con `web-push`, cron de Vercel y VAPID; ADR-0013). |
@@ -228,7 +229,7 @@ Si dos leyes chocan, gana la que va primero.
 El flujo completo, el prompt y las herramientas del intérprete viven en `docs/interprete-voz.md`.
 
 - **Mantener → hablar → soltar → tarjeta → Confirmar.** Un toque largo graba (`MediaRecorder`, `audio/webm;codecs=opus`) y al soltar se envía a `POST /api/voz`. El botón tiene tres estados visibles y anunciados con `aria-live`: escuchando, entendiendo y listo.
-  - **Sin mantener (ADR-0018):** un toque corto, o subir el dedo hasta el candado mientras se mantiene, deja el orbe escuchando sin el dedo. El orbe dice «Enviar» y el siguiente toque envía; «Borrar» descarta. También envía callarse 1.2 s después de hablar (`lib/voz/silencio-reglas.ts`); mientras se mantiene, manda el dedo. A los 55 s se envía solo.
+  - **Sin mantener (ADR-0018):** un toque corto, o subir el dedo hasta el candado mientras se mantiene, deja el orbe escuchando sin el dedo. El orbe dice «Enviar» y el siguiente toque envía; «Borrar» descarta. También envía callarse 1.2 s después de hablar (`lib/voz/silencio-reglas.ts`); mientras se mantiene, manda el dedo. Cuenta solo la voz de quien dicta: Silero dice qué es voz (un motor o una jaba no lo son) y el volumen separa a quien tiene el celular de los vecinos (ADR-0029). Si la bulla no deja «callarse», a los 15 s de empezar a hablar se envía igual. A los 55 s se envía siempre.
 - **El servidor hace todo lo sensible:**
   1. Whisper, con el prompt de vocabulario armado desde la base.
   2. El LLM con las herramientas.

@@ -1,10 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { entrarComo } from "./cuentas";
-import { callar, hablar, microfonoControlado } from "./manos-libres";
+import { callar, hablar, microfonoControlado, motor } from "./manos-libres";
 
-// Sin el dedo encima, callarse envía lo dicho (lib/voz/silencio-reglas.ts). El micrófono es un tono que la prueba prende («habla»)
-// y apaga («se calla»), así se controla exactamente cuándo hay voz. /api/voz va simulado: se prueba la pantalla, no a Groq.
+// Sin el dedo encima, callarse envía lo dicho (lib/voz/silencio-reglas.ts, con Silero: lib/voz/fin-de-habla.ts). El micrófono es una
+// voz que la prueba prende («habla») y apaga («se calla»), así se controla exactamente cuándo hay voz. /api/voz va simulado: se prueba
+// la pantalla, no a Groq.
 
 const tarjeta = {
   tipo: "venta",
@@ -94,4 +95,41 @@ test("mientras se mantiene el dedo, callarse no envía: manda el dedo", async ({
   const pedido = page.waitForRequest((r) => r.url().endsWith("/api/voz"));
   await page.mouse.up();
   await pedido;
+});
+
+test("si la bulla nunca deja «callarse», a los 15 s de empezar a hablar se envía solo, no a los 55", async ({ page }) => {
+  test.slow();
+  const pedidos = await preparar(page);
+  const orbe = page.locator("button[data-estado]");
+  await tocarOrbe(page);
+  await expect(orbe).toHaveAttribute("data-bloqueado", "true", { timeout: 10_000 });
+
+  const pedido = page.waitForRequest((r) => r.url().endsWith("/api/voz"), { timeout: 25_000 });
+  await hablar(page); // y no se calla nunca: el vecino pregona tan fuerte como la voz
+  await page.waitForTimeout(12_000);
+  expect(pedidos()).toBe(0); // una venta larga de 12 s no se corta
+  const enviado = await pedido;
+  const duracion = Number(enviado.postDataBuffer()!.toString("latin1").match(/name="duracion_ms"\r\n\r\n(\d+)/)?.[1]);
+  expect(duracion).toBeGreaterThanOrEqual(15_000);
+  expect(duracion).toBeLessThan(18_000);
+  await expect(page.getByRole("dialog", { name: "¿Así fue la venta?" })).toBeVisible({ timeout: 15_000 });
+});
+
+test("con un motor tan fuerte como la voz, al callarse se envía igual: Silero sabe que el motor no es voz", async ({ page }) => {
+  test.slow();
+  await preparar(page);
+  const orbe = page.locator("button[data-estado]");
+  await tocarOrbe(page);
+  await expect(orbe).toHaveAttribute("data-bloqueado", "true", { timeout: 10_000 });
+
+  const pedido = page.waitForRequest((r) => r.url().endsWith("/api/voz"), { timeout: 25_000 });
+  await hablar(page);
+  await page.waitForTimeout(1500);
+  await motor(page, true); // el motor arranca justo cuando deja de hablar, y sigue
+  await callar(page);
+  const enviado = await pedido;
+  // Con el volumen solo, el motor sonaba como la voz y esperaba al tope de 15 s.
+  const duracion = Number(enviado.postDataBuffer()!.toString("latin1").match(/name="duracion_ms"\r\n\r\n(\d+)/)?.[1]);
+  expect(duracion).toBeLessThan(8000);
+  await expect(page.getByRole("dialog", { name: "¿Así fue la venta?" })).toBeVisible({ timeout: 15_000 });
 });
