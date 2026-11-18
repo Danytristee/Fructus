@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, CircleCheck, TriangleAlert } from "lucide-react";
+import { ChevronLeft, CircleCheck, Info, TriangleAlert } from "lucide-react";
 import { cn } from "cn";
 
 import { confirmarConteo, type ResultadoConteo } from "@/app/(app)/acciones-conteo";
@@ -21,7 +21,9 @@ import {
   frasesFaltaConteo,
   fueCorregidoConteo,
   inicioContador,
+  invitacionAContar,
   segunLaApp,
+  selloConteo,
   veredictoConteo,
   type BorradorConteo,
   type CausaConteo,
@@ -60,6 +62,9 @@ type Stock = { estado: "leyendo" } | { estado: "listo"; cajas: number } | { esta
 export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando, aMano = false }: Props) {
   const [borrador, setBorrador] = useState<BorradorConteo>(() => borradorConteo(tarjeta));
   const [eligiendo, setEligiendo] = useState(false);
+  // A mano el contador arranca en lo que dice la app: hasta tocarlo no se dice «Cuadra», porque todavía no se contó nada
+  // (/formidable 2026-11-18). Lo dictado sí se contó: su veredicto va desde el primer cuadro.
+  const [sinTocar, setSinTocar] = useState(tarjeta.contado === null);
   const [stock, setStock] = useState<Stock>(() => (typeof tarjeta.stock === "number" ? { estado: "listo", cajas: tarjeta.stock } : { estado: "leyendo" }));
   const { confirmar: enviar, guardando, error, guardado, incierto } = useConfirmar<Guardado_>({ alGuardar, alCambiarGuardando, boton: "Confirmar conteo" });
   // Manos libres (ADR-0020): lo dictado se lee con lo que decía la app al dictar (lo trae el servidor) y se confirma diciendo
@@ -95,6 +100,7 @@ export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
   const dif = cajasApp !== null && borrador.contado !== null ? diferenciaConteo(borrador.contado, cajasApp) : null;
 
   function contar(contado: number) {
+    setSinTocar(false);
     // Si la diferencia cambia de signo, la causa de antes ya no la explica: se vuelve a preguntar.
     setBorrador((b) => ({ ...b, contado, causa: cajasApp !== null && causaVale(b.causa, diferenciaConteo(contado, cajasApp)) ? b.causa : null }));
   }
@@ -110,7 +116,7 @@ export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
     const nombre = borrador.producto?.nombre ?? "";
     return (
       <Guardado titulo="Conteo guardado">
-        {guardado.diferencia === 0 ? `Cuadra: tienes ${formatearCajas(guardado.stock)} de ${nombre}.` : `Ahora la app dice ${formatearCajas(guardado.stock)} de ${nombre}.`}
+        {selloConteo(guardado.diferencia, borrador.causa, guardado.stock, nombre)}
       </Guardado>
     );
   }
@@ -132,6 +138,7 @@ export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
           alElegir={(o) => {
             setEligiendo(false);
             setStock({ estado: "leyendo" });
+            setSinTocar(true);
             setBorrador({ producto: { id: o.id, nombre: o.nombre }, contado: null, causa: null });
           }}
           icono={(o) => <IconoFruta nombre={o.nombre} tamano={40} />}
@@ -173,7 +180,12 @@ export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
         )}
       </div>
 
-      {veredicto && cajasApp !== null && (
+      {veredicto?.tipo === "cuadra" && sinTocar && cajasApp !== null ? (
+        <p role="status" className="mx-1 flex animate-pieza items-start gap-2 text-lg" style={pieza(2)}>
+          <Info aria-hidden className="mt-0.5 size-6 shrink-0 text-acento-texto" />
+          <span>{invitacionAContar(cajasApp)}</span>
+        </p>
+      ) : veredicto && cajasApp !== null && (
         <p role="status" className="mx-1 flex animate-pieza items-start gap-2 text-lg" style={pieza(2)}>
           {veredicto.tipo === "cuadra" ? (
             <CircleCheck aria-hidden className="mt-0.5 size-6 shrink-0 text-exito" />

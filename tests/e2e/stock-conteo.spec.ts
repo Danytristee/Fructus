@@ -46,14 +46,15 @@ test("faltan 2 que se malograron: pide la causa, guarda una merma y el stock que
   const f = await fruta(12);
   const hoja = await contarDesdeLaFila(page, f.nombre);
 
-  // Arranca en lo que dice la app: si cuadra, no hay que tocar nada.
+  // Arranca en lo que dice la app, pero no dice «Cuadra» hasta que se cuenta: invita a contar.
   await expect(hoja.locator("output")).toHaveText("12");
-  await expect(hoja.getByRole("status").filter({ hasText: "Cuadra con la app" })).toBeVisible();
+  await expect(hoja.getByRole("status").filter({ hasText: /La app dice 12\scajas\. Cuéntalas/ })).toBeVisible();
+  await expect(hoja.getByText("Cuadra con la app")).toHaveCount(0);
 
   await hoja.getByRole("button", { name: "Una caja menos" }).click();
   await hoja.getByRole("button", { name: "Una caja menos" }).click();
-  await expect(hoja.getByText("Faltan 2 cajas.")).toBeVisible();
-  await expect(hoja.getByText("La app decía 12 cajas.")).toBeVisible();
+  await expect(hoja.getByText("Faltan 2 cajas.")).toBeVisible();
+  await expect(hoja.getByText("La app decía 12 cajas.")).toBeVisible();
   await expect(hoja.getByText("Elige por qué faltan.")).toBeVisible();
   await expect(hoja.getByRole("button", { name: "Confirmar conteo" })).toBeDisabled();
 
@@ -64,7 +65,8 @@ test("faltan 2 que se malograron: pide la causa, guarda una merma y el stock que
     b.click();
   });
   await expect(page.getByText("Conteo guardado")).toBeVisible();
-  await expect(page.getByText("Ahora la app dice 10 cajas")).toBeVisible();
+  // El sello dice qué pasó con la diferencia, no solo el número nuevo.
+  await expect(page.getByText(/Faltaban 2\scajas: quedaron como merma\. Ahora tienes 10\scajas/)).toBeVisible();
 
   // En la base: un solo conteo (dos toques), su merma de −2 y el stock en 10.
   const conteos = await conteosDe(f.id);
@@ -76,9 +78,10 @@ test("faltan 2 que se malograron: pide la causa, guarda una merma y el stock que
 test("si cuadra se confirma sin tocar el contador: queda el conteo, sin movimiento", async ({ page }) => {
   const f = await fruta(7);
   const hoja = await contarDesdeLaFila(page, f.nombre);
-  await expect(hoja.getByRole("status").filter({ hasText: "Cuadra con la app" })).toBeVisible();
+  // Sin tocar el contador invita a contar, y se puede confirmar igual: si cuadra, cero toques.
+  await expect(hoja.getByRole("status").filter({ hasText: /La app dice 7\scajas\. Cuéntalas/ })).toBeVisible();
   await hoja.getByRole("button", { name: "Confirmar conteo" }).click();
-  await expect(page.getByText("Cuadra: tienes 7 cajas")).toBeVisible();
+  await expect(page.getByText(/Cuadra: tienes 7\scajas/)).toBeVisible();
 
   const conteos = await conteosDe(f.id);
   expect(conteos).toEqual([{ id: expect.any(Number), contado: 7, segun_app: 7, diferencia: 0, causa: null }]);
@@ -89,12 +92,12 @@ test("el ayudante también cuenta: sobran 3 que llegaron sin anotar", async ({ p
   const f = await fruta(4);
   const hoja = await contarDesdeLaFila(page, f.nombre, "ayudante");
   for (let i = 0; i < 3; i++) await hoja.getByRole("button", { name: "Una caja más" }).click();
-  await expect(hoja.getByText("Sobran 3 cajas.")).toBeVisible();
+  await expect(hoja.getByText("Sobran 3 cajas.")).toBeVisible();
   // Lo que sobra no puede ser una merma ni una venta sin anotar.
   await expect(hoja.getByRole("button", { name: "Se malogró" })).toHaveCount(0);
   await hoja.getByRole("button", { name: "Llegó sin anotar" }).click();
   await hoja.getByRole("button", { name: "Confirmar conteo" }).click();
-  await expect(page.getByText("Conteo guardado")).toBeVisible();
+  await expect(page.getByText(/Sobraban 3\scajas: entraron al stock\. Ahora tienes 7\scajas/)).toBeVisible();
 
   const [c] = await conteosDe(f.id);
   expect(c).toMatchObject({ contado: 7, diferencia: 3, causa: "compra_sin_anotar" });
@@ -110,7 +113,7 @@ test("si entra una compra mientras se cuenta, no guarda una causa vieja: lo dice
   await abastecer(f.id, 5);
   await hoja.getByRole("button", { name: "Confirmar conteo" }).click();
   await expect(hoja.getByText(/Mientras contabas cambió el stock: la app ahora dice 15 cajas/)).toBeVisible();
-  await expect(hoja.getByText("Faltan 6 cajas.")).toBeVisible();
+  await expect(hoja.getByText("Faltan 6 cajas.")).toBeVisible();
   // La causa de antes era para «falta 1»: se vuelve a elegir, con la diferencia nueva a la vista (el pie muestra el error, no el aviso).
   await expect(hoja.getByRole("button", { name: "Se malogró" })).toHaveAttribute("aria-pressed", "false");
   await expect(hoja.getByRole("button", { name: "Confirmar conteo" })).toBeDisabled();
@@ -128,13 +131,32 @@ test("una fruta que la app no tiene se cuenta desde el final de la lista: llegó
   await expect(hoja).toBeVisible({ timeout: 20_000 });
   await hoja.getByPlaceholder("¿Qué fruta contaste?").fill(f.nombre);
   await hoja.getByRole("button", { name: new RegExp(f.nombre) }).click();
-  await expect(hoja.getByRole("status").filter({ hasText: "Cuadra con la app" })).toBeVisible();
+  await expect(hoja.getByRole("status").filter({ hasText: "La app no tiene ninguna caja. Si hay, súmalas con +." })).toBeVisible();
   for (let i = 0; i < 4; i++) await hoja.getByRole("button", { name: "Una caja más" }).click();
   await expect(hoja.getByText("La app no tenía ninguna caja.")).toBeVisible();
   await hoja.getByRole("button", { name: "Llegó sin anotar" }).click();
   await hoja.getByRole("button", { name: "Confirmar conteo" }).click();
-  await expect(page.getByText("Ahora la app dice 4\u00a0cajas")).toBeVisible();
+  await expect(page.getByText(/Sobraban 4\scajas: entraron al stock\. Ahora tienes 4\scajas/)).toBeVisible();
   expect(await stockDe(f.id)).toBe(4);
+});
+
+test("se vendió sin anotar: después de contar dice si cuadra, no pide registrar la venta y el sello lo dice", async ({ page }) => {
+  const f = await fruta(5);
+  const hoja = await contarDesdeLaFila(page, f.nombre);
+  // Bajar y volver a subir ya es contar: ahora sí dice «Cuadra».
+  await hoja.getByRole("button", { name: "Una caja menos" }).click();
+  await hoja.getByRole("button", { name: "Una caja más" }).click();
+  await expect(hoja.getByRole("status").filter({ hasText: "Cuadra con la app" })).toBeVisible();
+
+  await hoja.getByRole("button", { name: "Una caja menos" }).click();
+  await hoja.getByRole("button", { name: "Se vendió sin anotar" }).click();
+  await expect(hoja.getByText("Solo corrige las cajas. La venta, con su precio, anótala aparte si la recuerdas.")).toBeVisible();
+  await hoja.getByRole("button", { name: "Confirmar conteo" }).click();
+  await expect(page.getByText(/Faltaba 1\scaja: quedó como venta sin anotar\. Ahora tienes 4\scajas/)).toBeVisible();
+
+  const [c] = await conteosDe(f.id);
+  expect(c).toMatchObject({ contado: 4, diferencia: -1, causa: "venta_sin_anotar" });
+  expect(await movimientoDe(c!.id)).toEqual([{ tipo: "ajuste", cantidad: -1 }]);
 });
 
 test("el contador no ve «Contar»", async ({ page }) => {
