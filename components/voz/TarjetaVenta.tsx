@@ -9,6 +9,7 @@ import { Boton } from "@/components/ui/Boton";
 import { IconoFruta } from "@/components/ui/IconoFruta";
 import { Insignia } from "@/components/ui/Insignia";
 import { Monto } from "@/components/ui/Monto";
+import { estadoDeuda } from "@/lib/ficha-cliente-reglas";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, debeDe, faltaDe, frasesFalta, fueCorregido, leerPagado, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
@@ -155,14 +156,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
     const nombre = borrador.cliente?.nombre;
     return (
       <Guardado titulo="Venta guardada">
-        {nombre && guardada.saldo !== null &&
-          (guardada.saldo > 0 ? (
-            <>
-              {nombre} te debe <strong className="cifra text-deuda">{formatearSoles(guardada.saldo)}</strong>
-            </>
-          ) : (
-            `${nombre} no te debe nada`
-          ))}
+        {nombre && guardada.saldo !== null && <SaldoTras nombre={nombre} saldo={guardada.saldo} />}
         {/* En qué quedó el comprobante que se pidió: la venta ya está guardada pase lo que pase con él. */}
         {guardada.comprobante && <span className="mt-1 block">{guardada.comprobante}</span>}
         {/* El aviso se va con la tarjeta: aquí se recuerda la compra que falta anotar (/formidable 2026-11-17). */}
@@ -359,5 +353,18 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         nota={notaDeVoz(voz)}
       />
     </div>
+  );
+}
+
+/** En qué quedó la cuenta del cliente, en el sello: debe, al día o con saldo a favor (antes, un saldo a favor decía «no te debe nada»). */
+function SaldoTras({ nombre, saldo }: { nombre: string; saldo: number }) {
+  const e = estadoDeuda(saldo);
+  if (e.tipo === "al_dia") return <>{nombre} no te debe nada</>;
+  return (
+    <>
+      {nombre} {e.tipo === "debe" ? "te debe" : "tiene"}{" "}
+      <strong className={`cifra ${e.tipo === "debe" ? "text-deuda" : "text-exito"}`}>{formatearSoles(e.monto)}</strong>
+      {e.tipo === "a_favor" && " a favor"}
+    </>
   );
 }

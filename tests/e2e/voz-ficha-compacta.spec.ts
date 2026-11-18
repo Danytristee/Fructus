@@ -1,6 +1,7 @@
 import { expect, test, type CDPSession, type Locator, type Page } from "@playwright/test";
 
 import { baseLocal } from "./base";
+import { cuentas } from "./cuentas";
 import { crearComando, dictar, fiar } from "./dictar";
 import { quieto } from "./medir";
 import { microfonoControlado, sintetizadorDePrueba, terminarFrase } from "./manos-libres";
@@ -17,6 +18,15 @@ async function clienteConDeuda() {
   if (error || !data) throw new Error(`No se pudo crear el cliente de prueba: ${error?.message}`);
   await fiar(data.id, 2390);
   return data;
+}
+
+/** Un cliente propio con saldo a favor: debía S/ 100 y abonó `abono` (como cuando paga de más o se anula una venta ya abonada). */
+async function clienteConSaldoAFavor(abono: number) {
+  const cliente = await clienteConDeuda();
+  const duenio = (await base.auth.admin.listUsers()).data.users.find((u) => u.email === cuentas.duenio)!.id;
+  const { error } = await base.from("abonos").insert({ cliente_id: cliente.id, monto: 2390 + abono, medio_pago: "efectivo", registrado_por: duenio });
+  if (error) throw new Error(`No se pudo dejar el saldo a favor: ${error.message}`);
+  return cliente;
 }
 
 const item = (id: number, nombre: string, cantidad: number, precio: number) => ({
@@ -137,4 +147,34 @@ test("con tres frutas, la que no alcanza lo dice en su fila, a la vista sin desl
   await expect(marca).toBeInViewport({ ratio: 1 });
   // Ya no hay un recuadro aparte que empuje la deuda debajo del pie.
   await expect(hoja.getByText(/^Según la app/)).toHaveCount(0);
+});
+
+test("con saldo a favor, la deuda cuadra: «Tenía … a favor», y al contado «Tiene … a favor» (/chaos 2026-11-18)", async ({ page }) => {
+  // Tiene S/ 200 a favor y se le fía una venta de S/ 450: queda debiendo S/ 250.
+  const cliente = await clienteConSaldoAFavor(200);
+  const hoja = await dictar(page, await crearComando(), venta(cliente), "¿Así fue la venta?");
+  // El saldo llega del servidor después de abrir la hoja.
+  await expect(hoja.getByText("Con esta venta te debe")).toBeVisible({ timeout: 15_000 });
+  await expect(hoja.getByText("S/ 250.00", { exact: true })).toBeVisible();
+  await expect(hoja.getByText("Tenía S/ 200.00 a favor")).toBeVisible();
+  await expect(hoja.getByText("+ S/ 450.00", { exact: true })).toBeVisible();
+  await expect(hoja.getByText("No debía nada")).toHaveCount(0);
+
+  // Al contado la venta no suma: se dice lo que tiene a favor.
+  await hoja.getByRole("button", { name: "Pagó", exact: true }).click();
+  await expect(hoja.getByText("Tiene S/ 200.00 a favor")).toBeVisible();
+});
+
+test("si el saldo a favor alcanza para la venta al crédito, le queda a favor, sin barra de deuda, y el sello lo dice", async ({ page }) => {
+  // Tiene S/ 500 a favor y se le fía una venta de S/ 450: le quedan S/ 50 a favor.
+  const cliente = await clienteConSaldoAFavor(500);
+  const hoja = await dictar(page, await crearComando(), venta(cliente), "¿Así fue la venta?");
+  await expect(hoja.getByText("Le queda a favor")).toBeVisible({ timeout: 15_000 });
+  await expect(hoja.getByText("S/ 50.00", { exact: true })).toBeVisible();
+  await expect(hoja.getByText("Tenía S/ 500.00 a favor")).toBeVisible();
+  await expect(hoja.getByText("Con esta venta te debe")).toHaveCount(0);
+
+  await hoja.getByRole("button", { name: "Confirmar venta" }).click();
+  await expect(page.getByText("Venta guardada")).toBeVisible();
+  await expect(page.getByText(`${cliente.nombre} tiene S/ 50.00 a favor`)).toBeVisible();
 });
