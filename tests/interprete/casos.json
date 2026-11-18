@@ -2709,6 +2709,85 @@
         "herramienta": "no_entendido",
         "datos": {}
       }
+    },
+    {
+      "id": "conteo",
+      "transcripcion": "Conté 18 cajas de mango kent",
+      "esperado": {
+        "herramienta": "registrar_conteo",
+        "datos": {
+          "producto_texto": "mango kent",
+          "contado": 18
+        }
+      }
+    },
+    {
+      "id": "conteo-hay",
+      "transcripcion": "De papaya hay 12 jabas, ya las conté",
+      "esperado": {
+        "herramienta": "registrar_conteo",
+        "datos": {
+          "producto_texto": "papaya",
+          "contado": 12
+        }
+      }
+    },
+    {
+      "id": "conteo-con-causa",
+      "transcripcion": "Conté 20 cajas de mandarina, dos se malograron y nadie las anotó",
+      "esperado": {
+        "herramienta": "registrar_conteo",
+        "datos": {
+          "producto_texto": "mandarina",
+          "contado": 20,
+          "causa": "se_malogro"
+        }
+      }
+    },
+    {
+      "id": "conteo-compra-sin-anotar",
+      "transcripcion": "Hay 30 cajas de plátano isla, llegaron 5 que no anotamos",
+      "esperado": {
+        "herramienta": "registrar_conteo",
+        "datos": {
+          "producto_texto": "platano isla",
+          "contado": 30,
+          "causa": "llego_mas"
+        }
+      }
+    },
+    {
+      "id": "conteo-cero",
+      "transcripcion": "Ya no queda ninguna caja de uva, las conté",
+      "esperado": {
+        "herramienta": "registrar_conteo",
+        "datos": {
+          "producto_texto": "uva",
+          "contado": 0
+        }
+      }
+    },
+    {
+      "id": "conteo-no-es-merma",
+      "transcripcion": "Se malograron 2 cajas de mandarina",
+      "esperado": {
+        "herramienta": "registrar_merma",
+        "datos": {
+          "producto_texto": "mandarina",
+          "cantidad": 2
+        }
+      }
+    },
+    {
+      "id": "conteo-no-es-consulta",
+      "transcripcion": "¿Cuántas cajas de mandarina me quedan?",
+      "esperado": {
+        "herramienta": "consultar",
+        "datos": {
+          "consulta": "stock_producto",
+          "producto_texto": "mandarina"
+        }
+      }
     }
   ]
 }

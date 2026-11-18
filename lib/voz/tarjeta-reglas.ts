@@ -3,9 +3,10 @@
 // contado (si no lo dijo, se pregunta), y el total solo existe si todos los precios existen. Lógica pura: no importa React
 // ni Supabase; las búsquedas en la base las hace lib/voz/resolver.ts y llegan aquí como datos.
 import { formatearSoles } from "../formato";
+import type { CausaConteo } from "./confirmar-conteo-reglas";
 import type { Respuesta } from "./consultas-reglas";
 import type { EstadoLlegada } from "../vida-util-reglas";
-import type { Interpretacion } from "./esquemas";
+import type { CAUSAS_DICHAS, Interpretacion } from "./esquemas";
 
 /** Desde esta similitud (pg_trgm) un nombre se elige solo; por debajo, la persona elige entre las 3 mejores (CLAUDE.md, «La voz»). */
 const SIMILITUD_SUFICIENTE = 0.45;
@@ -70,6 +71,19 @@ export type Tarjeta =
       falta: ("proveedor" | "producto" | "costo" | "condicion")[];
     }
   | { tipo: "merma"; producto: Eleccion; cantidad: number; motivo: string | null; falta: "producto"[] }
+  /**
+   * Conteo físico (ADR-0028): cuántas cajas se contaron de una fruta. `contado` null: a mano, el contador arranca en lo que dice la
+   * app. `stock`: lo que decía la app al dictar, si se pudo leer (la tarjeta lo vuelve a pedir al abrirse). La causa, si se dijo.
+   */
+  | {
+      tipo: "conteo";
+      producto: Eleccion;
+      contado: number | null;
+      causa: CausaConteo | null;
+      stock?: number | null;
+      dudas: string[];
+      falta: "producto"[];
+    }
   | { tipo: "gasto"; categoria: string; monto: number; descripcion: string | null; medio: Medio }
   /** `ayer`: la temperatura del día anterior, para avisar si la de hoy se aleja mucho (un «39» por «29»). null si no se anotó. */
   | { tipo: "temperatura"; grados: number; ayer: number | null }
@@ -100,6 +114,14 @@ export type Resolucion = {
 };
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
+
+/** Las causas del conteo, de como las dice el modelo (esquemas.ts, CAUSAS_DICHAS) a como las guarda la base. */
+const CAUSA_DE_LA_BASE: Record<(typeof CAUSAS_DICHAS)[number], CausaConteo> = {
+  se_malogro: "se_malogro",
+  se_vendio: "venta_sin_anotar",
+  llego_mas: "compra_sin_anotar",
+  no_se: "no_se",
+};
 
 /** El precio por caja de un total dicho («10 cajas, todo por 500» → 50). null si no sale exacto en céntimos (100 entre 3). */
 export function precioDeTotal(total: number, cajas: number): number | null {
@@ -202,6 +224,20 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
     case "registrar_merma": {
       const producto = elegir(i.datos.producto_texto, r.productos[0] ?? []);
       return { tipo: "merma", producto, cantidad: i.datos.cantidad, motivo: i.datos.motivo, falta: producto.elegido ? [] : ["producto"] };
+    }
+    case "registrar_conteo": {
+      const producto = elegir(i.datos.producto_texto, r.productos[0] ?? []);
+      // Sin fila en la vista es que nunca entró nada: cero. Sin lectura (undefined), la tarjeta lo pide al abrirse.
+      const stock = producto.elegido && r.stock ? (r.stock[producto.elegido.id] ?? 0) : null;
+      return {
+        tipo: "conteo",
+        producto,
+        contado: Math.round(i.datos.contado * 100) / 100,
+        causa: i.datos.causa === null ? null : CAUSA_DE_LA_BASE[i.datos.causa],
+        stock,
+        dudas: i.datos.dudas,
+        falta: producto.elegido ? [] : ["producto"],
+      };
     }
     case "registrar_gasto":
       return { tipo: "gasto", categoria: i.datos.categoria, monto: i.datos.monto, descripcion: i.datos.descripcion, medio: i.datos.medio_pago };

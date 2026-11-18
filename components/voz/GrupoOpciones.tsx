@@ -8,13 +8,14 @@ type Props<T extends string> = {
   alCambiar: (valor: T) => void;
   /** Lo que anuncia el lector de pantalla: «¿Con qué pagó?». */
   pregunta: string;
-  columnas: 3 | 4;
+  /** 1: opciones largas, una debajo de otra («Se vendió sin anotar»); 3 o 4: cortas, en fila. */
+  columnas: 1 | 3 | 4;
 };
 
 // Una opción entre pocas, a la vista y de un toque (con qué pagó, en qué se gastó): una función, una pieza.
 export function GrupoOpciones<T extends string>({ opciones, elegido, alCambiar, pregunta, columnas }: Props<T>) {
   return (
-    <div role="group" aria-label={pregunta} className={cn("grid animate-pieza gap-2", columnas === 3 ? "grid-cols-3" : "grid-cols-4")}>
+    <div role="group" aria-label={pregunta} className={cn("grid animate-pieza gap-2", columnas === 1 ? "grid-cols-1" : columnas === 3 ? "grid-cols-3" : "grid-cols-4")}>
       {opciones.map((o) => (
         <button
           key={o.valor}

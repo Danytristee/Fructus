@@ -225,6 +225,23 @@ en el prompt general y el modelo dejó de entender «¿Cómo voy?», «¿Cuánta
   {
     "type": "function",
     "function": {
+      "name": "registrar_conteo",
+      "description": "Conteo físico (ADR-0028): la persona AFIRMA cuántas cajas HAY de una fruta porque las contó. Es el total que hay ahora, no lo que salió: «se malograron 2» es merma y «¿cuántas me quedan?» es consultar.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "producto_texto": { "type": "string" },
+          "contado": { "type": "number", "minimum": 0 },
+          "causa": { "type": ["string", "null"], "enum": ["se_malogro", "se_vendio", "llego_mas", "no_se", null], "default": null, "description": "Solo si dijo por qué no cuadra con la app. Sin la palabra «anotar»: con ella, «anótalo» (crédito) dejaba de leerse como crédito. tarjeta-reglas.ts las traduce a las de la base (venta_sin_anotar, compra_sin_anotar)." },
+          "dudas": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["producto_texto", "contado"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "registrar_gasto",
       "description": "Un gasto que no es compra de fruta.",
       "parameters": {
@@ -306,6 +323,8 @@ Llamar con `tool_choice: "required"` y `temperature: 0`.
 | "Don Lucho me abonó 200 en efectivo" | registrar_abono | 200, efectivo |
 | "Llegaron 50 cajas de plátano isla del de Chao a 25" | registrar_compra | 50 × 25 |
 | "Se malograron 3 jabas de papaya" | registrar_merma | 3 |
+| "Conté 20 cajas de mandarina, dos se malograron y nadie las anotó" | registrar_conteo | 20, causa se_malogro |
+| "¿Cuántas cajas de mandarina me quedan?" | consultar | stock_producto (no es un conteo) |
 | "Pagué 80 de flete" | registrar_gasto | flete, 80 |
 | "Hoy hizo 29 grados" | registrar_temperatura | 29 |
 | "Llegaron 30 cajas de mango kent verde a 32, lo pagué" | registrar_compra | 30 × 32, estado verde, contado |

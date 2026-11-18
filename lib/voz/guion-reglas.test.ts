@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { guionAbono, guionAbonoRespondido, guionCompra, guionCompraRespondida, guionGasto, guionMerma, relecturaPagoCompra } from "./guion-reglas";
+import { guionAbono, guionAbonoRespondido, guionCompra, guionConteo, guionCompraRespondida, guionGasto, guionMerma, relecturaPagoCompra } from "./guion-reglas";
 
 describe("guionAbono", () => {
   it("lee quién, cuánto y cómo, y pregunta «¿Confirmo?»", () => {
@@ -165,5 +165,41 @@ describe("abono: lo que falta y corregir (ADR-0027)", () => {
 
   it("si la respuesta dejó una duda, la dice y se toca", () => {
     expect(guionAbonoRespondido({ cliente: null, monto: 200, medio: "yape" }, { cliente: luis, monto: 200, medio: "yape" }, ["¿200 o 300?"], opciones, "falta").pregunta).toBe("ninguna");
+  });
+});
+
+describe("guionConteo (ADR-0028)", () => {
+  const conteo = (cambios = {}) => ({ producto: { id: 1, nombre: "Mango Kent" }, contado: 18, causa: null, ...cambios });
+
+  it("si cuadra, lo dice y pregunta", () => {
+    expect(guionConteo(conteo({ contado: 20 }), 20, [])).toEqual({ pregunta: "confirmar", texto: "Contaste 20 cajas de Mango Kent. Cuadra con la app. ¿Confirmo?" });
+  });
+
+  it("con la causa dicha, dice la diferencia y por qué", () => {
+    expect(guionConteo(conteo({ causa: "se_malogro" }), 20, []).texto).toBe(
+      "Contaste 18 cajas de Mango Kent. La app decía 20 cajas: faltan 2 cajas, se malograron. ¿Confirmo?",
+    );
+    expect(guionConteo(conteo({ contado: 21, causa: "compra_sin_anotar" }), 20, []).texto).toContain("sobra 1 caja, llegaron sin anotar");
+  });
+
+  it("sin causa no se confirma hablando: se elige en la tarjeta", () => {
+    expect(guionConteo(conteo(), 20, [])).toEqual({
+      pregunta: "ninguna",
+      texto: "Contaste 18 cajas de Mango Kent. La app decía 20 cajas: faltan 2 cajas. Elige por qué en la tarjeta.",
+    });
+  });
+
+  it("una causa que no explica la diferencia tampoco vale", () => {
+    expect(guionConteo(conteo({ contado: 22, causa: "se_malogro" }), 20, []).pregunta).toBe("ninguna");
+  });
+
+  it("con stock negativo no dice una cifra imposible", () => {
+    expect(guionConteo(conteo({ contado: 3, causa: "compra_sin_anotar" }), -5, []).texto).toContain("La app no tenía ninguna: sobran 8 cajas");
+  });
+
+  it("con dudas, sin fruta o sin señal, no se confirma hablando", () => {
+    expect(guionConteo(conteo(), 20, ["no sé si dijo 18 u 80"]).pregunta).toBe("ninguna");
+    expect(guionConteo(conteo({ producto: null }), 20, []).pregunta).toBe("ninguna");
+    expect(guionConteo(conteo(), null, []).texto).toContain("necesito señal");
   });
 });

@@ -118,6 +118,19 @@ export async function resolver(supabase: Cliente, i: Interpretacion): Promise<Re
     }
     case "registrar_merma":
       return { ...vacia, productos: [await buscarProductos(supabase, i.datos.producto_texto)] };
+    case "registrar_conteo": {
+      // El stock de la fruta elegida, para que la tarjeta y la lectura comparen desde el primer cuadro. Si no se puede leer, la
+      // tarjeta lo vuelve a pedir al abrirse (y sin señal dice que la necesita).
+      const productos = await buscarProductos(supabase, i.datos.producto_texto);
+      const elegido = elegir(i.datos.producto_texto, productos).elegido;
+      const stock = elegido
+        ? await leerStock(supabase, [elegido.id]).catch((e: unknown) => {
+            console.error("voz: no se pudo leer el stock del conteo", { error: e instanceof Error ? e.message : "desconocido" });
+            return undefined;
+          })
+        : undefined;
+      return { ...vacia, productos: [productos], ...(stock ? { stock } : {}) };
+    }
     case "registrar_temperatura": {
       // La de ayer, para que la tarjeta avise si la de hoy se aleja mucho. Con dos días basta.
       const ayer = diaAnterior(diaDeLima(new Date()));

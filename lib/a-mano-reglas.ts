@@ -25,6 +25,14 @@ export function tarjetaAbonoAMano(cliente: Persona | null, sugeridos: Persona[] 
   };
 }
 
+/**
+ * La tarjeta de un conteo a mano (ADR-0028): con la fruta ya elegida si se viene de su fila. Sin número: el contador arranca en lo
+ * que dice la app al abrirse, así que si cuadra no hay que tocar nada.
+ */
+export function tarjetaConteoAMano(producto: Persona | null, sugeridos: Persona[] = []): Extract<Tarjeta, { tipo: "conteo" }> {
+  return { tipo: "conteo", producto: { dicho: null, elegido: producto, opciones: producto ? [] : sugeridos }, contado: null, causa: null, dudas: [], falta: producto ? [] : ["producto"] };
+}
+
 /** La tarjeta de una merma a mano: con la fruta ya elegida si se viene de su fila, y sin cajas (0 = todavía sin poner: nunca se inventa). */
 export function tarjetaMermaAMano(producto: Persona | null, sugeridos: Persona[] = []): Extract<Tarjeta, { tipo: "merma" }> {
   return {
@@ -51,6 +59,17 @@ export function sugeridosParaMerma(frutas: { id: number; nombre: string; stock: 
     .sort((a, b) => b.desgaste - a.desgaste)
     .slice(0, cuantos)
     .map(({ id, nombre }) => ({ id, nombre }));
+}
+
+/**
+ * Qué fruta ofrecer primero al contar (ADR-0028): las que la app tiene en negativo (seguro no cuadran: falta anotar algo), de la más
+ * negativa a la menos; después las que no tienen ninguna caja (si hay, llegaron sin anotar) y al final las de más cajas.
+ */
+export function sugeridosParaConteo(frutas: { id: number; nombre: string; stock: number }[], cuantos = 5): Persona[] {
+  const negativas = frutas.filter((f) => f.stock < 0).sort((a, b) => a.stock - b.stock);
+  const sinCajas = frutas.filter((f) => f.stock === 0);
+  const conCajas = frutas.filter((f) => f.stock > 0).sort((a, b) => b.stock - a.stock);
+  return [...negativas, ...sinCajas, ...conCajas].slice(0, cuantos).map(({ id, nombre }) => ({ id, nombre }));
 }
 
 /** Una fruta de la compra que todavía no se llena: sin fruta, sin cajas y sin costo (nunca se inventa un precio). */

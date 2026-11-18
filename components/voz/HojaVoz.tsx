@@ -8,6 +8,7 @@ import { Hoja } from "@/components/ui/Hoja";
 import { TITULO_CONSULTA } from "@/lib/voz/consultas-reglas";
 import { TarjetaAbono } from "./TarjetaAbono";
 import { TarjetaCompra } from "./TarjetaCompra";
+import { TarjetaConteo } from "./TarjetaConteo";
 import { TarjetaConsulta } from "./TarjetaConsulta";
 import { TarjetaGasto } from "./TarjetaGasto";
 import { TarjetaMerma } from "./TarjetaMerma";
@@ -30,6 +31,7 @@ const TITULOS: Partial<Record<ResultadoVoz["tarjeta"]["tipo"], string>> = {
   venta: "¿Así fue la venta?",
   abono: "¿Así fue el abono?",
   merma: "¿Así fue la merma?",
+  conteo: "¿Así fue el conteo?",
   gasto: "¿Así fue el gasto?",
   compra: "¿Así fue la compra?",
   temperatura: "¿Esto marca el termómetro?",
@@ -52,6 +54,8 @@ function TarjetaDe({ tarjeta, comunes, aMano }: { tarjeta: ResultadoVoz["tarjeta
       return <TarjetaAbono tarjeta={tarjeta} {...comunes} aMano={aMano} />;
     case "merma":
       return <TarjetaMerma tarjeta={tarjeta} {...comunes} aMano={aMano} />;
+    case "conteo":
+      return <TarjetaConteo tarjeta={tarjeta} {...comunes} aMano={aMano} />;
     case "gasto":
       return <TarjetaGasto tarjeta={tarjeta} {...comunes} />;
     case "compra":

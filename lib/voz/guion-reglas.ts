@@ -5,6 +5,7 @@
 import { faltaAbono, frasesFaltaAbono, type BorradorAbono } from "./confirmar-abono-reglas";
 import { faltaCompra, frasesFaltaCompra, totalCompra, type BorradorCompra } from "./confirmar-compra-reglas";
 import { faltaGasto, type BorradorGasto } from "./confirmar-gasto-reglas";
+import { causaVale, diferenciaConteo, type BorradorConteo, type CausaConteo } from "./confirmar-conteo-reglas";
 import { faltaMerma, frasesFaltaMerma, type BorradorMerma } from "./confirmar-merma-reglas";
 import { MEDIOS_HABLADOS, cajasHabladas, nombreHablado, precioHablado, solesHablados } from "./hablado-reglas";
 import { dudaHablada, type Guion, type Relectura } from "./lectura-reglas";
@@ -47,6 +48,31 @@ export function guionMerma(b: BorradorMerma): Guion {
   if (falta.length > 0 || !b.producto) return avisar(frasesFaltaMerma(falta));
   const motivo = b.motivo?.trim() ? `, ${b.motivo.trim().replace(/[.。]+$/, "")}` : "";
   return { pregunta: "confirmar", texto: `Merma: ${cajasHabladas(b.cantidad)} de ${nombreHablado(b.producto.nombre)}${motivo}. ¿Confirmo?` };
+}
+
+const CAUSA_HABLADA: Record<CausaConteo, string> = {
+  se_malogro: "se malograron",
+  venta_sin_anotar: "se vendieron sin anotar",
+  compra_sin_anotar: "llegaron sin anotar",
+  no_se: "no se sabe por qué",
+};
+
+/**
+ * El conteo dicho (ADR-0028): «Contaste 18 cajas de Mango Kent. La app decía 20: faltan 2, se malograron. ¿Confirmo?». Si no cuadra
+ * y no se dijo por qué, no se confirma hablando: se elige la causa en la tarjeta. Sin saber qué dice la app, se avisa que hace falta
+ * señal.
+ */
+export function guionConteo(b: BorradorConteo, stock: number | null, dudas: string[]): Guion {
+  if (dudas.length > 0) return { pregunta: "ninguna", texto: dudaHablada(dudas) };
+  if (!b.producto || b.contado === null) return avisar("Elige qué fruta contaste.");
+  if (stock === null) return avisar("Para comparar con la app necesito señal.");
+  const contaste = `Contaste ${cajasHabladas(b.contado)} de ${nombreHablado(b.producto.nombre)}.`;
+  const dif = diferenciaConteo(b.contado, stock);
+  if (dif === 0) return { pregunta: "confirmar", texto: `${contaste} Cuadra con la app. ¿Confirmo?` };
+  const decia = stock > 0 ? `La app decía ${cajasHabladas(stock)}` : "La app no tenía ninguna";
+  const diferencia = `${dif < 0 ? (dif === -1 ? "falta" : "faltan") : dif === 1 ? "sobra" : "sobran"} ${cajasHabladas(Math.abs(dif))}`;
+  if (!causaVale(b.causa, dif)) return { pregunta: "ninguna", texto: `${contaste} ${decia}: ${diferencia}. Elige por qué en la tarjeta.` };
+  return { pregunta: "confirmar", texto: `${contaste} ${decia}: ${diferencia}, ${CAUSA_HABLADA[b.causa!]}. ¿Confirmo?` };
 }
 
 /** «Gasto de flete, al cargador: 50 soles en efectivo. ¿Confirmo?» */

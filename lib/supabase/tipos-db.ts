@@ -207,6 +207,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"conteos": {
+                  Row: {
+                    "causa": Database["public"]['Enums']["causa_conteo"] | null,"comando_voz_id": number | null,"contado": number,"diferencia": number | null,"fecha": string,"id": number,"producto_id": number,"registrado_por": string,"segun_app": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "causa"?: Database["public"]['Enums']["causa_conteo"] | null,"comando_voz_id"?: number | null,"contado": number,"diferencia"?: never,"fecha"?: string,"id"?: never,"producto_id": number,"registrado_por"?: string,"segun_app": number
+                  }
+                  Update: {
+                    "causa"?: Database["public"]['Enums']["causa_conteo"] | null,"comando_voz_id"?: number | null,"contado"?: number,"diferencia"?: never,"fecha"?: string,"id"?: never,"producto_id"?: number,"registrado_por"?: string,"segun_app"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "conteos_comando_voz_id_fkey"
+      columns: ["comando_voz_id"]
+isOneToOne: false
+      referencedRelation: "comandos_voz"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "conteos_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "productos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "conteos_producto_id_fkey"
+      columns: ["producto_id"]
+isOneToOne: false
+      referencedRelation: "v_stock"
+      referencedColumns: ["producto_id"]
+    },{
+      foreignKeyName: "conteos_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "perfiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"frases_tomadas": {
                   Row: {
                     "celular": string,"frase": string,"id": number,"tomada_en": string,"tomada_por": string
@@ -249,14 +287,14 @@ isOneToOne: false
                   ]
                 },"movimientos_stock": {
                   Row: {
-                    "cantidad": number,"comando_voz_id": number | null,"compra_id": number | null,"estado_llegada": Database["public"]['Enums']["estado_llegada"] | null,"fecha": string,"id": number,"motivo": string | null,"producto_id": number,"registrado_por": string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id": number | null
+                    "cantidad": number,"comando_voz_id": number | null,"compra_id": number | null,"conteo_id": number | null,"estado_llegada": Database["public"]['Enums']["estado_llegada"] | null,"fecha": string,"id": number,"motivo": string | null,"producto_id": number,"registrado_por": string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "cantidad": number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"estado_llegada"?: Database["public"]['Enums']["estado_llegada"] | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id": number,"registrado_por"?: string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
+                    "cantidad": number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"conteo_id"?: number | null,"estado_llegada"?: Database["public"]['Enums']["estado_llegada"] | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id": number,"registrado_por"?: string,"tipo": Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
                   }
                   Update: {
-                    "cantidad"?: number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"estado_llegada"?: Database["public"]['Enums']["estado_llegada"] | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id"?: number,"registrado_por"?: string,"tipo"?: Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
+                    "cantidad"?: number,"comando_voz_id"?: number | null,"compra_id"?: number | null,"conteo_id"?: number | null,"estado_llegada"?: Database["public"]['Enums']["estado_llegada"] | null,"fecha"?: string,"id"?: never,"motivo"?: string | null,"producto_id"?: number,"registrado_por"?: string,"tipo"?: Database["public"]['Enums']["tipo_movimiento"],"venta_id"?: number | null
                   }
                   Relationships: [
                     {
@@ -270,6 +308,12 @@ isOneToOne: false
       columns: ["compra_id"]
 isOneToOne: false
       referencedRelation: "compras"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "movimientos_stock_conteo_id_fkey"
+      columns: ["conteo_id"]
+isOneToOne: false
+      referencedRelation: "conteos"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "movimientos_stock_producto_id_fkey"
@@ -691,6 +735,9 @@ isOneToOne: false
 "registrar_compra":
 { Args: { "p": Json }; Returns: number
                            },
+"registrar_conteo":
+{ Args: { "p_causa"?: Database["public"]['Enums']["causa_conteo"],"p_comando_voz_id"?: number,"p_contado": number,"p_fecha"?: string,"p_producto_id": number,"p_segun_app"?: number }; Returns: Json
+                           },
 "registrar_venta":
 { Args: { "p": Json }; Returns: number
                            },
@@ -720,7 +767,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "condicion_pago": "contado"|"credito","estado_comprobante": "pendiente"|"enviado"|"aceptado"|"rechazado"|"anulado","estado_llegada": "verde"|"pinton"|"maduro","medio_pago": "efectivo"|"yape"|"plin"|"transferencia"|"otro","rol_usuario": "duenio"|"administrador"|"ayudante"|"contador","tipo_movimiento": "entrada_compra"|"salida_venta"|"merma"|"ajuste"|"devolucion"
+            "causa_conteo": "se_malogro"|"venta_sin_anotar"|"compra_sin_anotar"|"no_se","condicion_pago": "contado"|"credito","estado_comprobante": "pendiente"|"enviado"|"aceptado"|"rechazado"|"anulado","estado_llegada": "verde"|"pinton"|"maduro","medio_pago": "efectivo"|"yape"|"plin"|"transferencia"|"otro","rol_usuario": "duenio"|"administrador"|"ayudante"|"contador","tipo_movimiento": "entrada_compra"|"salida_venta"|"merma"|"ajuste"|"devolucion"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -836,7 +883,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "condicion_pago": ["contado", "credito"],"estado_comprobante": ["pendiente", "enviado", "aceptado", "rechazado", "anulado"],"estado_llegada": ["verde", "pinton", "maduro"],"medio_pago": ["efectivo", "yape", "plin", "transferencia", "otro"],"rol_usuario": ["duenio", "administrador", "ayudante", "contador"],"tipo_movimiento": ["entrada_compra", "salida_venta", "merma", "ajuste", "devolucion"]
+            "causa_conteo": ["se_malogro", "venta_sin_anotar", "compra_sin_anotar", "no_se"],"condicion_pago": ["contado", "credito"],"estado_comprobante": ["pendiente", "enviado", "aceptado", "rechazado", "anulado"],"estado_llegada": ["verde", "pinton", "maduro"],"medio_pago": ["efectivo", "yape", "plin", "transferencia", "otro"],"rol_usuario": ["duenio", "administrador", "ayudante", "contador"],"tipo_movimiento": ["entrada_compra", "salida_venta", "merma", "ajuste", "devolucion"]
           }
         }
 } as const
