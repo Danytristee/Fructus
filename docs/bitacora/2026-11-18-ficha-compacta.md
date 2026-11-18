@@ -49,3 +49,11 @@
 - **Hallazgo (no viene de este PR):** con saldo a favor, la deuda dice «No debía nada · + S/ 450.00» bajo «te debe S/ 250.00», y no
   cuadra. Lo guardado está bien. El arreglo espera OK.
 - La base local se restauró al respaldo de antes de atacar.
+- **Arreglado con OK:**
+  - La deuda y el sello usan el veredicto de la ficha del cliente (`estadoDeuda`).
+  - Con saldo a favor, la deuda dice «Tenía S/ 200.00 a favor», o «Le queda a favor S/ 50.00» sin barra.
+  - Al contado dice «Tiene S/ 200.00 a favor».
+  - El sello dice «… tiene S/ 50.00 a favor».
+  - Primero las dos e2e que fallaban; después el arreglo (`lib/voz/medidor-deuda-reglas.ts`). El mismo ataque ahora resiste.
+  - Vitest 1198 de 1198; e2e de la tarjeta, de a una, 64 de 64.
+

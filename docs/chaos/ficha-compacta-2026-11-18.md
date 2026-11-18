@@ -86,3 +86,29 @@
    - Con muchos clientes reales pasaría lo mismo: conviene mirar el largo del vocabulario antes de producción.
    - `voz-ficha-compacta.spec.ts` crea un cliente `Lucho NNNNN` por corrida: se acumulan en las bases locales (el CI empieza de cero).
 3. **Mantener el dedo sobre una fila (D2) calla la voz, pero al soltar no abre el editor:** en Android, un toque largo no termina en clic. Hay que tocar otra vez. Es lo de siempre en el celular.
+
+## Arreglo del hallazgo 1 (con OK)
+
+- **Primero, la prueba que falla:**
+  - `voz-ficha-compacta.spec.ts` suma dos casos. Con S/ 200 a favor y una venta de S/ 450 al crédito, la tarjeta debe decir «Tenía
+    S/ 200.00 a favor». Con S/ 500 a favor, debe decir «Le queda a favor S/ 50.00», y el sello, «… tiene S/ 50.00 a favor».
+  - Fallaron con el código de antes: no encontraban «Tenía S/ 200.00 a favor» ni «Le queda a favor».
+- **El arreglo:**
+  - **Una sola regla:** `MedidorDeuda` y el sello de «Venta guardada» usan el veredicto de la ficha del cliente, `estadoDeuda`
+    (debe, al día o a favor).
+  - **Lo nuevo vive en `lib/voz/medidor-deuda-reglas.ts`:** `cuentaAntes` y `tramosBarra`, con 7 pruebas.
+  - **Al crédito:** «Tenía S/ 200.00 a favor · + S/ 450.00».
+  - **Si el saldo a favor alcanza:** «Le queda a favor S/ 50.00», en verde y sin barra, porque no hay deuda que partir.
+  - **La barra:** nunca lleva un tramo negativo.
+  - **Al contado:** «Tiene S/ 200.00 a favor».
+  - **En el sello:** «… tiene S/ 50.00 a favor», en vez de «no te debe nada».
+- **Después, el mismo ataque (D5, semilla 20261118), resiste:**
+  - Con S/ 200 a favor: «Con esta venta te debe S/ 250.00 · Tenía S/ 200.00 a favor · + S/ 450.00». Al contado: «Tiene S/ 200.00 a
+    favor».
+  - Con S/ 500 a favor: «Le queda a favor S/ 50.00 · Tenía S/ 500.00 a favor · + S/ 450.00», sin barra.
+  - Capturas: `docs/formidable/capturas/ficha-compacta-2026-11-18/chaos-D5-*`.
+- **Pruebas:**
+  - Vitest 1198 de 1198.
+  - E2e de la tarjeta de venta, de a una, 64 de 64: `voz-ficha-compacta`, `voz-venta`, `voz-pago-parcial`, `voz-pago-hablado`,
+    `voz-confirmar-hablando` y `voz-aviso-stock`.
+  - La base local se restauró otra vez al respaldo.
