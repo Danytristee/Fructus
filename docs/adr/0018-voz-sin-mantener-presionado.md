@@ -49,3 +49,22 @@ Es el primer paso del manos libres del ADR-0020: con un toque se dicta y no hace
 - **Sin probar con el audífono ni en el puesto.** Si corta frases o no termina, se ajustan los números de `silencio-reglas.ts`; si
   no alcanza con el volumen, se cambia por un detector de voz (Silero).
 
+
+## Actualización 2026-11-18: con bulla, cuenta la voz de quien dicta
+
+Con bulla, el orbe sin el dedo no enviaba nunca. El fondo bajaba enseguida a los huecos entre grito y grito (y el supresor de ruido del
+celular los deja casi mudos), así que cualquier vecino quedaba 12 dB por encima y volvía a cero la cuenta del silencio. Sobre audio
+mezclado (voces del Mac con vecinos que pregonan, golpes y calle; `tests/bulla/`), no enviaba en ninguno de los 30 casos con vecinos,
+ni con la voz 25 dB por encima.
+
+- **Además de sonar sobre el fondo, tiene que sonar cerca de la voz de quien dicta:** hasta 10 dB por debajo. Quien dicta tiene el
+  celular a un palmo; los vecinos suenan más bajo.
+- **La voz de quien dicta es lo que suena en más de la mitad del último segundo y medio,** y baja 0.5 dB por segundo. Se mide por
+  duración y no por el pico: con el pico, un vecino que gritaba 20 dB más fuerte justo al empezar subía la referencia, lo que seguía de
+  la venta contaba como silencio y la cortaba por la mitad.
+- **Resultado** (`lib/voz/silencio-reglas.bulla.test.ts`): con vecinos 20 dB por debajo envía al callarse (1.1 s, como en silencio);
+  15 dB por debajo, en hasta 4 s; en 234 casos, incluidos gritos de 8, 14 y 20 dB, nunca corta antes de la última palabra.
+- **Lo que el volumen no alcanza:** vecinos a 10 dB o menos por debajo de la voz, o un ruido parejo casi tan fuerte como ella. Ahí
+  sigue sin «callarse» y se envía con un toque o a los 55 s. Silero se midió sobre los mismos audios
+  (`docs/bitacora/2026-11-18-voz-fin-de-habla-con-bulla.md`): resuelve el ruido parejo y termina más rápido, pero no separa la voz de
+  quien dicta de la de un vecino igual de fuerte, porque las dos son voz.
