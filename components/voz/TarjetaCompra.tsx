@@ -60,7 +60,7 @@ const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 
 function IconoProveedor() {
   return (
-    <span className="grid size-12 place-items-center rounded-full bg-texto/8 text-texto">
+    <span className="grid size-10 place-items-center rounded-full bg-texto/8 text-texto">
       <Truck aria-hidden />
     </span>
   );
@@ -188,8 +188,8 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
   // «¿La pagaste o la debes?» ya lleva su pregunta escrita encima: el pie no la repite.
   const aviso = frasesFaltaCompra(falta.filter((f) => f !== "condicion"));
   return (
-    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo.
-    <div className="grid gap-2" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
+    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo. Deslizarla para leer, no.
+    <div className="grid gap-2" {...voz.manos}>
       <FilaTarjeta
         style={pieza(0)}
         className="animate-pieza"
@@ -218,7 +218,7 @@ export function TarjetaCompra({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
           falta={!aMano && (item.productoId === null || item.precio === null)}
           pendiente={aMano && (item.productoId === null || item.cantidad < 1 || item.precio === null)}
           onClick={() => setVista({ tipo: "item", n })}
-          icono={<IconoFruta nombre={item.producto || "?"} tamano={48} />}
+          icono={<IconoFruta nombre={item.producto || "?"} tamano={40} />}
           grande={
             item.productoId === null
               ? aMano

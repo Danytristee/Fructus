@@ -232,8 +232,8 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   // «Pagó / Lo debe» ya lleva su pregunta escrita encima: el pie no la repite (/formidable 2026-10-29).
   const aviso = frasesFalta(falta.filter((f) => f !== "condicion"));
   return (
-    // Tocar la tarjeta es tomar el control: la lectura se calla para que se pueda corregir o confirmar sin oírla encima.
-    <div className="grid gap-2" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
+    // Tocar la tarjeta es tomar el control: la lectura se calla para que se pueda corregir o confirmar sin oírla encima. Deslizarla para leer, no.
+    <div className="grid gap-2" {...voz.manos}>
       <FilaCliente
         style={pieza(0)}
         className="animate-pieza"
@@ -251,7 +251,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           className="animate-pieza"
           falta={item.productoId === null || item.precio === null}
           onClick={() => setVista({ tipo: "item", n })}
-          icono={<IconoFruta nombre={item.producto || "?"} tamano={48} />}
+          icono={<IconoFruta nombre={item.producto || "?"} tamano={40} />}
           grande={
             <>
               {item.productoId === null ? `¿${item.producto}?` : `${formatearCajas(item.cantidad)} de ${item.producto}`}
@@ -339,7 +339,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
 
       {conMedidor && cliente && saldo !== null && (
         <div className="animate-pieza">
-          <MedidorDeuda nombre={cliente.nombre} saldo={saldo} total={borrador.condicion === "credito" ? (debe ?? total) : total} alCredito={borrador.condicion === "credito"} />
+          <MedidorDeuda saldo={saldo} total={borrador.condicion === "credito" ? (debe ?? total) : total} alCredito={borrador.condicion === "credito"} />
         </div>
       )}
 

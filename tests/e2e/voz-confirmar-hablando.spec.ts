@@ -148,8 +148,8 @@ test("«no, son ocho cajas»: la tarjeta se corrige, se dice solo lo que cambió
   // Junto a las cajas, que fue lo que cambió, y no pegada al precio, que sigue igual (2.ª prueba ciega).
   await expect(hoja.getByRole("button", { name: /^8 cajas de Mango Kent\s*corregido\s*S\/\s45\.00 la caja$/ })).toBeVisible();
   // Lo que ya debía es del cliente: sigue a la vista, con el total nuevo (antes desaparecía al corregir; /formidable 2026-11-17).
-  await expect(hoja.getByText(`Con esta venta, ${cliente.nombre} te debe`)).toBeVisible();
-  await expect(hoja.getByText("+ S/ 360.00 de hoy")).toBeVisible();
+  await expect(hoja.getByText("Con esta venta te debe")).toBeVisible();
+  await expect(hoja.getByText("+ S/ 360.00 hoy")).toBeVisible();
   // Solo lo que cambió: la venta entera se acaba de oír.
   await expect.poll(() => dichas(page)).toContain("Corregido. 8 cajas de Mango Kent, a 45 la caja. Total, 360 soles. ¿Confirmo?");
   await terminarFrase(page);

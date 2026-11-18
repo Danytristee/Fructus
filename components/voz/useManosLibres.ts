@@ -24,6 +24,7 @@ import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { callar, hablar } from "./hablar";
 import { vibrar } from "./senales";
 import { useGrabadora } from "./useGrabadora";
+import { useToqueTarjeta } from "./useToqueTarjeta";
 
 // La respuesta pasa por Whisper (con su respaldo): más que esto y se deja para tocar.
 const TOPE_ENVIO_MS = 10_000;
@@ -103,7 +104,8 @@ type Opciones<T extends Corregible> = {
  * `alConfirmar`; si respondió si pagó, lo anota con `alPago`, repite la respuesta y pregunta «¿Confirmo?». Las fases y sus reglas viven en
  * lib/voz/manos-libres-reglas.ts; aquí se habla, se abre el micrófono y se envía.
  *
- * `tomarControl`: la persona tocó la tarjeta. Se calla, se apaga el micrófono y lo que llegue del servidor ya no guarda.
+ * `manos`: los manejadores para el contenedor de la tarjeta. Si la persona la toca, se calla, se apaga el micrófono y lo que llegue del
+ * servidor ya no guarda. Si la desliza para leer, la voz sigue (components/voz/useToqueTarjeta.ts).
  */
 export function useManosLibres<T extends Corregible>({ guion, alConfirmar, alPago, alCorregir, actual: operacionActual, faltaActual, guardado }: Opciones<T>) {
   const [estado, setEstado] = useState(() => (guion ? leyendo(guion.pregunta) : CALLADO));
@@ -238,6 +240,9 @@ export function useManosLibres<T extends Corregible>({ guion, alConfirmar, alPag
     if (actual.current.fase === "leyendo") callar();
   }
 
+  // Tocar la tarjeta calla; deslizarla para leer, no (después de `aplicar`, que la usa).
+  const manos = useToqueTarjeta(estado.fase !== "callado", () => aplicar({ tipo: "tocaron" }));
+
   // El guion se dice apenas se abre la tarjeta. En desarrollo React monta dos veces: el turno deja sin efecto la primera.
   useEffect(() => {
     if (!guion) return;
@@ -254,6 +259,6 @@ export function useManosLibres<T extends Corregible>({ guion, alConfirmar, alPag
   return {
     fase: estado.fase,
     nota: notaManosLibres(estado, { corrige: alCorregir !== undefined }),
-    tomarControl: () => aplicar({ tipo: "tocaron" }),
+    manos,
   };
 }

@@ -87,15 +87,15 @@ export function TarjetaGasto({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   }
 
   return (
-    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo.
-    <div className="grid gap-2" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
+    // Tocar la tarjeta es tomar el control: la voz se calla para que se pueda corregir o confirmar con el dedo. Deslizarla para leer, no.
+    <div className="grid gap-2" {...voz.manos}>
       <FilaTarjeta
         style={pieza(0)}
         className="animate-pieza"
         falta={falta.length > 0}
         onClick={() => setEditando(true)}
         icono={
-          <span className="grid size-12 place-items-center rounded-full bg-texto/8 text-texto">
+          <span className="grid size-10 place-items-center rounded-full bg-texto/8 text-texto">
             <ReceiptText aria-hidden />
           </span>
         }
