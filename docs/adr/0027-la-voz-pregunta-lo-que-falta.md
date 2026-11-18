@@ -77,3 +77,6 @@ nombre (`venta`, `abono` o `compra`, en los campos de su herramienta), así que 
 - **La compra guarda el medio con que se pagó** aunque se corrija: `registrar_compra` no lo trae, y un «con Plin» ya dicho no se pierde.
 - **El mensaje de la venta sin pista no cambió** (comprobado palabra por palabra); con la pista, la regla del número ahora nombra el costo
   y el monto.
+- **Medido:** 11 casos nuevos (`falta-abono-*`, `falta-compra-*`, `correccion-abono-*`, `correccion-compra-*`). Con los 38 de corrección
+  y de «falta», Claude Haiku 5.5 acertó 38 de 38, sin inventos (p95 1.4 s). Groq se quedó sin cupo gratuito y solo alcanzó a medir uno
+  de abono y compra (bien).
