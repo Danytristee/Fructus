@@ -147,7 +147,7 @@ test("se ve lo que dijiste debajo del cliente, y la pregunta de pago va escrita 
   await expect(pregunta.getByRole("button")).toHaveCount(2);
   // Con «Pagó», la deuda vieja es una línea, no una tarjeta con barra.
   await pregunta.getByRole("button", { name: "Pagó", exact: true }).click();
-  await expect(hoja.getByText("De antes te debe")).toBeVisible();
+  await expect(hoja.getByText("Te sigue debiendo")).toBeVisible();
   await expect(hoja.getByText("Hoy no suma")).toHaveCount(0);
 });
 

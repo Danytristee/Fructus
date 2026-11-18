@@ -42,7 +42,7 @@ test("dictado con pago parcial: dice cuánto pagó y cuánto debe, y guarda la v
   await expect(hoja.getByRole("button", { name: "Lo debe", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(hoja.getByRole("button", { name: /Pagó ahora/ })).toContainText(enSoles(1000));
   // Con el cliente y su deuda a la vista, la tarjeta de deuda dice lo de hoy; no se repite en «Queda debiendo».
-  await expect(hoja.getByText(`+ ${enSoles(4000)} hoy`)).toBeVisible();
+  await expect(hoja.getByText(`+ ${enSoles(4000)}`, { exact: true })).toBeVisible();
   await expect(hoja.getByText("Queda debiendo")).toHaveCount(0);
   await expect(hoja.getByRole("button", { name: "Efectivo" })).toHaveAttribute("aria-pressed", "true");
   await hoja.getByRole("button", { name: "Yape" }).click();
@@ -78,7 +78,7 @@ test("«Lo debe» sin pago dicho: se anota a mano lo que dejó, y pagar todo pid
   await campo.fill("1500");
   await hoja.getByRole("button", { name: "Listo" }).click();
 
-  await expect(hoja.getByText(`+ ${enSoles(3500)} hoy`)).toBeVisible();
+  await expect(hoja.getByText(`+ ${enSoles(3500)}`, { exact: true })).toBeVisible();
   await hoja.getByRole("button", { name: "Confirmar venta" }).click();
   await expect(page.getByText("Venta guardada")).toBeVisible();
 

@@ -73,7 +73,7 @@ test("una venta de una fruta al crédito, con lo que ya debía, se lee entera si
   // La deuda en dos renglones: lo que debe con esta venta, y de dónde sale.
   await expect(hoja.getByText("Con esta venta te debe")).toBeVisible();
   await expect(hoja.getByText("Debía S/ 2,390.00")).toBeVisible();
-  await expect(hoja.getByText("+ S/ 450.00 hoy")).toBeVisible();
+  await expect(hoja.getByText("+ S/ 450.00", { exact: true })).toBeVisible();
   await quieto(page);
   expect(await porDeslizar(hoja)).toBeLessThanOrEqual(0);
 });
@@ -82,7 +82,7 @@ test("una venta de dos frutas al contado, con lo que debía de antes, se lee ent
   const cliente = await clienteConDeuda();
   const tarjeta = venta(cliente, { items: [item(3, "Plátano de seda", 10, 45), item(5, "Papaya", 4, 30)], total: 570, condicion: "contado", medio: "efectivo" });
   const hoja = await dictar(page, await crearComando(), tarjeta, "¿Así fue la venta?");
-  await expect(hoja.getByText("De antes te debe")).toBeVisible();
+  await expect(hoja.getByText("Te sigue debiendo")).toBeVisible();
   await quieto(page);
   expect(await porDeslizar(hoja)).toBeLessThanOrEqual(0);
 });
@@ -120,4 +120,21 @@ test("deslizar una venta larga para leerla no calla la voz; tocarla, sí", async
   await tocar(cdp, await centro(hoja.getByText("Total", { exact: true })));
   await expect(escuchando).toHaveCount(0);
   await expect(leyendo).toHaveCount(0);
+});
+
+test("con tres frutas, la que no alcanza lo dice en su fila, a la vista sin deslizar", async ({ page }) => {
+  const cliente = await clienteConDeuda();
+  // El stock va en la tarjeta, como lo manda el servidor: del plátano quedan 4 y se venden 10.
+  const tarjeta = venta(cliente, {
+    items: [item(3, "Plátano de seda", 10, 45), item(5, "Papaya", 4, 30), item(6, "Piña golden", 6, 25)],
+    total: 720,
+    stock: { 3: 4, 5: 50, 6: 50 },
+  });
+  const hoja = await dictar(page, await crearComando(), tarjeta, "¿Así fue la venta?");
+  const marca = hoja.getByRole("button", { name: /cajas de Plátano de seda.*Solo hay 4$/ }).getByText("Solo hay 4");
+  await expect(marca).toBeVisible();
+  await quieto(page);
+  await expect(marca).toBeInViewport({ ratio: 1 });
+  // Ya no hay un recuadro aparte que empuje la deuda debajo del pie.
+  await expect(hoja.getByText(/^Según la app/)).toHaveCount(0);
 });

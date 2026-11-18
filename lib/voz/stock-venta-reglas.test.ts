@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ItemBorrador } from "./confirmar-venta-reglas";
-import { avisosStock, recordatorioCompra, textoAviso, textoAvisos } from "./stock-venta-reglas";
+import { avisosStock, faltaEnFila, recordatorioCompra } from "./stock-venta-reglas";
 
 const mango = (cantidad: number): ItemBorrador => ({ productoId: 1, producto: "Mango Kent", cantidad, precio: 45, sugerido: false });
 const palta = (cantidad: number): ItemBorrador => ({ productoId: 2, producto: "Palta Fuerte", cantidad, precio: 60, sugerido: false });
@@ -41,26 +41,19 @@ describe("avisosStock", () => {
 });
 
 // formatearCajas une el número y «cajas» con un espacio duro, para que no se separen al saltar de renglón.
-describe("textoAviso", () => {
-  it("con stock: cuánto queda y cuánto vas a vender", () => {
-    expect(textoAviso({ productoId: 1, producto: "Mango Kent", vendes: 10, quedan: 6 })).toBe("Según la app te quedan 6\u00a0cajas de Mango Kent y vas a vender 10.");
-    expect(textoAviso({ productoId: 1, producto: "Mango Kent", vendes: 3, quedan: 1 })).toBe("Según la app te queda 1\u00a0caja de Mango Kent y vas a vender 3.");
-    expect(textoAviso({ productoId: 1, producto: "Mango Kent", vendes: 6.5, quedan: 6 })).toBe("Según la app te quedan 6\u00a0cajas de Mango Kent y vas a vender 6.5.");
-  });
-
-  it("sin stock o en negativo, nunca una cifra imposible", () => {
-    expect(textoAviso({ productoId: 1, producto: "Mango Kent", vendes: 2, quedan: 0 })).toBe("Según la app no te queda Mango Kent.");
-    expect(textoAviso({ productoId: 1, producto: "Mango Kent", vendes: 2, quedan: -4 })).toBe("Según la app no te queda Mango Kent.");
-  });
-});
-
-describe("un solo aviso y el recordatorio", () => {
+describe("faltaEnFila y el recordatorio", () => {
   const mango = { productoId: 1, producto: "Mango Kent", vendes: 10, quedan: 6 };
   const palta = { productoId: 2, producto: "Palta Fuerte", vendes: 3, quedan: -2 };
 
-  it("con una fruta dice lo mismo que textoAviso; con varias, una sola frase", () => {
-    expect(textoAvisos([mango])).toBe(textoAviso(mango));
-    expect(textoAvisos([mango, palta])).toBe("Según la app no alcanza: de Mango Kent te quedan 6\u00a0cajas y vas a vender 10; de Palta Fuerte no te queda.");
+  it("la fila dice cuánto queda, corto para que quepa bajo el precio", () => {
+    expect(faltaEnFila(mango)).toBe("Solo hay 6");
+    expect(faltaEnFila({ ...mango, quedan: 1 })).toBe("Solo hay 1");
+    expect(faltaEnFila({ ...mango, quedan: 2.5 })).toBe("Solo hay 2.5");
+  });
+
+  it("sin stock o en negativo, nunca una cifra imposible", () => {
+    expect(faltaEnFila({ ...mango, quedan: 0 })).toBe("No te queda");
+    expect(faltaEnFila(palta)).toBe("No te queda");
   });
 
   it("el recordatorio al guardar nombra la fruta y dónde anotar la compra", () => {

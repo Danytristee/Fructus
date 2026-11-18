@@ -3,7 +3,8 @@ import { formatearSoles } from "@/lib/formato";
 type Props = { saldo: number; total: number; alCredito: boolean };
 
 // Cómo queda la deuda del cliente con esta venta, antes de confirmar (ley 3: un veredicto, no una cuenta).
-// Con «Pagó», la venta no suma: basta una línea que recuerda lo que debe de antes, y nada si no debe (/formidable 2026-10-29).
+// Con «Pagó», la venta no suma: basta una línea que recuerda lo que debe de antes, y nada si no debe (/formidable 2026-10-29). Dice
+// «Te sigue debiendo»: «De antes te debe» no decía si esa deuda seguía igual con esta venta (prueba ciega, /formidable 2026-11-18).
 // En dos renglones y sin el nombre, que está en la fila del cliente: con cinco, a 360 px la deuda quedaba debajo del pie y había que
 // deslizar para leerla (/formidable 2026-11-18).
 export function MedidorDeuda({ saldo, total, alCredito }: Props) {
@@ -11,7 +12,7 @@ export function MedidorDeuda({ saldo, total, alCredito }: Props) {
     if (saldo <= 0) return null;
     return (
       <p className="mx-1 text-lg">
-        De antes te debe <strong className="cifra text-deuda">{formatearSoles(saldo)}</strong>
+        Te sigue debiendo <strong className="cifra text-deuda">{formatearSoles(saldo)}</strong>
       </p>
     );
   }
@@ -19,7 +20,8 @@ export function MedidorDeuda({ saldo, total, alCredito }: Props) {
   return (
     <div className="rounded-[20px] bg-superficie px-3.5 py-2.5">
       {/* A 360 px caben 300 px: medido con Manrope, cada renglón entra en uno hasta S/ 9,999.99 de deuda (y el de abajo, con cinco
-          cifras). Con más, la cifra baja sola a la derecha. «Ya debía» partía el de abajo con ventas de cuatro cifras. */}
+          cifras). Con más, la cifra baja sola a la derecha. «Ya debía» partía el de abajo con ventas de cuatro cifras. Sin «hoy» después
+          de la venta: se leía como todo lo fiado hoy, y arriba ya dice «Con esta venta» (prueba ciega). */}
       <p className="flex flex-wrap items-baseline justify-between gap-x-2">
         Con esta venta te debe
         <strong className="cifra ml-auto text-lg text-deuda">{formatearSoles(saldo + total)}</strong>
@@ -30,7 +32,7 @@ export function MedidorDeuda({ saldo, total, alCredito }: Props) {
       </div>
       <div className="mt-1 flex flex-wrap justify-between gap-x-2 text-texto-suave">
         <span>{saldo > 0 ? `Debía ${formatearSoles(saldo)}` : "No debía nada"}</span>
-        <span className="ml-auto">+ {formatearSoles(total)} hoy</span>
+        <span className="ml-auto">+ {formatearSoles(total)}</span>
       </div>
     </div>
   );

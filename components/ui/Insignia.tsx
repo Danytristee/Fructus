@@ -6,6 +6,9 @@ const tipos = {
   debe: { clase: "bg-deuda-fondo text-deuda", Icono: Clock },
   // «Sugerido» es un precio que nadie dijo: se marca en tono de aviso para que se revise (principio 2).
   sugerido: { clase: "bg-sol/12 text-sol", Icono: Sparkles },
+  // La fruta que no alcanza en la venta («Solo hay 6»): el tono de aviso en el fondo y el icono, el texto oscuro para el 7:1 al sol,
+  // como el `Aviso` de atención (/formidable 2026-11-18).
+  stock: { clase: "bg-sol/12 text-texto", Icono: TriangleAlert, icono: "text-sol" },
   // «corregido»: lo que cambió al corregir hablando («no, son ocho cajas»), lo mismo que dice la voz (/formidable 2026-11-17).
   corregido: { clase: "bg-acento/12 text-acento-texto", Icono: PencilLine },
   aviso: { clase: "text-deuda px-0", Icono: TriangleAlert },
@@ -30,6 +33,8 @@ type Props = { tipo: keyof typeof tipos; children: React.ReactNode; className?: 
 // Estado en una palabra, siempre con icono y texto: el color nunca es la única señal.
 export function Insignia({ tipo, children, className }: Props) {
   const { clase, Icono } = tipos[tipo];
+  // El color propio del icono, si la variante lo trae (solo «stock»): el resto lo hereda del texto.
+  const colorIcono = (tipos[tipo] as { icono?: string }).icono;
   return (
     <span
       className={cn(
@@ -38,7 +43,7 @@ export function Insignia({ tipo, children, className }: Props) {
         className,
       )}
     >
-      <Icono aria-hidden className="size-[15px]" strokeWidth={2.4} />
+      <Icono aria-hidden className={cn("size-[15px]", colorIcono)} strokeWidth={2.4} />
       {children}
     </span>
   );

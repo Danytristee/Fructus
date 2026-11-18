@@ -12,12 +12,11 @@ import { Monto } from "@/components/ui/Monto";
 import { formatearCajas, formatearSoles } from "@/lib/formato";
 import { iniciales, tonoDe } from "@/lib/operaciones-reglas";
 import { borradorDe, debeDe, faltaDe, frasesFalta, fueCorregido, leerPagado, leerPrecio, totalDe, ventaActual, type Borrador, type ItemBorrador } from "@/lib/voz/confirmar-venta-reglas";
-import { recordatorioCompra } from "@/lib/voz/stock-venta-reglas";
+import { faltaEnFila, recordatorioCompra } from "@/lib/voz/stock-venta-reglas";
 import { cambiosDeCorreccion, guionCompletado, guionCorreccion, guionVenta, relecturaPago, type Cambios } from "@/lib/voz/lectura-reglas";
 import { faltaPorPreguntar, opcionesDeVenta } from "@/lib/voz/pregunta-falta-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
-import { AvisoStock } from "./AvisoStock";
 import { DudasVoz } from "./DudasVoz";
 import { EditorItem } from "./EditorItem";
 import { EditorMonto } from "./EditorMonto";
@@ -119,7 +118,7 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
   const debe = debeDe(borrador);
   const pagado = borrador.condicion === "credito" ? (borrador.pagado ?? null) : null;
   const falta = faltaDe(borrador);
-  // Las frutas que piden más de lo que hay: el aviso (debajo de «Pagó / Lo debe») y, al guardar, el recordatorio de la compra.
+  // Las frutas que piden más de lo que hay: «Solo hay 6» en su fila (avisa, no bloquea) y, al guardar, el recordatorio de la compra.
   const avisosStock = useStockVenta(borrador.items, vigente.stock);
   const recordatorio = recordatorioCompra(avisosStock);
   const marcas = corregida?.borrador === borrador ? corregida.cambios : null;
@@ -244,38 +243,43 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
         alTocar={() => setVista({ tipo: "cliente" })}
         insignia={marcas?.cliente ? corregido : undefined}
       />
-      {borrador.items.map((item, n) => (
-        <FilaTarjeta
-          key={n}
-          style={pieza(n + 1)}
-          className="animate-pieza"
-          falta={item.productoId === null || item.precio === null}
-          onClick={() => setVista({ tipo: "item", n })}
-          icono={<IconoFruta nombre={item.producto || "?"} tamano={40} />}
-          grande={
-            <>
-              {item.productoId === null ? `¿${item.producto}?` : `${formatearCajas(item.cantidad)} de ${item.producto}`}
-              {/* Junto a lo que cambió: las cajas o la fruta aquí, el precio abajo (/formidable 2026-11-17). */}
-              {/* Un espacio y no un margen: si la insignia baja de renglón, queda alineada con el texto. */}
-              {marcas?.cajas.includes(n) && (
-                <>
-                  {" "}
-                  <span className="inline-block align-middle">{corregido}</span>
-                </>
-              )}
-            </>
-          }
-          chico={
-            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="cifra">
-                {item.productoId === null ? "Toca para elegir la fruta" : item.precio === null ? "Toca para poner el precio" : `${formatearSoles(item.precio)} la caja`}
+      {borrador.items.map((item, n) => {
+        const sinStock = avisosStock.find((a) => a.productoId === item.productoId);
+        return (
+          <FilaTarjeta
+            key={n}
+            style={pieza(n + 1)}
+            className="animate-pieza"
+            falta={item.productoId === null || item.precio === null}
+            onClick={() => setVista({ tipo: "item", n })}
+            icono={<IconoFruta nombre={item.producto || "?"} tamano={40} />}
+            grande={
+              <>
+                {item.productoId === null ? `¿${item.producto}?` : `${formatearCajas(item.cantidad)} de ${item.producto}`}
+                {/* Junto a lo que cambió: las cajas o la fruta aquí, el precio abajo (/formidable 2026-11-17). */}
+                {/* Un espacio y no un margen: si la insignia baja de renglón, queda alineada con el texto. */}
+                {marcas?.cajas.includes(n) && (
+                  <>
+                    {" "}
+                    <span className="inline-block align-middle">{corregido}</span>
+                  </>
+                )}
+              </>
+            }
+            chico={
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="cifra">
+                  {item.productoId === null ? "Toca para elegir la fruta" : item.precio === null ? "Toca para poner el precio" : `${formatearSoles(item.precio)} la caja`}
+                </span>
+                {item.sugerido && <InsigniaSugerido />}
+                {marcas?.precios.includes(n) && corregido}
+                {/* Junto a la fruta y no en un recuadro aparte: con tres frutas, el recuadro quedaba bajo Confirmar (/formidable 2026-11-18). */}
+                {sinStock && <Insignia tipo="stock">{faltaEnFila(sinStock)}</Insignia>}
               </span>
-              {item.sugerido && <InsigniaSugerido />}
-              {marcas?.precios.includes(n) && corregido}
-            </span>
-          }
-        />
-      ))}
+            }
+          />
+        );
+      })}
 
       <DudasVoz dudas={vigente.dudas} />
 
@@ -312,9 +316,6 @@ export function TarjetaVenta({ tarjeta, comandoId, latenciaMs, alGuardar, alDesc
           />
         </div>
       )}
-
-      {/* Si la venta pide más cajas de las que hay: avisa, no bloquea. Después del total y del pago, que mandan. */}
-      <AvisoStock avisos={avisosStock} className="animate-pieza" />
 
       {/* Solo si se pidió comprobante («… factura»): la persona ve lo que se entendió y lo cambia o lo quita de un toque. */}
       {(vigente.comprobante !== "ninguno" || borrador.comprobante !== "ninguno") && (
