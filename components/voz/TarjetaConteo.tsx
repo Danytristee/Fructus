@@ -26,13 +26,17 @@ import {
   type BorradorConteo,
   type CausaConteo,
 } from "@/lib/voz/confirmar-conteo-reglas";
+import { guionConteo } from "@/lib/voz/guion-reglas";
 import type { Tarjeta } from "@/lib/voz/tarjeta-reglas";
 import { EditorBusqueda } from "./EditorBusqueda";
 import { FilaTarjeta } from "./FilaTarjeta";
 import { GrupoOpciones } from "./GrupoOpciones";
 import { Guardado } from "./Guardado";
+import { manosLibres } from "./manos-libres";
+import { notaDeVoz } from "./NotaVoz";
 import { PieConfirmar } from "./PieConfirmar";
 import { useConfirmar } from "./useConfirmar";
+import { useManosLibres } from "./useManosLibres";
 
 type Conteo = Extract<Tarjeta, { tipo: "conteo" }>;
 type Guardado_ = Extract<ResultadoConteo, { ok: true }>;
@@ -58,6 +62,10 @@ export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
   const [eligiendo, setEligiendo] = useState(false);
   const [stock, setStock] = useState<Stock>(() => (typeof tarjeta.stock === "number" ? { estado: "listo", cajas: tarjeta.stock } : { estado: "leyendo" }));
   const { confirmar: enviar, guardando, error, guardado, incierto } = useConfirmar<Guardado_>({ alGuardar, alCambiarGuardando, boton: "Confirmar conteo" });
+  // Manos libres (ADR-0020): lo dictado se lee con lo que decía la app al dictar (lo trae el servidor) y se confirma diciendo
+  // «confirmo». Si no cuadra y no se dijo por qué, solo se avisa: la causa se elige en la tarjeta. A mano no se lee.
+  const [guion] = useState(() => (manosLibres() && !aMano ? guionConteo(borradorConteo(tarjeta), typeof tarjeta.stock === "number" ? tarjeta.stock : null, tarjeta.dudas) : null));
+  const voz = useManosLibres({ guion, alConfirmar: () => confirmar("voz"), guardado: guardado !== null });
 
   const productoId = borrador.producto?.id ?? null;
   // Se lee al abrir, al cambiar de fruta y si la base dijo que el stock cambió mientras se contaba (el error lo dice).
@@ -91,9 +99,9 @@ export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
     setBorrador((b) => ({ ...b, contado, causa: cajasApp !== null && causaVale(b.causa, diferenciaConteo(contado, cajasApp)) ? b.causa : null }));
   }
 
-  function confirmar() {
+  function confirmar(confirmadoPor: "toque" | "voz" = "toque") {
     if (falta.length > 0 || cajasApp === null) return;
-    const entrada = { comandoId, borrador, segunApp: cajasApp, corregido: !aMano && fueCorregidoConteo(tarjeta, borrador), latenciaMs, aMano, confirmadoPor: "toque" as const };
+    const entrada = { comandoId, borrador, segunApp: cajasApp, corregido: !aMano && fueCorregidoConteo(tarjeta, borrador), latenciaMs, aMano, confirmadoPor };
     // Sin datos para la cola: sin señal se dice que hace falta (no se puede comparar con la app).
     void enviar(() => confirmarConteo(entrada));
   }
@@ -137,7 +145,8 @@ export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
   const veredicto = cajasApp !== null && contado !== null ? veredictoConteo(contado, cajasApp) : null;
   const causas = dif === null ? [] : causasPara(dif);
   return (
-    <div className="grid gap-3">
+    // Tocar la tarjeta es tomar el control: la voz se calla para corregir o confirmar con el dedo.
+    <div className="grid gap-3" onPointerDown={voz.fase === "callado" ? undefined : voz.tomarControl}>
       <FilaTarjeta
         style={pieza(0)}
         className="animate-pieza"
@@ -199,7 +208,8 @@ export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDes
         guardando={guardando}
         listo={falta.length === 0}
         etiqueta="Confirmar conteo"
-        alConfirmar={confirmar}
+        alConfirmar={() => confirmar("toque")}
+        nota={notaDeVoz(voz)}
         alDescartar={() => alDescartar(incierto.current)}
       />
     </div>

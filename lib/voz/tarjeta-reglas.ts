@@ -217,6 +217,20 @@ export function armarTarjeta(i: Interpretacion, r: Resolucion): Tarjeta {
       const producto = elegir(i.datos.producto_texto, r.productos[0] ?? []);
       return { tipo: "merma", producto, cantidad: i.datos.cantidad, motivo: i.datos.motivo, falta: producto.elegido ? [] : ["producto"] };
     }
+    case "registrar_conteo": {
+      const producto = elegir(i.datos.producto_texto, r.productos[0] ?? []);
+      // Sin fila en la vista es que nunca entró nada: cero. Sin lectura (undefined), la tarjeta lo pide al abrirse.
+      const stock = producto.elegido && r.stock ? (r.stock[producto.elegido.id] ?? 0) : null;
+      return {
+        tipo: "conteo",
+        producto,
+        contado: Math.round(i.datos.contado * 100) / 100,
+        causa: i.datos.causa,
+        stock,
+        dudas: i.datos.dudas,
+        falta: producto.elegido ? [] : ["producto"],
+      };
+    }
     case "registrar_gasto":
       return { tipo: "gasto", categoria: i.datos.categoria, monto: i.datos.monto, descripcion: i.datos.descripcion, medio: i.datos.medio_pago };
     case "registrar_temperatura":

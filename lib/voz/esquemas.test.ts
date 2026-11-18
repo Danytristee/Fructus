@@ -5,12 +5,13 @@ import { herramientasParaElModelo, leerInterpretacion } from "./esquemas";
 describe("herramientasParaElModelo", () => {
   const herramientas = herramientasParaElModelo();
 
-  it("son las 8 del diseño, en formato de función", () => {
+  it("son las 9 del diseño, en formato de función", () => {
     expect(herramientas.map((h) => h.function.name)).toEqual([
       "registrar_venta",
       "registrar_abono",
       "registrar_compra",
       "registrar_merma",
+      "registrar_conteo",
       "registrar_gasto",
       "registrar_temperatura",
       "consultar",

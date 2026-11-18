@@ -201,6 +201,32 @@ describe("armarTarjeta · venta", () => {
   });
 });
 
+describe("armarTarjeta · conteo (ADR-0027)", () => {
+  const mango = { id: 1, nombre: "Mango Kent", similitud: 1 };
+  it("trae lo contado, la causa dicha y el stock que leyó el servidor", () => {
+    const t = armarTarjeta(interpretar("registrar_conteo", { producto_texto: "mango", contado: 18, causa: "se_malogro" }), {
+      ...nada,
+      productos: [[mango]],
+      stock: { 1: 20 },
+    });
+    expect(t).toEqual({ tipo: "conteo", producto: { dicho: "mango", elegido: { id: 1, nombre: "Mango Kent" }, opciones: [] }, contado: 18, causa: "se_malogro", stock: 20, dudas: [], falta: [] });
+  });
+
+  it("sin causa dicha queda null; sin stock leído, la tarjeta lo pide al abrirse", () => {
+    const t = armarTarjeta(interpretar("registrar_conteo", { producto_texto: "mango", contado: 2.345 }), { ...nada, productos: [[mango]] });
+    if (t.tipo !== "conteo") throw new Error("no es conteo");
+    expect(t.causa).toBeNull();
+    expect(t.stock).toBeNull();
+    expect(t.contado).toBe(2.35); // centésimas: la base no acepta más (/chaos 2026-11-18)
+  });
+
+  it("una fruta sin movimientos decía 0", () => {
+    const t = armarTarjeta(interpretar("registrar_conteo", { producto_texto: "mango", contado: 3 }), { ...nada, productos: [[mango]], stock: {} });
+    if (t.tipo !== "conteo") throw new Error("no es conteo");
+    expect(t.stock).toBe(0);
+  });
+});
+
 describe("armarTarjeta · lo demás", () => {
   it("un abono sin cliente reconocido pide elegirlo", () => {
     const t = armarTarjeta(interpretar("registrar_abono", { cliente_texto: "el gordo", monto: 100, medio_pago: "efectivo" }), nada);

@@ -1,9 +1,10 @@
-// Las 8 herramientas del intérprete (docs/interprete-voz.md, sección 3), escritas una sola vez en Zod.
+// Las 9 herramientas del intérprete (docs/interprete-voz.md, sección 3), escritas una sola vez en Zod.
 // De aquí salen dos cosas: la validación de lo que devuelve el modelo y el JSON Schema que se le manda a Groq.
 // Así nunca hay dos versiones distintas de una herramienta. Lógica pura: no importa React ni Supabase.
 import { z } from "zod";
 
 import { ESTADOS_LLEGADA } from "../vida-util-reglas";
+import { CAUSAS_CONTEO } from "./confirmar-conteo-reglas";
 
 const medio = z.enum(["efectivo", "yape", "plin", "transferencia"]);
 const condicion = z.enum(["contado", "credito"]);
@@ -100,6 +101,25 @@ const herramientasVoz = {
   registrar_merma: {
     descripcion: "Fruta que se malogró y sale del stock sin venderse.",
     esquema: z.object({ producto_texto: z.string().min(1), cantidad, motivo: z.string().nullable() }),
+  },
+  registrar_conteo: {
+    descripcion:
+      'Conteo físico (ADR-0027): la persona AFIRMA cuántas cajas HAY de una fruta porque las contó: "conté 18 de mango", "hay 20 ' +
+      'cajas de papaya en el fondo", "de plátano isla quedan 12, ya las conté". Es el total que hay ahora, no lo que salió: "se ' +
+      'malograron 2 de mango" es merma, y "¿cuántas cajas de mango me quedan?" es una pregunta (consultar).',
+    esquema: z.object({
+      producto_texto: z.string().min(1),
+      contado: z.number().min(0).describe("Las cajas que HAY ahora en total, contadas. Cero si no queda ninguna. «Media» = 0.5."),
+      causa: z
+        .enum(CAUSAS_CONTEO)
+        .nullable()
+        .default(null)
+        .describe(
+          "Solo si dijo por qué no cuadra con la app: se_malogro (se pudrieron, se malograron), venta_sin_anotar (se vendió y no se " +
+            "anotó), compra_sin_anotar (llegó y no se anotó), no_se (dijo que no sabe). null si no dijo nada de eso.",
+        ),
+      dudas,
+    }),
   },
   registrar_gasto: {
     descripcion: "Un gasto que no es compra de fruta.",
