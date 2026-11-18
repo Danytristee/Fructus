@@ -168,7 +168,7 @@ describe("abono: lo que falta y corregir (ADR-0027)", () => {
   });
 });
 
-describe("guionConteo (ADR-0027)", () => {
+describe("guionConteo (ADR-0028)", () => {
   const conteo = (cambios = {}) => ({ producto: { id: 1, nombre: "Mango Kent" }, contado: 18, causa: null, ...cambios });
 
   it("si cuadra, lo dice y pregunta", () => {

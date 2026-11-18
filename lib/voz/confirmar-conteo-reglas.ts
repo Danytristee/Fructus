@@ -1,4 +1,4 @@
-// El conteo físico (ADR-0027): de la tarjeta (lo que se dictó o se abrió a mano) al borrador que la persona ajusta, y del borrador a
+// El conteo físico (ADR-0028): de la tarjeta (lo que se dictó o se abrió a mano) al borrador que la persona ajusta, y del borrador a
 // lo que recibe registrar_conteo. Se anota lo CONTADO; la diferencia con la app la recalcula la base al guardar. Lógica pura.
 import { formatearCajas } from "../formato";
 import type { Tarjeta } from "./tarjeta-reglas";

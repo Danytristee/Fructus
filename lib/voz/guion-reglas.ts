@@ -58,7 +58,7 @@ const CAUSA_HABLADA: Record<CausaConteo, string> = {
 };
 
 /**
- * El conteo dicho (ADR-0027): «Contaste 18 cajas de Mango Kent. La app decía 20: faltan 2, se malograron. ¿Confirmo?». Si no cuadra
+ * El conteo dicho (ADR-0028): «Contaste 18 cajas de Mango Kent. La app decía 20: faltan 2, se malograron. ¿Confirmo?». Si no cuadra
  * y no se dijo por qué, no se confirma hablando: se elige la causa en la tarjeta. Sin saber qué dice la app, se avisa que hace falta
  * señal.
  */

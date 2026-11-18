@@ -2734,7 +2734,7 @@
     },
     {
       "id": "conteo-con-causa",
-      "transcripcion": "Conté las mandarinas, hay 20, dos se malograron y nadie las anotó",
+      "transcripcion": "Conté 20 cajas de mandarina, dos se malograron y nadie las anotó",
       "esperado": {
         "herramienta": "registrar_conteo",
         "datos": {
@@ -2752,7 +2752,7 @@
         "datos": {
           "producto_texto": "platano isla",
           "contado": 30,
-          "causa": "compra_sin_anotar"
+          "causa": "llego_mas"
         }
       }
     },

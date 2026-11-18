@@ -201,7 +201,7 @@ describe("armarTarjeta · venta", () => {
   });
 });
 
-describe("armarTarjeta · conteo (ADR-0027)", () => {
+describe("armarTarjeta · conteo (ADR-0028)", () => {
   const mango = { id: 1, nombre: "Mango Kent", similitud: 1 };
   it("trae lo contado, la causa dicha y el stock que leyó el servidor", () => {
     const t = armarTarjeta(interpretar("registrar_conteo", { producto_texto: "mango", contado: 18, causa: "se_malogro" }), {

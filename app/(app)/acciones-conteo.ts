@@ -7,7 +7,7 @@ import { sinComando } from "@/lib/cola-reglas";
 import { leerStock, marcarComando, PRODUCTO_YA_NO_ESTA, sesion, SIN_SENAL, sinSesion } from "@/lib/voz/accion-servidor";
 import { CAUSAS_CONTEO, CONTEO_MAXIMO, pedidoConteo } from "@/lib/voz/confirmar-conteo-reglas";
 
-// Guardar un conteo físico (ADR-0027) por registrar_conteo: la base recalcula la diferencia con el stock de ese instante y, si no
+// Guardar un conteo físico (ADR-0028) por registrar_conteo: la base recalcula la diferencia con el stock de ese instante y, si no
 // cuadra, deja la merma o el ajuste. Idempotente por comando: un segundo toque devuelve el mismo conteo. Necesita señal: sin ella no
 // se puede comparar con lo que dice la app, así que no va a la cola del celular (CLAUDE.md, regla 10).
 

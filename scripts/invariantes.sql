@@ -131,7 +131,7 @@ begin
   where v.condicion <> 'credito' or v.cliente_id is distinct from a.cliente_id or a.monto >= v.total;
   if v_n > 0 then v_msg := v_msg || format(E'\n  INV-13: %s abono(s) al llevar que no calzan con su venta', v_n); end if;
 
-  -- INV-14 · Cada conteo dejó en el stock exactamente su diferencia (ADR-0027): si no cuadró, un solo movimiento atado a él, por la
+  -- INV-14 · Cada conteo dejó en el stock exactamente su diferencia (ADR-0028): si no cuadró, un solo movimiento atado a él, por la
   --          diferencia, como merma si se malogró y como ajuste si no; si cuadró, ninguno.
   select count(*) into v_n
   from conteos c

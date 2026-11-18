@@ -88,7 +88,7 @@ function FilaProducto({ e, hoy, puedeRegistrar, alVer }: { e: EstadoProducto; ho
           ))}
         </dl>
         {e.alertas[0] && <p className="pb-2 text-texto-suave">{e.alertas[0].recomendacion}</p>}
-        {/* Registrar lo que se malogró de esta fruta, o contarla (ADR-0027): ya traen la fruta. */}
+        {/* Registrar lo que se malogró de esta fruta, o contarla (ADR-0028): ya traen la fruta. */}
         {puedeRegistrar && (
           <div className="grid gap-2 pb-2">
             <MermaAMano producto={{ id: e.id, nombre: e.nombre }} variante="fila" />
@@ -156,7 +156,7 @@ export function ListaStock({ estados, resumen, hoy, puedeRegistrar, alVer }: Pro
               <p className="text-base leading-snug text-texto-suave">{frutasSinCajas.join(", ")}</p>
             </section>
           )}
-          {/* Lo que según la app no tiene cajas no tiene fila: si llegó sin anotar, se cuenta desde aquí (ADR-0027). */}
+          {/* Lo que según la app no tiene cajas no tiene fila: si llegó sin anotar, se cuenta desde aquí (ADR-0028). */}
           {puedeRegistrar && (frutasSinCajas.length > 0 || grupos.some((g) => g.sinCajas.length > 0)) && (
             <ConteoAMano producto={null} sugeridos={sugeridosParaConteo(estados.filter((e) => e.stock <= 0))} variante="fila" etiqueta="Contar una fruta sin cajas" />
           )}

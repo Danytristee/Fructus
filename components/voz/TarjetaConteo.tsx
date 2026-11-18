@@ -55,7 +55,7 @@ const pieza = (n: number) => ({ animationDelay: `${120 + n * 55}ms` });
 /** «Todavía leyendo» y «no se pudo leer» son distintos: el primero espera, el segundo pide señal. */
 type Stock = { estado: "leyendo" } | { estado: "listo"; cajas: number } | { estado: "sin_senal" };
 
-// Conteo físico (ADR-0027): qué fruta, cuántas cajas hay de verdad, cómo se compara con la app y, si no cuadra, por qué. El contador
+// Conteo físico (ADR-0028): qué fruta, cuántas cajas hay de verdad, cómo se compara con la app y, si no cuadra, por qué. El contador
 // arranca en lo que dice la app: si cuadra, no se toca nada. Necesita señal: sin saber qué dice la app no hay con qué comparar.
 export function TarjetaConteo({ tarjeta, comandoId, latenciaMs, alGuardar, alDescartar, alCambiarGuardando, aMano = false }: Props) {
   const [borrador, setBorrador] = useState<BorradorConteo>(() => borradorConteo(tarjeta));

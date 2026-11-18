@@ -1,5 +1,5 @@
 -- =============================================================================
--- Conteo físico con ajuste (función 1 del Informe T3; ADR-0027).
+-- Conteo físico con ajuste (función 1 del Informe T3; ADR-0028).
 --
 -- El problema: el stock de la app es la suma de los movimientos, y en el puesto se cuela lo que nadie anota (una compra que llegó de
 -- noche, dos cajas que se pudrieron al fondo, una venta al paso). La app dice 20 cajas de mango y en el puesto hay 18. Hasta hoy no
@@ -47,7 +47,7 @@ create table conteos (
   )
 );
 comment on table conteos is
-  'Conteo físico de una fruta: lo contado, lo que decía la app y la causa de la diferencia. Solo se agregan, por registrar_conteo (ADR-0027).';
+  'Conteo físico de una fruta: lo contado, lo que decía la app y la causa de la diferencia. Solo se agregan, por registrar_conteo (ADR-0028).';
 
 create unique index conteos_uno_por_comando on conteos (comando_voz_id) where comando_voz_id is not null;
 create index conteos_producto on conteos (producto_id);
@@ -159,7 +159,7 @@ end;
 $$;
 
 comment on function registrar_conteo(bigint, numeric, causa_conteo, bigint, timestamptz, numeric) is
-  'Registra un conteo físico: calcula la diferencia con el stock de ese instante y, si no cuadra, la deja como merma (se malogró) o ajuste. Dueño, administrador y ayudante (ADR-0027).';
+  'Registra un conteo físico: calcula la diferencia con el stock de ese instante y, si no cuadra, la deja como merma (se malogró) o ajuste. Dueño, administrador y ayudante (ADR-0028).';
 
 revoke execute on function registrar_conteo(bigint, numeric, causa_conteo, bigint, timestamptz, numeric) from public, anon;
 grant execute on function registrar_conteo(bigint, numeric, causa_conteo, bigint, timestamptz, numeric) to authenticated;

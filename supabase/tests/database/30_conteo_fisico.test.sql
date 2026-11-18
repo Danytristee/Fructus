@@ -1,5 +1,5 @@
 -- =============================================================================
--- Conteo físico con ajuste (ADR-0027) — pruebas pgTAP.
+-- Conteo físico con ajuste (ADR-0028) — pruebas pgTAP.
 -- Se registra lo contado; la base calcula la diferencia con el stock de ese instante y, si no cuadra, la deja como merma (se malogró)
 -- o ajuste. Cuentan dueño, administrador y ayudante; el contador no. Nadie inserta un ajuste directo.
 -- =============================================================================

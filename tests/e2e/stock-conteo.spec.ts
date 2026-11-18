@@ -5,7 +5,7 @@ import { entrarComo, type Rol } from "./cuentas";
 import { abastecer, stockDe } from "./dictar";
 import { verTuStock } from "./stock";
 
-// Contar a mano desde Stock (ADR-0027): el contador arranca en lo que dice la app, se compara, se dice por qué no cuadra y la base
+// Contar a mano desde Stock (ADR-0028): el contador arranca en lo que dice la app, se compara, se dice por qué no cuadra y la base
 // deja el stock en lo contado. Cada prueba crea su propia fruta, así las corridas en paralelo no se pisan; al terminar se desactivan.
 
 test.setTimeout(90_000);

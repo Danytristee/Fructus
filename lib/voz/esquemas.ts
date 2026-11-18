@@ -4,7 +4,6 @@
 import { z } from "zod";
 
 import { ESTADOS_LLEGADA } from "../vida-util-reglas";
-import { CAUSAS_CONTEO } from "./confirmar-conteo-reglas";
 
 const medio = z.enum(["efectivo", "yape", "plin", "transferencia"]);
 const condicion = z.enum(["contado", "credito"]);
@@ -19,6 +18,12 @@ const dudas = z
       "ya lo pide o lo marca. NO expliques la cuenta ni repitas lo que entendiste.",
   );
 const cantidad = z.number().positive().describe("Cajas.");
+/**
+ * Las causas de un conteo como las ve el modelo. No son las de la base (venta_sin_anotar, compra_sin_anotar): con «anotar» en los
+ * nombres, «anótalo» (crédito, en una venta) dejaba de leerse como crédito (/voz-precision 2026-11-17-6, venta-anotalo 3 de 3 con la
+ * herramienta, 0 de 3 sin ella). tarjeta-reglas.ts las traduce.
+ */
+export const CAUSAS_DICHAS = ["se_malogro", "se_vendio", "llego_mas", "no_se"] as const;
 const dinero = z.number().nonnegative();
 
 const herramientasVoz = {
@@ -104,19 +109,19 @@ const herramientasVoz = {
   },
   registrar_conteo: {
     descripcion:
-      'Conteo físico (ADR-0027): la persona AFIRMA cuántas cajas HAY de una fruta porque las contó: "conté 18 de mango", "hay 20 ' +
+      'Conteo físico (ADR-0028): la persona AFIRMA cuántas cajas HAY de una fruta porque las contó: "conté 18 de mango", "hay 20 ' +
       'cajas de papaya en el fondo", "de plátano isla quedan 12, ya las conté". Es el total que hay ahora, no lo que salió: "se ' +
       'malograron 2 de mango" es merma, y "¿cuántas cajas de mango me quedan?" es una pregunta (consultar).',
     esquema: z.object({
       producto_texto: z.string().min(1),
       contado: z.number().min(0).describe("Las cajas que HAY ahora en total, contadas. Cero si no queda ninguna. «Media» = 0.5."),
       causa: z
-        .enum(CAUSAS_CONTEO)
+        .enum(CAUSAS_DICHAS)
         .nullable()
         .default(null)
         .describe(
-          "Solo si dijo por qué no cuadra con la app: se_malogro (se pudrieron, se malograron), venta_sin_anotar (se vendió y no se " +
-            "anotó), compra_sin_anotar (llegó y no se anotó), no_se (dijo que no sabe). null si no dijo nada de eso.",
+          "Solo si dijo por qué no cuadra con la app: se_malogro (se pudrieron, se malograron), se_vendio (se vendieron y no quedaron " +
+            "en la app), llego_mas (llegó fruta que no está en la app), no_se (dijo que no sabe). null si no dijo nada de eso.",
         ),
       dudas,
     }),

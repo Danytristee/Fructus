@@ -218,7 +218,7 @@ describe("tarjetaTemperaturaAMano", () => {
   it("sin ninguna parte de un número del medio y no compara", () => expect(tarjetaTemperaturaAMano(null, null)).toEqual({ tipo: "temperatura", grados: 25, ayer: null }));
 });
 
-describe("conteo a mano (ADR-0027)", () => {
+describe("conteo a mano (ADR-0028)", () => {
   it("ofrece primero las frutas en negativo, después las que no tienen cajas y al final las de más cajas", () => {
     const frutas = [
       { id: 1, nombre: "Mango Kent", stock: 20 },
