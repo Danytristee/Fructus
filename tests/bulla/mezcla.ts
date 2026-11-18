@@ -23,9 +23,11 @@ export type Escenario = {
   grito?: { db: number; donde: number };
   /** Cuándo empieza a hablar desde que se abrió el micrófono (s). */
   inicioS?: number;
+  /** Cuánto dura todo, con la bulla de después (s). */
+  largoS?: number;
 };
 
-/** Cuánto dura cada escenario: el dictado y varios segundos de bulla después. */
+/** Lo que dura un escenario si no se dice otra cosa: el dictado y varios segundos de bulla después. */
 const LARGO_S = 14;
 /** El volumen de quien dicta mientras habla (dB respecto del máximo): un palmo del celular. */
 const VOZ_DB = -20;
@@ -74,7 +76,18 @@ function azarCon(semilla: number) {
   return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
 }
 
+/** La bulla sale igual cada vez (semilla fija): se arma una sola vez por ruido y largo. */
+const bullas = new Map<string, Float32Array>();
 function bulla(ruido: Ruido, largo: number): Float32Array {
+  const clave = `${ruido}/${largo}`;
+  const ya = bullas.get(clave);
+  if (ya) return ya;
+  const hecha = armarBulla(ruido, largo);
+  bullas.set(clave, hecha);
+  return hecha;
+}
+
+function armarBulla(ruido: Ruido, largo: number): Float32Array {
   const azar = azarCon(7);
   const out = new Float32Array(largo);
   if (ruido.includes("calle")) {
@@ -111,7 +124,7 @@ function bulla(ruido: Ruido, largo: number): Float32Array {
 /** El audio del escenario y en qué ms terminó de hablar quien dicta (contado desde que se abrió el micrófono). */
 export function mezclar(e: Escenario): { muestras: Float32Array; finVozMs: number } {
   const voz = leer(`dictado-${e.dictado}`);
-  const largo = LARGO_S * FRECUENCIA;
+  const largo = (e.largoS ?? LARGO_S) * FRECUENCIA;
   const inicio = Math.floor((e.inicioS ?? 1) * FRECUENCIA);
   const ganancia = 10 ** (VOZ_DB / 20) / rmsDeLoHablado(voz);
   let fin = 0;

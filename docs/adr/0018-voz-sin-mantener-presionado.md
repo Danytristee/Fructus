@@ -65,6 +65,10 @@ ni con la voz 25 dB por encima.
 - **Resultado** (`lib/voz/silencio-reglas.bulla.test.ts`): con vecinos 20 dB por debajo envía al callarse (1.1 s, como en silencio);
   15 dB por debajo, en hasta 4 s; en 234 casos, incluidos gritos de 8, 14 y 20 dB, nunca corta antes de la última palabra.
 - **Lo que el volumen no alcanza:** vecinos a 10 dB o menos por debajo de la voz, o un ruido parejo casi tan fuerte como ella. Ahí
-  sigue sin «callarse» y se envía con un toque o a los 55 s. Silero se midió sobre los mismos audios
+  no «se calla».
+- **Por eso, un tope: a los 15 s de empezar a hablar se envía igual** (`TOPE_HABLANDO_MS`), en vez de esperar los 55 s. La venta más
+  larga de los casos del intérprete se dice en unos 9 s. Cuenta desde que lleva 0.4 s de voz, no desde el toque: pensar antes de
+  hablar no lo gasta, y una pausa no lo reinicia. Un dictado de más de 15 s se corta: lo que faltó se corrige en la tarjeta (decidido
+  el 2026-11-18). Silero se midió sobre los mismos audios
   (`docs/bitacora/2026-11-18-voz-fin-de-habla-con-bulla.md`): resuelve el ruido parejo y termina más rápido, pero no separa la voz de
   quien dicta de la de un vecino igual de fuerte, porque las dos son voz.

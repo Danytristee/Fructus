@@ -8,7 +8,8 @@
 //
 // Sin la segunda pregunta, con bulla nunca «se callaba»: el fondo bajaba a los huecos entre grito y grito, y cualquier voz ajena quedaba
 // por encima y volvía a cero la cuenta del silencio (docs/bitacora/2026-11-18-voz-fin-de-habla-con-bulla.md). Si la bulla suena tan
-// fuerte como quien dicta, el volumen no alcanza para separarlas: se envía con un toque, o a los 55 s.
+// fuerte como quien dicta, el volumen no alcanza para separarlas: nunca «se calla», y se envía a los TOPE_HABLANDO_MS de empezar a
+// hablar (o antes, con un toque).
 
 /** Cada cuánto se mide el volumen (ms). */
 export const CUADRO_MS = 50;
@@ -16,6 +17,12 @@ export const CUADRO_MS = 50;
 export const SILENCIO_PARA_ENVIAR_MS = 1200;
 /** Voz mínima antes de que el silencio cuente: un golpe o una tos sueltos no envían nada. */
 export const VOZ_MINIMA_MS = 400;
+/**
+ * Desde que empezó a hablar, a los 15 s se envía aunque no se calle: con un vecino que pregona tan fuerte como quien dicta, nunca «se
+ * calla». La venta más larga de los casos del intérprete («Vendí 10 cajas de mango a don Lucho a 500, pagó 1000 con Yape y 500 en
+ * efectivo, lo demás lo debe») se dice en unos 9 s.
+ */
+export const TOPE_HABLANDO_MS = 15_000;
 /** Un cuadro suena si está al menos esto por encima del fondo (dB). */
 const SOBRE_EL_FONDO_DB = 12;
 /** Por debajo de esto siempre es silencio (dB respecto del máximo del micrófono). */
@@ -39,10 +46,11 @@ const BAJADA_DE_LA_VOZ_DB = 0.025;
 /**
  * Lo que lleva oído: el ruido de fondo y la voz de quien dicta (null antes de saberlos), y el volumen de cada cuadro desde que empezó a
  * escuchar (o desde la última vez que terminó). Se guardan para volver a mirarlos contra el fondo y la voz de ahora: ver `oir`.
+ * `hablandoMs`: cuánto pasó desde que empezó a hablar (null antes), para el tope.
  */
-export type Oido = { fondo: number | null; voz: number | null; niveles: number[] };
+export type Oido = { fondo: number | null; voz: number | null; niveles: number[]; hablandoMs: number | null };
 
-export const OIDO_NUEVO: Oido = { fondo: null, voz: null, niveles: [] };
+export const OIDO_NUEVO: Oido = { fondo: null, voz: null, niveles: [], hablandoMs: null };
 
 /** Cuántos cuadros se recuerdan: 20 s. Para decidir si se calló no hace falta mirar más atrás. */
 const CUADROS_RECORDADOS = 400;
@@ -70,7 +78,7 @@ function vozDeQuienDicta(antes: number | null, niveles: readonly number[], fondo
 
 /**
  * Un cuadro más. `termino`: habló al menos VOZ_MINIMA_MS y después calló `silencioMs` seguidos (un dictado, SILENCIO_PARA_ENVIAR_MS;
- * una respuesta de una palabra, menos). Al terminar, lo oído se reinicia (el fondo y la voz se conservan): si el dedo seguía encima y no
+ * una respuesta de una palabra, menos), o ya lleva TOPE_HABLANDO_MS desde que empezó a hablar. Al terminar, lo oído se reinicia (el fondo y la voz se conservan): si el dedo seguía encima y no
  * se envió, la próxima vez que se calle vuelve a avisar. `vozMs`: cuánta voz lleva, para saber si ya empezó a hablar.
  *
  * Lo oído se vuelve a mirar en cada cuadro contra el fondo y la voz de ahora. El primer cuadro es la primera idea del fondo, y si la
@@ -90,6 +98,9 @@ export function oir(o: Oido, nivel: number, silencioMs = SILENCIO_PARA_ENVIAR_MS
   let callado = 0;
   for (let k = niveles.length - 1; k >= 0 && !esVoz(niveles[k]!, fondo, voz); k--) callado++;
   const vozMs = cuadrosConVoz * CUADRO_MS;
-  if (vozMs >= VOZ_MINIMA_MS && callado * CUADRO_MS >= silencioMs) return { oido: { fondo, voz, niveles: [] }, termino: true, vozMs };
-  return { oido: { fondo, voz, niveles }, termino: false, vozMs };
+  // Empezó a hablar cuando ya lleva la voz mínima: un golpe suelto no echa a andar el tope. Desde ahí cuenta aunque después calle.
+  const hablandoMs = o.hablandoMs !== null ? o.hablandoMs + CUADRO_MS : vozMs >= VOZ_MINIMA_MS ? VOZ_MINIMA_MS : null;
+  const termino = vozMs >= VOZ_MINIMA_MS && (callado * CUADRO_MS >= silencioMs || (hablandoMs ?? 0) >= TOPE_HABLANDO_MS);
+  if (termino) return { oido: { fondo, voz, niveles: [], hablandoMs: null }, termino, vozMs };
+  return { oido: { fondo, voz, niveles, hablandoMs }, termino, vozMs };
 }

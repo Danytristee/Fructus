@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CUADRO_MS, OIDO_NUEVO, SILENCIO_PARA_ENVIAR_MS, VOZ_MINIMA_MS, nivelDb, oir, type Oido } from "./silencio-reglas";
+import { CUADRO_MS, OIDO_NUEVO, SILENCIO_PARA_ENVIAR_MS, TOPE_HABLANDO_MS, VOZ_MINIMA_MS, nivelDb, oir, type Oido } from "./silencio-reglas";
 
 /** Tramos de [nivel en dB, ms]. Devuelve en qué ms terminó cada vez (desde el primer cuadro). */
 function escuchar(tramos: [number, number][], desde: Oido = OIDO_NUEVO) {
@@ -51,14 +51,32 @@ describe("oir", () => {
     expect(escuchar(tramos).fines).toEqual([]);
   });
 
-  it("si el ruido suena tan fuerte como la voz, nunca «se calla»: se envía con un toque", () => {
+  it("si el ruido suena tan fuerte como la voz, no «se calla»: no termina mientras suena (se envía con un toque o al tope)", () => {
     expect(escuchar([[FONDO, 300], [VOZ, 6000]]).fines).toEqual([]);
   });
 
-  it("mientras habla, el fondo no sube: una frase larga no se corta sola", () => {
-    const { fines, oido } = escuchar([[FONDO, 300], [VOZ, 20_000]]);
+  it("mientras habla, el fondo no sube: una frase larga no se corta sola antes del tope", () => {
+    const { fines, oido } = escuchar([[FONDO, 300], [VOZ, 14_000]]);
     expect(fines).toEqual([]);
     expect(oido.fondo).toBeCloseTo(FONDO, 5);
+  });
+
+  describe("el tope: si nunca se calla, a los 15 s de empezar a hablar se envía igual", () => {
+    it("con la bulla tan fuerte como la voz, termina a los 15 s de empezar a hablar", () => {
+      expect(escuchar([[FONDO, 300], [VOZ, 20_000]]).fines).toEqual([300 + TOPE_HABLANDO_MS]);
+    });
+
+    it("cuenta desde que empezó a hablar, no desde que se abrió el micrófono: pensar antes de hablar no lo gasta", () => {
+      expect(escuchar([[FONDO, 4000], [VOZ, 20_000]]).fines).toEqual([4000 + TOPE_HABLANDO_MS]);
+    });
+
+    it("una pausa para pensar no lo reinicia", () => {
+      expect(escuchar([[FONDO, 300], [VOZ, 8000], [FONDO, 1000], [VOZ, 10_000]]).fines).toEqual([300 + TOPE_HABLANDO_MS]);
+    });
+
+    it("un golpe suelto no lo echa a andar", () => {
+      expect(escuchar([[FONDO, 300], [VOZ, VOZ_MINIMA_MS - CUADRO_MS], [FONDO, 16_000]]).fines).toEqual([]);
+    });
   });
 
   it("después de terminar vuelve a empezar: si no se envió (el dedo seguía encima), avisa otra vez al callarse de nuevo", () => {

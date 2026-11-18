@@ -15,7 +15,12 @@
 - **Silero VAD, medido sobre los mismos audios** (v6.2, `silero_vad_16k_op15.onnx`, 1.3 MB, MIT): resuelve el ruido parejo fuerte
   (calle a 5 dB) y baja la demora con ruido (p90 de 3.4 s a 1.6 s), pero con vecinos a 10 dB o menos sigue sin enviar: sus voces
   también son voz. Cuesta 3.7 MB la primera vez (ONNX Runtime 2.4 MB + modelo) y 1.5 ms por cada 32 ms de audio en Node.
+- **El tope de 15 s** (decidido el 2026-11-18, con Silero): con vecinos casi tan fuertes como quien dicta, nada que solo escuche los
+  separa, así que a los 15 s de empezar a hablar se envía igual (`TOPE_HABLANDO_MS`), no a los 55. Vitest: 4 casos del tope y, sobre la
+  bulla de verdad, todos los casos con vecinos a 10 y 5 dB terminan a más tardar en el tope. e2e `voz-silencio` «si la bulla nunca deja
+  callarse» a 412 y 360 px: envía a los ~15 s y no corta una venta de 12 s.
 - **Pendiente:**
-  - Con vecinos casi tan fuertes como quien dicta, nada que solo escuche los separa: hace falta un tope (hoy 55 s) o el audífono.
+  - `voz-silencio.spec.ts:39` falla a 360 px cuando es la primera prueba con el servidor recién arrancado (el toque se pierde mientras
+    compila) y pasa al repetirla: no es del cambio, que no toca el gesto.
   - Medir con audio real del puesto (`tests/interprete/audios/LEEME.md`): las voces del Mac son más limpias que la bulla de verdad.
   - Probar en el S25 con y sin audífono.

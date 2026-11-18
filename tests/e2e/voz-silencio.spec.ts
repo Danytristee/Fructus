@@ -95,3 +95,21 @@ test("mientras se mantiene el dedo, callarse no envía: manda el dedo", async ({
   await page.mouse.up();
   await pedido;
 });
+
+test("si la bulla nunca deja «callarse», a los 15 s de empezar a hablar se envía solo, no a los 55", async ({ page }) => {
+  test.slow();
+  const pedidos = await preparar(page);
+  const orbe = page.locator("button[data-estado]");
+  await tocarOrbe(page);
+  await expect(orbe).toHaveAttribute("data-bloqueado", "true", { timeout: 10_000 });
+
+  const pedido = page.waitForRequest((r) => r.url().endsWith("/api/voz"), { timeout: 25_000 });
+  await hablar(page); // y no se calla nunca: el vecino pregona tan fuerte como la voz
+  await page.waitForTimeout(12_000);
+  expect(pedidos()).toBe(0); // una venta larga de 12 s no se corta
+  const enviado = await pedido;
+  const duracion = Number(enviado.postDataBuffer()!.toString("latin1").match(/name="duracion_ms"\r\n\r\n(\d+)/)?.[1]);
+  expect(duracion).toBeGreaterThanOrEqual(15_000);
+  expect(duracion).toBeLessThan(18_000);
+  await expect(page.getByRole("dialog", { name: "¿Así fue la venta?" })).toBeVisible({ timeout: 15_000 });
+});

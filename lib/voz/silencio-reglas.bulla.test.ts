@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { FRECUENCIA, mezclar, type Dictado, type Escenario, type Ruido } from "../../tests/bulla/mezcla";
-import { CUADRO_MS, OIDO_NUEVO, nivelDb, oir } from "./silencio-reglas";
+import { CUADRO_MS, OIDO_NUEVO, TOPE_HABLANDO_MS, nivelDb, oir } from "./silencio-reglas";
 
 // Cuándo se da por terminado un dictado con la bulla del mercado encima, sobre audio de verdad: voces sintéticas del Mac
 // (tests/bulla/) mezcladas con vecinos que pregonan, golpes de jabas y el rumor de la calle. Antes de comparar contra la voz de quien
@@ -10,7 +10,7 @@ import { CUADRO_MS, OIDO_NUEVO, nivelDb, oir } from "./silencio-reglas";
 const MUESTRAS_POR_CUADRO = (FRECUENCIA * CUADRO_MS) / 1000;
 const DICTADOS: Dictado[] = ["venta", "pensando", "abono"];
 
-/** En qué ms se dio por terminado, o null si nunca (se enviaría con un toque o a los 55 s). */
+/** En qué ms se dio por terminado (al callarse o al tope), o null si nunca. */
 function terminaEn(muestras: Float32Array): number | null {
   let o = OIDO_NUEVO;
   for (let i = 0; i + MUESTRAS_POR_CUADRO <= muestras.length; i += MUESTRAS_POR_CUADRO) {
@@ -60,6 +60,18 @@ describe("con bulla de verdad", () => {
         }
   });
 
+  it("con vecinos casi tan fuertes como quien dicta (10 y 5 dB), el volumen no los separa, pero igual termina: a más tardar en el tope", () => {
+    for (const dictado of DICTADOS)
+      for (const inicioS of [0.3, 2])
+        for (const ruido of ["vecinos", "vecinos+golpes"] as Ruido[])
+          for (const snrDb of [10, 5]) {
+            const e = { dictado, ruido, snrDb, inicioS, largoS: 20 };
+            const fin = terminaEn(mezclar(e).muestras);
+            expect(fin, nombre(e)).not.toBeNull();
+            expect(fin!, nombre(e)).toBeLessThanOrEqual(inicioS * 1000 + TOPE_HABLANDO_MS + 1000);
+          }
+  });
+
   it("nunca corta antes de que termine de hablar: ni en la pausa para pensar el precio, ni con la bulla fuerte, ni si un vecino grita", () => {
     const escenarios: Escenario[] = [];
     for (const dictado of DICTADOS)
@@ -74,5 +86,5 @@ describe("con bulla de verdad", () => {
       const d = demora(e);
       if (d !== null) expect(d, nombre(e)).toBeGreaterThanOrEqual(300);
     }
-  });
+  }, 30_000); // 108 escenarios de 14 s: con la máquina ocupada pasa de los 5 s de Vitest
 });
